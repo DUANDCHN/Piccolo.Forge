@@ -1,3 +1,4 @@
+using System.Linq;
 using Avalonia;
 using Avalonia.Input;
 using Avalonia.Threading;
@@ -8,6 +9,7 @@ using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Piccolo.Forge.Avalonia;
 using Piccolo.Forge.Model;
+using Piccolo.Forge.Mvvm;
 using Piccolo.Forge.Themes;
 using Xunit;
 

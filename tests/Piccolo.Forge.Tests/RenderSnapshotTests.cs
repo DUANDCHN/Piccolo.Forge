@@ -5,6 +5,7 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using Avalonia.Styling;
 using Avalonia.Threading;
 using Piccolo.Forge.Avalonia;
 using Piccolo.Forge.Model;
@@ -168,6 +169,71 @@ public class RenderSnapshotTests
         bitmap.Save(path, new PngBitmapEncoderOptions());
 
         Assert.True(new FileInfo(path).Length > 0);
+    }
+
+
+    /// <summary>按 LDVision 的样子渲一张浅色整机图（工具窗口 + 编辑区标签页），用来肉眼对照。</summary>
+    [AvaloniaTheory]
+    [InlineData("light")]
+    [InlineData("dark")]
+    public void Render_an_ldvision_like_layout_with_documents(string themeName)
+    {
+        var palette = themeName == "light" ? ForgePalette.ExpUiLight : ForgePalette.ExpUiDark;
+        var shell = new ToolWindowShellViewModel();
+
+        (string Id, string Title, ToolWindowAnchor Anchor, bool Split, Geometry Icon)[] definitions =
+        [
+            ("CamList", "相机列表", ToolWindowAnchor.Left, false, ForgeIcons.Camera),
+            ("ImageLibrary", "本地文件", ToolWindowAnchor.Left, false, ForgeIcons.Project),
+            ("CamParam", "相机参数", ToolWindowAnchor.Right, false, ForgeIcons.Settings),
+            ("DisplayLog", "日志管理", ToolWindowAnchor.Bottom, false, ForgeIcons.Terminal),
+            ("ImageStats", "图像统计", ToolWindowAnchor.Bottom, false, ForgeIcons.Chart),
+            ("Histogram", "直方图", ToolWindowAnchor.Bottom, true, ForgeIcons.Chart),
+            ("PixelInspector", "像素查看器", ToolWindowAnchor.Bottom, true, ForgeIcons.Find),
+        ];
+
+        foreach (var (id, title, anchor, split, icon) in definitions)
+        {
+            shell.Add(id, title, anchor, split, icon);
+        }
+
+        var editor = new EditorAreaViewModel();
+        editor.Open("cam-1", "彩条测试图 1280×1024", "实时画面");
+        editor.Open("snap-1", "快照 #12", "静态图");
+        editor.Find("cam-1")!.Icon = ForgeIcons.Camera;
+        editor.Find("snap-1")!.Icon = ForgeIcons.Bookmarks;
+
+        var editorControl = new ForgeEditorArea();
+        editorControl.Attach(editor);
+
+        var frame = new ForgeToolWindowFrame { EditorContent = editorControl };
+        frame.Attach(shell);
+
+        shell.Open("ImageLibrary");
+        shell.Open("CamParam");
+        shell.Open("DisplayLog");
+
+        var window = new Window
+        {
+            Width = 1100,
+            Height = 700,
+            WindowDecorations = WindowDecorations.None,
+            RequestedThemeVariant = themeName == "light" ? ThemeVariant.Light : ThemeVariant.Dark,
+            Content = frame,
+        };
+
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        // 跟随变体：宿主没设 Palette，两个控件都应自己切到这一套
+        Assert.Same(palette, frame.Palette);
+        Assert.Same(palette, editorControl.Palette);
+
+        var bitmap = window.CaptureRenderedFrame();
+        Assert.NotNull(bitmap);
+
+        Directory.CreateDirectory(OutputDirectory);
+        bitmap!.Save(Path.Combine(OutputDirectory, $"forge-ldvision-{themeName}.png"), new PngBitmapEncoderOptions());
     }
 
     /// <summary>
