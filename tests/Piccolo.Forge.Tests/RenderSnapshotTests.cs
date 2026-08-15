@@ -1,4 +1,6 @@
 using Avalonia;
+using System.Linq;
+using Avalonia.Input;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
@@ -234,6 +236,48 @@ public class RenderSnapshotTests
 
         Directory.CreateDirectory(OutputDirectory);
         bitmap!.Save(Path.Combine(OutputDirectory, $"forge-ldvision-{themeName}.png"), new PngBitmapEncoderOptions());
+    }
+
+
+    /// <summary>拖动中的样子：目标区域高亮 + 条带落点方块（明暗各一，肉眼复核用）。</summary>
+    [AvaloniaTheory]
+    [InlineData("light")]
+    [InlineData("dark")]
+    public void Render_a_drag_in_progress(string themeName)
+    {
+        var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
+        var frame = new ForgeToolWindowFrame
+        {
+            EditorContent = new Border(),
+        };
+        frame.Attach(shell);
+
+        var window = new Window
+        {
+            Width = 900,
+            Height = 600,
+            WindowDecorations = WindowDecorations.None,
+            RequestedThemeVariant = themeName == "light" ? ThemeVariant.Light : ThemeVariant.Dark,
+            Content = frame,
+        };
+
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        var button = frame.LeftToolbar.TopGroup.Children.OfType<ForgeStripeButton>().First();
+        var start = button.TranslatePoint(new Point(20, 20), frame)!.Value;
+
+        window.MouseDown(start, MouseButton.Left);
+        window.MouseMove(start + new Vector(0, 260));
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.False(frame.DragOverlay.IsIdle);
+
+        var bitmap = window.CaptureRenderedFrame();
+        Assert.NotNull(bitmap);
+
+        Directory.CreateDirectory(OutputDirectory);
+        bitmap!.Save(Path.Combine(OutputDirectory, $"forge-drag-{themeName}.png"), new PngBitmapEncoderOptions());
     }
 
     /// <summary>

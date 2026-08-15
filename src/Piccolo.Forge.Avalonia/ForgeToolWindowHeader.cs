@@ -150,8 +150,10 @@ public class ForgeToolWindowHeader : TemplatedControl
     /// <inheritdoc />
     public override void Render(DrawingContext context)
     {
-        var background = IsActive ? Palette.HeaderActiveBackground : Palette.HeaderInactiveBackground;
-        context.FillRectangle(new SolidColorBrush(background), new Rect(Bounds.Size));
+        // 活动与非活动**同色**：ToolWindowHeader.kt:312 是 `val active = !isNewUi && isActive`，
+        // 新 UI 下恒为 false，drawHeader 永远走 headerBackground()。
+        // 「活动标题条」那条高亮是老 UI 的东西，照它画一眼就不像。
+        context.FillRectangle(new SolidColorBrush(Palette.HeaderBackground), new Rect(Bounds.Size));
 
         // 下边一条 1px 分隔线
         context.FillRectangle(

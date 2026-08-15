@@ -36,6 +36,7 @@ public class ForgeToolWindowFrame : TemplatedControl
     private ToolWindowShellViewModel? _shell;
     private string? _dragId;
     private Point _dragStart;
+    private readonly ForgeDragOverlay _overlay = new();
 
     /// <summary><see cref="Palette"/> 的属性定义。</summary>
     public static readonly StyledProperty<ForgePalette> PaletteProperty =
@@ -75,6 +76,11 @@ public class ForgeToolWindowFrame : TemplatedControl
         _root.Children.Add(_pane);
         VisualChildren.Add(_root);
         LogicalChildren.Add(_root);
+
+        // 覆盖层加在 _root **之后** —— 父控件的 Render 在子控件之下，
+        // 拖拽反馈必须盖在条带与面板之上才看得见。
+        VisualChildren.Add(_overlay);
+        LogicalChildren.Add(_overlay);
 
         ActualThemeVariantChanged += (_, _) => ApplyThemeVariant();
     }
@@ -195,6 +201,9 @@ public class ForgeToolWindowFrame : TemplatedControl
     /// <summary>停靠区。</summary>
     public ForgeDockPane DockPane => _pane;
 
+    /// <summary>拖拽反馈那一层 —— 盖在所有控件之上，只画不吃鼠标。</summary>
+    public ForgeDragOverlay DragOverlay => _overlay;
+
     /// <summary>
     /// 取某个工具窗口的内容管理器。
     /// </summary>
@@ -255,6 +264,7 @@ public class ForgeToolWindowFrame : TemplatedControl
     protected override Size ArrangeOverride(Size finalSize)
     {
         _root.Arrange(new Rect(finalSize));
+        _overlay.Arrange(new Rect(finalSize));
         return finalSize;
     }
 
@@ -439,6 +449,7 @@ public class ForgeToolWindowFrame : TemplatedControl
             if (moved >= ForgeMetrics.StripeButtonDragStartDeadzone)
             {
                 button.Opacity = ForgeDragOpacity;
+                UpdateDragFeedback(point);
             }
         };
 
@@ -446,6 +457,7 @@ public class ForgeToolWindowFrame : TemplatedControl
         {
             e.Pointer.Capture(null);
             button.Opacity = 1;
+            _overlay.Clear();
 
             var dragged = _dragId;
             _dragId = null;
@@ -514,6 +526,91 @@ public class ForgeToolWindowFrame : TemplatedControl
     /// 松手时落在哪根条带的哪一组、插到第几个。
     /// </summary>
     /// <remarks>落点判定见 <see cref="StripeDropResolver"/>；不在任何条带上就返回 null（本阶段不做浮动）。</remarks>
+    /// <summary>紧凑与否是按钮级的属性，从条带上现有的按钮读一个。</summary>
+    /// <returns>当前是不是紧凑模式。</returns>
+    private bool ResolveCompact()
+        => _left.TopGroup.Children.OfType<ForgeStripeButton>().FirstOrDefault()?.IsCompact ?? false;
+
+    /// <summary>
+    /// 拖动过程中的三样反馈：目标区域高亮、条带上的落点方块、「另一半」的虚线框。
+    /// </summary>
+    /// <remarks>
+    /// 出处见 <see cref="ForgeDragOverlay"/>。落点方块按上游
+    /// <c>AbstractDroppableStripe.kt:634-642</c> 去掉图标 padding，
+    /// 所以它比按钮小一圈、正好是图标那块地。
+    /// </remarks>
+    /// <param name="point">当前指针位置（相对本控件）。</param>
+    private void UpdateDragFeedback(Point point)
+    {
+        _overlay.Palette = Palette;
+        _overlay.IsCompact = ResolveCompact();
+
+        if (ResolveDropTarget(point) is not { } target)
+        {
+            _overlay.Clear();
+            return;
+        }
+
+        var toolbar = target.Anchor == ToolWindowAnchor.Right ? _right : _left;
+        var compact = _overlay.IsCompact;
+        var padding = compact ? ForgeCompactMetrics.StripeButtonIconPadding : ForgeMetrics.StripeButtonIconPadding;
+        var buttonSize = compact ? ForgeCompactMetrics.StripeButtonSize : ForgeMetrics.StripeButtonSize;
+
+        if (toolbar.TranslatePoint(default, this) is { } toolbarOrigin)
+        {
+            // 落点方块：钉在指针那一行，横向铺满条带再去掉 padding
+            var y = Math.Clamp(point.Y - (buttonSize / 2), 0, Math.Max(0, Bounds.Height - buttonSize));
+            _overlay.DropRect = new Rect(
+                toolbarOrigin.X + padding,
+                y + padding,
+                Math.Max(0, toolbar.Bounds.Width - (padding * 2)),
+                Math.Max(0, buttonSize - (padding * 2)));
+
+            // 「另一半」：30 见方的虚线框，贴着落点方块下面
+            _overlay.SplitBoxRect = target.IsSplit
+                ? new Rect(
+                    toolbarOrigin.X + ((toolbar.Bounds.Width - ForgeMetrics.StripeSplitDropBoxSize) / 2),
+                    y + buttonSize,
+                    ForgeMetrics.StripeSplitDropBoxSize,
+                    ForgeMetrics.StripeSplitDropBoxSize)
+                : null;
+        }
+
+        _overlay.AreaRect = ResolveDropAreaRect(target.Anchor, toolbar);
+    }
+
+    /// <summary>
+    /// 目标停靠区那片高亮占多大。
+    /// </summary>
+    /// <remarks>
+    /// 对应 <c>ToolWindowToolbar.kt:284-302 · getToolWindowDropAreaScreenBounds</c>：
+    /// 取那条边上第一个可见工具窗口的尺寸；一个都没开时退回
+    /// <c>getFirstVisibleToolWindowSize</c> 的兜底 <b>350</b>（<c>:271</c>）。
+    /// </remarks>
+    /// <param name="anchor">目标边。</param>
+    /// <param name="toolbar">那条边的条带。</param>
+    /// <returns>高亮矩形。</returns>
+    private Rect ResolveDropAreaRect(ToolWindowAnchor anchor, Control toolbar)
+    {
+        var origin = toolbar.TranslatePoint(default, this) ?? default;
+        var stripe = toolbar.Bounds.Width;
+
+        var host = _pane.Children.FirstOrDefault(
+            x => x.IsVisible && ForgeDockPane.GetAnchor(x) == anchor);
+
+        var visibleSize = host is null
+            ? ForgeMetrics.DropAreaFallbackSize
+            : anchor.IsHorizontal() ? host.Bounds.Height : host.Bounds.Width;
+
+        return anchor switch
+        {
+            ToolWindowAnchor.Left => new Rect(origin.X + stripe, 0, visibleSize, Bounds.Height),
+            ToolWindowAnchor.Right => new Rect(origin.X - visibleSize, 0, visibleSize, Bounds.Height),
+            ToolWindowAnchor.Top => new Rect(0, 0, Bounds.Width, visibleSize),
+            _ => new Rect(0, Math.Max(0, Bounds.Height - visibleSize), Bounds.Width, visibleSize),
+        };
+    }
+
     private StripeDropTarget? ResolveDropTarget(Point point)
     {
         foreach (var side in new[] { StripeSide.Left, StripeSide.Right })
@@ -564,6 +661,12 @@ public class ForgeToolWindowFrame : TemplatedControl
                 var target = StripeDropResolver.Resolve(side, group, offset > separatorOffset, insert);
                 return StripeDropResolver.AdjustForReversedBottomGroup(target);
             }
+
+            // 落在条带上、但不在任何一组按钮的范围里（下面那一大片空白）——
+            // 上游在这种情况下也不会放弃：AbstractDroppableStripe.kt:408-411，
+            // 一轮按钮都没命中就 `tryDroppingOnGap(data, gap, -1)`，也就是**接到末尾**。
+            // 不兜这一下，拖到空白处就完全没有反馈，看着像「这里不能放」。
+            return StripeDropResolver.Resolve(side, StripeGroup.Top, isAfterSeparator: false, order: -1);
         }
 
         return null;

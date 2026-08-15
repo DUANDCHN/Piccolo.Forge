@@ -26,6 +26,18 @@ public static class ForgeMetrics
     /// <summary>条带按钮圆角（紧凑模式）8。</summary>
     public const double StripeButtonArcCompact = 8;
 
+    /// <summary>
+    /// 拖到「另一半」时那个虚线方框的边长 <b>30</b>
+    /// （<c>AbstractDroppableStripe.kt:645 · val size = JBUI.scale(30)</c>）。
+    /// </summary>
+    public const double StripeSplitDropBoxSize = 30;
+
+    /// <summary>
+    /// 目标停靠区高亮的兜底尺寸 <b>350</b> —— 那条边一个窗口都没开着时用
+    /// （<c>ToolWindowToolbar.kt:271 · return JBUI.scale(350)</c>）。
+    /// </summary>
+    public const double DropAreaFallbackSize = 350;
+
     /// <summary>条带内按钮之间的间隙 0（<c>ToolWindowToolbar.kt:196</c>，<c>VerticalFlowLayout(0, 0)</c>）。</summary>
     public const double StripeButtonGap = 0;
 

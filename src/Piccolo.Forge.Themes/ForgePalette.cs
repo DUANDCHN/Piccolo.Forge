@@ -48,11 +48,50 @@ public sealed record ForgePalette
     /// <summary>悬停时的按钮背景（`ActionButton.hoverBackground`，带 alpha）。</summary>
     public required Color ButtonHoverBackground { get; init; }
 
-    /// <summary>激活状态的标题条背景（`ToolWindow.Header.background`，来自父主题）。</summary>
-    public required Color HeaderActiveBackground { get; init; }
+    /// <summary>
+    /// 拖拽时条带上那个落点方块的填充（`ToolWindow.Button.DragAndDrop.buttonDropBackground`）。
+    /// </summary>
+    /// <remarks>
+    /// 画法见 <c>AbstractDroppableStripe.kt:634-642</c>：去掉图标 padding、
+    /// 圆角取 <c>Toolbar.stripeButtonArc</c>，填这个色。
+    /// </remarks>
+    public required Color ButtonDropBackground { get; init; }
 
-    /// <summary>非激活状态的标题条背景（`ToolWindow.Header.inactiveBackground`）。</summary>
-    public required Color HeaderInactiveBackground { get; init; }
+    /// <summary>
+    /// 拖到「另一半」时那个虚线方框的颜色（`ToolWindow.Button.DragAndDrop.buttonDropBorderColor`）。
+    /// </summary>
+    /// <remarks>
+    /// <c>AbstractDroppableStripe.kt:644-654</c>：只在竖条带、且分隔器可见时画，
+    /// 边长 30、虚线 <c>BasicStroke(1, …, dash = [4,4])</c>，画在分隔器的上边或下边。
+    /// </remarks>
+    public required Color ButtonDropBorder { get; init; }
+
+    /// <summary>
+    /// 拖拽时目标停靠区的整片高亮（`ToolWindow.DragAndDrop.areaBackground`，带 alpha）。
+    /// </summary>
+    /// <remarks>
+    /// <c>ToolWindowDragHelper.kt:126-134 · createDropTargetHighlightComponent</c>：
+    /// 新 UI 用这个键，老 UI 用 <c>DragAndDrop.Area.BACKGROUND</c>。
+    /// </remarks>
+    public required Color DragAreaBackground { get; init; }
+
+    /// <summary>
+    /// 标题条背景（`ToolWindow.Header.inactiveBackground`）。
+    /// </summary>
+    /// <remarks>
+    /// <b>新 UI 只有这一种</b>：<c>ToolWindowHeader.kt:312</c> 是
+    /// <c>val active = !isNewUi &amp;&amp; isActive</c> —— 新 UI 下 <c>active</c> 恒为 <c>false</c>，
+    /// 于是 <c>UIUtil.drawHeader</c> 永远走 <c>JBUI.ToolWindow.headerBackground()</c>，
+    /// 也就是这个键。
+    /// <para>
+    /// 那条「激活标题条背景」（<c>ToolWindow.Header.background</c>，
+    /// <c>JBUI.java:1166-1168 · headerActiveBackground</c>）**expUI 根本没定义**，
+    /// 回落到父主题的 <c>0xE2E6EC</c>/Darcula 深蓝灰 —— 照它画的结果是
+    /// 活动面板顶上糊一条老 UI 配色的高亮带，一眼就不像。所以这里<b>不留</b>那个字段：
+    /// 留着就会有人接着用。
+    /// </para>
+    /// </remarks>
+    public required Color HeaderBackground { get; init; }
 
     /// <summary>标题条边框（`ToolWindow.Header.borderColor`；没写，回落 `DefaultTabs.borderColor` → `Borders.color`）。</summary>
     public required Color HeaderBorder { get; init; }
@@ -95,8 +134,10 @@ public sealed record ForgePalette
         ButtonSelectedBackground = ForgeColor.Parse("#3574F0"),         // Blue4
         ButtonPressedBackground = ForgeColor.Parse("#0000001D"),        // ActionButton.pressedBackground
         ButtonHoverBackground = ForgeColor.Parse("#00000012"),          // ActionButton.hoverBackground
-        HeaderActiveBackground = ForgeColor.Parse("#E2E6EC"),           // 父主题 IntelliJ
-        HeaderInactiveBackground = ForgeColor.Parse("#F7F8FA"),         // Gray13
+        ButtonDropBackground = ForgeColor.Parse("#D4E2FF"),             // Blue11
+        ButtonDropBorder = ForgeColor.Parse("#709CF5"),                 // Blue7
+        DragAreaBackground = ForgeColor.Parse("#A0BDF84D"),             // 带 alpha
+        HeaderBackground = ForgeColor.Parse("#F7F8FA"),                 // Gray13
         HeaderBorder = ForgeColor.Parse("#EBECF0"),
         HeaderTabHoverBackground = ForgeColor.Parse("#EBECF0"),         // Gray12
         HeaderTabUnderline = ForgeColor.Parse("#3574F0"),               // *.underlineColor / Blue4
@@ -118,8 +159,10 @@ public sealed record ForgePalette
         ButtonSelectedBackground = ForgeColor.Parse("#3574F0"),         // Blue6
         ButtonPressedBackground = ForgeColor.Parse("#FFFFFF26"),
         ButtonHoverBackground = ForgeColor.Parse("#FFFFFF16"),
-        HeaderActiveBackground = ForgeColor.Parse("#3B4754"),           // 父主题 Darcula
-        HeaderInactiveBackground = ForgeColor.Parse("#2B2D30"),         // Gray2
+        ButtonDropBackground = ForgeColor.Parse("#35538F99"),           // 带 alpha
+        ButtonDropBorder = ForgeColor.Parse("#548AF7"),                 // Blue8
+        DragAreaBackground = ForgeColor.Parse("#366ACF4D"),             // 带 alpha
+        HeaderBackground = ForgeColor.Parse("#2B2D30"),                 // Gray2
         HeaderBorder = ForgeColor.Parse("#1E1F22"),
         HeaderTabHoverBackground = ForgeColor.Parse("#393B40"),         // *.hoverBackground / Gray3
         HeaderTabUnderline = ForgeColor.Parse("#3574F0"),               // *.underlineColor / Blue6

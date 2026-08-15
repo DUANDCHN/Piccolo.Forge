@@ -1,3 +1,8 @@
+using Avalonia;
+using Avalonia.Headless;
+using Avalonia.Input;
+using Avalonia.Threading;
+using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Piccolo.Forge.Avalonia;
@@ -134,4 +139,77 @@ public class ForgeFadeControllerTests
     [AvaloniaFact]
     public void The_target_ratio_defaults_to_the_upstream_value()
         => Assert.Equal(ForgeMetrics.FloatingFadeRatio, new ForgeFadeController(new Window()).TargetRatio);
+}
+
+/// 拖动工具窗口时的视觉反馈（AbstractDroppableStripe.kt:627-660 + ToolWindowDragHelper.kt:126-134）。
+public class ForgeDragFeedbackTests
+{
+    private static (ForgeToolWindowFrame Frame, Window Window) Show()
+    {
+        var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
+        var frame = new ForgeToolWindowFrame { Palette = ForgePalette.ExpUiDark };
+        frame.Attach(shell);
+
+        var window = new Window { Width = 900, Height = 600, Content = frame };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        return (frame, window);
+    }
+
+    private static ForgeStripeButton FirstButton(ForgeToolWindowFrame frame)
+        => frame.LeftToolbar.TopGroup.Children.OfType<ForgeStripeButton>().First();
+
+    [AvaloniaFact]
+    public void Dragging_a_stripe_button_shows_the_drop_feedback()
+    {
+        // 回归：拖拽本身早就能用（松手会真的挪过去），但**过程中什么都不画** ——
+        // 用户看不到自己拖到哪儿了。
+        var (frame, window) = Show();
+        var button = FirstButton(frame);
+        var start = button.TranslatePoint(new Point(20, 20), frame)!.Value;
+
+        window.MouseDown(start, MouseButton.Left);
+        window.MouseMove(start + new Vector(0, 200));   // 远超死区 7
+
+        Assert.False(frame.DragOverlay.IsIdle);
+        Assert.NotNull(frame.DragOverlay.DropRect);
+        Assert.NotNull(frame.DragOverlay.AreaRect);
+    }
+
+    [AvaloniaFact]
+    public void The_feedback_is_gone_after_the_drop()
+    {
+        var (frame, window) = Show();
+        var button = FirstButton(frame);
+        var start = button.TranslatePoint(new Point(20, 20), frame)!.Value;
+
+        window.MouseDown(start, MouseButton.Left);
+        window.MouseMove(start + new Vector(0, 200));
+        window.MouseUp(start + new Vector(0, 200), MouseButton.Left);
+
+        Assert.True(frame.DragOverlay.IsIdle);
+    }
+
+    [AvaloniaFact]
+    public void A_click_that_never_leaves_the_deadzone_paints_nothing()
+    {
+        // 死区 7 之内是「点击」不是「拖拽」（MouseDragHelper.java:32）
+        var (frame, window) = Show();
+        var button = FirstButton(frame);
+        var start = button.TranslatePoint(new Point(20, 20), frame)!.Value;
+
+        window.MouseDown(start, MouseButton.Left);
+        window.MouseMove(start + new Vector(0, 3));
+
+        Assert.True(frame.DragOverlay.IsIdle);
+    }
+
+    [AvaloniaFact]
+    public void The_overlay_never_eats_the_mouse()
+    {
+        // 它盖在所有控件之上，一旦参与命中测试，条带就再也点不动了
+        var (frame, _) = Show();
+        Assert.False(frame.DragOverlay.IsHitTestVisible);
+    }
 }
