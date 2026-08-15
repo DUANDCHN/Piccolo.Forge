@@ -33,6 +33,18 @@ public sealed class EditorArea
     /// <summary>编辑区变了（开合、选中、分屏）。</summary>
     public event EventHandler? Changed;
 
+    /// <summary>
+    /// 整棵树换掉 —— 读档用。
+    /// </summary>
+    /// <param name="root">新的根。</param>
+    /// <param name="current">新的当前组。</param>
+    internal void ReplaceRoot(EditorNode root, EditorGroup current)
+    {
+        _root = root;
+        CurrentGroup = current;
+        OnChanged();
+    }
+
     /// <summary>把某一组设成当前组。</summary>
     /// <param name="group">要设成当前的组。</param>
     public void SetCurrentGroup(EditorGroup group)
