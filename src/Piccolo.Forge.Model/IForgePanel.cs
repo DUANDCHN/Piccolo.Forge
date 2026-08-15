@@ -14,10 +14,15 @@ namespace Piccolo.Forge.Model;
 public interface IForgePanel
 {
     /// <summary>面板 id，全局唯一，存档按它认账。</summary>
-    string Id { get; }
+    /// <remarks>
+    /// 可写 —— 与 Dock 的 <c>IDockable.Id</c>（"Gets or **sets** dockable id"）一致：
+    /// 宿主常常是先无参造好面板、再由装配处按登记表赋 id。
+    /// </remarks>
+    string Id { get; set; }
 
     /// <summary>显示名：条带按钮的提示、标题条上的标题。</summary>
-    string Title { get; }
+    /// <remarks>可写：切语言时改这里，条带提示与标题条会一起跟着变。</remarks>
+    string Title { get; set; }
 
     /// <summary>
     /// 条带按钮 / 标签页上的图标。
@@ -27,7 +32,7 @@ public interface IForgePanel
     /// （上游那套是 JetBrains 的美术资产，见 <c>工具窗口模型.md</c> §17），
     /// 也不想强迫宿主用某个图标库。宿主塞控件、几何图形还是字符都行。
     /// </remarks>
-    object? Icon { get; }
+    object? Icon { get; set; }
 }
 
 /// <summary>
