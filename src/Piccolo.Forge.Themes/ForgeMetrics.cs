@@ -77,6 +77,21 @@ public static class ForgeMetrics
     /// <summary>选中标签页下划线圆角 4（<c>JBUI.java:1129-1131</c>）。</summary>
     public const double HeaderTabUnderlineArc = 4;
 
+    /// <summary>tab 起始的横向偏移 4（<c>TabContentLayout.java:59 · TAB_LAYOUT_START</c>）。</summary>
+    public const double TabLayoutStart = 4;
+
+    /// <summary>单个 tab 的最大宽度 400（<c>ContentTabLabel.java:48 · MAX_WIDTH</c>）。</summary>
+    public const double TabMaxWidth = 400;
+
+    /// <summary>「更多」图标的边距 6（<c>TabContentLayout.java:58 · MORE_ICON_BORDER</c>）。</summary>
+    public const double TabMoreIconBorder = 6;
+
+    /// <summary>combo 布局里 id 与下拉之间的间距 3（<c>ComboContentLayout.java:57</c>）。</summary>
+    public const double ComboIdGap = 3;
+
+    /// <summary>选中 tab 的下划线相对底边下移的厚度 1（<c>ToolWindowTabPainter.kt:35-36</c>）。</summary>
+    public const double TabBorderThickness = 1;
+
     /// <summary>主分隔器的可见宽度 0（<c>ToolWindowPane.kt:197</c>）。</summary>
     public const double SplitterDividerWidth = 0;
 

@@ -1,0 +1,182 @@
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Media;
+using Piccolo.Forge.Themes;
+
+namespace Piccolo.Forge.Avalonia;
+
+/// <summary>
+/// 标题条里的一个内容 tab。
+/// </summary>
+/// <remarks>
+/// 对应 <c>platform/platform-impl/src/com/intellij/openapi/wm/impl/content/ContentTabLabel.java</c>
+/// 与它的画法 <c>TabContentLayout.java:386-410</c> → <c>JBDefaultTabPainter.kt:62-96</c>。
+/// 度量见 <c>工具窗口模型.md</c> §13.1。
+/// </remarks>
+public class ForgeContentTab : TemplatedControl
+{
+    /// <summary><see cref="Palette"/> 的属性定义。</summary>
+    public static readonly StyledProperty<ForgePalette> PaletteProperty =
+        AvaloniaProperty.Register<ForgeContentTab, ForgePalette>(nameof(Palette), ForgePalette.ExpUiDark);
+
+    /// <summary><see cref="Title"/> 的属性定义。</summary>
+    public static readonly StyledProperty<string?> TitleProperty =
+        AvaloniaProperty.Register<ForgeContentTab, string?>(nameof(Title));
+
+    /// <summary><see cref="IsSelected"/> 的属性定义。</summary>
+    public static readonly StyledProperty<bool> IsSelectedProperty =
+        AvaloniaProperty.Register<ForgeContentTab, bool>(nameof(IsSelected));
+
+    /// <summary><see cref="IsWindowActive"/> 的属性定义。</summary>
+    public static readonly StyledProperty<bool> IsWindowActiveProperty =
+        AvaloniaProperty.Register<ForgeContentTab, bool>(nameof(IsWindowActive));
+
+    /// <summary><see cref="IsSoleContent"/> 的属性定义。</summary>
+    public static readonly StyledProperty<bool> IsSoleContentProperty =
+        AvaloniaProperty.Register<ForgeContentTab, bool>(nameof(IsSoleContent));
+
+    static ForgeContentTab()
+    {
+        AffectsRender<ForgeContentTab>(
+            PaletteProperty, TitleProperty, IsSelectedProperty, IsWindowActiveProperty, IsSoleContentProperty);
+        AffectsMeasure<ForgeContentTab>(TitleProperty);
+    }
+
+    /// <summary>配色。</summary>
+    public ForgePalette Palette
+    {
+        get => GetValue(PaletteProperty);
+        set => SetValue(PaletteProperty, value);
+    }
+
+    /// <summary>tab 上的字。</summary>
+    public string? Title
+    {
+        get => GetValue(TitleProperty);
+        set => SetValue(TitleProperty, value);
+    }
+
+    /// <summary>是不是选中的那个。</summary>
+    public bool IsSelected
+    {
+        get => GetValue(IsSelectedProperty);
+        set => SetValue(IsSelectedProperty, value);
+    }
+
+    /// <summary>所属工具窗口是不是活跃的（决定下划线用哪个颜色）。</summary>
+    public bool IsWindowActive
+    {
+        get => GetValue(IsWindowActiveProperty);
+        set => SetValue(IsWindowActiveProperty, value);
+    }
+
+    /// <summary>
+    /// 这个工具窗口是不是只有这一块内容。
+    /// </summary>
+    /// <remarks>
+    /// 只有内容超过一个时，选中的 tab 才换成 <c>underlinedTabForeground</c>
+    /// （<c>ContentTabLabel.java:199-203</c>）。
+    /// </remarks>
+    public bool IsSoleContent
+    {
+        get => GetValue(IsSoleContentProperty);
+        set => SetValue(IsSoleContentProperty, value);
+    }
+
+    /// <summary>左右内边距 12（<c>ToolWindow.HeaderTab.leftRightInsets</c>）。</summary>
+    public static double Inset => ForgeMetrics.HeaderTabInset;
+
+    /// <inheritdoc />
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        var text = MeasureText();
+        var width = Math.Min(ForgeMetrics.TabMaxWidth, (text?.Width ?? 0) + (Inset * 2));
+
+        return new Size(width, double.IsInfinity(availableSize.Height) ? ForgeMetrics.HeaderHeight : availableSize.Height);
+    }
+
+    /// <inheritdoc />
+    public override void Render(DrawingContext context)
+    {
+        if (IsPointerOver && !IsSelected)
+        {
+            context.FillRectangle(new SolidColorBrush(Palette.HeaderTabHoverBackground), new Rect(Bounds.Size));
+        }
+
+        if (IsSelected)
+        {
+            RenderUnderline(context);
+        }
+
+        if (MeasureText() is { } text)
+        {
+            context.DrawText(text, new Point(Inset, (Bounds.Height - text.Height) / 2));
+        }
+    }
+
+    /// <summary>
+    /// 下划线的矩形。
+    /// </summary>
+    /// <remarks>
+    /// 对应 <c>JBDefaultTabPainter.kt:92-96 · underlineRectangle</c>：
+    /// <c>(x, y + height - thickness, width, thickness)</c>。
+    /// 工具窗口这一版还会把整体下移 1 并相应减高（<c>ToolWindowTabPainter.kt:35-36</c>），
+    /// 所以底边实际上抬高了 1。
+    /// </remarks>
+    /// <param name="bounds">tab 的范围。</param>
+    /// <returns>下划线矩形。</returns>
+    public static Rect ComputeUnderlineRect(Rect bounds)
+    {
+        var border = ForgeMetrics.TabBorderThickness;
+        var height = bounds.Height - border;
+        var thickness = ForgeMetrics.HeaderTabUnderlineHeight;
+
+        return new Rect(bounds.X, bounds.Y + border + height - thickness, bounds.Width, thickness);
+    }
+
+    private void RenderUnderline(DrawingContext context)
+    {
+        var color = IsWindowActive ? Palette.HeaderTabUnderline : Palette.HeaderTabInactiveUnderline;
+        var rect = ComputeUnderlineRect(new Rect(Bounds.Size));
+
+        // arc > 0 就画圆角矩形（JBDefaultTabPainter.kt:81-85）
+        context.DrawRectangle(
+            new SolidColorBrush(color),
+            null,
+            new RoundedRect(rect, ForgeMetrics.HeaderTabUnderlineArc));
+    }
+
+    private FormattedText? MeasureText()
+    {
+        if (string.IsNullOrEmpty(Title))
+        {
+            return null;
+        }
+
+        // 单块内容时选中态不换前景（ContentTabLabel.java:199-203）
+        var color = IsSelected && !IsSoleContent ? Palette.HeaderTabUnderline : Palette.Foreground;
+
+        return new FormattedText(
+            Title,
+            System.Globalization.CultureInfo.CurrentCulture,
+            FlowDirection.LeftToRight,
+            Typeface.Default,
+            12,
+            new SolidColorBrush(color));
+    }
+
+    /// <inheritdoc />
+    protected override void OnPointerEntered(global::Avalonia.Input.PointerEventArgs e)
+    {
+        base.OnPointerEntered(e);
+        InvalidateVisual();
+    }
+
+    /// <inheritdoc />
+    protected override void OnPointerExited(global::Avalonia.Input.PointerEventArgs e)
+    {
+        base.OnPointerExited(e);
+        InvalidateVisual();
+    }
+}

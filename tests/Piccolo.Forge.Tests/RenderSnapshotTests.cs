@@ -40,9 +40,16 @@ public class RenderSnapshotTests
         };
         frame.Attach(manager);
 
+        // Version Control 装三块内容，标题条上排成 tab（§13.1）
+        var vcs = frame.GetContentManager("Version Control");
+        vcs.Add(new ToolWindowContent("local", "Local Changes"));
+        vcs.Add(new ToolWindowContent("shelf", "Shelf"));
+        vcs.Add(new ToolWindowContent("console", "Console"));
+        vcs.Select("shelf");
+
         manager.Activate("Project");
-        manager.Activate("Structure");   // isSplit=true —— 与 Project 分掉左边这一格
-        manager.Activate("Terminal");
+        manager.Activate("Structure");        // isSplit=true —— 与 Project 分掉左边这一格
+        manager.Activate("Version Control");  // 下边这一格，带三个 tab
 
         var window = new Window
         {

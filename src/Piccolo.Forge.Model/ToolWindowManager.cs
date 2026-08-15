@@ -274,6 +274,79 @@ public sealed class ToolWindowManager
         OnStateChanged(ToolWindowChangeKind.Moved, id);
     }
 
+    /// <summary>
+    /// 切换工具窗口的形态。
+    /// </summary>
+    /// <remarks>
+    /// 对应 <c>ToolWindowManagerImpl.kt:1757-1783 · setToolWindowTypeImpl</c>：
+    /// 不可见就只改字段、UI 不动；可见就「先存外部窗口状态并摘掉，改完再重放」。
+    /// **只有内部形态（DOCKED / SLIDING）才写 <see cref="WindowInfo.InternalType"/>**
+    /// （<c>:1770-1772</c>，`isInternal` 的定义见 <c>ToolWindowTypeExtensions.kt:9-10</c>）——
+    /// 它记的是「上次在窗口里的时候是停靠还是滑出」，从浮动切回来时按它还原。
+    /// </remarks>
+    /// <param name="id">工具窗口 id。</param>
+    /// <param name="type">新形态。</param>
+    /// <returns>形态本来就一样时返回 <see langword="false"/>。</returns>
+    public bool SetType(string id, ToolWindowType type)
+    {
+        var info = Layout.GetInfo(id) ?? throw new InvalidOperationException($"未注册的工具窗口：{id}");
+        if (info.Type == type)
+        {
+            return false;
+        }
+
+        var wasVisible = info.IsVisible;
+        var updated = info with { Type = type };
+
+        if (IsInternal(type))
+        {
+            updated = updated with { InternalType = type };
+        }
+
+        Layout.SetInfo(updated);
+
+        // 可见的话要重放一次，好让新形态参与（或退出）「一格一个可见窗口」的互斥
+        if (wasVisible)
+        {
+            Layout.SetInfo(Layout.GetInfo(id)! with { IsVisible = false });
+            Show(id);
+        }
+
+        OnStateChanged(ToolWindowChangeKind.TypeChanged, id);
+        return true;
+    }
+
+    /// <summary>
+    /// 从外部形态切回窗口内时，该回到哪种内部形态。
+    /// </summary>
+    /// <remarks>这就是 <see cref="WindowInfo.InternalType"/> 存在的意义（见 <see cref="SetType"/>）。</remarks>
+    /// <param name="id">工具窗口 id。</param>
+    /// <returns>该回到的形态。</returns>
+    public ToolWindowType ResolveInternalType(string id)
+    {
+        var info = Layout.GetInfo(id) ?? throw new InvalidOperationException($"未注册的工具窗口：{id}");
+        return info.InternalType;
+    }
+
+    /// <summary>
+    /// 是不是「在主窗口里面」的形态。
+    /// </summary>
+    /// <remarks>
+    /// 对应 <c>ToolWindowTypeExtensions.kt:9-10 · isInternal</c>：
+    /// SLIDING 或 DOCKED。
+    /// </remarks>
+    /// <param name="type">形态。</param>
+    /// <returns>内部形态则为 <see langword="true"/>。</returns>
+    public static bool IsInternal(ToolWindowType type)
+        => type is ToolWindowType.Sliding or ToolWindowType.Docked;
+
+    /// <summary>
+    /// 是不是要另开一个窗口的形态。
+    /// </summary>
+    /// <param name="type">形态。</param>
+    /// <returns>FLOATING 或 WINDOWED 则为 <see langword="true"/>。</returns>
+    public static bool IsExternal(ToolWindowType type) => !IsInternal(type);
+
     private void HideOthersInSameSlot(WindowInfo shown)
     {
         foreach (var other in Layout.GetSortedList().ToList())
@@ -283,7 +356,9 @@ public sealed class ToolWindowManager
                 continue;
             }
 
-            if (other.Slot != shown.Slot)
+            // 外部形态（浮动/独立窗口）不进 pane，也就不参与互斥
+            // （ToolWindowManagerImpl.kt:942-947 的前两个分支根本不走 doShowWindow 的挤占逻辑）
+            if (IsExternal(shown.Type) || IsExternal(other.Type) || other.Slot != shown.Slot)
             {
                 continue;
             }
@@ -361,6 +436,9 @@ public enum ToolWindowChangeKind
 
     /// <summary>换了位置。</summary>
     Moved,
+
+    /// <summary>换了形态（停靠/滑出/浮动/独立窗口）。</summary>
+    TypeChanged,
 }
 
 /// <summary>

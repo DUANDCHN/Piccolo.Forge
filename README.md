@@ -66,9 +66,11 @@ net8.0 / Avalonia 12.1.1，`TreatWarningsAsErrors` 与 `GenerateDocumentationFil
 - 明暗两套 expUI 配色、紧凑模式度量、`JBUI.scale` 的取整规则
 - 布局存档读写（XML 形状与属性名照抄上游）
 - 条带「显示名字」模式：宽度 59，名字按第一个空格拆成最多两行
+- 浮动 / 独立窗口形态：两者标题与任务栏行为不同，bounds 三段式还原
+- 内容区 tab：画在标题条同一行，选中带下划线，放不下的压成 0 宽；COMBO 只显示选中那块
 
-**还没做**：浮动 / 独立窗口形态（FLOATING/WINDOWED）、内容区的 tab（`contentUiType`）、
-「更多」按钮、右键菜单。前两项要先补审，后两项审读文档里已有出处。
+**还没做**：「更多」按钮（条带与 tab 各一个）、右键菜单、tab 的关闭/固定按钮、
+浮动窗口的淡入淡出。审读文档里都已有出处，照着做即可。
 
 ```bash
 dotnet test Piccolo.Forge.slnx

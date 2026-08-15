@@ -26,6 +26,7 @@ public class ForgeToolWindowFrame : TemplatedControl
     private readonly ForgeDockPane _pane = new();
     private readonly DockPanel _root = new();
     private readonly Dictionary<string, Control> _content = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, ToolWindowContentManager> _contentManagers = new(StringComparer.Ordinal);
 
     private ToolWindowManager? _manager;
     private string? _dragId;
@@ -97,6 +98,26 @@ public class ForgeToolWindowFrame : TemplatedControl
 
     /// <summary>停靠区。</summary>
     public ForgeDockPane DockPane => _pane;
+
+    /// <summary>
+    /// 取（必要时新建）某个工具窗口的内容管理器。
+    /// </summary>
+    /// <remarks>一个工具窗口可以装多块内容，标题条上排成 tab（<c>工具窗口模型.md</c> §13）。</remarks>
+    /// <param name="id">工具窗口 id。</param>
+    /// <returns>内容管理器。</returns>
+    public ToolWindowContentManager GetContentManager(string id)
+    {
+        ArgumentNullException.ThrowIfNull(id);
+
+        if (!_contentManagers.TryGetValue(id, out var manager))
+        {
+            manager = new ToolWindowContentManager();
+            manager.SelectionChanged += (_, _) => Rebuild();
+            _contentManagers[id] = manager;
+        }
+
+        return manager;
+    }
 
     /// <summary>
     /// 接上一个 manager，之后状态一变就重画。
@@ -354,12 +375,16 @@ public class ForgeToolWindowFrame : TemplatedControl
         {
             var host = new DockPanel();
 
+            var isActive = string.Equals(_manager.LastActiveToolWindowId, info.Id, StringComparison.Ordinal);
             var header = new ForgeToolWindowHeader
             {
                 Palette = Palette,
                 Title = info.Id,
-                IsActive = string.Equals(_manager.LastActiveToolWindowId, info.Id, StringComparison.Ordinal),
+                IsActive = isActive,
+                ContentUiType = info.ContentUiType,
             };
+
+            BuildTabs(header, info, isActive);
             DockPanel.SetDock(header, Dock.Top);
             host.Children.Add(header);
             var content = _content.TryGetValue(info.Id, out var c) ? c : CreatePlaceholder(info.Id);
@@ -444,6 +469,55 @@ public class ForgeToolWindowFrame : TemplatedControl
             case ContentControl host when ReferenceEquals(host.Content, control):
                 host.Content = null;
                 break;
+        }
+    }
+
+    /// <summary>
+    /// 把这个工具窗口的内容排成标题条上的 tab。
+    /// </summary>
+    /// <remarks>
+    /// COMBO 的工具窗口不排 tab（上游换成一个下拉，<c>ComboContentLayout.java</c>），
+    /// 本阶段只画选中那块的名字，不做下拉交互。
+    /// </remarks>
+    private void BuildTabs(ForgeToolWindowHeader header, WindowInfo info, bool isActive)
+    {
+        if (!_contentManagers.TryGetValue(info.Id, out var contents) || contents.Contents.Count == 0)
+        {
+            return;
+        }
+
+        if (info.ContentUiType == ToolWindowContentUiType.Combo)
+        {
+            if (contents.SelectedContent is { } selected)
+            {
+                header.Tabs.Children.Add(new ForgeContentTab
+                {
+                    Palette = Palette,
+                    Title = selected.DisplayName,
+                    IsSoleContent = true,
+                });
+            }
+
+            return;
+        }
+
+        foreach (var content in contents.Contents)
+        {
+            var isSelected = contents.SelectedContent?.Id == content.Id;
+            var tab = new ForgeContentTab
+            {
+                Palette = Palette,
+                Title = content.DisplayName,
+                IsSelected = isSelected,
+                IsWindowActive = isActive,
+                IsSoleContent = contents.IsSoleContent,
+            };
+
+            var contentId = content.Id;
+            var windowId = info.Id;
+            tab.PointerPressed += (_, _) => GetContentManager(windowId).Select(contentId);
+
+            header.Tabs.Children.Add(tab);
         }
     }
 
