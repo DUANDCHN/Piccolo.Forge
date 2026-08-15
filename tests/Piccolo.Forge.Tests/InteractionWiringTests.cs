@@ -270,3 +270,68 @@ public class ForgeHitAreaTests
         Assert.True(editor.Find("a")!.IsSelected);
     }
 }
+
+/// 按钮换组时的搬迁（跨面板）。
+public class ForgeStripeRegroupTests
+{
+    [AvaloniaFact]
+    public void Moving_a_button_from_the_bottom_group_to_the_top_group_does_not_throw()
+    {
+        // 回归：逐组处理时，轮到目标组插入，它还挂在原来那组上 ——
+        // Avalonia 抛「already has a visual parent」。而且只在一个方向上出事
+        // （下→上崩、上→下不崩），能潜伏很久。启动时恢复布局就会踩到。
+        var shell = new ToolWindowShellViewModel();
+        shell.Add("A", "甲", ToolWindowAnchor.Left, false, ForgeIcons.Camera);
+        shell.Add("B", "乙", ToolWindowAnchor.Bottom, false, ForgeIcons.Terminal);
+
+        var frame = new ForgeToolWindowFrame();
+        frame.Attach(shell);
+
+        var window = new Window { Width = 600, Height = 400, Content = frame };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        // 底边的按钮画在左条带的**下**组；挪到左边之后它属于**上**组
+        Assert.Contains(
+            frame.LeftToolbar.BottomGroup.Children.OfType<ForgeStripeButton>(),
+            x => x.Title == "乙");
+
+        shell.MoveTo("B", ToolWindowAnchor.Left, isSplit: false);
+
+        Assert.Contains(
+            frame.LeftToolbar.TopGroup.Children.OfType<ForgeStripeButton>(),
+            x => x.Title == "乙");
+        Assert.DoesNotContain(
+            frame.LeftToolbar.BottomGroup.Children.OfType<ForgeStripeButton>(),
+            x => x.Title == "乙");
+    }
+
+    [AvaloniaFact]
+    public void Restoring_a_layout_that_regroups_buttons_does_not_throw()
+    {
+        // 真实触发路径：启动时套用上次退出的布局，一口气挪好几个。
+        var saved = new ToolWindowShellViewModel();
+        saved.Add("A", "甲", ToolWindowAnchor.Left, false);
+        saved.Add("B", "乙", ToolWindowAnchor.Bottom, false);
+        saved.MoveTo("B", ToolWindowAnchor.Left, isSplit: false);
+        saved.MoveTo("A", ToolWindowAnchor.Bottom, isSplit: false);
+        var xml = saved.SaveLayout();
+
+        var shell = new ToolWindowShellViewModel();
+        shell.Add("A", "甲", ToolWindowAnchor.Left, false);
+        shell.Add("B", "乙", ToolWindowAnchor.Bottom, false);
+
+        var frame = new ForgeToolWindowFrame();
+        frame.Attach(shell);
+
+        var window = new Window { Width = 600, Height = 400, Content = frame };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        shell.RestoreLayout(xml);
+
+        Assert.Contains(
+            frame.LeftToolbar.TopGroup.Children.OfType<ForgeStripeButton>(),
+            x => x.Title == "乙");
+    }
+}

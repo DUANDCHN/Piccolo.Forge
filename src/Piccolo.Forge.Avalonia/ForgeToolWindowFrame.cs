@@ -300,6 +300,12 @@ public class ForgeToolWindowFrame : TemplatedControl
         _left.ContextMenu ??= ForgeMenuBuilder.ForStripeBackground(() => ShowToolWindowNames = !ShowToolWindowNames);
         _right.ContextMenu ??= ForgeMenuBuilder.ForStripeBackground(() => ShowToolWindowNames = !ShowToolWindowNames);
 
+        // ⚠ **先把所有组都摘干净，再统一往里放。**
+        // 一个按钮换组时（比如从下组挪到上组），如果逐组处理，轮到目标组插入时
+        // 它还挂在原来那组上 —— Avalonia 直接抛「already has a visual parent」。
+        // 顺序还只在一个方向上出事（下→上崩、上→下不崩），是那种能潜伏很久的 bug。
+        var plan = new List<(Panel Panel, IReadOnlyList<Control> Wanted)>();
+
         foreach (var side in new[] { StripeSide.Left, StripeSide.Right })
         {
             var toolbar = side == StripeSide.Left ? _left : _right;
@@ -307,15 +313,28 @@ public class ForgeToolWindowFrame : TemplatedControl
             foreach (var group in new[] { StripeGroup.Top, StripeGroup.Bottom })
             {
                 var panel = group == StripeGroup.Top ? toolbar.TopGroup : toolbar.BottomGroup;
-                SyncGroup(panel, side, group);
+                plan.Add((panel, BuildGroupChildren(side, group)));
             }
+        }
+
+        foreach (var (panel, wanted) in plan)
+        {
+            RemoveUnwanted(panel, wanted);
+        }
+
+        foreach (var (panel, wanted) in plan)
+        {
+            InsertAndOrder(panel, wanted);
         }
     }
 
     /// <summary>
-    /// 把一组按钮同步成 VM 说的样子：**复用已有按钮，只调位置**。
+    /// 算出一组里应该有哪些控件（**复用已有按钮**，不新建）。
     /// </summary>
-    private void SyncGroup(Panel panel, StripeSide side, StripeGroup group)
+    /// <param name="side">哪根条带。</param>
+    /// <param name="group">哪一组。</param>
+    /// <returns>这一组应有的子控件，按显示次序。</returns>
+    private IReadOnlyList<Control> BuildGroupChildren(StripeSide side, StripeGroup group)
     {
         var anchor = ResolveGroupAnchor(side, group);
         var windows = _shell!.GetGroup(side, group);
@@ -341,11 +360,21 @@ public class ForgeToolWindowFrame : TemplatedControl
             wanted.Add(GetMoreButton(side));
         }
 
-        Reconcile(panel, wanted);
+        return wanted;
     }
 
     /// <summary>把面板的子控件调成 <paramref name="wanted"/>，只动有差异的位置。</summary>
+    /// <remarks>跨面板搬控件时别用它，用 <see cref="RemoveUnwanted"/> + <see cref="InsertAndOrder"/> 分两遍。</remarks>
     private static void Reconcile(Panel panel, IReadOnlyList<Control> wanted)
+    {
+        RemoveUnwanted(panel, wanted);
+        InsertAndOrder(panel, wanted);
+    }
+
+    /// <summary>第一遍：把不该留在这个面板里的摘掉。</summary>
+    /// <param name="panel">面板。</param>
+    /// <param name="wanted">这个面板应有的子控件。</param>
+    private static void RemoveUnwanted(Panel panel, IReadOnlyList<Control> wanted)
     {
         for (var i = panel.Children.Count - 1; i >= 0; i--)
         {
@@ -354,7 +383,13 @@ public class ForgeToolWindowFrame : TemplatedControl
                 panel.Children.RemoveAt(i);
             }
         }
+    }
 
+    /// <summary>第二遍：把该有的放进来并排好次序。</summary>
+    /// <param name="panel">面板。</param>
+    /// <param name="wanted">这个面板应有的子控件。</param>
+    private static void InsertAndOrder(Panel panel, IReadOnlyList<Control> wanted)
+    {
         for (var i = 0; i < wanted.Count; i++)
         {
             var child = wanted[i];
