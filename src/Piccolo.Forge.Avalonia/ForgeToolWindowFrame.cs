@@ -273,12 +273,14 @@ public class ForgeToolWindowFrame : TemplatedControl
             foreach (var group in new[] { StripeGroup.Top, StripeGroup.Bottom })
             {
                 var panel = group == StripeGroup.Top ? toolbar.TopGroup : toolbar.BottomGroup;
-                var panelBounds = new Rect(
-                    toolbarBounds.X + panel.Bounds.X,
-                    toolbarBounds.Y + panel.Bounds.Y,
-                    panel.Bounds.Width,
-                    panel.Bounds.Height);
 
+                // Bounds 是相对父级的，逐级换算容易差 1px，直接问 Avalonia 要绝对位置
+                if (panel.TranslatePoint(default, this) is not { } origin)
+                {
+                    continue;
+                }
+
+                var panelBounds = new Rect(origin, panel.Bounds.Size);
                 if (!panelBounds.Contains(point) && panel.Children.Count > 0)
                 {
                     continue;
