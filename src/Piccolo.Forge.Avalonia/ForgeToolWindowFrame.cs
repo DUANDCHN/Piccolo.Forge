@@ -86,9 +86,35 @@ public class ForgeToolWindowFrame : TemplatedControl
         ApplyThemeVariant();
     }
 
+    private bool _variantApplied;
+    private bool _paletteSetByHost;
+
+    /// <summary>
+    /// 按宿主的明暗变体挑一套配色。
+    /// </summary>
+    /// <remarks>
+    /// **宿主显式赋过 <see cref="Palette"/> 就不管了** —— 跟随变体是默认行为，
+    /// 不该悄悄盖掉宿主写进去的值（这条是渲染快照把暗色渲成浅色才发现的）。
+    /// <para>
+    /// 判据用 <c>IsSet</c> 而不是「有没有收到变更通知」：属性的默认值就是
+    /// <see cref="ForgePalette.ExpUiDark"/>，宿主赋同一个值**不会触发变更通知**，
+    /// 靠通知判断会漏掉这种情况（正是这么漏的）。
+    /// </para>
+    /// </remarks>
     private void ApplyThemeVariant()
     {
         if (!FollowThemeVariant)
+        {
+            return;
+        }
+
+        // 我们自己写过之后 IsSet 也为真，所以只在第一次之前认它
+        if (!_variantApplied && IsSet(PaletteProperty))
+        {
+            _paletteSetByHost = true;
+        }
+
+        if (_paletteSetByHost)
         {
             return;
         }
@@ -98,6 +124,8 @@ public class ForgeToolWindowFrame : TemplatedControl
         {
             Palette = wanted;
         }
+
+        _variantApplied = true;
     }
 
     /// <summary>配色。</summary>

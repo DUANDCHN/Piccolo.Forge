@@ -57,6 +57,19 @@ public class ThemeVariantTests
     }
 
     [AvaloniaFact]
+    public void An_explicit_palette_is_not_overwritten_by_the_variant()
+    {
+        // 跟随变体是默认行为，不该悄悄盖掉宿主写进去的值
+        var frame = NewFrame();
+        frame.Palette = ForgePalette.ExpUiDark;
+
+        var window = new Window { Content = frame, RequestedThemeVariant = ThemeVariant.Light };
+        window.Show();
+
+        Assert.Same(ForgePalette.ExpUiDark, frame.Palette);
+    }
+
+    [AvaloniaFact]
     public void Turning_the_switch_off_hands_control_back_to_the_host()
     {
         var frame = NewFrame();

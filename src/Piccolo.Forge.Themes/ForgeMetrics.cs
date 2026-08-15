@@ -116,6 +116,23 @@ public static class ForgeMetrics
     /// <summary>浮动窗口淡出默认**关闭**（<c>UISettingsState.kt:180 · enableAlphaMode</c>）。</summary>
     public const bool FloatingFadeEnabledByDefault = false;
 
+    /// <summary>编辑区标签页的高度 28（<c>SingleHeightTabs.kt:15 · UNSCALED_PREF_HEIGHT</c>）。</summary>
+    /// <remarks><c>JBUI.java:644</c> 那个 35 是 <c>DebuggerTabs</c> 的，别抄错。</remarks>
+    public const double EditorTabHeight = 28;
+
+    /// <summary>编辑区标签页的左右内边距 8（<c>JBUI.java:682-684 · EditorTabs.tabInsets</c>，新 UI）。</summary>
+    public const double EditorTabInsetHorizontal = 8;
+
+    /// <summary>
+    /// 编辑区标签页的上下内边距 **-7**（同上）。
+    /// </summary>
+    /// <remarks>负值是真的：新 UI 靠它把标签页压进那 28px 里。照抄，别「修正」成 0。</remarks>
+    public const double EditorTabInsetVertical = -7;
+
+    /// <summary>编辑区选中标签页的下划线圆角 **0**（<c>JBUI.java:670-671</c>）。</summary>
+    /// <remarks>工具窗口标题条那边是 4，两处不一致是真的。</remarks>
+    public const double EditorTabUnderlineArc = 0;
+
     /// <summary>主分隔器的可见宽度 0（<c>ToolWindowPane.kt:197</c>）。</summary>
     public const double SplitterDividerWidth = 0;
 

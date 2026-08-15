@@ -19,6 +19,32 @@ public class RenderSnapshotTests
     private static string OutputDirectory =>
         Environment.GetEnvironmentVariable("FORGE_SNAPSHOT_DIR") ?? Path.Combine(Path.GetTempPath(), "forge-snapshots");
 
+    /// 编辑区：两个标签页 + 一次竖分屏。
+    private static Control BuildEditor(ForgePalette palette, string themeName)
+    {
+        var editor = new EditorAreaViewModel();
+
+        // Content 放**数据**不放控件：分屏之后同一个标签页会同时开在两个组里，
+        // 一个控件不能挂在两个父容器下。放数据则由模板各渲染一份（上游同理）。
+        editor.Open("Program.cs", "Program.cs", "Program.cs 的内容");
+        editor.Open("Readme.md", "Readme.md", "Readme.md 的内容");
+        editor.Area.SetPinned("Program.cs", pinned: true);
+
+        // 竖着切一刀，把选中那页带过去
+        editor.Area.Split(editor.Area.CurrentGroup, isVertical: true);
+
+        var control = new ForgeEditorArea
+        {
+            Palette = palette,
+            Background = new SolidColorBrush(themeName == "light"
+                ? ForgeColor.Parse("#FFFFFF")
+                : ForgeColor.Parse("#1E1F22")),
+            Foreground = new SolidColorBrush(palette.Foreground),
+        };
+        control.Attach(editor);
+        return control;
+    }
+
     [AvaloniaTheory]
     [InlineData("dark", false)]
     [InlineData("light", false)]
@@ -33,12 +59,7 @@ public class RenderSnapshotTests
         {
             Palette = palette,
             ShowToolWindowNames = showNames,
-            EditorContent = new Border
-            {
-                Background = new SolidColorBrush(themeName == "light"
-                    ? ForgeColor.Parse("#FFFFFF")
-                    : ForgeColor.Parse("#1E1F22")),
-            },
+            EditorContent = BuildEditor(palette, themeName),
         };
         frame.Attach(shell);
 
