@@ -84,6 +84,83 @@ public class ForgeDockPaneTests
         Assert.Equal(1000, center.Bounds.Width);
     }
 
+    [AvaloniaFact]
+    public void Two_windows_on_the_left_split_it_top_and_bottom()
+    {
+        // ToolWindowPane.kt:611-741 —— isSplit=false 在前（上），isSplit=true 在后（下）；
+        // 左右边默认竖着切（ToolWindowAnchor.java:63-66 + leftHorizontalSplit 默认 false）
+        var (pane, first, second) = BuildSplitPane(ToolWindowAnchor.Left, sideWeight: 0.5);
+
+        Assert.Equal(0, first.Bounds.Y);
+        Assert.Equal(335, first.Bounds.Height);      // 670 * 0.5
+        Assert.Equal(335, second.Bounds.Y);
+        Assert.Equal(335, second.Bounds.Height);
+        Assert.Equal(first.Bounds.Width, second.Bounds.Width);
+        Assert.Equal(250, pane.Children.Count > 0 ? first.Bounds.Width : 0);
+    }
+
+    [AvaloniaFact]
+    public void The_split_proportion_comes_from_the_non_split_window()
+    {
+        // ToolWindowPane.kt:722 —— proportion = normalizeWeight(非 split 那个的 sideWeight)
+        var (_, first, second) = BuildSplitPane(ToolWindowAnchor.Left, sideWeight: 0.25);
+
+        Assert.Equal(167, first.Bounds.Height);      // floor(670 * 0.25)
+        Assert.Equal(503, second.Bounds.Height);
+    }
+
+    [AvaloniaFact]
+    public void Two_windows_on_the_bottom_split_it_left_and_right()
+    {
+        // 横边是左右分
+        var (_, first, second) = BuildSplitPane(ToolWindowAnchor.Bottom, sideWeight: 0.5);
+
+        Assert.Equal(0, first.Bounds.X);
+        Assert.Equal(500, first.Bounds.Width);
+        Assert.Equal(500, second.Bounds.X);
+        Assert.Equal(first.Bounds.Height, second.Bounds.Height);
+    }
+
+    [Fact]
+    public void Split_proportion_is_normalized()
+    {
+        // 0 和 1 都要过 normalizeWeight
+        Assert.Equal(WindowInfo.DefaultWeight, ForgeDockPane.ComputeSplitProportion(0), 5);
+        Assert.Equal(0.5, ForgeDockPane.ComputeSplitProportion(0.5), 5);
+    }
+
+    private static (ForgeDockPane Pane, Control First, Control Second) BuildSplitPane(
+        ToolWindowAnchor anchor,
+        double sideWeight)
+    {
+        var pane = new ForgeDockPane();
+
+        var first = new Border();
+        ForgeDockPane.SetAnchor(first, anchor);
+        ForgeDockPane.SetWeight(first, 0.25);
+        ForgeDockPane.SetSideWeight(first, sideWeight);
+
+        var second = new Border();
+        ForgeDockPane.SetAnchor(second, anchor);
+        ForgeDockPane.SetWeight(second, 0.25);
+        ForgeDockPane.SetIsSplit(second, true);
+
+        var bottom = new Border();
+        ForgeDockPane.SetAnchor(bottom, ToolWindowAnchor.Bottom);
+        ForgeDockPane.SetWeight(bottom, 0.33);
+
+        pane.Children.Add(first);
+        pane.Children.Add(second);
+        if (anchor != ToolWindowAnchor.Bottom)
+        {
+            pane.Children.Add(bottom);
+        }
+
+        pane.Measure(new Size(1000, 1000));
+        pane.Arrange(new Rect(0, 0, 1000, 1000));
+        return (pane, first, second);
+    }
+
     private static (ForgeDockPane Pane, Control Left, Control Bottom, Control Center) BuildPane(bool isWideScreen)
     {
         var pane = new ForgeDockPane { IsWideScreen = isWideScreen };

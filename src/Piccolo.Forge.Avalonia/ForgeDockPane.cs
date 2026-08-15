@@ -37,11 +37,21 @@ public class ForgeDockPane : Panel
     public static readonly AttachedProperty<double> WeightProperty =
         AvaloniaProperty.RegisterAttached<ForgeDockPane, Control, double>("Weight", WindowInfo.DefaultWeight);
 
+    /// <summary>是不是同一条边的「另一半」。</summary>
+    public static readonly AttachedProperty<bool> IsSplitProperty =
+        AvaloniaProperty.RegisterAttached<ForgeDockPane, Control, bool>("IsSplit");
+
+    /// <summary>同一格里两个窗口的分配比例。</summary>
+    public static readonly AttachedProperty<double> SideWeightProperty =
+        AvaloniaProperty.RegisterAttached<ForgeDockPane, Control, double>("SideWeight", 0.5);
+
     static ForgeDockPane()
     {
         AffectsMeasure<ForgeDockPane>(IsWideScreenProperty);
         AnchorProperty.Changed.AddClassHandler<Control>((c, _) => (c.Parent as ForgeDockPane)?.InvalidateMeasure());
         WeightProperty.Changed.AddClassHandler<Control>((c, _) => (c.Parent as ForgeDockPane)?.InvalidateMeasure());
+        IsSplitProperty.Changed.AddClassHandler<Control>((c, _) => (c.Parent as ForgeDockPane)?.InvalidateMeasure());
+        SideWeightProperty.Changed.AddClassHandler<Control>((c, _) => (c.Parent as ForgeDockPane)?.InvalidateMeasure());
     }
 
     /// <summary>
@@ -88,6 +98,55 @@ public class ForgeDockPane : Panel
         ArgumentNullException.ThrowIfNull(control);
         control.SetValue(WeightProperty, value);
     }
+
+    /// <summary>读一个子控件是不是同一条边的另一半。</summary>
+    /// <param name="control">子控件。</param>
+    /// <returns>是则 <see langword="true"/>。</returns>
+    public static bool GetIsSplit(Control control)
+    {
+        ArgumentNullException.ThrowIfNull(control);
+        return control.GetValue(IsSplitProperty);
+    }
+
+    /// <summary>设一个子控件是不是同一条边的另一半。</summary>
+    /// <param name="control">子控件。</param>
+    /// <param name="value">是否。</param>
+    public static void SetIsSplit(Control control, bool value)
+    {
+        ArgumentNullException.ThrowIfNull(control);
+        control.SetValue(IsSplitProperty, value);
+    }
+
+    /// <summary>读一个子控件在同一格里的分配比例。</summary>
+    /// <param name="control">子控件。</param>
+    /// <returns>比例。</returns>
+    public static double GetSideWeight(Control control)
+    {
+        ArgumentNullException.ThrowIfNull(control);
+        return control.GetValue(SideWeightProperty);
+    }
+
+    /// <summary>设一个子控件在同一格里的分配比例。</summary>
+    /// <param name="control">子控件。</param>
+    /// <param name="value">比例。</param>
+    public static void SetSideWeight(Control control, double value)
+    {
+        ArgumentNullException.ThrowIfNull(control);
+        control.SetValue(SideWeightProperty, value);
+    }
+
+    /// <summary>
+    /// 一条边被两个窗口分掉时，非 split 的那个占多大比例。
+    /// </summary>
+    /// <remarks>
+    /// 对应 <c>ToolWindowPane.kt:722 · addAndSplitDockedComponentCmd</c>：
+    /// <c>splitter.proportion = normalizeWeight(info.sideWeight)</c>，
+    /// <c>info</c> 是 <c>isSplit=false</c> 的那个（它是 splitter 的 firstComponent，<c>:721</c>）。
+    /// </remarks>
+    /// <param name="nonSplitSideWeight">非 split 那个窗口的 sideWeight。</param>
+    /// <returns>非 split 那半占的比例。</returns>
+    public static double ComputeSplitProportion(double nonSplitSideWeight)
+        => ForgeMetrics.NormalizeWeight((float)nonSplitSideWeight);
 
     /// <summary>
     /// 按权重算出四条边各自的像素尺寸。
@@ -140,12 +199,68 @@ public class ForgeDockPane : Panel
         return finalSize;
     }
 
+    /// <summary>
+    /// 一条边上要是有两个可见窗口，把这一格切成两半。
+    /// </summary>
+    /// <remarks>
+    /// 对应 <c>ToolWindowPane.kt:611-741 · addAndSplitDockedComponentCmd</c>：
+    /// <c>isSplit=false</c> 的是 firstComponent、<c>isSplit=true</c> 的是 secondComponent（<c>:703-706</c>、<c>:721-722</c>）。
+    /// 切的方向是 <c>anchor.isSplitVertically</c>（<c>:655</c>）——
+    /// LEFT/RIGHT 默认竖着切（上下两块，<c>ToolWindowAnchor.java:63-66</c> 加上
+    /// `leftHorizontalSplit`/`rightHorizontalSplit` 默认 false），横边则左右分。
+    /// </remarks>
+    private Rect SplitSlot(Rect slot, ToolWindowAnchor anchor, Control child)
+    {
+        Control? other = null;
+        foreach (var candidate in Children)
+        {
+            if (!ReferenceEquals(candidate, child)
+                && candidate.IsVisible
+                && GetAnchor(candidate) == anchor
+                && GetIsSplit(candidate) != GetIsSplit(child))
+            {
+                other = candidate;
+                break;
+            }
+        }
+
+        if (other is null)
+        {
+            return slot;
+        }
+
+        var isSplit = GetIsSplit(child);
+        var nonSplit = isSplit ? other : child;
+        var proportion = ComputeSplitProportion(GetSideWeight(nonSplit));
+
+        // 竖边默认竖着切（上下），横边左右分
+        if (anchor.IsHorizontal())
+        {
+            var firstWidth = Math.Floor(slot.Width * proportion);
+            return isSplit
+                ? new Rect(slot.X + firstWidth, slot.Y, slot.Width - firstWidth, slot.Height)
+                : new Rect(slot.X, slot.Y, firstWidth, slot.Height);
+        }
+
+        var firstHeight = Math.Floor(slot.Height * proportion);
+        return isSplit
+            ? new Rect(slot.X, slot.Y + firstHeight, slot.Width, slot.Height - firstHeight)
+            : new Rect(slot.X, slot.Y, slot.Width, firstHeight);
+    }
+
     private List<(Control Child, Rect Rect)> Layout(Size paneSize)
     {
+        // 一条边上有两个窗口时，整格的宽/高取**非 split 那个**的 weight
+        // （ToolWindowPane.kt:723-728：竖边竖切走 normalizeWeight(info.weight) 分支）
         var weights = new Dictionary<ToolWindowAnchor, double>();
         foreach (var child in Children)
         {
-            if (child.IsVisible && GetAnchor(child) is { } anchor)
+            if (!child.IsVisible || GetAnchor(child) is not { } anchor)
+            {
+                continue;
+            }
+
+            if (!weights.ContainsKey(anchor) || !GetIsSplit(child))
             {
                 weights[anchor] = GetWeight(child);
             }
@@ -177,7 +292,8 @@ public class ForgeDockPane : Panel
                 continue;
             }
 
-            var rect = GetAnchor(child) switch
+            var anchor = GetAnchor(child);
+            var slot = anchor switch
             {
                 ToolWindowAnchor.Top => new Rect(verticalBandX, 0, verticalBandWidth, sizes.Top),
                 ToolWindowAnchor.Bottom => new Rect(
@@ -188,7 +304,7 @@ public class ForgeDockPane : Panel
                 _ => new Rect(centerX, centerY, centerWidth, centerHeight),
             };
 
-            result.Add((child, rect));
+            result.Add((child, anchor is { } a ? SplitSlot(slot, a, child) : slot));
         }
 
         return result;

@@ -233,6 +233,8 @@ public class ForgeToolWindowFrame : TemplatedControl
 
             ForgeDockPane.SetAnchor(border, info.Anchor);
             ForgeDockPane.SetWeight(border, info.Weight);
+            ForgeDockPane.SetIsSplit(border, info.IsSplit);
+            ForgeDockPane.SetSideWeight(border, info.SideWeight);
             _pane.Children.Add(border);
         }
 

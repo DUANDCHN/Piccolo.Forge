@@ -39,6 +39,7 @@ public class RenderSnapshotTests
         frame.Attach(manager);
 
         manager.Activate("Project");
+        manager.Activate("Structure");   // isSplit=true —— 与 Project 分掉左边这一格
         manager.Activate("Terminal");
 
         var window = new Window
