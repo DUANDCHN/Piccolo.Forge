@@ -56,6 +56,19 @@ FORGE_SNAPSHOT_DIR=/tmp/forge dotnet test Piccolo.Forge.slnx
 net8.0 / Avalonia 12.1.1，`TreatWarningsAsErrors` 与 `GenerateDocumentationFile` 全开
 （测试与示例不强制 XML 注释）。包版本集中在 `Directory.Packages.props`。
 
+## 现在能跑什么
+
+- 新 UI（V2）默认布局：左右两根竖条带，上下两组，分组分隔符，BOTTOM 组倒序
+- 点条带按钮开合工具窗口，「一格一个可见窗口」的互斥
+- 同一条边两个窗口按 `sideWeight` 切成两半
+- 拖分隔条改大小（分隔条 0px，热区 6px），拖条带按钮换位置
+- 停靠几何：默认 TOP/BOTTOM 通栏，宽屏模式反过来
+- 明暗两套 expUI 配色、紧凑模式度量、`JBUI.scale` 的取整规则
+- 布局存档读写（XML 形状与属性名照抄上游）
+
+**还没做**：浮动 / 独立窗口形态、内容区的 tab、「更多」按钮、
+「显示名字」的宽条带、右键菜单。审读文档里对应章节都已成文，照着做即可。
+
 ```bash
 dotnet test Piccolo.Forge.slnx
 ```
