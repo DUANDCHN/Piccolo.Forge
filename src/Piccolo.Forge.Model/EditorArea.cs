@@ -34,6 +34,20 @@ public sealed class EditorArea
     public event EventHandler? Changed;
 
     /// <summary>
+    /// 一个标签页被关掉了。
+    /// </summary>
+    /// <remarks>
+    /// 对应上游 <c>EditorWindow.kt:759</c> 在关闭的 <c>finally</c> 里广播
+    /// <c>FileEditorManagerListener.fileClosed</c>。
+    /// <para>
+    /// <b>为什么单独一个事件而不是让宿主从 <see cref="Changed"/> 里比对</b>：
+    /// 宿主要在这里释放资源（相机会话、图像帧、订阅），比对法漏一次就是漏一次泄漏，
+    /// 而且分不清「关掉了」和「挪到另一组去了」。
+    /// </para>
+    /// </remarks>
+    public event EventHandler<EditorTabClosedEventArgs>? TabClosed;
+
+    /// <summary>
     /// 整棵树换掉 —— 读档用。
     /// </summary>
     /// <param name="root">新的根。</param>
@@ -75,6 +89,7 @@ public sealed class EditorArea
     {
         foreach (var group in Groups)
         {
+            var tab = group.Tabs.FirstOrDefault(x => x.Id == id);
             if (group.Close(id))
             {
                 // 空了的组要从树上摘掉（除非它是唯一一组）
@@ -84,6 +99,10 @@ public sealed class EditorArea
                 }
 
                 OnChanged();
+
+                // 先把树整理好再广播：宿主在这个回调里会去读编辑区的现状
+                // （「还剩几张图」「现在活动的是谁」），读到半成品是错的。
+                TabClosed?.Invoke(this, new EditorTabClosedEventArgs(tab));
                 return true;
             }
         }
@@ -365,4 +384,15 @@ public sealed class EditorArea
     }
 
     private void OnChanged() => Changed?.Invoke(this, EventArgs.Empty);
+}
+
+
+/// <summary>
+/// <see cref="EditorArea.TabClosed"/> 的参数。
+/// </summary>
+/// <param name="tab">被关掉的那一页（关掉之前的样子）。</param>
+public sealed class EditorTabClosedEventArgs(EditorTab tab) : EventArgs
+{
+    /// <summary>被关掉的那一页。</summary>
+    public EditorTab Tab { get; } = tab;
 }

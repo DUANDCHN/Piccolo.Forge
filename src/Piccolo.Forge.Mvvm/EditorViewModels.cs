@@ -179,6 +179,7 @@ public sealed class EditorAreaViewModel : ForgeObservableObject
     private readonly Dictionary<string, EditorTabViewModel> _tabsById = new(StringComparer.Ordinal);
     private readonly Dictionary<EditorGroup, EditorGroupViewModel> _groupsByModel = [];
     private readonly ObservableCollection<EditorGroupViewModel> _groups = [];
+    private EditorTabViewModel? _activeTab;
 
     /// <summary>建一个编辑区 VM。</summary>
     /// <param name="area">底下的模型；不给就新建一个空的。</param>
@@ -186,6 +187,15 @@ public sealed class EditorAreaViewModel : ForgeObservableObject
     {
         Area = area ?? new EditorArea();
         Area.Changed += (_, _) => Sync();
+        Area.TabClosed += (_, e) =>
+        {
+            // 关掉的那一页从缓存里摘掉 —— 不摘的话宿主塞的内容（相机会话、图像帧）
+            // 会被这个字典一直强引用着，Dispose 了也回收不掉。
+            if (_tabsById.Remove(e.Tab.Id, out var vm))
+            {
+                TabClosed?.Invoke(this, vm);
+            }
+        };
         Groups = new ReadOnlyObservableCollection<EditorGroupViewModel>(_groups);
         Sync();
     }
@@ -195,6 +205,41 @@ public sealed class EditorAreaViewModel : ForgeObservableObject
 
     /// <summary>所有标签页组。</summary>
     public ReadOnlyObservableCollection<EditorGroupViewModel> Groups { get; }
+
+    /// <summary>
+    /// 一个标签页被关掉了 —— 宿主在这里释放它的内容。
+    /// </summary>
+    /// <remarks>
+    /// 转发自 <see cref="EditorArea.TabClosed"/>，多给一样东西：关掉那一页的 VM，
+    /// 宿主拿 <see cref="EditorTabViewModel.Content"/> 就能 <c>Dispose</c>。
+    /// <b>库不替宿主 Dispose</b>：内容是宿主的对象，什么时候该释放只有宿主知道
+    /// （同一个会话可能还被别处引用着）。
+    /// </remarks>
+    public event EventHandler<EditorTabViewModel>? TabClosed;
+
+    /// <summary>
+    /// 当前活动的那一页换人了（换成 <see langword="null"/> 也报）。
+    /// </summary>
+    /// <remarks>
+    /// 对应上游 <c>EditorWindow.kt:232-241</c> 里挂在 tabs 上的
+    /// <c>TabsListener.selectionChanged</c> —— 它把新选中的 composite 推进
+    /// <c>_currentCompositeFlow</c>，别处（工具窗口、状态栏）都看这条流。
+    /// <para>
+    /// 「活动」= <b>当前组</b>里选中的那一页：分屏之后每组各有一个选中项，
+    /// 但只有当前组的那个算活动（<c>EditorsSplitters.currentWindow</c>）。
+    /// </para>
+    /// </remarks>
+    public event EventHandler<EditorTabViewModel?>? ActiveTabChanged;
+
+    /// <summary>当前活动的那一页；没有则 <see langword="null"/>。</summary>
+    public EditorTabViewModel? ActiveTab
+    {
+        get
+        {
+            var current = Area.CurrentGroup.SelectedId;
+            return current is null ? null : _tabsById.GetValueOrDefault(current);
+        }
+    }
 
     /// <summary>
     /// 打开一块内容。
@@ -363,5 +408,19 @@ public sealed class EditorAreaViewModel : ForgeObservableObject
                 _groups.Move(current, i);
             }
         }
+
+        RaiseActiveTabChanged();
+    }
+
+    private void RaiseActiveTabChanged()
+    {
+        var active = ActiveTab;
+        if (ReferenceEquals(active, _activeTab))
+        {
+            return;
+        }
+
+        _activeTab = active;
+        ActiveTabChanged?.Invoke(this, active);
     }
 }

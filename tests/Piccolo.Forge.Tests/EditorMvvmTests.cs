@@ -172,4 +172,83 @@ public class EditorMvvmTests
         Assert.Single(restored.Groups[0].Tabs);
         Assert.Null(restored.Groups[0].Tabs[0].Content);
     }
+
+    [Fact]
+    public void Closing_a_tab_tells_the_host_so_it_can_release_the_content()
+    {
+        // 上游 EditorWindow.kt:759 在关闭的 finally 里广播 fileClosed，
+        // 宿主靠它释放资源（相机会话、图像帧）。
+        var editor = new EditorAreaViewModel();
+        var doc = new ImageDoc("cam-1");
+        editor.Open(doc);
+
+        EditorTabViewModel? closed = null;
+        editor.TabClosed += (_, tab) => closed = tab;
+
+        editor.Close("cam-1");
+
+        Assert.NotNull(closed);
+        Assert.Equal("cam-1", closed!.Id);
+        Assert.Same(doc, closed.Content);
+    }
+
+    [Fact]
+    public void A_closed_tab_is_no_longer_held_by_the_area()
+    {
+        var editor = new EditorAreaViewModel();
+        editor.Open(new ImageDoc("cam-1"));
+        editor.Close("cam-1");
+
+        Assert.Null(editor.Find("cam-1"));
+
+        // 再开同一个 id 是一张全新的页，不该复活旧的那张
+        var doc = new ImageDoc("cam-1");
+        var reopened = editor.Open(doc);
+        Assert.Same(doc, reopened.Content);
+    }
+
+    [Fact]
+    public void Closing_a_tab_that_is_not_there_tells_nobody()
+    {
+        var editor = new EditorAreaViewModel();
+        editor.Open(new ImageDoc("cam-1"));
+
+        var count = 0;
+        editor.TabClosed += (_, _) => count++;
+
+        Assert.False(editor.Close("nope"));
+        Assert.Equal(0, count);
+    }
+
+    [Fact]
+    public void The_active_tab_is_the_selected_one_in_the_current_group()
+    {
+        var editor = new EditorAreaViewModel();
+        var seen = new List<string?>();
+        editor.ActiveTabChanged += (_, tab) => seen.Add(tab?.Id);
+
+        editor.Open(new ImageDoc("cam-1"));
+        editor.Open(new ImageDoc("cam-2"));
+        editor.Select("cam-1");
+
+        Assert.Equal("cam-1", editor.ActiveTab?.Id);
+        Assert.Equal(["cam-1", "cam-2", "cam-1"], seen);
+    }
+
+    [Fact]
+    public void Closing_the_last_tab_reports_no_active_tab()
+    {
+        var editor = new EditorAreaViewModel();
+        editor.Open(new ImageDoc("cam-1"));
+
+        EditorTabViewModel? last = null;
+        var reported = false;
+        editor.ActiveTabChanged += (_, tab) => { last = tab; reported = true; };
+
+        editor.Close("cam-1");
+
+        Assert.True(reported);
+        Assert.Null(last);
+        Assert.Null(editor.ActiveTab);
+    }
 }
