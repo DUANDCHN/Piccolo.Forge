@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Piccolo.Forge.Model/Piccolo.Forge.Model.csproj" />
+    <Project Path="src/Piccolo.Forge.Mvvm/Piccolo.Forge.Mvvm.csproj" />
     <Project Path="src/Piccolo.Forge.Themes/Piccolo.Forge.Themes.csproj" />
     <Project Path="src/Piccolo.Forge.Avalonia/Piccolo.Forge.Avalonia.csproj" />
   </Folder>

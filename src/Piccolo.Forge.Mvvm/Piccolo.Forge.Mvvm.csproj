@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Piccolo.Forge.Mvvm</RootNamespace>
+    <Description>Forge 的可观察包装：工具窗口与内容的 VM。只依赖模型层，不引 Avalonia，也不引任何 MVVM 框架。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      **只依赖模型层**：不引 Avalonia，也不引任何 MVVM 框架
+      （CommunityToolkit / ReactiveUI）。宿主用什么框架是宿主的事，
+      控件库不该替它选。有测试钉住这一条。
+    -->
+    <ProjectReference Include="../Piccolo.Forge.Model/Piccolo.Forge.Model.csproj" />
+  </ItemGroup>
+
+</Project>
