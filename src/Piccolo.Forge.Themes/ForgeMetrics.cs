@@ -92,6 +92,12 @@ public static class ForgeMetrics
     /// <summary>同一格里两个窗口之间的分隔器宽度 1（<c>ToolWindowPane.kt:617 · MySplitter</c> 是 OnePixelSplitter）。</summary>
     public const double SplitDividerWidth = 1;
 
+    /// <summary>图标与名字之间的间距 3（<c>SquareStripeButton.kt:226-227 · iconLabelGap</c>）。</summary>
+    public const double StripeIconLabelGap = 3;
+
+    /// <summary>「显示名字」时名字左右的 padding 6（紧凑 4，<c>SquareStripeButton.kt:254</c>）。</summary>
+    public const double StripeButtonTextPadding = 6;
+
     /// <summary>
     /// 从条带按钮起拖的死区 7（<c>MouseDragHelper.java:32 · DRAG_START_DEADZONE</c>）。
     /// </summary>

@@ -19,21 +19,23 @@ public class RenderSnapshotTests
         Environment.GetEnvironmentVariable("FORGE_SNAPSHOT_DIR") ?? Path.Combine(Path.GetTempPath(), "forge-snapshots");
 
     [AvaloniaTheory]
-    [InlineData("dark")]
-    [InlineData("light")]
-    public void Render_the_default_layout(string themeName)
+    [InlineData("dark", false)]
+    [InlineData("light", false)]
+    [InlineData("names", true)]
+    public void Render_the_default_layout(string themeName, bool showNames)
     {
-        var palette = themeName == "dark" ? ForgePalette.ExpUiDark : ForgePalette.ExpUiLight;
+        var palette = themeName == "light" ? ForgePalette.ExpUiLight : ForgePalette.ExpUiDark;
         var manager = new ToolWindowManager(DefaultToolWindowLayout.CreateV2());
 
         var frame = new ForgeToolWindowFrame
         {
             Palette = palette,
+            ShowToolWindowNames = showNames,
             EditorContent = new Border
             {
-                Background = new SolidColorBrush(themeName == "dark"
-                    ? ForgeColor.Parse("#1E1F22")
-                    : ForgeColor.Parse("#FFFFFF")),
+                Background = new SolidColorBrush(themeName == "light"
+                    ? ForgeColor.Parse("#FFFFFF")
+                    : ForgeColor.Parse("#1E1F22")),
             },
         };
         frame.Attach(manager);

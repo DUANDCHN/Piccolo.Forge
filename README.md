@@ -65,9 +65,10 @@ net8.0 / Avalonia 12.1.1，`TreatWarningsAsErrors` 与 `GenerateDocumentationFil
 - 停靠几何：默认 TOP/BOTTOM 通栏，宽屏模式反过来
 - 明暗两套 expUI 配色、紧凑模式度量、`JBUI.scale` 的取整规则
 - 布局存档读写（XML 形状与属性名照抄上游）
+- 条带「显示名字」模式：宽度 59，名字按第一个空格拆成最多两行
 
-**还没做**：浮动 / 独立窗口形态、内容区的 tab、「更多」按钮、
-「显示名字」的宽条带、右键菜单。审读文档里对应章节都已成文，照着做即可。
+**还没做**：浮动 / 独立窗口形态（FLOATING/WINDOWED）、内容区的 tab（`contentUiType`）、
+「更多」按钮、右键菜单。前两项要先补审，后两项审读文档里已有出处。
 
 ```bash
 dotnet test Piccolo.Forge.slnx

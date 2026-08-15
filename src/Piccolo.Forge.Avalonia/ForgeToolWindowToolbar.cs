@@ -35,9 +35,14 @@ public class ForgeToolWindowToolbar : TemplatedControl
     public static readonly StyledProperty<StripeSide> SideProperty =
         AvaloniaProperty.Register<ForgeToolWindowToolbar, StripeSide>(nameof(Side));
 
+    /// <summary><see cref="CustomWidth"/> 的属性定义。</summary>
+    public static readonly StyledProperty<double> CustomWidthProperty =
+        AvaloniaProperty.Register<ForgeToolWindowToolbar, double>(nameof(CustomWidth));
+
     static ForgeToolWindowToolbar()
     {
         AffectsRender<ForgeToolWindowToolbar>(PaletteProperty, SideProperty);
+        AffectsMeasure<ForgeToolWindowToolbar>(CustomWidthProperty);
     }
 
     /// <summary>建一根条带。</summary>
@@ -65,6 +70,34 @@ public class ForgeToolWindowToolbar : TemplatedControl
         set => SetValue(SideProperty, value);
     }
 
+    /// <summary>
+    /// 条带的自定义宽度；<c>0</c> 表示按按钮自身尺寸走。
+    /// </summary>
+    /// <remarks>
+    /// 打开「显示名字」时是 <see cref="ForgeMetrics.StripeNamedDefaultWidth"/>=59
+    /// （<c>ResizeStripeManager.kt:215-218</c>），可拖动，夹在
+    /// [<see cref="ForgeMetrics.StripeMinWidth"/>, <see cref="ForgeMetrics.StripeMaxWidth"/>] 之内
+    /// （<c>:138-146</c>）。
+    /// </remarks>
+    public double CustomWidth
+    {
+        get => GetValue(CustomWidthProperty);
+        set => SetValue(CustomWidthProperty, value);
+    }
+
+    /// <summary>
+    /// 把宽度夹到上游允许的范围。
+    /// </summary>
+    /// <remarks>对应 <c>ResizeStripeManager.kt:138-149 · checkMinMax</c>。</remarks>
+    /// <param name="width">想要的宽度。</param>
+    /// <param name="isCompact">是否紧凑模式。</param>
+    /// <returns>夹住之后的宽度。</returns>
+    public static double ClampCustomWidth(double width, bool isCompact = false)
+    {
+        var min = isCompact ? ForgeCompactMetrics.StripeMinWidth : ForgeMetrics.StripeMinWidth;
+        return Math.Clamp(width, min, ForgeMetrics.StripeMaxWidth);
+    }
+
     /// <summary>上组：放 LEFT / RIGHT 的按钮。</summary>
     public StripeItemsPanel TopGroup => _topGroup;
 
@@ -88,7 +121,8 @@ public class ForgeToolWindowToolbar : TemplatedControl
         var size = _root.DesiredSize;
 
         // 内侧那条 1px 线占宽
-        return new Size(size.Width + 1, size.Height);
+        var width = CustomWidth > 0 ? CustomWidth : size.Width + 1;
+        return new Size(width, size.Height);
     }
 
     /// <inheritdoc />

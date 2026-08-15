@@ -37,6 +37,18 @@ public class ForgeStripeButton : TemplatedControl
     public static readonly StyledProperty<string?> TextProperty =
         AvaloniaProperty.Register<ForgeStripeButton, string?>(nameof(Text));
 
+    /// <summary><see cref="ShowName"/> 的属性定义。</summary>
+    public static readonly StyledProperty<bool> ShowNameProperty =
+        AvaloniaProperty.Register<ForgeStripeButton, bool>(nameof(ShowName));
+
+    /// <summary><see cref="Title"/> 的属性定义。</summary>
+    public static readonly StyledProperty<string?> TitleProperty =
+        AvaloniaProperty.Register<ForgeStripeButton, string?>(nameof(Title));
+
+    /// <summary><see cref="StripeWidth"/> 的属性定义。</summary>
+    public static readonly StyledProperty<double> StripeWidthProperty =
+        AvaloniaProperty.Register<ForgeStripeButton, double>(nameof(StripeWidth));
+
     static ForgeStripeButton()
     {
         AffectsRender<ForgeStripeButton>(
@@ -44,7 +56,8 @@ public class ForgeStripeButton : TemplatedControl
             IsCompactProperty,
             IsToolWindowVisibleProperty,
             IsToolWindowActiveProperty);
-        AffectsMeasure<ForgeStripeButton>(IsCompactProperty);
+        AffectsMeasure<ForgeStripeButton>(IsCompactProperty, ShowNameProperty, StripeWidthProperty, TitleProperty);
+        AffectsRender<ForgeStripeButton>(ShowNameProperty, TitleProperty);
     }
 
     /// <summary>建一个按钮。</summary>
@@ -87,6 +100,36 @@ public class ForgeStripeButton : TemplatedControl
         get => GetValue(TextProperty);
         set => SetValue(TextProperty, value);
     }
+
+    /// <summary>是否在图标下面显示工具窗口的名字。</summary>
+    /// <remarks>
+    /// 开关是 `UISettings.showToolWindowsNames`，默认 false
+    /// （<c>UISettingsState.kt:83</c>）；打开时条带宽度变成
+    /// <see cref="ForgeMetrics.StripeNamedDefaultWidth"/>（<c>ResizeStripeManager.kt:215-218</c>）。
+    /// </remarks>
+    public bool ShowName
+    {
+        get => GetValue(ShowNameProperty);
+        set => SetValue(ShowNameProperty, value);
+    }
+
+    /// <summary>工具窗口的名字，<see cref="ShowName"/> 打开时画在图标下面。</summary>
+    public string? Title
+    {
+        get => GetValue(TitleProperty);
+        set => SetValue(TitleProperty, value);
+    }
+
+    /// <summary>条带的自定义宽度；<c>0</c> 表示按按钮自身尺寸走。</summary>
+    public double StripeWidth
+    {
+        get => GetValue(StripeWidthProperty);
+        set => SetValue(StripeWidthProperty, value);
+    }
+
+    /// <summary>名字左右的 padding：紧凑 4，否则 6。</summary>
+    public double TextPadding
+        => IsCompact ? ForgeCompactMetrics.StripeButtonTextPadding : ForgeMetrics.StripeButtonTextPadding;
 
     /// <summary>按钮边长：紧凑 32，否则 40。</summary>
     public double ButtonSize => IsCompact ? ForgeCompactMetrics.StripeButtonSize : ForgeMetrics.StripeButtonSize;
@@ -131,8 +174,43 @@ public class ForgeStripeButton : TemplatedControl
     public Color ResolveForeground()
         => IsToolWindowActive ? Palette.ButtonSelectedForeground : Palette.ButtonForeground;
 
+    /// <summary>
+    /// 名字按第一个空格拆成最多两行。
+    /// </summary>
+    /// <remarks>对应 <c>SquareStripeButton.kt:331-334 · getStripeSplitText</c>：<c>split(" ", limit = 2)</c>。</remarks>
+    /// <param name="title">工具窗口的名字。</param>
+    /// <returns>拆出来的行。</returns>
+    public static IReadOnlyList<string> SplitTitle(string? title)
+    {
+        var text = title?.Trim();
+        if (string.IsNullOrEmpty(text))
+        {
+            return [];
+        }
+
+        var space = text.IndexOf(' ', StringComparison.Ordinal);
+        return space < 0 ? [text] : [text[..space], text[(space + 1)..]];
+    }
+
+    /// <summary>「显示名字」时字号：比正文小一号。</summary>
+    /// <remarks>上游是 <c>RelativeFont.TINY.derive(button.font)</c>（<c>SquareStripeButton.kt:329</c>）。</remarks>
+    private double NameFontSize => Math.Max(8, IconSize * 0.5);
+
     /// <inheritdoc />
-    protected override Size MeasureOverride(Size availableSize) => new(ButtonSize, ButtonSize);
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        if (!ShowName)
+        {
+            return new Size(ButtonSize, ButtonSize);
+        }
+
+        // 高度 = 基础高 + 间距 + 行数 × 行高（SquareStripeButton.kt:320-327）
+        var lines = SplitTitle(Title).Count;
+        var height = ButtonSize + (lines > 0 ? ForgeMetrics.StripeIconLabelGap + (lines * NameFontSize * 1.4) : 0);
+        var width = StripeWidth > 0 ? StripeWidth : ButtonSize;
+
+        return new Size(width, height);
+    }
 
     /// <inheritdoc />
     public override void Render(DrawingContext context)
@@ -140,18 +218,26 @@ public class ForgeStripeButton : TemplatedControl
         var background = ResolveBackground();
         if (background is { } color)
         {
-            context.DrawRectangle(
-                new SolidColorBrush(color),
-                null,
-                new RoundedRect(new Rect(Bounds.Size), Arc));
+            var backgroundRect = ShowName
+                ? new Rect((Bounds.Width - ButtonSize) / 2, 0, ButtonSize, ButtonSize)
+                : new Rect(Bounds.Size);
+
+            context.DrawRectangle(new SolidColorBrush(color), null, new RoundedRect(backgroundRect, Arc));
         }
 
         // 图标位：按 padding 内缩，正好留出 IconSize
+        // 显示名字时，图标只占上面那一块（SquareStripeButton.kt:240 的 buttonWrapper 就是干这个）
+        var iconAreaHeight = ShowName ? ButtonSize : Bounds.Height;
         var iconRect = new Rect(
             IconPadding,
             IconPadding,
             Math.Max(0, Bounds.Width - (IconPadding * 2)),
-            Math.Max(0, Bounds.Height - (IconPadding * 2)));
+            Math.Max(0, iconAreaHeight - (IconPadding * 2)));
+
+        if (ShowName)
+        {
+            RenderName(context);
+        }
 
         if (string.IsNullOrEmpty(Text))
         {
@@ -171,6 +257,32 @@ public class ForgeStripeButton : TemplatedControl
             new Point(
                 iconRect.X + ((iconRect.Width - text.Width) / 2),
                 iconRect.Y + ((iconRect.Height - text.Height) / 2)));
+    }
+
+    private void RenderName(DrawingContext context)
+    {
+        var lines = SplitTitle(Title);
+        if (lines.Count == 0)
+        {
+            return;
+        }
+
+        var totalWidth = Math.Max(0, Bounds.Width - (TextPadding * 2));
+        var y = ButtonSize + ForgeMetrics.StripeIconLabelGap;
+
+        foreach (var line in lines)
+        {
+            var text = new FormattedText(
+                line,
+                System.Globalization.CultureInfo.CurrentCulture,
+                FlowDirection.LeftToRight,
+                Typeface.Default,
+                NameFontSize,
+                new SolidColorBrush(ResolveForeground()));
+
+            context.DrawText(text, new Point(TextPadding + ((totalWidth - text.Width) / 2), y));
+            y += NameFontSize * 1.4;
+        }
     }
 
     /// <inheritdoc />

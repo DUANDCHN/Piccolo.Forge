@@ -35,6 +35,10 @@ public class ForgeToolWindowFrame : TemplatedControl
     public static readonly StyledProperty<ForgePalette> PaletteProperty =
         AvaloniaProperty.Register<ForgeToolWindowFrame, ForgePalette>(nameof(Palette), ForgePalette.ExpUiDark);
 
+    /// <summary><see cref="ShowToolWindowNames"/> 的属性定义。</summary>
+    public static readonly StyledProperty<bool> ShowToolWindowNamesProperty =
+        AvaloniaProperty.Register<ForgeToolWindowFrame, bool>(nameof(ShowToolWindowNames));
+
     /// <summary><see cref="EditorContent"/> 的属性定义。</summary>
     public static readonly StyledProperty<Control?> EditorContentProperty =
         AvaloniaProperty.Register<ForgeToolWindowFrame, Control?>(nameof(EditorContent));
@@ -43,6 +47,7 @@ public class ForgeToolWindowFrame : TemplatedControl
     {
         PaletteProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Rebuild());
         EditorContentProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Rebuild());
+        ShowToolWindowNamesProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Rebuild());
     }
 
     /// <summary>建一个框架。</summary>
@@ -62,6 +67,19 @@ public class ForgeToolWindowFrame : TemplatedControl
     {
         get => GetValue(PaletteProperty);
         set => SetValue(PaletteProperty, value);
+    }
+
+    /// <summary>
+    /// 条带上是否在图标下面显示名字。
+    /// </summary>
+    /// <remarks>
+    /// 对应 `UISettings.showToolWindowsNames`，默认 false（<c>UISettingsState.kt:83</c>）。
+    /// 打开时条带宽度变成 59（<c>ResizeStripeManager.kt:215-218</c>）。
+    /// </remarks>
+    public bool ShowToolWindowNames
+    {
+        get => GetValue(ShowToolWindowNamesProperty);
+        set => SetValue(ShowToolWindowNamesProperty, value);
     }
 
     /// <summary>中间编辑区放什么。</summary>
@@ -138,6 +156,10 @@ public class ForgeToolWindowFrame : TemplatedControl
         _left.Palette = Palette;
         _right.Palette = Palette;
 
+        var stripeWidth = ShowToolWindowNames ? ForgeMetrics.StripeNamedDefaultWidth : 0;
+        _left.CustomWidth = stripeWidth;
+        _right.CustomWidth = stripeWidth;
+
         foreach (var side in new[] { StripeSide.Left, StripeSide.Right })
         {
             var toolbar = side == StripeSide.Left ? _left : _right;
@@ -178,6 +200,9 @@ public class ForgeToolWindowFrame : TemplatedControl
         {
             Palette = Palette,
             Text = info.Id[..1],
+            Title = info.Id,
+            ShowName = ShowToolWindowNames,
+            StripeWidth = ShowToolWindowNames ? ForgeMetrics.StripeNamedDefaultWidth : 0,
             IsToolWindowVisible = info.IsVisible,
             IsToolWindowActive = string.Equals(_manager!.LastActiveToolWindowId, info.Id, StringComparison.Ordinal)
                                  && info.IsVisible,
