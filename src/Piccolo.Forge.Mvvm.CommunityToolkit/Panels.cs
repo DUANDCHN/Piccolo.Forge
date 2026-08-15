@@ -14,20 +14,35 @@ namespace Piccolo.Forge.Mvvm.CommunityToolkit;
 /// </remarks>
 public abstract class ForgePanelBase : ObservableObject, IForgePanel
 {
-    private string _title;
+    private string _id = string.Empty;
+    private string _title = string.Empty;
     private object? _icon;
 
-    /// <summary>建一个面板。</summary>
-    /// <param name="id">面板 id，建好之后不变。</param>
+    /// <summary>建一个面板，稍后再给 <see cref="Id"/>。</summary>
+    protected ForgePanelBase()
+    {
+    }
+
+    /// <summary>建一个面板并当场给定身份。</summary>
+    /// <param name="id">面板 id。</param>
     protected ForgePanelBase(string id)
     {
         ArgumentException.ThrowIfNullOrEmpty(id);
         Id = id;
-        _title = id;
+        Title = id;
     }
 
     /// <inheritdoc />
-    public string Id { get; }
+    /// <remarks>
+    /// 可写 —— 与 Dock 的 <c>IDockable.Id</c>（"Gets or **sets** dockable id"）一致：
+    /// 宿主常常是先无参造好面板、再由装配处赋 id。**赋在面板上就够了**，
+    /// 外壳登记时从面板读，不要另存一份。
+    /// </remarks>
+    public string Id
+    {
+        get => _id;
+        set => SetProperty(ref _id, value);
+    }
 
     /// <inheritdoc />
     /// <remarks>可改：切语言时改这里，条带提示与标题条会一起跟着变。</remarks>
@@ -51,7 +66,12 @@ public abstract class ForgePanelBase : ObservableObject, IForgePanel
 /// <remarks>停哪条边登记时说一次；按钮画在哪根条带是算出来的，宿主不用管。</remarks>
 public abstract class ToolWindowPanel : ForgePanelBase, IToolWindowPanel
 {
-    /// <summary>建一块工具面板。</summary>
+    /// <summary>建一块工具面板，稍后再给 id。</summary>
+    protected ToolWindowPanel()
+    {
+    }
+
+    /// <summary>建一块工具面板并当场给定身份。</summary>
     /// <param name="id">面板 id。</param>
     protected ToolWindowPanel(string id) : base(id)
     {
@@ -63,7 +83,12 @@ public abstract class ToolWindowPanel : ForgePanelBase, IToolWindowPanel
 /// </summary>
 public abstract class EditorPanel : ForgePanelBase, IEditorPanel
 {
-    /// <summary>建一块编辑区面板。</summary>
+    /// <summary>建一块编辑区面板，稍后再给 id。</summary>
+    protected EditorPanel()
+    {
+    }
+
+    /// <summary>建一块编辑区面板并当场给定身份。</summary>
     /// <param name="id">面板 id。</param>
     protected EditorPanel(string id) : base(id)
     {
