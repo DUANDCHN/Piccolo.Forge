@@ -80,6 +80,30 @@ public sealed class EditorArea
     }
 
     /// <summary>
+    /// 把一个标签页设成固定 / 取消固定。
+    /// </summary>
+    /// <remarks>
+    /// 在编辑区这一层给一个入口，是因为 <see cref="EditorGroup.SetPinned"/> 改完
+    /// **没人发通知**，绑上去的 UI 不会更新 —— 状态变更必须经过持有事件的那一层。
+    /// </remarks>
+    /// <param name="id">标签页 id。</param>
+    /// <param name="pinned">是否固定。</param>
+    /// <returns>找到并改了则为 <see langword="true"/>。</returns>
+    public bool SetPinned(string id, bool pinned)
+    {
+        foreach (var group in Groups)
+        {
+            if (group.SetPinned(id, pinned))
+            {
+                OnChanged();
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// 把一组分成两组。
     /// </summary>
     /// <remarks>
