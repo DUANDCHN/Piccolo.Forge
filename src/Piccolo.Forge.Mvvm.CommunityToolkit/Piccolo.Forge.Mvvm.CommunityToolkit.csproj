@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Piccolo.Forge.Mvvm.CommunityToolkit</RootNamespace>
+    <Description>Forge 面板基类的 CommunityToolkit.Mvvm 绑定：宿主继承它就能继续用 [ObservableProperty]。</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      **这个包是允许引 MVVM 框架的那一个**（中立包不许，有测试钉住）。
+      分包的理由与 Dock 一致：Dock.Model 只出接口，
+      Dock.Model.Mvvm 才依赖 CommunityToolkit 出基类，
+      另有 Dock.Model.Avalonia 是同一套模型的另一种绑定。
+      宿主用哪个框架就引哪个包，库不替它选。
+    -->
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Piccolo.Forge.Model/Piccolo.Forge.Model.csproj" />
+  </ItemGroup>
+
+</Project>

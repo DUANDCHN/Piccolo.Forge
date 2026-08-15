@@ -1,5 +1,5 @@
 using System.Collections.ObjectModel;
-using System.Collections.Specialized;
+using System.ComponentModel;
 using Piccolo.Forge.Model;
 
 namespace Piccolo.Forge.Mvvm;
@@ -88,6 +88,43 @@ public sealed class ToolWindowShellViewModel : ForgeObservableObject
         bool isSplit = false,
         object? icon = null)
     {
+        return AddCore(id, title, anchor, isSplit, icon, panel: null);
+    }
+
+    /// <summary>
+    /// 登记一块工具面板 —— **身份从面板自己来**。
+    /// </summary>
+    /// <remarks>
+    /// 这是推荐的登记方式：面板继承 <c>ToolWindowPanel</c> 之后自带
+    /// <see cref="IForgePanel.Id"/> / <see cref="IForgePanel.Title"/> / <see cref="IForgePanel.Icon"/>，
+    /// 宿主不必再把同样的东西说第二遍。
+    /// <para>
+    /// 面板的 <c>Title</c> / <c>Icon</c> 改了会**自动跟到**条带按钮与标题条上
+    /// （面板实现了 <see cref="INotifyPropertyChanged"/> 时）—— 切语言只改一处。
+    /// </para>
+    /// <para>
+    /// 参数里只剩「停哪条边、哪一半」：**按钮画在哪根条带是算出来的**，
+    /// 见 <see cref="StripePlacementResolver.Resolve"/>。
+    /// </para>
+    /// </remarks>
+    /// <param name="panel">面板本身，同时是内容。</param>
+    /// <param name="anchor">停靠边。</param>
+    /// <param name="isSplit">是不是同一条边的另一半。</param>
+    /// <returns>建好的 VM。</returns>
+    public ToolWindowViewModel Add(IToolWindowPanel panel, ToolWindowAnchor anchor, bool isSplit = false)
+    {
+        ArgumentNullException.ThrowIfNull(panel);
+        return AddCore(panel.Id, panel.Title, anchor, isSplit, panel.Icon, panel);
+    }
+
+    private ToolWindowViewModel AddCore(
+        string id,
+        string title,
+        ToolWindowAnchor anchor,
+        bool isSplit,
+        object? icon,
+        IForgePanel? panel)
+    {
         ArgumentException.ThrowIfNullOrEmpty(id);
 
         var order = Manager.Layout.GetNextOrder(WindowInfo.DefaultPaneId, anchor);
@@ -100,6 +137,29 @@ public sealed class ToolWindowShellViewModel : ForgeObservableObject
         });
 
         var vm = new ToolWindowViewModel(id, title) { Icon = icon };
+
+        if (panel is not null)
+        {
+            vm.Content = panel;
+
+            // 面板的 Title / Icon 改了自动跟过来，宿主不用手工同步两份
+            if (panel is INotifyPropertyChanged observable)
+            {
+                observable.PropertyChanged += (_, e) =>
+                {
+                    if (e.PropertyName is null or nameof(IForgePanel.Title))
+                    {
+                        vm.Title = panel.Title;
+                    }
+
+                    if (e.PropertyName is null or nameof(IForgePanel.Icon))
+                    {
+                        vm.Icon = panel.Icon;
+                    }
+                };
+            }
+        }
+
         Track(vm);
         Sync();
         return vm;
