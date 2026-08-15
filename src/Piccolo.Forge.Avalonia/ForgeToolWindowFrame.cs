@@ -244,6 +244,47 @@ public class ForgeToolWindowFrame : TemplatedControl
             ForgeDockPane.SetAnchor(editor, null);
             _pane.Children.Add(editor);
         }
+
+        AddResizers();
+    }
+
+    /// <summary>
+    /// 每条有可见窗口的边，在朝编辑区那一侧放一条 6px 的拖拽热区。
+    /// </summary>
+    /// <remarks>分隔条本身不可见（<c>ToolWindowPane.kt:197</c>），只有热区。</remarks>
+    private void AddResizers()
+    {
+        var anchors = _manager!.Layout.GetSortedList()
+            .Where(x => x.IsVisible)
+            .Select(x => x.Anchor)
+            .Distinct();
+
+        foreach (var anchor in anchors)
+        {
+            var resizer = new ForgeDockResizer { Anchor = anchor };
+            resizer.WeightChanged += OnResizerWeightChanged;
+            ForgeDockPane.SetAnchor(resizer, null);
+            ForgeDockPane.SetIsResizer(resizer, anchor);
+            _pane.Children.Add(resizer);
+        }
+    }
+
+    private void OnResizerWeightChanged(object? sender, DockWeightChangedEventArgs e)
+    {
+        if (_manager is null)
+        {
+            return;
+        }
+
+        // 新 UI 默认走统一权重：拖一条边等于改这条边的统一权重（§4）
+        _manager.Layout.SetUnifiedAnchorWeight(e.Anchor, e.Weight);
+
+        foreach (var info in _manager.Layout.GetSortedList().Where(x => x.IsVisible && x.Anchor == e.Anchor))
+        {
+            _manager.Layout.SetInfo(info with { Weight = e.Weight });
+        }
+
+        Rebuild();
     }
 
     /// <summary>把一个控件从它当前的父容器上摘下来。</summary>

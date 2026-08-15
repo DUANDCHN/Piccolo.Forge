@@ -53,12 +53,12 @@ public class ForgeToolWindowFrameTests
     public void Showing_a_window_adds_it_to_the_dock_pane()
     {
         var (frame, manager) = Build();
-        Assert.Empty(frame.DockPane.Children);
+        Assert.Empty(DockedWindows(frame));
 
         manager.Activate("Project");
 
-        Assert.Single(frame.DockPane.Children);
-        Assert.Equal(ToolWindowAnchor.Left, ForgeDockPane.GetAnchor((Control)frame.DockPane.Children[0]));
+        var window = Assert.Single(DockedWindows(frame));
+        Assert.Equal(ToolWindowAnchor.Left, ForgeDockPane.GetAnchor(window));
     }
 
     [AvaloniaFact]
@@ -69,7 +69,7 @@ public class ForgeToolWindowFrameTests
         manager.Activate("Project");
         manager.Activate("Commit");
 
-        Assert.Single(frame.DockPane.Children);
+        Assert.Single(DockedWindows(frame));
     }
 
     [AvaloniaFact]
@@ -80,7 +80,7 @@ public class ForgeToolWindowFrameTests
         manager.Activate("Project");
         manager.Activate("Structure");   // isSplit=true，是另一格
 
-        Assert.Equal(2, frame.DockPane.Children.Count);
+        Assert.Equal(2, DockedWindows(frame).Count);
     }
 
     [AvaloniaFact]
@@ -110,7 +110,7 @@ public class ForgeToolWindowFrameTests
         frame.Measure(new Size(1000, 800));
         frame.Arrange(new Rect(0, 0, 1000, 800));
 
-        var window = (Control)frame.DockPane.Children[0];
+        var window = DockedWindows(frame)[0];
         Assert.Equal(WindowInfo.DefaultWeight, manager.Layout.GetInfo("Project")!.Weight);
         Assert.Equal(
             Math.Floor(frame.DockPane.Bounds.Width * WindowInfo.DefaultWeight),
@@ -131,10 +131,14 @@ public class ForgeToolWindowFrameTests
         frame.Measure(new Size(1000, 800));
         frame.Arrange(new Rect(0, 0, 1000, 800));
 
-        var window = (Control)frame.DockPane.Children[0];
+        var window = DockedWindows(frame)[0];
         Assert.Equal(0.25f, manager.Layout.GetInfo("Project")!.Weight);
         Assert.Equal(Math.Floor(frame.DockPane.Bounds.Width * 0.25f), window.Bounds.Width);
     }
+
+    // 停靠区里除了工具窗口，还有编辑区和几条拖拽热区
+    private static List<Border> DockedWindows(ForgeToolWindowFrame frame)
+        => frame.DockPane.Children.OfType<Border>().ToList();
 
     private static (ForgeToolWindowFrame Frame, ToolWindowManager Manager) Build()
     {

@@ -45,6 +45,10 @@ public class ForgeDockPane : Panel
     public static readonly AttachedProperty<double> SideWeightProperty =
         AvaloniaProperty.RegisterAttached<ForgeDockPane, Control, double>("SideWeight", 0.5);
 
+    /// <summary>这个子控件是哪条边的拖拽热区（<see langword="null"/> 表示不是）。</summary>
+    public static readonly AttachedProperty<ToolWindowAnchor?> IsResizerProperty =
+        AvaloniaProperty.RegisterAttached<ForgeDockPane, Control, ToolWindowAnchor?>("IsResizer");
+
     static ForgeDockPane()
     {
         AffectsMeasure<ForgeDockPane>(IsWideScreenProperty);
@@ -135,6 +139,24 @@ public class ForgeDockPane : Panel
         control.SetValue(SideWeightProperty, value);
     }
 
+    /// <summary>读一个子控件是不是某条边的拖拽热区。</summary>
+    /// <param name="control">子控件。</param>
+    /// <returns>是哪条边的热区；不是热区则 <see langword="null"/>。</returns>
+    public static ToolWindowAnchor? GetIsResizer(Control control)
+    {
+        ArgumentNullException.ThrowIfNull(control);
+        return control.GetValue(IsResizerProperty);
+    }
+
+    /// <summary>把一个子控件标成某条边的拖拽热区。</summary>
+    /// <param name="control">子控件。</param>
+    /// <param name="value">哪条边。</param>
+    public static void SetIsResizer(Control control, ToolWindowAnchor? value)
+    {
+        ArgumentNullException.ThrowIfNull(control);
+        control.SetValue(IsResizerProperty, value);
+    }
+
     /// <summary>
     /// 一条边被两个窗口分掉时，非 split 的那个占多大比例。
     /// </summary>
@@ -197,6 +219,21 @@ public class ForgeDockPane : Panel
         }
 
         return finalSize;
+    }
+
+    // 热区骑在边界上，中心对准分界线；宽度 6（registry.properties:290）
+    private static Rect ResizerRect(Size paneSize, DockSizes sizes, ToolWindowAnchor anchor)
+    {
+        var zone = ForgeMetrics.SplitterMouseZone;
+        var half = zone / 2;
+
+        return anchor switch
+        {
+            ToolWindowAnchor.Left => new Rect(sizes.Left - half, 0, zone, paneSize.Height),
+            ToolWindowAnchor.Right => new Rect(paneSize.Width - sizes.Right - half, 0, zone, paneSize.Height),
+            ToolWindowAnchor.Top => new Rect(0, sizes.Top - half, paneSize.Width, zone),
+            _ => new Rect(0, paneSize.Height - sizes.Bottom - half, paneSize.Width, zone),
+        };
     }
 
     /// <summary>
@@ -289,6 +326,12 @@ public class ForgeDockPane : Panel
         {
             if (!child.IsVisible)
             {
+                continue;
+            }
+
+            if (GetIsResizer(child) is { } resizerAnchor)
+            {
+                result.Add((child, ResizerRect(paneSize, sizes, resizerAnchor)));
                 continue;
             }
 
