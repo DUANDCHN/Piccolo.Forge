@@ -42,14 +42,14 @@ internal sealed class SampleApp : Application
 
         // ② 登记面板：把面板本身交出去，身份从它自己来。
         //    参数里只剩「停哪条边、哪一半」——按钮画在哪根条带是算出来的。
-        shell.Add(new SampleTool("Project", "Project", "P").Init(), ToolWindowAnchor.Left);
-        shell.Add(new SampleTool("Commit", "Commit", "C").Init(), ToolWindowAnchor.Left);
-        shell.Add(new SampleTool("Structure", "Structure", "S").Init(), ToolWindowAnchor.Left, isSplit: true);
-        shell.Add(new SampleTool("Notifications", "Notifications", "N").Init(), ToolWindowAnchor.Right);
-        shell.Add(new SampleTool("Database", "Database", "D").Init(), ToolWindowAnchor.Right);
-        shell.Add(new SampleTool("Version Control", "Version Control", "V").Init(), ToolWindowAnchor.Bottom);
-        shell.Add(new SampleTool("Terminal", "Terminal", "T").Init(), ToolWindowAnchor.Bottom);
-        shell.Add(new SampleTool("Services", "Services", "E").Init(), ToolWindowAnchor.Bottom, isSplit: true);
+        shell.Add(new SampleTool("Project", "Project", ForgeIcons.Project).Init(), ToolWindowAnchor.Left);
+        shell.Add(new SampleTool("Commit", "Commit", ForgeIcons.Commit).Init(), ToolWindowAnchor.Left);
+        shell.Add(new SampleTool("Structure", "Structure", ForgeIcons.Structure).Init(), ToolWindowAnchor.Left, isSplit: true);
+        shell.Add(new SampleTool("Notifications", "Notifications", ForgeIcons.Notifications).Init(), ToolWindowAnchor.Right);
+        shell.Add(new SampleTool("Database", "Database", ForgeIcons.Database).Init(), ToolWindowAnchor.Right);
+        shell.Add(new SampleTool("Version Control", "Version Control", ForgeIcons.VersionControl).Init(), ToolWindowAnchor.Bottom);
+        shell.Add(new SampleTool("Terminal", "Terminal", ForgeIcons.Terminal).Init(), ToolWindowAnchor.Bottom);
+        shell.Add(new SampleTool("Services", "Services", ForgeIcons.Services).Init(), ToolWindowAnchor.Bottom, isSplit: true);
 
         // ③ 建控件并接上。配色跟着宿主的明暗变体走，这里不用管。
         var frame = new ForgeToolWindowFrame

@@ -19,6 +19,23 @@ public class ForgeIconsTests
     [InlineData("SplitVertical")]
     [InlineData("SplitHorizontal")]
     [InlineData("DefaultToolWindow")]
+    [InlineData("Project")]
+    [InlineData("Structure")]
+    [InlineData("Terminal")]
+    [InlineData("VersionControl")]
+    [InlineData("Commit")]
+    [InlineData("Problems")]
+    [InlineData("Services")]
+    [InlineData("Notifications")]
+    [InlineData("Database")]
+    [InlineData("Find")]
+    [InlineData("Run")]
+    [InlineData("Debug")]
+    [InlineData("Bookmarks")]
+    [InlineData("TodoList")]
+    [InlineData("Chart")]
+    [InlineData("Camera")]
+    [InlineData("Settings")]
     public void Every_icon_has_real_geometry(string name)
     {
         var icon = (Geometry)typeof(ForgeIcons).GetProperty(name)!.GetValue(null)!;
@@ -32,11 +49,15 @@ public class ForgeIconsTests
         // 所有路径按 16×16 画，Draw 时等比缩放到目标尺寸
         Assert.Equal(16, ForgeIcons.ViewBoxSize);
 
-        foreach (var icon in new[]
-                 {
-                     ForgeIcons.Close, ForgeIcons.Pin, ForgeIcons.More,
-                     ForgeIcons.SplitVertical, ForgeIcons.SplitHorizontal, ForgeIcons.DefaultToolWindow,
-                 })
+        var all = typeof(ForgeIcons)
+            .GetProperties()
+            .Where(x => x.PropertyType == typeof(Geometry))
+            .Select(x => (Geometry)x.GetValue(null)!)
+            .ToList();
+
+        Assert.True(all.Count >= 20, "图标集应当覆盖常见工具窗口");
+
+        foreach (var icon in all)
         {
             Assert.True(icon.Bounds.Right <= ForgeIcons.ViewBoxSize, "超出画布右边");
             Assert.True(icon.Bounds.Bottom <= ForgeIcons.ViewBoxSize, "超出画布下边");

@@ -1,3 +1,4 @@
+using Avalonia.Media;
 using Piccolo.Forge.Mvvm;
 using Piccolo.Forge.Mvvm.Controls;
 
@@ -17,8 +18,8 @@ namespace Piccolo.Forge.Sample;
 /// </remarks>
 /// <param name="id">面板 id。</param>
 /// <param name="title">显示名。</param>
-/// <param name="glyph">条带按钮上画什么（这里就是个字符）。</param>
-internal sealed class SampleTool(string id, string title, string glyph) : ToolWindowPanel(id)
+/// <param name="glyph">条带按钮上的图标。</param>
+internal sealed class SampleTool(string id, string title, Geometry glyph) : ToolWindowPanel(id)
 {
     /// <summary>面板里显示的正文。</summary>
     public string Body { get; } = $"{title} 的内容";

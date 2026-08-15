@@ -53,24 +53,24 @@ public class RenderSnapshotTests
         var shell = new ToolWindowShellViewModel();
 
         // 左：相机列表 / 图像库；右：相机参数；下左：日志 / 统计 / 测量表格；下右：四个分析面板
-        (string Id, string Title, ToolWindowAnchor Anchor, bool Split)[] definitions =
+        (string Id, string Title, ToolWindowAnchor Anchor, bool Split, Geometry Icon)[] definitions =
         [
-            ("CamList", "相机列表", ToolWindowAnchor.Left, false),
-            ("ImageLibrary", "图像库", ToolWindowAnchor.Left, false),
-            ("CamParam", "相机参数", ToolWindowAnchor.Right, false),
-            ("DisplayLog", "日志显示", ToolWindowAnchor.Bottom, false),
-            ("ImageStats", "图像统计", ToolWindowAnchor.Bottom, false),
-            ("MeasureTable", "测量表格", ToolWindowAnchor.Bottom, false),
-            ("Histogram", "直方图", ToolWindowAnchor.Bottom, true),
-            ("ProfileLine", "剖面线", ToolWindowAnchor.Bottom, true),
-            ("PixelInspector", "像素查看器", ToolWindowAnchor.Bottom, true),
-            ("FocusMeasure", "清晰度因子", ToolWindowAnchor.Bottom, true),
+            ("CamList", "相机列表", ToolWindowAnchor.Left, false, ForgeIcons.Camera),
+            ("ImageLibrary", "图像库", ToolWindowAnchor.Left, false, ForgeIcons.Project),
+            ("CamParam", "相机参数", ToolWindowAnchor.Right, false, ForgeIcons.Settings),
+            ("DisplayLog", "日志显示", ToolWindowAnchor.Bottom, false, ForgeIcons.Terminal),
+            ("ImageStats", "图像统计", ToolWindowAnchor.Bottom, false, ForgeIcons.Chart),
+            ("MeasureTable", "测量表格", ToolWindowAnchor.Bottom, false, ForgeIcons.TodoList),
+            ("Histogram", "直方图", ToolWindowAnchor.Bottom, true, ForgeIcons.Chart),
+            ("ProfileLine", "剖面线", ToolWindowAnchor.Bottom, true, ForgeIcons.Structure),
+            ("PixelInspector", "像素查看器", ToolWindowAnchor.Bottom, true, ForgeIcons.Find),
+            ("FocusMeasure", "清晰度因子", ToolWindowAnchor.Bottom, true, ForgeIcons.Debug),
         ];
 
-        foreach (var (id, title, anchor, split) in definitions)
+        foreach (var (id, title, anchor, split, icon) in definitions)
         {
             // 登记只要 id/标题/图标 —— 不需要面板实例，按钮却已经在了
-            shell.Add(id, title, anchor, split, icon: ForgeIcons.DefaultToolWindow);
+            shell.Add(id, title, anchor, split, icon);
         }
 
         var frame = new ForgeToolWindowFrame
