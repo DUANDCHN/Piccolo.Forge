@@ -347,6 +347,89 @@ public sealed class EditorArea
         return true;
     }
 
+    /// <summary>
+    /// 把某一组撑满 —— 再来一次就恢复均分。
+    /// </summary>
+    /// <remarks>
+    /// 对应上游 <c>MaximizeEditorInSplitAction.kt:32-48 · actionPerformed</c>，
+    /// 也就是双击标签页（非预览页）触发的那个动作
+    /// （<c>EditorTabbedContainer.kt:339-387 · doProcessDoubleClick</c>）。
+    /// <para>
+    /// 规则（<c>:94-115 · getSplittersToMaximize</c>）：从这一组往根上走，沿途每个分屏节点
+    /// —— 这一组在<b>第一块</b>那侧就把比例推到上限 0.9、在<b>第二块</b>那侧就推到下限 0.1
+    /// （<c>EditorWindow.kt:550</c> 的 <c>minProp=0.1f, maxProp=0.9f</c>）。
+    /// 沿途**已经全都在极值**（没有可推的了）就说明当前已是最大化状态，
+    /// 这时改走归一化：把编辑区里<b>所有</b>分屏节点设回 0.5
+    /// （<c>:43-47</c> 的 <c>getSplittersToNormalize</c> 那一支）。
+    /// </para>
+    /// <para>
+    /// ⚠ 归一化是<b>全局</b>的、最大化是<b>沿途</b>的 —— 这个不对称照抄上游：
+    /// 撑开一路之后想收回来，用户要的是「全都回到均分」，而不是只把刚才那一路收回去。
+    /// </para>
+    /// <para>
+    /// 上游那段 350ms 的动画（<c>:50-66 · setProportion</c>）不在模型层，
+    /// 要不要动画是视图的事。
+    /// </para>
+    /// </remarks>
+    /// <param name="group">要撑满的那一组。</param>
+    /// <returns>撑满了返回 <see langword="true"/>；本来就是撑满的、这次归一化了返回 <see langword="false"/>。</returns>
+    public bool MaximizeOrNormalize(EditorGroup group)
+    {
+        ArgumentNullException.ThrowIfNull(group);
+
+        // 沿途：这一组在哪一侧 → 该推到哪个极值
+        var toMaximize = new List<(EditorSplit Split, bool IsFirst)>();
+        EditorNode node = group;
+        while (FindParent(_root, node) is { } parent)
+        {
+            var isFirst = ReferenceEquals(parent.First, node);
+            var target = isFirst ? EditorSplit.MaxProportion : EditorSplit.MinProportion;
+
+            // 已经在极值的不算「可推的」——沿途全都在极值才判定为"当前已最大化"
+            if (Math.Abs(parent.Proportion - target) > float.Epsilon)
+            {
+                toMaximize.Add((parent, isFirst));
+            }
+
+            node = parent;
+        }
+
+        if (toMaximize.Count > 0)
+        {
+            foreach (var (split, isFirst) in toMaximize)
+            {
+                split.Proportion = isFirst ? EditorSplit.MaxProportion : EditorSplit.MinProportion;
+            }
+
+            OnChanged();
+            return true;
+        }
+
+        foreach (var split in AllSplits(_root))
+        {
+            split.Proportion = EditorSplit.DefaultProportion;
+        }
+
+        OnChanged();
+        return false;
+    }
+
+    /// <summary>这棵树上的所有分屏节点。</summary>
+    private static IEnumerable<EditorSplit> AllSplits(EditorNode node)
+    {
+        if (node is not EditorSplit split)
+        {
+            yield break;
+        }
+
+        yield return split;
+
+        foreach (var child in AllSplits(split.First).Concat(AllSplits(split.Second)))
+        {
+            yield return child;
+        }
+    }
+
     private void Replace(EditorNode oldNode, EditorNode newNode)
     {
         if (ReferenceEquals(_root, oldNode))

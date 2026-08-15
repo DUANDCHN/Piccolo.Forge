@@ -309,4 +309,76 @@ public class EditorAreaTests
         Assert.Null(group.SelectedId);
         Assert.Null(group.PreviousSelectedId);
     }
+
+    // ── 最大化 / 归一化（MaximizeEditorInSplitAction.kt）────────────────
+
+    [Fact]
+    public void Maximizing_pushes_the_group_side_to_its_extreme()
+    {
+        // MaximizeEditorInSplitAction.kt:100-111：在第一块那侧推到上限、第二块那侧推到下限。
+        var area = new EditorArea();
+        area.Open(new EditorTab("a", "A"));
+        var second = area.Split(area.CurrentGroup, isVertical: false)!;
+        var split = (EditorSplit)area.Root;
+
+        Assert.True(area.MaximizeOrNormalize(split.First.Groups.First()));
+        Assert.Equal(EditorSplit.MaxProportion, split.Proportion);
+
+        Assert.True(area.MaximizeOrNormalize(second));
+        Assert.Equal(EditorSplit.MinProportion, split.Proportion);
+    }
+
+    [Fact]
+    public void Maximizing_again_normalizes_everything()
+    {
+        // :43-47 —— 沿途已全在极值就走 getSplittersToNormalize，全部设回 0.5。
+        var area = new EditorArea();
+        area.Open(new EditorTab("a", "A"));
+        var b = area.Split(area.CurrentGroup, isVertical: false)!;
+        area.SetCurrentGroup(b);
+        area.Split(b, isVertical: true);
+
+        var outer = (EditorSplit)area.Root;
+        var inner = (EditorSplit)outer.Second;
+
+        // b 在外层的第二块、内层的第一块
+        Assert.True(area.MaximizeOrNormalize(b));
+        Assert.Equal(EditorSplit.MinProportion, outer.Proportion);
+        Assert.Equal(EditorSplit.MaxProportion, inner.Proportion);
+
+        // 再来一次 → 全部归位（注意是**全部**，不只是刚才那一路）
+        Assert.False(area.MaximizeOrNormalize(b));
+        Assert.Equal(EditorSplit.DefaultProportion, outer.Proportion);
+        Assert.Equal(EditorSplit.DefaultProportion, inner.Proportion);
+    }
+
+    [Fact]
+    public void Normalizing_resets_splits_outside_the_path_too()
+    {
+        // 不对称是照抄上游的：最大化只推沿途，归一化推全部。
+        var area = new EditorArea();
+        area.Open(new EditorTab("a", "A"));
+        var b = area.Split(area.CurrentGroup, isVertical: false)!;
+        var outer = (EditorSplit)area.Root;
+        var a = outer.First.Groups.First();
+        area.Split(a, isVertical: true);          // 左边再切一刀，b 的路上没有它
+        var offPath = (EditorSplit)((EditorSplit)area.Root).First;
+
+        offPath.Proportion = 0.8f;
+        Assert.True(area.MaximizeOrNormalize(b));   // 只动了 outer
+        Assert.Equal(0.8f, offPath.Proportion);
+
+        Assert.False(area.MaximizeOrNormalize(b));  // 归一化动全部
+        Assert.Equal(EditorSplit.DefaultProportion, offPath.Proportion);
+    }
+
+    [Fact]
+    public void Maximizing_without_any_split_changes_nothing_and_reports_normalized()
+    {
+        var area = new EditorArea();
+        area.Open(new EditorTab("a", "A"));
+
+        Assert.False(area.MaximizeOrNormalize(area.CurrentGroup));
+        Assert.IsType<EditorGroup>(area.Root);
+    }
 }

@@ -251,4 +251,42 @@ public class EditorMvvmTests
         Assert.Null(last);
         Assert.Null(editor.ActiveTab);
     }
+
+    [Fact]
+    public void Double_clicking_a_preview_tab_only_promotes_it()
+    {
+        // EditorTabbedContainer.kt:341-347：是预览页就转正，**到此为止**，不最大化。
+        var editor = new EditorAreaViewModel();
+        editor.Open(new ImageDoc("a"));
+        editor.Area.Split(editor.Area.CurrentGroup, isVertical: false);
+        var split = (EditorSplit)editor.Area.Root;
+
+        editor.Open("preview", "预览", isPreview: true);
+        Assert.True(editor.DoubleClick("preview"));
+
+        Assert.False(editor.Find("preview")!.IsPreview);
+        Assert.Equal(EditorSplit.DefaultProportion, split.Proportion);
+    }
+
+    [Fact]
+    public void Double_clicking_a_normal_tab_maximizes_then_normalizes()
+    {
+        var editor = new EditorAreaViewModel();
+        editor.Open(new ImageDoc("a"));
+        editor.Area.Split(editor.Area.CurrentGroup, isVertical: false);
+        var split = (EditorSplit)editor.Area.Root;
+
+        Assert.True(editor.DoubleClick("a"));
+        Assert.Equal(EditorSplit.MaxProportion, split.Proportion);
+
+        Assert.True(editor.DoubleClick("a"));
+        Assert.Equal(EditorSplit.DefaultProportion, split.Proportion);
+    }
+
+    [Fact]
+    public void Double_clicking_a_tab_that_is_not_there_does_nothing()
+    {
+        var editor = new EditorAreaViewModel();
+        Assert.False(editor.DoubleClick("nope"));
+    }
 }

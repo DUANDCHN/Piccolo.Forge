@@ -189,6 +189,14 @@ public class ForgeEditorArea : TemplatedControl
                         return;
                     }
 
+                    // 双击：预览页转正，否则撑满 / 收回
+                    // （EditorTabbedContainer.kt:339-387 · doProcessDoubleClick）
+                    if (e.ClickCount == 2)
+                    {
+                        _area!.DoubleClick(id);
+                        return;
+                    }
+
                     _area!.Select(id);
                 };
 

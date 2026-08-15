@@ -354,6 +354,42 @@ public sealed class EditorAreaViewModel : ForgeObservableObject
         return dropped;
     }
 
+    /// <summary>
+    /// 双击一个标签页 —— 上游把三件事串在这一个手势上。
+    /// </summary>
+    /// <remarks>
+    /// 照抄 <c>EditorTabbedContainer.kt:339-387 · doProcessDoubleClick</c> 的顺序：
+    /// <list type="number">
+    /// <item>这一页是<b>预览页</b> → 转正，<b>到此为止</b>（<c>:341-347</c>，不再最大化）；</item>
+    /// <item>否则把它所在的那一组撑满 / 收回（<see cref="EditorArea.MaximizeOrNormalize"/>）。</item>
+    /// </list>
+    /// <para>
+    /// 上游还有第三件事：<c>HideAllWindows</c>（把工具窗口全收起来）。它归工具窗口子系统管，
+    /// 不在编辑区这一层 —— 宿主要的话自己接（两个高级设置 <c>editor.maximize.on.double.click</c> /
+    /// <c>editor.maximize.in.splits.on.double.click</c> 各管一件，上游也是分开的）。
+    /// </para>
+    /// </remarks>
+    /// <param name="id">被双击的标签页 id。</param>
+    /// <returns>做了事返回 <see langword="true"/>；这一页不在编辑区里返回 <see langword="false"/>。</returns>
+    public bool DoubleClick(string id)
+    {
+        var group = Area.Groups.FirstOrDefault(g => g.Tabs.Any(t => t.Id == id));
+        if (group is null)
+        {
+            return false;
+        }
+
+        if (group.Tabs.First(t => t.Id == id).IsPreview)
+        {
+            group.PromoteFromPreview(id);
+            Sync();
+            return true;
+        }
+
+        Area.MaximizeOrNormalize(group);
+        return true;
+    }
+
     /// <summary>按 id 找标签页 VM。</summary>
     /// <param name="id">标签页 id。</param>
     /// <returns>VM；没有则 <see langword="null"/>。</returns>
