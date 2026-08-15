@@ -41,6 +41,10 @@ public class ForgeToolWindowFrame : TemplatedControl
     public static readonly StyledProperty<ForgePalette> PaletteProperty =
         AvaloniaProperty.Register<ForgeToolWindowFrame, ForgePalette>(nameof(Palette), ForgePalette.ExpUiDark);
 
+    /// <summary><see cref="FollowThemeVariant"/> 的属性定义。</summary>
+    public static readonly StyledProperty<bool> FollowThemeVariantProperty =
+        AvaloniaProperty.Register<ForgeToolWindowFrame, bool>(nameof(FollowThemeVariant), defaultValue: true);
+
     /// <summary><see cref="MoreButtonSide"/> 的属性定义。</summary>
     public static readonly StyledProperty<StripeSide> MoreButtonSideProperty =
         AvaloniaProperty.Register<ForgeToolWindowFrame, StripeSide>(nameof(MoreButtonSide));
@@ -71,13 +75,54 @@ public class ForgeToolWindowFrame : TemplatedControl
         _root.Children.Add(_pane);
         VisualChildren.Add(_root);
         LogicalChildren.Add(_root);
+
+        ActualThemeVariantChanged += (_, _) => ApplyThemeVariant();
+    }
+
+    /// <inheritdoc />
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        ApplyThemeVariant();
+    }
+
+    private void ApplyThemeVariant()
+    {
+        if (!FollowThemeVariant)
+        {
+            return;
+        }
+
+        var wanted = ForgePalette.ForVariant(ActualThemeVariant);
+        if (!ReferenceEquals(Palette, wanted))
+        {
+            Palette = wanted;
+        }
     }
 
     /// <summary>配色。</summary>
+    /// <remarks>
+    /// <see cref="FollowThemeVariant"/> 为真时（默认），它跟着宿主的明暗变体自动切，
+    /// 不需要手动赋值。
+    /// </remarks>
     public ForgePalette Palette
     {
         get => GetValue(PaletteProperty);
         set => SetValue(PaletteProperty, value);
+    }
+
+    /// <summary>
+    /// 配色是否跟着宿主的明暗变体走。默认 <see langword="true"/>。
+    /// </summary>
+    /// <remarks>
+    /// 宿主的明暗通常跟随系统。钉死一套的结果是系统切浅色时
+    /// 「软件其余部分变白、外壳还是黑的」，中间一道硬边。
+    /// 想自己控制配色就把它设成 <see langword="false"/> 再赋 <see cref="Palette"/>。
+    /// </remarks>
+    public bool FollowThemeVariant
+    {
+        get => GetValue(FollowThemeVariantProperty);
+        set => SetValue(FollowThemeVariantProperty, value);
     }
 
     /// <summary>

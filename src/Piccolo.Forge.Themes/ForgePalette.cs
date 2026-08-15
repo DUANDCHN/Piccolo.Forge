@@ -1,4 +1,5 @@
 using Avalonia.Media;
+using Avalonia.Styling;
 
 namespace Piccolo.Forge.Themes;
 
@@ -67,6 +68,18 @@ public sealed record ForgePalette
 
     /// <summary>常规文字色（`*.foreground`）。</summary>
     public required Color Foreground { get; init; }
+
+    /// <summary>
+    /// 按宿主当前的明暗变体挑一套。
+    /// </summary>
+    /// <remarks>
+    /// 宿主的明暗通常是跟随系统的；钉死一套会出现「软件其余部分变白、外壳还是黑的」那道硬边。
+    /// 未知变体按浅色处理，与 Avalonia 的默认一致。
+    /// </remarks>
+    /// <param name="variant">明暗变体。</param>
+    /// <returns>该用的配色。</returns>
+    public static ForgePalette ForVariant(ThemeVariant? variant)
+        => variant == ThemeVariant.Dark ? ExpUiDark : ExpUiLight;
 
     /// <summary>expUI Light。</summary>
     public static ForgePalette ExpUiLight { get; } = new()
