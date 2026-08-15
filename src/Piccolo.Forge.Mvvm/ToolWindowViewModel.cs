@@ -62,9 +62,44 @@ public sealed class ToolWindowViewModel : ForgeObservableObject
     /// <summary>面板里放什么。宿主的 VM，视图由宿主解析。</summary>
     public object? Content
     {
-        get => _content;
+        get
+        {
+            // 第一次真要用的时候才造 —— 见 ContentFactory
+            if (_content is null && _contentFactory is { } factory)
+            {
+                _contentFactory = null;      // 只造一次，也防重入
+                Content = factory();
+            }
+
+            return _content;
+        }
+
         set => SetProperty(ref _content, value);
     }
+
+    private Func<object?>? _contentFactory;
+
+    /// <summary>
+    /// 内容的「第一次要用时才造」工厂。
+    /// </summary>
+    /// <remarks>
+    /// 登记与造实例是两件事：条带按钮从启动就该全都在，而重面板（相机画面、图表、日志）
+    /// 不该为了一个按钮就先造出来。给了工厂之后，第一次读 <see cref="Content"/> 才调用它。
+    /// <para>
+    /// <b>为什么要有这个东西</b>：不给工厂的话，宿主得自己找一个时机去创建 ——
+    /// 而「用户点条带按钮」这条路走的是库内部的开合，宿主根本插不上手，
+    /// 结果就是按钮点了、面板开了、里面是空的。这个坑踩过一次。
+    /// </para>
+    /// <para>只调一次；调用前会先清掉自身，所以工厂里再读 <see cref="Content"/> 不会无限递归。</para>
+    /// </remarks>
+    public Func<object?>? ContentFactory
+    {
+        get => _contentFactory;
+        set => _contentFactory = value;
+    }
+
+    /// <summary>内容是不是已经造出来了（不会触发 <see cref="ContentFactory"/>）。</summary>
+    public bool IsContentCreated => _content is not null;
 
     /// <summary>现在是不是可见（对应 <see cref="WindowInfo.IsVisible"/>）。</summary>
     public bool IsOpen

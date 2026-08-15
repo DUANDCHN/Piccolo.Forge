@@ -93,6 +93,39 @@ public sealed class ToolWindowShellViewModel : ForgeObservableObject
     }
 
     /// <summary>
+    /// 登记一个工具窗口，内容<b>第一次要用时才造</b>。
+    /// </summary>
+    /// <remarks>
+    /// 按需面板走这个：按钮从启动就在，实例等到真被打开才创建
+    /// （<see cref="ToolWindowViewModel.ContentFactory"/>）。
+    /// <para>
+    /// 别自己去找「该创建了」的时机 —— 用户点条带按钮走的是库内部的开合，
+    /// 宿主插不上手；那条路上漏掉创建，表现就是「按钮点了、面板开了、里面是空的」。
+    /// </para>
+    /// </remarks>
+    /// <param name="id">工具窗口 id。</param>
+    /// <param name="title">显示名。</param>
+    /// <param name="anchor">停靠边。</param>
+    /// <param name="contentFactory">第一次要用内容时调用一次。</param>
+    /// <param name="isSplit">是不是同一条边的另一半。</param>
+    /// <param name="icon">条带按钮上的图标。</param>
+    /// <returns>建好的 VM。</returns>
+    public ToolWindowViewModel Add(
+        string id,
+        string title,
+        ToolWindowAnchor anchor,
+        Func<object?> contentFactory,
+        bool isSplit = false,
+        object? icon = null)
+    {
+        ArgumentNullException.ThrowIfNull(contentFactory);
+
+        var vm = AddCore(id, title, anchor, isSplit, icon, panel: null);
+        vm.ContentFactory = contentFactory;
+        return vm;
+    }
+
+    /// <summary>
     /// 登记一块工具面板 —— **身份从面板自己来**。
     /// </summary>
     /// <remarks>

@@ -1,4 +1,9 @@
 using Avalonia;
+using System.Linq;
+using Avalonia.Threading;
+using Avalonia.Input;
+using Avalonia.Headless;
+using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Piccolo.Forge.Avalonia;
 using Piccolo.Forge.Model;
@@ -100,5 +105,66 @@ public class LazyPanelTests
 
         var button = Assert.Single(frame.LeftToolbar.BottomGroup.Children.OfType<ForgeStripeButton>());
         Assert.Equal("日志", button.Title);
+    }
+
+    [Fact]
+    public void The_factory_runs_on_first_use_not_at_registration()
+    {
+        HeavyTool.ResetCounter();
+        var shell = new ToolWindowShellViewModel();
+
+        var vm = shell.Add("Histogram", "直方图", ToolWindowAnchor.Bottom,
+            () => new HeavyTool("Histogram"), isSplit: true);
+
+        Assert.Equal(0, HeavyTool.Constructed);
+        Assert.False(vm.IsContentCreated);
+
+        _ = vm.Content;
+
+        Assert.Equal(1, HeavyTool.Constructed);
+        Assert.True(vm.IsContentCreated);
+    }
+
+    [Fact]
+    public void The_factory_runs_only_once()
+    {
+        HeavyTool.ResetCounter();
+        var shell = new ToolWindowShellViewModel();
+        var vm = shell.Add("Histogram", "直方图", ToolWindowAnchor.Bottom, () => new HeavyTool("Histogram"));
+
+        _ = vm.Content;
+        _ = vm.Content;
+        _ = vm.Content;
+
+        Assert.Equal(1, HeavyTool.Constructed);
+    }
+
+    [AvaloniaFact]
+    public void Opening_from_the_stripe_button_fills_the_panel()
+    {
+        // 回归：用户点条带按钮走的是**库内部**的开合，宿主插不上手。
+        // 没有工厂的话，那条路上没人创建内容 —— 按钮点了、面板开了、里面是空的。
+        HeavyTool.ResetCounter();
+        var shell = new ToolWindowShellViewModel();
+        shell.Add("Histogram", "直方图", ToolWindowAnchor.Bottom, () => new HeavyTool("Histogram"));
+
+        var frame = new ForgeToolWindowFrame();
+        frame.Attach(shell);
+
+        var window = new Window { Width = 600, Height = 400, Content = frame };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(0, HeavyTool.Constructed);
+
+        var button = frame.LeftToolbar.BottomGroup.Children.OfType<ForgeStripeButton>().First();
+        var point = button.TranslatePoint(new Point(20, 20), frame)!.Value;
+        window.MouseDown(point, MouseButton.Left);
+        window.MouseUp(point, MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.True(shell.Find("Histogram")!.IsOpen);
+        Assert.Equal(1, HeavyTool.Constructed);
+        Assert.IsType<HeavyTool>(shell.Find("Histogram")!.Content);
     }
 }
