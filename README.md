@@ -28,6 +28,32 @@
 
 重新拉：见 `docs/conventions/拉上游参考.md`。
 
+## 审读产出
+
+写代码之前先把上游审明白，产出在 `docs/upstream/`：
+
+| 文档 | 内容 |
+|---|---|
+| [工具窗口模型](docs/upstream/工具窗口模型.md) | 字段、默认摆放、按钮落位、停靠几何、显示/隐藏规则 |
+| [度量与主题键](docs/upstream/度量与主题键.md) | 条带/按钮/标题条的每个数字，以及主题键与 expUI 取值 |
+
+## 工程结构
+
+| 工程 | 干什么 |
+|---|---|
+| `src/Piccolo.Forge.Model` | 纯模型，不依赖 Avalonia：`WindowInfo` / `DesktopLayout` / 默认布局 / 按钮落位 |
+| `src/Piccolo.Forge.Themes` | 度量常量与主题键名 |
+| `src/Piccolo.Forge.Avalonia` | 控件 |
+| `tests/Piccolo.Forge.Tests` | xunit v3 + Avalonia headless |
+| `samples/Piccolo.Forge.Sample` | 示例：把默认布局的按钮摆进左右两根条带 |
+
+net8.0 / Avalonia 12.1.1，`TreatWarningsAsErrors` 与 `GenerateDocumentationFile` 全开
+（测试与示例不强制 XML 注释）。包版本集中在 `Directory.Packages.props`。
+
+```bash
+dotnet test Piccolo.Forge.slnx
+```
+
 ## 与 Piccolo.Bench 的关系
 
 两个独立的仓，互不引用：Bench 复刻 VS Code 的 workbench，Forge 复刻 IntelliJ 平台。

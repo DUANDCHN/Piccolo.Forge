@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Piccolo.Forge.Model/Piccolo.Forge.Model.csproj" />
+    <Project Path="src/Piccolo.Forge.Themes/Piccolo.Forge.Themes.csproj" />
+    <Project Path="src/Piccolo.Forge.Avalonia/Piccolo.Forge.Avalonia.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Piccolo.Forge.Tests/Piccolo.Forge.Tests.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/Piccolo.Forge.Sample/Piccolo.Forge.Sample.csproj" />
+  </Folder>
+</Solution>
