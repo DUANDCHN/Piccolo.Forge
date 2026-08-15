@@ -69,6 +69,50 @@ public class DesktopLayoutTests
     }
 
     [Fact]
+    public void SetSideToolAndAnchor_is_a_no_op_when_nothing_changes()
+    {
+        // ToolWindowManagerImpl.kt:1665-1669 的提前返回
+        var layout = DefaultToolWindowLayout.CreateV2();
+        var before = layout.GetInfo("Terminal")!;
+
+        var affected = layout.SetSideToolAndAnchor(
+            "Terminal", before.PaneId, before.Anchor, before.Order, before.IsSplit);
+
+        Assert.Empty(affected);
+        Assert.Equal(before, layout.GetInfo("Terminal"));
+    }
+
+    [Fact]
+    public void SetSideToolAndAnchor_moves_a_bottom_window_to_the_right_stripe_group()
+    {
+        // 拖拽落到右条带下组 = anchor 不变、isSplit 变 true（AbstractDroppableStripe.kt:242-258）
+        var layout = DefaultToolWindowLayout.CreateV2();
+
+        layout.SetSideToolAndAnchor(
+            "Terminal", WindowInfo.DefaultPaneId, ToolWindowAnchor.Bottom, -1, isSplit: true);
+
+        var terminal = layout.GetInfo("Terminal")!;
+        Assert.True(terminal.IsSplit);
+        Assert.Equal(ToolWindowAnchor.Bottom, terminal.Anchor);
+        Assert.Equal(
+            new StripePlacement(StripeSide.Right, StripeGroup.Bottom),
+            StripePlacementResolver.Resolve(terminal.Anchor, terminal.IsSplit));
+    }
+
+    [Fact]
+    public void SetSideToolAndAnchor_shifts_others_when_an_order_is_given()
+    {
+        var layout = DefaultToolWindowLayout.CreateV2();
+
+        var affected = layout.SetSideToolAndAnchor(
+            "Terminal", WindowInfo.DefaultPaneId, ToolWindowAnchor.Left, 0, isSplit: false);
+
+        Assert.Equal(["Commit", "Project", "Structure"], affected.Select(x => x.Id).Order());
+        Assert.Equal(0, layout.GetInfo("Terminal")!.Order);
+        Assert.Equal(1, layout.GetInfo("Project")!.Order);
+    }
+
+    [Fact]
     public void Unified_weights_default_to_DEFAULT_WEIGHT()
     {
         // UnifiedToolWindowWeights.kt:20-23

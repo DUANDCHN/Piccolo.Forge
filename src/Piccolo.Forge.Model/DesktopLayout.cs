@@ -140,6 +140,45 @@ public sealed class DesktopLayout
     }
 
     /// <summary>
+    /// 同时改 pane / 边 / 次序 / 是否另一半 —— 拖拽落到条带上时唯一的写入口。
+    /// </summary>
+    /// <remarks>
+    /// 对应 <c>ToolWindowManagerImpl.kt:1662-1684 · setSideToolAndAnchor</c>，
+    /// 由 <c>AbstractDroppableStripe.kt:242-258 · finishDrop</c> 调用。
+    /// 四项全都没变就什么都不做（上游 <c>:1665-1669</c> 的提前返回）。
+    /// <para>
+    /// 上游在这里还会「先隐藏、改完再显示」（<c>hideIfNeededAndShowAfterTask</c>），
+    /// 借「一格一个可见窗口」的互斥把新格子里的旧住户挤走。那一步需要 manager，
+    /// 不在本类职责内；本类只负责把布局状态改对。
+    /// </para>
+    /// </remarks>
+    /// <param name="id">要挪动的窗口 id。</param>
+    /// <param name="newPaneId">目标 pane。</param>
+    /// <param name="newAnchor">目标边。</param>
+    /// <param name="newOrder">目标次序，<c>-1</c> 表示末尾。</param>
+    /// <param name="isSplit">是否落到同一条边的另一半。</param>
+    /// <returns>次序被顺带改动的其它窗口；没动过任何东西时是空的。</returns>
+    public IReadOnlyList<WindowInfo> SetSideToolAndAnchor(
+        string id,
+        string newPaneId,
+        ToolWindowAnchor newAnchor,
+        int newOrder,
+        bool isSplit)
+    {
+        var info = _idToInfo[id];
+        if (string.Equals(info.PaneId, newPaneId, StringComparison.Ordinal)
+            && info.Anchor == newAnchor
+            && info.Order == newOrder
+            && info.IsSplit == isSplit)
+        {
+            return [];
+        }
+
+        _idToInfo[id] = info with { IsSplit = isSplit };
+        return SetAnchor(id, newPaneId, newAnchor, newOrder);
+    }
+
+    /// <summary>
     /// 按上游规则重排 order：先排序，再按边分组从 0 递增；<c>order == -1</c> 的跳过。
     /// </summary>
     /// <remarks>对应 <c>DesktopLayout.kt:198-214 · normalizeOrder</c>。</remarks>
