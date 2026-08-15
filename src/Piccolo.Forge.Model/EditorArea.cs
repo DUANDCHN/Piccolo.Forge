@@ -220,6 +220,73 @@ public sealed class EditorArea
         return true;
     }
 
+    /// <summary>
+    /// 把一页拖到某一组上，按落点处理。
+    /// </summary>
+    /// <remarks>
+    /// 落点判定见 <see cref="EditorDropPolicy"/>：
+    /// **中心不分屏**，并进那一组；四边则按方向切一刀。
+    /// </remarks>
+    /// <param name="tabId">被拖的那一页。</param>
+    /// <param name="target">落在哪一组上。</param>
+    /// <param name="side">落在哪一侧。</param>
+    /// <returns>落点生效则为 <see langword="true"/>。</returns>
+    public bool DropTab(string tabId, EditorGroup target, EditorDropSide side)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+
+        if (side == EditorDropSide.None)
+        {
+            return false;
+        }
+
+        var source = Groups.FirstOrDefault(g => g.Tabs.Any(t => t.Id == tabId));
+        if (source is null)
+        {
+            return false;
+        }
+
+        var tab = source.Tabs.First(t => t.Id == tabId);
+
+        if (side == EditorDropSide.Center)
+        {
+            if (ReferenceEquals(source, target))
+            {
+                return false;
+            }
+
+            source.Close(tabId);
+            target.Add(tab);
+            if (source.Tabs.Count == 0)
+            {
+                RemoveGroup(source);
+            }
+
+            CurrentGroup = target;
+            OnChanged();
+            return true;
+        }
+
+        var created = new EditorGroup();
+        created.Add(tab);
+
+        var split = EditorDropPolicy.NewGroupIsSecond(side)
+            ? new EditorSplit(target, created, EditorDropPolicy.IsVertical(side))
+            : new EditorSplit(created, target, EditorDropPolicy.IsVertical(side));
+
+        Replace(target, split);
+        source.Close(tabId);
+
+        if (source.Tabs.Count == 0 && !ReferenceEquals(source, target))
+        {
+            RemoveGroup(source);
+        }
+
+        CurrentGroup = created;
+        OnChanged();
+        return true;
+    }
+
     /// <summary>一直合到只剩一组。</summary>
     /// <remarks>对应 <c>EditorWindow.kt:983-988 · unsplitAll</c>。</remarks>
     /// <param name="group">保留下来的那一组。</param>

@@ -197,7 +197,14 @@ public sealed class EditorGroup : EditorNode
         return closing;
     }
 
-    /// <summary>把一个标签页设成固定 / 取消固定。</summary>
+    /// <summary>
+    /// 把一个标签页设成固定 / 取消固定。
+    /// </summary>
+    /// <remarks>
+    /// **固定一个预览页会顺手把它转成正式页**
+    /// （<c>EditorWindow.kt:1034-1040 · setFilePinned</c>）——
+    /// 否则它一边「被固定」一边还排在「超限时第一批被关」里，自相矛盾。
+    /// </remarks>
     /// <param name="id">标签页 id。</param>
     /// <param name="pinned">是否固定。</param>
     /// <returns>找到并改了则为 <see langword="true"/>。</returns>
@@ -209,7 +216,34 @@ public sealed class EditorGroup : EditorNode
             return false;
         }
 
-        _tabs[index] = _tabs[index] with { IsPinned = pinned };
+        var tab = _tabs[index] with { IsPinned = pinned };
+        if (pinned && tab.IsPreview)
+        {
+            tab = tab with { IsPreview = false };
+        }
+
+        _tabs[index] = tab;
+        return true;
+    }
+
+    /// <summary>
+    /// 把预览页转成正式页。
+    /// </summary>
+    /// <remarks>
+    /// 预览页只有一条硬性后果：**超限时第一批被关**
+    /// （<c>EditorWindow.kt:1071-1073</c>）。宿主在「用户真的开始编辑它」时调这个。
+    /// </remarks>
+    /// <param name="id">标签页 id。</param>
+    /// <returns>找到并转正了则为 <see langword="true"/>。</returns>
+    public bool PromoteFromPreview(string id)
+    {
+        var index = _tabs.FindIndex(x => x.Id == id);
+        if (index < 0 || !_tabs[index].IsPreview)
+        {
+            return false;
+        }
+
+        _tabs[index] = _tabs[index] with { IsPreview = false };
         return true;
     }
 }
