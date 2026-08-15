@@ -99,17 +99,13 @@ public class ForgeMoreButton : ForgeSquareButtonBase
             context.DrawRectangle(new SolidColorBrush(color), null, new RoundedRect(new Rect(Bounds.Size), Arc));
         }
 
-        // 占位画法：三个点，对应 AllIcons.Actions.MoreHorizontal（:91-96）
-        var brush = new SolidColorBrush(ResolveForeground());
-        var dot = Math.Max(1, IconSize / 10);
-        var gap = dot * 2;
-        var totalWidth = (dot * 3) + (gap * 2);
-        var x = (Bounds.Width - totalWidth) / 2;
-        var y = (Bounds.Height - dot) / 2;
+        // 三个点，对应上游的 AllIcons.Actions.MoreHorizontal（MoreSquareStripeButton.kt:91-96）
+        var iconRect = new Rect(
+            (Bounds.Width - IconSize) / 2,
+            (Bounds.Height - IconSize) / 2,
+            IconSize,
+            IconSize);
 
-        for (var i = 0; i < 3; i++)
-        {
-            context.FillRectangle(brush, new Rect(x + (i * (dot + gap)), y, dot, dot));
-        }
+        ForgeIcons.Draw(context, ForgeIcons.More, iconRect, new SolidColorBrush(ResolveForeground()), filled: true);
     }
 }

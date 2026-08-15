@@ -165,23 +165,11 @@ public class ForgeContentTab : TemplatedControl
     private void RenderTabIcon(DrawingContext context)
     {
         var brush = new SolidColorBrush(Palette.ButtonForeground);
-        var pen = new Pen(brush, 1);
         var x = Bounds.Width - ForgeMetrics.TabRightIconInset - IconSize;
-        var y = (Bounds.Height - IconSize) / 2;
-        var rect = new Rect(x, y, IconSize, IconSize);
+        var rect = new Rect(x, (Bounds.Height - IconSize) / 2, IconSize, IconSize);
 
-        if (IsPinned)
-        {
-            // 图钉的占位画法：一个小方块加一条竖线
-            var head = new Rect(rect.X + 3, rect.Y + 1, IconSize - 6, IconSize / 2);
-            context.FillRectangle(brush, head);
-            context.DrawLine(pen, new Point(rect.Center.X, head.Bottom), new Point(rect.Center.X, rect.Bottom));
-            return;
-        }
-
-        var pad = 3.0;
-        context.DrawLine(pen, new Point(rect.X + pad, rect.Y + pad), new Point(rect.Right - pad, rect.Bottom - pad));
-        context.DrawLine(pen, new Point(rect.Right - pad, rect.Y + pad), new Point(rect.X + pad, rect.Bottom - pad));
+        // 固定住的画图钉而不是叉（ContentTabLabel.java:157-159）
+        ForgeIcons.Draw(context, IsPinned ? ForgeIcons.Pin : ForgeIcons.Close, rect, brush, filled: IsPinned);
     }
 
     /// <summary>

@@ -214,8 +214,21 @@ public class ForgeStripeButton : ForgeSquareButtonBase
             RenderName(context);
         }
 
+        // 图标优先：宿主给了 Geometry 就画它，什么都没给就画默认图形
+        if (Icon is Geometry geometry)
+        {
+            ForgeIcons.Draw(context, geometry, iconRect, new SolidColorBrush(ResolveForeground()));
+            return;
+        }
+
         if (string.IsNullOrEmpty(Text))
         {
+            if (Icon is null)
+            {
+                ForgeIcons.Draw(
+                    context, ForgeIcons.DefaultToolWindow, iconRect, new SolidColorBrush(ResolveForeground()));
+            }
+
             return;
         }
 
