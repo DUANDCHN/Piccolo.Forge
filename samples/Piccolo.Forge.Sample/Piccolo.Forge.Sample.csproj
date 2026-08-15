@@ -18,6 +18,7 @@
   <ItemGroup>
     <ProjectReference Include="../../src/Piccolo.Forge.Model/Piccolo.Forge.Model.csproj" />
     <ProjectReference Include="../../src/Piccolo.Forge.Mvvm/Piccolo.Forge.Mvvm.csproj" />
+    <ProjectReference Include="../../src/Piccolo.Forge.Mvvm.CommunityToolkit/Piccolo.Forge.Mvvm.CommunityToolkit.csproj" />
     <ProjectReference Include="../../src/Piccolo.Forge.Themes/Piccolo.Forge.Themes.csproj" />
     <ProjectReference Include="../../src/Piccolo.Forge.Avalonia/Piccolo.Forge.Avalonia.csproj" />
   </ItemGroup>

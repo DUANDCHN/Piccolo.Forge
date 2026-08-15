@@ -1,8 +1,9 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using Piccolo.Forge.Model;
 using Piccolo.Forge.Mvvm;
+using Piccolo.Forge.Mvvm.Controls;
 using Xunit;
-using CtPanels = Piccolo.Forge.Mvvm.CommunityToolkit;
+using CtPanels = Piccolo.Forge.Mvvm.CommunityToolkit.Controls;
 
 namespace Piccolo.Forge.Tests;
 

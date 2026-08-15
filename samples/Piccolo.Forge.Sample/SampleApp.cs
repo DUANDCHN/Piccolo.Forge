@@ -37,12 +37,23 @@ internal sealed class SampleApp : Application
 
     private static Control BuildContent()
     {
-        var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
-        var manager = shell.Manager;
+        // ① 建外壳 VM —— 宿主的接入点
+        var shell = new ToolWindowShellViewModel();
 
+        // ② 登记面板：把面板本身交出去，身份从它自己来。
+        //    参数里只剩「停哪条边、哪一半」——按钮画在哪根条带是算出来的。
+        shell.Add(new SampleTool("Project", "Project", "P").Init(), ToolWindowAnchor.Left);
+        shell.Add(new SampleTool("Commit", "Commit", "C").Init(), ToolWindowAnchor.Left);
+        shell.Add(new SampleTool("Structure", "Structure", "S").Init(), ToolWindowAnchor.Left, isSplit: true);
+        shell.Add(new SampleTool("Notifications", "Notifications", "N").Init(), ToolWindowAnchor.Right);
+        shell.Add(new SampleTool("Database", "Database", "D").Init(), ToolWindowAnchor.Right);
+        shell.Add(new SampleTool("Version Control", "Version Control", "V").Init(), ToolWindowAnchor.Bottom);
+        shell.Add(new SampleTool("Terminal", "Terminal", "T").Init(), ToolWindowAnchor.Bottom);
+        shell.Add(new SampleTool("Services", "Services", "E").Init(), ToolWindowAnchor.Bottom, isSplit: true);
+
+        // ③ 建控件并接上。配色跟着宿主的明暗变体走，这里不用管。
         var frame = new ForgeToolWindowFrame
         {
-            Palette = Palette,
             EditorContent = new Border
             {
                 Background = new SolidColorBrush(ForgeColor.Parse("#1E1F22")),
@@ -59,9 +70,25 @@ internal sealed class SampleApp : Application
 
         frame.Attach(shell);
 
-        // 开局摆成 Rider 的样子：左边 Project、下边 Terminal
-        manager.Activate("Project");
-        manager.Activate("Terminal");
+        // ④ 视图由**宿主**解析。真实应用里这一步交给 ViewLocator / DataTemplate；
+        //    示例简单，直接给控件。
+        foreach (var vm in shell.ToolWindows)
+        {
+            if (vm.Content is SampleTool tool)
+            {
+                vm.Content = new TextBlock
+                {
+                    Text = tool.Body,
+                    Margin = new Thickness(12, 8, 0, 0),
+                    Foreground = new SolidColorBrush(Palette.Foreground),
+                };
+            }
+        }
+
+        // 开局摆成 Rider 的样子
+        shell.Open("Project");
+        shell.Open("Structure");
+        shell.Open("Version Control");
 
         return frame;
     }

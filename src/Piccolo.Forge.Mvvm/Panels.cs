@@ -1,13 +1,18 @@
 using Piccolo.Forge.Model;
 
-namespace Piccolo.Forge.Mvvm;
+namespace Piccolo.Forge.Mvvm.Controls;
 
 /// <summary>
 /// 面板的公共实现：身份 + 可观察。
 /// </summary>
 /// <remarks>
+/// 命名空间刻意带 <c>.Controls</c> —— 与 Dock 的 <c>Dock.Model.Mvvm.Controls.Tool</c> 同形。
+/// 不这么放会撞：宿主必然要 <c>using Piccolo.Forge.Mvvm;</c> 拿外壳 VM，
+/// 基类要是也在那个命名空间里，两种绑定的同名类型就会变成 CS0104。
+/// <para>
 /// 对应 Dock 的 <c>DockableBase</c>。它落在**中立包**里，基于
 /// <see cref="ForgeObservableObject"/>，不引任何 MVVM 框架。
+/// </para>
 /// <para>
 /// 宿主如果已经在用 CommunityToolkit（想要 <c>[ObservableProperty]</c>），
 /// 别继承这个，改用 <c>Piccolo.Forge.Mvvm.CommunityToolkit</c> 里同名的那套 ——

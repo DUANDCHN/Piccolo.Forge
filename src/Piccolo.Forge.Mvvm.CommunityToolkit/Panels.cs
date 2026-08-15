@@ -1,13 +1,14 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using Piccolo.Forge.Model;
 
-namespace Piccolo.Forge.Mvvm.CommunityToolkit;
+namespace Piccolo.Forge.Mvvm.CommunityToolkit.Controls;
 
 /// <summary>
 /// 面板的公共实现，基于 CommunityToolkit 的 <see cref="ObservableObject"/>。
 /// </summary>
 /// <remarks>
-/// 与 <c>Piccolo.Forge.Mvvm.ForgePanelBase</c> 是同一件东西的两种绑定，二选一。
+/// 与 <c>Piccolo.Forge.Mvvm.Controls.ForgePanelBase</c> 是同一件东西的两种绑定，二选一。
+/// 命名空间带 <c>.Controls</c> 的理由见中立包那份注释。
 /// <b>选这个的理由只有一个</b>：宿主要在派生类里用 <c>[ObservableProperty]</c> /
 /// <c>[RelayCommand]</c>，那些源生成器要求类继承 CommunityToolkit 的
 /// <see cref="ObservableObject"/>。
