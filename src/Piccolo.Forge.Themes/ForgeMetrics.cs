@@ -124,6 +124,18 @@ public static class ForgeMetrics
     public const double EditorTabInsetHorizontal = 8;
 
     /// <summary>
+    /// 编辑区标签页上，文件图标与标题之间的间距 <b>4</b>
+    /// （<c>EditorTabbedContainer.kt:612 · iconTextGap = JBUI.scale(4)</c>）。
+    /// </summary>
+    public const double EditorTabIconTextGap = 4;
+
+    /// <summary>
+    /// 编辑区标签页上文件图标的边长 <b>16</b> —— IDE 的标准图标尺寸
+    /// （上游标签页图标走 <c>AllIcons</c>，那套是 16×16）。
+    /// </summary>
+    public const double EditorTabIconSize = 16;
+
+    /// <summary>
     /// 编辑区标签页的上下内边距 **-7**（同上）。
     /// </summary>
     /// <remarks>负值是真的：新 UI 靠它把标签页压进那 28px 里。照抄，别「修正」成 0。</remarks>

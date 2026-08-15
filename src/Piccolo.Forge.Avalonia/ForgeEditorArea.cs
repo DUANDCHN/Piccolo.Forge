@@ -205,6 +205,7 @@ public class ForgeEditorArea : TemplatedControl
 
             control.Palette = Palette;
             control.Title = tab.Title;
+            control.Icon = tab.Icon;
             control.IsSelected = tab.IsSelected;
             control.IsGroupActive = vm.IsCurrent;
             control.IsPinned = tab.IsPinned;

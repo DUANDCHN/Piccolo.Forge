@@ -1,4 +1,7 @@
 using Avalonia;
+using Avalonia.VisualTree;
+using Avalonia.Media;
+using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Piccolo.Forge.Avalonia;
 using Piccolo.Forge.Model;
@@ -103,6 +106,96 @@ public class ForgeControlsTests
         header.IsCompact = true;
         header.Measure(new Size(300, double.PositiveInfinity));
         Assert.Equal(31, header.DesiredSize.Height);
+    }
+
+    [AvaloniaFact]
+    public void An_editor_tab_leaves_room_for_the_file_icon()
+    {
+        // EditorTabbedContainer.kt:612 · iconTextGap = JBUI.scale(4)，图标 16×16。
+        var bare = new ForgeEditorTab { Title = "cam-1.png" };
+        bare.Measure(Size.Infinity);
+
+        var withIcon = new ForgeEditorTab { Title = "cam-1.png", Icon = ForgeIcons.Camera };
+        withIcon.Measure(Size.Infinity);
+
+        Assert.Equal(bare.DesiredSize.Width + 16 + 4, withIcon.DesiredSize.Width);
+    }
+
+    [AvaloniaFact]
+    public void An_editor_tab_hosts_a_control_icon_on_the_left()
+    {
+        var icon = new Border();
+        var tab = new ForgeEditorTab { Title = "cam-1.png", Icon = icon };
+
+        tab.Measure(Size.Infinity);
+        tab.Arrange(new Rect(tab.DesiredSize));
+
+        Assert.Same(tab, icon.GetVisualParent());
+
+        // 左内边距 8，竖直居中（标签页高 28、图标 16）
+        Assert.Equal(new Rect(8, 6, 16, 16), icon.Bounds);
+    }
+
+    // ── 宿主塞控件当图标（Icon 是 object，允许 Geometry / Control / null）────
+
+    [AvaloniaFact]
+    public void A_host_control_icon_lands_in_the_visual_tree()
+    {
+        // 回归：Icon 声明成 object 且文档承诺「塞控件也行」，但渲染只认 Geometry ——
+        // 宿主给 MaterialIcon 这类控件时，既不画它、也不画默认图形，按钮一片空白。
+        var icon = new Border { Width = 20, Height = 20 };
+        var button = new ForgeStripeButton { Icon = icon };
+
+        button.Measure(Size.Infinity);
+        button.Arrange(new Rect(button.DesiredSize));
+
+        Assert.Same(button, icon.GetVisualParent());
+
+        // 图标位是 40 - padding 5 × 2 = 30×30，居中放在按钮里；
+        // 控件自己有多大由它自己说了算（这里 Border 显式 20×20），只要它是居中的。
+        Assert.Equal(new Point(20, 20), icon.Bounds.Center);
+        Assert.True(icon.Bounds.Width <= 30 && icon.Bounds.Height <= 30);
+    }
+
+    [AvaloniaFact]
+    public void Swapping_the_icon_control_detaches_the_old_one()
+    {
+        var first = new Border();
+        var second = new Border();
+        var button = new ForgeStripeButton { Icon = first };
+
+        button.Icon = second;
+
+        Assert.Null(first.GetVisualParent());
+        Assert.Same(button, second.GetVisualParent());
+    }
+
+    [AvaloniaFact]
+    public void A_geometry_icon_hosts_no_control()
+    {
+        var button = new ForgeStripeButton { Icon = ForgeIcons.Terminal };
+
+        button.Measure(Size.Infinity);
+        button.Arrange(new Rect(button.DesiredSize));
+
+        Assert.Empty(button.GetVisualChildren());
+    }
+
+    [AvaloniaFact]
+    public void A_host_control_icon_follows_the_active_state_colour()
+    {
+        // 不跟着走的话，浅色主题下是一排看不见的白图标 —— 而库自绘那套是好的，
+        // 很难猜到原因在这里。
+        var button = new ForgeStripeButton
+        {
+            Icon = new Border(),
+            Palette = ForgePalette.ExpUiLight,
+        };
+
+        Assert.Equal(ForgePalette.ExpUiLight.ButtonForeground, ((SolidColorBrush)button.Foreground!).Color);
+
+        button.IsToolWindowActive = true;
+        Assert.Equal(ForgePalette.ExpUiLight.ButtonSelectedForeground, ((SolidColorBrush)button.Foreground!).Color);
     }
 }
 

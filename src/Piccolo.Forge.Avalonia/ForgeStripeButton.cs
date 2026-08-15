@@ -48,7 +48,7 @@ public class ForgeStripeButton : ForgeSquareButtonBase
     static ForgeStripeButton()
     {
         AffectsRender<ForgeStripeButton>(
-            IsToolWindowVisibleProperty, IsToolWindowActiveProperty, ShowNameProperty, TitleProperty);
+            IsToolWindowVisibleProperty, IsToolWindowActiveProperty, ShowNameProperty, TitleProperty, IconProperty);
         AffectsMeasure<ForgeStripeButton>(ShowNameProperty, StripeWidthProperty, TitleProperty);
     }
 
@@ -187,6 +187,117 @@ public class ForgeStripeButton : ForgeSquareButtonBase
         return new Size(width, height);
     }
 
+    /// <summary>
+    /// 宿主塞进来的图标控件。
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Icon"/> 是 <see cref="object"/>，允许三种东西：
+    /// <list type="bullet">
+    /// <item><see cref="Geometry"/> —— 库自绘那一套（<c>ForgeIcons</c>），直接画；</item>
+    /// <item><see cref="Control"/> —— 宿主自己的图标控件（Material.Icons、Image…），
+    ///       挂成子元素，由它自己画；</item>
+    /// <item><see langword="null"/> —— 画默认图形。</item>
+    /// </list>
+    /// 第二种是这个字段存在的理由：库<b>不带图标资源</b>（上游那套是 JetBrains 的美术资产），
+    /// 也不想强迫宿主改用某个图标库，所以必须能收下一个现成的控件。
+    /// </remarks>
+    private Control? _iconControl;
+
+    /// <inheritdoc />
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+
+        if (change.Property == IconProperty)
+        {
+            AttachIconControl(change.GetNewValue<object?>() as Control);
+        }
+
+        if (change.Property == IconProperty
+            || change.Property == IsToolWindowActiveProperty
+            || change.Property == PaletteProperty)
+        {
+            UpdateIconForeground();
+        }
+    }
+
+    /// <summary>
+    /// 把当前前景色写到 <see cref="TemplatedControl.Foreground"/> 上。
+    /// </summary>
+    /// <remarks>
+    /// 宿主塞进来的图标控件（Material.Icons 那类）默认<b>继承</b> Foreground，
+    /// 写在这里它就跟着主题明暗与激活态一起变 —— 否则浅色主题下会出现一排
+    /// 看不见的白图标，而库自绘的那套图标是好的，很难猜到是这个原因。
+    /// </remarks>
+    private void UpdateIconForeground()
+    {
+        if (_iconControl is null)
+        {
+            return;
+        }
+
+        SetCurrentValue(ForegroundProperty, new SolidColorBrush(ResolveForeground()));
+    }
+
+    /// <inheritdoc />
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        var size = base.ArrangeOverride(finalSize);
+
+        if (_iconControl is not null)
+        {
+            var rect = IconRect(finalSize);
+            _iconControl.Measure(rect.Size);
+            _iconControl.Arrange(rect);
+        }
+
+        return size;
+    }
+
+    /// <summary>
+    /// 图标占的那块地。
+    /// </summary>
+    /// <remarks>
+    /// 按 <see cref="ForgeSquareButtonBase.IconPadding"/> 内缩，正好留出
+    /// <see cref="ForgeSquareButtonBase.IconSize"/>。显示名字时图标只占上面那一块
+    /// （<c>SquareStripeButton.kt:240</c> 的 <c>buttonWrapper</c> 就是干这个）。
+    /// </remarks>
+    /// <param name="size">按钮自己的尺寸。</param>
+    /// <returns>图标矩形。</returns>
+    private Rect IconRect(Size size)
+    {
+        var iconAreaHeight = ShowName ? ButtonSize : size.Height;
+        return new Rect(
+            IconPadding,
+            IconPadding,
+            Math.Max(0, size.Width - (IconPadding * 2)),
+            Math.Max(0, iconAreaHeight - (IconPadding * 2)));
+    }
+
+    private void AttachIconControl(Control? control)
+    {
+        if (ReferenceEquals(control, _iconControl))
+        {
+            return;
+        }
+
+        if (_iconControl is not null)
+        {
+            VisualChildren.Remove(_iconControl);
+            LogicalChildren.Remove(_iconControl);
+        }
+
+        _iconControl = control;
+
+        if (_iconControl is not null)
+        {
+            VisualChildren.Add(_iconControl);
+            LogicalChildren.Add(_iconControl);
+        }
+
+        InvalidateMeasure();
+    }
+
     /// <inheritdoc />
     public override void Render(DrawingContext context)
     {
@@ -200,18 +311,18 @@ public class ForgeStripeButton : ForgeSquareButtonBase
             context.DrawRectangle(new SolidColorBrush(color), null, new RoundedRect(backgroundRect, Arc));
         }
 
-        // 图标位：按 padding 内缩，正好留出 IconSize
-        // 显示名字时，图标只占上面那一块（SquareStripeButton.kt:240 的 buttonWrapper 就是干这个）
-        var iconAreaHeight = ShowName ? ButtonSize : Bounds.Height;
-        var iconRect = new Rect(
-            IconPadding,
-            IconPadding,
-            Math.Max(0, Bounds.Width - (IconPadding * 2)),
-            Math.Max(0, iconAreaHeight - (IconPadding * 2)));
+        var iconRect = IconRect(Bounds.Size);
 
         if (ShowName)
         {
             RenderName(context);
+        }
+
+        // 宿主给的是控件（MaterialIcon、Image、任何 Control）——它自己会画，这里什么都不做。
+        // 位置在 ArrangeOverride 里安排好了。
+        if (_iconControl is not null)
+        {
+            return;
         }
 
         // 图标优先：宿主给了 Geometry 就画它，什么都没给就画默认图形

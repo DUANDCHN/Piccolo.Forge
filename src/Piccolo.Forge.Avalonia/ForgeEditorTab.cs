@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Media;
 using Piccolo.Forge.Themes;
@@ -42,8 +43,8 @@ public class ForgeEditorTab : TemplatedControl
     {
         AffectsRender<ForgeEditorTab>(
             PaletteProperty, TitleProperty, IsSelectedProperty, IsGroupActiveProperty,
-            IsPinnedProperty, CanBeClosedProperty);
-        AffectsMeasure<ForgeEditorTab>(TitleProperty, CanBeClosedProperty);
+            IsPinnedProperty, CanBeClosedProperty, IconProperty);
+        AffectsMeasure<ForgeEditorTab>(TitleProperty, CanBeClosedProperty, IconProperty);
     }
 
     /// <summary>配色。</summary>
@@ -88,6 +89,24 @@ public class ForgeEditorTab : TemplatedControl
         set => SetValue(CanBeClosedProperty, value);
     }
 
+    /// <summary><see cref="Icon"/> 的属性定义。</summary>
+    public static readonly StyledProperty<object?> IconProperty =
+        AvaloniaProperty.Register<ForgeEditorTab, object?>(nameof(Icon));
+
+    /// <summary>
+    /// 左边那个文件图标：<see cref="Geometry"/> 直接画，<see cref="Control"/> 挂成子元素，
+    /// <see langword="null"/> 就不画（编辑区标签页<b>没有</b>默认图标——文件是什么类型只有宿主知道）。
+    /// </summary>
+    public object? Icon
+    {
+        get => GetValue(IconProperty);
+        set => SetValue(IconProperty, value);
+    }
+
+    /// <summary>左边文件图标占的宽度（含与标题的间距）。</summary>
+    private double LeadingIconWidth
+        => Icon is null ? 0 : ForgeMetrics.EditorTabIconSize + ForgeMetrics.EditorTabIconTextGap;
+
     /// <summary>右边那个小图标占的宽度。</summary>
     public double IconAreaWidth => CanBeClosed || IsPinned ? IconSize + ForgeMetrics.TabIconsGap : 0;
 
@@ -97,7 +116,10 @@ public class ForgeEditorTab : TemplatedControl
     protected override Size MeasureOverride(Size availableSize)
     {
         var text = MeasureText();
-        var width = (text?.Width ?? 0) + (ForgeMetrics.EditorTabInsetHorizontal * 2) + IconAreaWidth;
+        var width = (text?.Width ?? 0)
+                    + (ForgeMetrics.EditorTabInsetHorizontal * 2)
+                    + LeadingIconWidth
+                    + IconAreaWidth;
 
         return new Size(width, ForgeMetrics.EditorTabHeight);
     }
@@ -128,7 +150,14 @@ public class ForgeEditorTab : TemplatedControl
         {
             context.DrawText(
                 text,
-                new Point(ForgeMetrics.EditorTabInsetHorizontal, (Bounds.Height - text.Height) / 2));
+                new Point(
+                    ForgeMetrics.EditorTabInsetHorizontal + LeadingIconWidth,
+                    (Bounds.Height - text.Height) / 2));
+        }
+
+        if (Icon is Geometry geometry)
+        {
+            ForgeIcons.Draw(context, geometry, LeadingIconRect(Bounds.Size), new SolidColorBrush(Palette.Foreground));
         }
 
         if (CanBeClosed || IsPinned)
@@ -136,6 +165,64 @@ public class ForgeEditorTab : TemplatedControl
             RenderTabIcon(context);
         }
     }
+
+    /// <summary>宿主塞进来的图标控件；理由同 <c>ForgeStripeButton</c>。</summary>
+    private Control? _iconControl;
+
+    /// <inheritdoc />
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+
+        if (change.Property != IconProperty)
+        {
+            return;
+        }
+
+        var control = change.GetNewValue<object?>() as Control;
+        if (ReferenceEquals(control, _iconControl))
+        {
+            return;
+        }
+
+        if (_iconControl is not null)
+        {
+            VisualChildren.Remove(_iconControl);
+            LogicalChildren.Remove(_iconControl);
+        }
+
+        _iconControl = control;
+
+        if (_iconControl is not null)
+        {
+            VisualChildren.Add(_iconControl);
+            LogicalChildren.Add(_iconControl);
+        }
+
+        InvalidateMeasure();
+    }
+
+    /// <inheritdoc />
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        var size = base.ArrangeOverride(finalSize);
+
+        if (_iconControl is not null)
+        {
+            var rect = LeadingIconRect(finalSize);
+            _iconControl.Measure(rect.Size);
+            _iconControl.Arrange(rect);
+        }
+
+        return size;
+    }
+
+    private static Rect LeadingIconRect(Size size)
+        => new(
+            ForgeMetrics.EditorTabInsetHorizontal,
+            (size.Height - ForgeMetrics.EditorTabIconSize) / 2,
+            ForgeMetrics.EditorTabIconSize,
+            ForgeMetrics.EditorTabIconSize);
 
     private void RenderTabIcon(DrawingContext context)
     {
