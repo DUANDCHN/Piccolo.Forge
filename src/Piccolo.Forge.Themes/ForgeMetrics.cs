@@ -93,6 +93,23 @@ public static class ForgeMetrics
     public const double SplitDividerWidth = 1;
 
     /// <summary>
+    /// 从条带按钮起拖的死区 7（<c>MouseDragHelper.java:32 · DRAG_START_DEADZONE</c>）。
+    /// </summary>
+    /// <remarks>
+    /// 条带按钮走的是基类默认值（<c>ToolWindowDragHelper.kt:153-156</c>）；
+    /// 其它拖拽源（比如标题条）走 Registry <c>ide.new.tool.window.start.drag.deadzone</c>，
+    /// 注册表里写的是 <see cref="HeaderDragStartDeadzone"/>。
+    /// </remarks>
+    public const double StripeButtonDragStartDeadzone = 7;
+
+    /// <summary>
+    /// 从标题条起拖的死区 100（Registry <c>ide.new.tool.window.start.drag.deadzone</c>，
+    /// <c>registry.properties:132</c>）。
+    /// </summary>
+    /// <remarks>代码里写的兜底是 7（<c>ToolWindowDragHelper.kt:157</c>），但注册表文件覆盖成 100。</remarks>
+    public const double HeaderDragStartDeadzone = 100;
+
+    /// <summary>
     /// 权重规范化：<c>&lt;= 0</c> 取默认 0.33，<c>&gt;= 1</c> 取 <c>1 - 0.33</c>，否则原样。
     /// </summary>
     /// <remarks>对应 <c>ToolWindowPane.kt:85-90 · normalizeWeight</c>。所有下发到分隔器的权重都过这一道。</remarks>

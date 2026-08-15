@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Input;
 using Avalonia.Media;
 using Piccolo.Forge.Model;
 using Piccolo.Forge.Themes;
@@ -27,6 +28,8 @@ public class ForgeToolWindowFrame : TemplatedControl
     private readonly Dictionary<string, Control> _content = new(StringComparer.Ordinal);
 
     private ToolWindowManager? _manager;
+    private string? _dragId;
+    private Point _dragStart;
 
     /// <summary><see cref="Palette"/> 的属性定义。</summary>
     public static readonly StyledProperty<ForgePalette> PaletteProperty =
@@ -178,22 +181,135 @@ public class ForgeToolWindowFrame : TemplatedControl
             IsToolWindowVisible = info.IsVisible,
             IsToolWindowActive = string.Equals(_manager!.LastActiveToolWindowId, info.Id, StringComparison.Ordinal)
                                  && info.IsVisible,
+            Tag = info.Order,
         };
 
         var id = info.Id;
-        button.PointerPressed += (_, _) =>
+
+        button.PointerPressed += (_, e) =>
         {
-            if (_manager!.Layout.GetInfo(id)!.IsVisible)
+            _dragId = id;
+            _dragStart = e.GetPosition(this);
+            e.Pointer.Capture(button);
+        };
+
+        button.PointerMoved += (_, e) =>
+        {
+            if (_dragId is null)
             {
-                _manager.Hide(id);
+                return;
             }
-            else
+
+            var point = e.GetPosition(this);
+            var moved = Math.Sqrt(Math.Pow(point.X - _dragStart.X, 2) + Math.Pow(point.Y - _dragStart.Y, 2));
+
+            // 条带按钮走基类的死区 7（MouseDragHelper.java:32）
+            if (moved >= ForgeMetrics.StripeButtonDragStartDeadzone)
             {
-                _manager.Activate(id);
+                button.Opacity = ForgeDragOpacity;
+            }
+        };
+
+        button.PointerReleased += (_, e) =>
+        {
+            e.Pointer.Capture(null);
+            button.Opacity = 1;
+
+            var dragged = _dragId;
+            _dragId = null;
+            if (dragged is null)
+            {
+                return;
+            }
+
+            var point = e.GetPosition(this);
+            var moved = Math.Sqrt(Math.Pow(point.X - _dragStart.X, 2) + Math.Pow(point.Y - _dragStart.Y, 2));
+
+            if (moved < ForgeMetrics.StripeButtonDragStartDeadzone)
+            {
+                Toggle(dragged);
+                return;
+            }
+
+            if (ResolveDropTarget(point) is { } target)
+            {
+                _manager!.MoveTo(dragged, target.Anchor, target.Order, target.IsSplit);
             }
         };
 
         return button;
+    }
+
+    /// <summary>拖拽中按钮的透明度（<c>ToolWindowDragHelper.kt:94 · THUMB_OPACITY</c>）。</summary>
+    private const double ForgeDragOpacity = 0.85;
+
+    private void Toggle(string id)
+    {
+        if (_manager!.Layout.GetInfo(id)!.IsVisible)
+        {
+            _manager.Hide(id);
+        }
+        else
+        {
+            _manager.Activate(id);
+        }
+    }
+
+    /// <summary>
+    /// 松手时落在哪根条带的哪一组、插到第几个。
+    /// </summary>
+    /// <remarks>落点判定见 <see cref="StripeDropResolver"/>；不在任何条带上就返回 null（本阶段不做浮动）。</remarks>
+    private StripeDropTarget? ResolveDropTarget(Point point)
+    {
+        foreach (var side in new[] { StripeSide.Left, StripeSide.Right })
+        {
+            var toolbar = side == StripeSide.Left ? _left : _right;
+            var toolbarBounds = toolbar.Bounds;
+            if (!toolbarBounds.Contains(point))
+            {
+                continue;
+            }
+
+            foreach (var group in new[] { StripeGroup.Top, StripeGroup.Bottom })
+            {
+                var panel = group == StripeGroup.Top ? toolbar.TopGroup : toolbar.BottomGroup;
+                var panelBounds = new Rect(
+                    toolbarBounds.X + panel.Bounds.X,
+                    toolbarBounds.Y + panel.Bounds.Y,
+                    panel.Bounds.Width,
+                    panel.Bounds.Height);
+
+                if (!panelBounds.Contains(point) && panel.Children.Count > 0)
+                {
+                    continue;
+                }
+
+                var offset = point.Y - panelBounds.Y;
+                var items = new List<(int Order, double Size)>();
+                var separatorOffset = double.MaxValue;
+                var accumulated = 0.0;
+
+                foreach (var child in panel.Children)
+                {
+                    if (child is ForgeStripeSeparator)
+                    {
+                        separatorOffset = accumulated;
+                    }
+                    else if (child is ForgeStripeButton b && b.Tag is int order)
+                    {
+                        items.Add((order, child.Bounds.Height));
+                    }
+
+                    accumulated += child.Bounds.Height;
+                }
+
+                var insert = StripeDropResolver.ResolveInsertOrder(offset, items);
+                var target = StripeDropResolver.Resolve(side, group, offset > separatorOffset, insert);
+                return StripeDropResolver.AdjustForReversedBottomGroup(target);
+            }
+        }
+
+        return null;
     }
 
     private void BuildDockPane()
