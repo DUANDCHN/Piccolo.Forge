@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Xml.Linq;
 using Piccolo.Forge.Model;
 
 namespace Piccolo.Forge.Mvvm;
@@ -209,6 +210,26 @@ public sealed class ToolWindowShellViewModel : ForgeObservableObject
     /// <returns>正在显示的那个；没有则 <see langword="null"/>。</returns>
     public ToolWindowViewModel? OpenOn(ToolWindowAnchor anchor, bool isSplit = false)
         => _toolWindows.FirstOrDefault(x => x.IsOpen && x.Anchor == anchor && x.IsSplit == isSplit);
+
+    /// <summary>
+    /// 从存档里恢复工具窗口的摆放。
+    /// </summary>
+    /// <remarks>
+    /// 存档里只有摆放（在哪条边、多宽、开没开、什么形态），
+    /// **没有内容和图标** —— 那些是宿主在 <c>Add</c> 时给的，所以恢复必须在**登记完之后**做：
+    /// 存档里认不出来的 id 直接忽略，登记了但存档里没有的保持默认摆放。
+    /// </remarks>
+    /// <param name="xml">存档根元素（<see cref="ToolWindowLayoutSerializer"/> 写出来的）。</param>
+    /// <returns>真正套上去的工具窗口 id。</returns>
+    public IReadOnlyList<string> RestoreLayout(XElement xml)
+    {
+        ArgumentNullException.ThrowIfNull(xml);
+        return Manager.SetLayout(ToolWindowLayoutSerializer.Read(xml));
+    }
+
+    /// <summary>把当前摆放写成存档。</summary>
+    /// <returns>存档根元素。</returns>
+    public XElement SaveLayout() => ToolWindowLayoutSerializer.Write(Manager.Layout);
 
     private void Track(ToolWindowViewModel vm)
     {

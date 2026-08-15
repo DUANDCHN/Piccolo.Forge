@@ -148,4 +148,50 @@ public class MvvmTests
         Assert.NotNull(vm.Content);
         Assert.IsNotType<string>(vm.Content);
     }
+
+    [Fact]
+    public void Restoring_a_layout_moves_the_registered_windows_and_ignores_the_rest()
+    {
+        var saved = new ToolWindowShellViewModel();
+        saved.Add("project", "项目", ToolWindowAnchor.Left);
+        saved.Add("gone", "已删除的面板", ToolWindowAnchor.Right);
+        saved.MoveTo("project", ToolWindowAnchor.Bottom, isSplit: true);
+        saved.Open("project");
+        var xml = saved.SaveLayout();
+
+        // 新一版：project 还在，gone 删了，log 是新加的
+        var shell = new ToolWindowShellViewModel();
+        shell.Add("project", "项目", ToolWindowAnchor.Left);
+        shell.Add("log", "日志", ToolWindowAnchor.Bottom);
+
+        var applied = shell.RestoreLayout(xml);
+
+        Assert.Equal(["project"], applied);
+        var project = shell.Find("project")!;
+        Assert.Equal(ToolWindowAnchor.Bottom, project.Anchor);
+        Assert.True(project.IsSplit);
+        Assert.True(project.IsOpen);
+
+        // 存档里没有的保持默认摆放
+        var log = shell.Find("log")!;
+        Assert.Equal(ToolWindowAnchor.Bottom, log.Anchor);
+        Assert.False(log.IsSplit);
+    }
+
+    [Fact]
+    public void Restoring_a_layout_does_not_rebuild_the_content()
+    {
+        var shell = new ToolWindowShellViewModel();
+        var content = new object();
+        var vm = shell.Add("project", "项目", ToolWindowAnchor.Left);
+        vm.Content = content;
+
+        var other = new ToolWindowShellViewModel();
+        other.Add("project", "项目", ToolWindowAnchor.Left);
+        other.MoveTo("project", ToolWindowAnchor.Right, isSplit: false);
+        shell.RestoreLayout(other.SaveLayout());
+
+        Assert.Same(vm, shell.Find("project"));
+        Assert.Same(content, shell.Find("project")!.Content);
+    }
 }

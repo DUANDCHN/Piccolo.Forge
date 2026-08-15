@@ -282,6 +282,49 @@ public sealed class ToolWindowManager
     }
 
     /// <summary>
+    /// 整份布局套上去 —— 读档用。
+    /// </summary>
+    /// <remarks>
+    /// 对应上游 <c>ToolWindowManagerImpl.kt · setLayout</c>：读回来的布局里可能有
+    /// **这一版已经不存在的工具窗口**（插件卸了、面板删了），也可能**缺**这一版新加的，
+    /// 所以只认「两边都有」的那批 —— 存档里多出来的忽略，存档里没有的保持当前值。
+    /// <para>
+    /// 每条都发一次 <see cref="StateChanged"/>（<see cref="ToolWindowChangeKind.Moved"/>），
+    /// 否则订阅方（可观察层）看不见变化。
+    /// </para>
+    /// </remarks>
+    /// <param name="layout">读回来的布局。</param>
+    /// <returns>真正套上去的工具窗口 id。</returns>
+    public IReadOnlyList<string> SetLayout(DesktopLayout layout)
+    {
+        ArgumentNullException.ThrowIfNull(layout);
+
+        var applied = new List<string>();
+        foreach (var info in layout.GetSortedList())
+        {
+            if (Layout.GetInfo(info.Id) is null)
+            {
+                continue;
+            }
+
+            Layout.SetInfo(info);
+            applied.Add(info.Id);
+        }
+
+        foreach (var anchor in Enum.GetValues<ToolWindowAnchor>())
+        {
+            Layout.SetUnifiedAnchorWeight(anchor, layout.GetUnifiedAnchorWeight(anchor));
+        }
+
+        foreach (var id in applied)
+        {
+            OnStateChanged(ToolWindowChangeKind.Moved, id);
+        }
+
+        return applied;
+    }
+
+    /// <summary>
     /// 切换工具窗口的形态。
     /// </summary>
     /// <remarks>
