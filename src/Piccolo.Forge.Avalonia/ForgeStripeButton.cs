@@ -309,6 +309,9 @@ public class ForgeStripeButton : ForgeSquareButtonBase
     /// <inheritdoc />
     public override void Render(DrawingContext context)
     {
+        // 整块都能点，不然只有画了东西的地方收得到鼠标
+        ForgeHitArea.Fill(context, Bounds.Size);
+
         var background = ResolveBackground();
         if (background is { } color)
         {

@@ -4,6 +4,7 @@ using Avalonia.Input;
 using Avalonia.Threading;
 using System.Linq;
 using Avalonia.Controls;
+using Avalonia.VisualTree;
 using Avalonia.Headless.XUnit;
 using Piccolo.Forge.Avalonia;
 using Piccolo.Forge.Model;
@@ -211,5 +212,61 @@ public class ForgeDragFeedbackTests
         // 它盖在所有控件之上，一旦参与命中测试，条带就再也点不动了
         var (frame, _) = Show();
         Assert.False(frame.DragOverlay.IsHitTestVisible);
+    }
+}
+
+/// 自绘控件的整块可点（Avalonia 的命中测试基于渲染内容）。
+public class ForgeHitAreaTests
+{
+    [AvaloniaFact]
+    public void A_stripe_button_reacts_in_the_corner_not_just_on_the_icon()
+    {
+        // 回归：平时不画背景的控件，只有画了图标的那 20×20 收得到鼠标 ——
+        // 表现为「鼠标只有经过图标才能点」。
+        var shell = new ToolWindowShellViewModel();
+        shell.Add("A", "甲", ToolWindowAnchor.Left, false, ForgeIcons.Camera);
+
+        var frame = new ForgeToolWindowFrame();
+        frame.Attach(shell);
+
+        var window = new Window { Width = 600, Height = 400, Content = frame };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        var button = frame.LeftToolbar.TopGroup.Children.OfType<ForgeStripeButton>().First();
+        Assert.False(shell.Find("A")!.IsOpen);
+
+        // 按钮 40×40，图标只占正中 20×20；这里点左上角 (3,3)，图标区之外
+        var corner = button.TranslatePoint(new Point(3, 3), frame)!.Value;
+        window.MouseDown(corner, MouseButton.Left);
+        window.MouseUp(corner, MouseButton.Left);
+
+        Assert.True(shell.Find("A")!.IsOpen);
+    }
+
+    [AvaloniaFact]
+    public void An_unselected_editor_tab_reacts_off_the_text()
+    {
+        // 同一个坑：未选中的标签页平时只画文字。
+        var editor = new EditorAreaViewModel();
+        editor.Open("a", "A");
+        editor.Open("b", "B");          // b 选中，a 未选中
+
+        var control = new ForgeEditorArea();
+        control.Attach(editor);
+
+        var window = new Window { Width = 600, Height = 400, Content = control };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        var tab = control.GetVisualDescendants().OfType<ForgeEditorTab>().First(x => x.Title == "A");
+        Assert.False(editor.Find("a")!.IsSelected);
+
+        // 标签页高 28，文字大约在中间；这里点最上面一行
+        var top = tab.TranslatePoint(new Point(tab.Bounds.Width / 2, 2), control)!.Value;
+        window.MouseDown(top, MouseButton.Left);
+        window.MouseUp(top, MouseButton.Left);
+
+        Assert.True(editor.Find("a")!.IsSelected);
     }
 }

@@ -127,6 +127,9 @@ public class ForgeEditorTab : TemplatedControl
     /// <inheritdoc />
     public override void Render(DrawingContext context)
     {
+        // 整块都能点，不然只有画了东西的地方收得到鼠标
+        ForgeHitArea.Fill(context, Bounds.Size);
+
         if (IsPointerOver && !IsSelected)
         {
             context.FillRectangle(new SolidColorBrush(Palette.HeaderTabHoverBackground), new Rect(Bounds.Size));

@@ -91,8 +91,12 @@ public class ForgeMoreButton : ForgeSquareButtonBase
     {
         if (!IsAvailable)
         {
+            // 不可用时连透明块都不铺：它此刻不该吃鼠标
             return;
         }
+
+        // 可用时整块都能点
+        ForgeHitArea.Fill(context, Bounds.Size);
 
         if (ResolveBackground() is { } color)
         {
