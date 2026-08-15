@@ -86,24 +86,43 @@ internal sealed class SampleApp : Application
             ? ToolWindowAnchor.Bottom
             : side == StripeSide.Left ? ToolWindowAnchor.Left : ToolWindowAnchor.Right;
 
-        var panel = new StripeItemsPanel();
-        var items = layout.GetSortedList()
-            .Where(x => StripePlacementResolver.Resolve(x.Anchor, x.IsSplit) == new StripePlacement(side, group))
-            .Order(StripePlacementResolver.CreateButtonLayoutComparer(anchor));
+        var windows = layout.GetSortedList()
+            .Where(x => StripePlacementResolver.Resolve(x.Anchor, x.IsSplit) == new StripePlacement(side, group));
 
-        foreach (var info in items)
+        // 分组分隔符只在新 UI 的 LEFT/RIGHT 竖条带里用（AbstractDroppableStripe.kt:99-105）
+        var useSeparator = group == StripeGroup.Top;
+
+        var panel = new StripeItemsPanel();
+        foreach (var item in StripeGroupLayout.Build(windows, anchor, useSeparator))
         {
-            panel.Children.Add(new Button
-            {
-                Width = ForgeMetrics.StripeButtonSize,
-                Height = ForgeMetrics.StripeButtonSize,
-                Content = info.Id[..1],
-                CornerRadius = new CornerRadius(ForgeMetrics.StripeButtonArc),
-                HorizontalContentAlignment = HorizontalAlignment.Center,
-                VerticalContentAlignment = VerticalAlignment.Center,
-            });
+            panel.Children.Add(item.IsSeparator ? CreateSeparator() : CreateButton(item.Window!));
         }
 
         return panel;
     }
+
+    private static Control CreateButton(WindowInfo info) => new Button
+    {
+        Width = ForgeMetrics.StripeButtonSize,
+        Height = ForgeMetrics.StripeButtonSize,
+        Content = info.Id[..1],
+        CornerRadius = new CornerRadius(ForgeMetrics.StripeButtonArc),
+        HorizontalContentAlignment = HorizontalAlignment.Center,
+        VerticalContentAlignment = VerticalAlignment.Center,
+    };
+
+    // 32×11 占位，中间画一条 24×1 的线（StripeButtonSeparator.kt:22-37）
+    private static Control CreateSeparator() => new Border
+    {
+        Width = ForgeMetrics.StripeSeparatorWidth,
+        Height = ForgeMetrics.StripeSeparatorHeight,
+        Child = new Border
+        {
+            Width = ForgeMetrics.StripeSeparatorLineWidth,
+            Height = ForgeMetrics.StripeSeparatorLineHeight,
+            Background = Brushes.Gray,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+        },
+    };
 }

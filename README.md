@@ -45,7 +45,7 @@
 | `src/Piccolo.Forge.Themes` | 度量常量与主题键名 |
 | `src/Piccolo.Forge.Avalonia` | 控件 |
 | `tests/Piccolo.Forge.Tests` | xunit v3 + Avalonia headless |
-| `samples/Piccolo.Forge.Sample` | 示例：把默认布局的按钮摆进左右两根条带 |
+| `samples/Piccolo.Forge.Sample` | 示例：把默认布局的按钮摆进左右两根条带（含分组分隔符） |
 
 net8.0 / Avalonia 12.1.1，`TreatWarningsAsErrors` 与 `GenerateDocumentationFile` 全开
 （测试与示例不强制 XML 注释）。包版本集中在 `Directory.Packages.props`。

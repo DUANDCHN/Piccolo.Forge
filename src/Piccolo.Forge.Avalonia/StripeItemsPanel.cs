@@ -40,10 +40,23 @@ public class StripeItemsPanel : Panel
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// 宽度统一取所有可见子项 DesiredSize 的最大值（上游的 <c>data.fitSize</c>，
+    /// <c>AbstractDroppableStripe.kt:296-301</c>），高度各按各的
+    /// （<c>:482-495 · layoutButton</c>）。**不是**铺满容器宽度。
+    /// </remarks>
     protected override Size ArrangeOverride(Size finalSize)
     {
-        var y = 0.0;
+        var fitWidth = 0.0;
+        foreach (var child in Children)
+        {
+            if (child.IsVisible)
+            {
+                fitWidth = Math.Max(fitWidth, child.DesiredSize.Width);
+            }
+        }
 
+        var y = 0.0;
         foreach (var child in Children)
         {
             if (!child.IsVisible)
@@ -52,10 +65,10 @@ public class StripeItemsPanel : Panel
             }
 
             var height = child.DesiredSize.Height;
-            child.Arrange(new Rect(0, y, finalSize.Width, height));
+            child.Arrange(new Rect(0, y, fitWidth, height));
             y += height + ForgeMetrics.StripeButtonGap;
         }
 
-        return new Size(finalSize.Width, Math.Max(y, finalSize.Height));
+        return new Size(Math.Max(fitWidth, finalSize.Width), Math.Max(y, finalSize.Height));
     }
 }
