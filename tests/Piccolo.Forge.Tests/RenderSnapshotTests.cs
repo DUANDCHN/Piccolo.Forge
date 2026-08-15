@@ -45,6 +45,65 @@ public class RenderSnapshotTests
         return control;
     }
 
+    /// 按 LDVision 的登记表渲一张：10 个面板全都有按钮，只有 3 个是打开的。
+    [AvaloniaFact]
+    public void Render_an_ldvision_like_layout()
+    {
+        var palette = ForgePalette.ExpUiDark;
+        var shell = new ToolWindowShellViewModel();
+
+        // 左：相机列表 / 图像库；右：相机参数；下左：日志 / 统计 / 测量表格；下右：四个分析面板
+        (string Id, string Title, ToolWindowAnchor Anchor, bool Split)[] definitions =
+        [
+            ("CamList", "相机列表", ToolWindowAnchor.Left, false),
+            ("ImageLibrary", "图像库", ToolWindowAnchor.Left, false),
+            ("CamParam", "相机参数", ToolWindowAnchor.Right, false),
+            ("DisplayLog", "日志显示", ToolWindowAnchor.Bottom, false),
+            ("ImageStats", "图像统计", ToolWindowAnchor.Bottom, false),
+            ("MeasureTable", "测量表格", ToolWindowAnchor.Bottom, false),
+            ("Histogram", "直方图", ToolWindowAnchor.Bottom, true),
+            ("ProfileLine", "剖面线", ToolWindowAnchor.Bottom, true),
+            ("PixelInspector", "像素查看器", ToolWindowAnchor.Bottom, true),
+            ("FocusMeasure", "清晰度因子", ToolWindowAnchor.Bottom, true),
+        ];
+
+        foreach (var (id, title, anchor, split) in definitions)
+        {
+            // 登记只要 id/标题/图标 —— 不需要面板实例，按钮却已经在了
+            shell.Add(id, title, anchor, split, icon: ForgeIcons.DefaultToolWindow);
+        }
+
+        var frame = new ForgeToolWindowFrame
+        {
+            Palette = palette,
+            EditorContent = new Border { Background = new SolidColorBrush(ForgeColor.Parse("#1E1F22")) },
+        };
+        frame.Attach(shell);
+
+        // 每格开第一个
+        shell.Open("CamList");
+        shell.Open("CamParam");
+        shell.Open("DisplayLog");
+
+        var window = new Window
+        {
+            Width = 900,
+            Height = 560,
+            WindowDecorations = WindowDecorations.None,
+            Background = new SolidColorBrush(palette.Background),
+            Content = frame,
+        };
+
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        var bitmap = window.CaptureRenderedFrame();
+        Assert.NotNull(bitmap);
+
+        Directory.CreateDirectory(OutputDirectory);
+        bitmap.Save(Path.Combine(OutputDirectory, "forge-ldvision.png"), new PngBitmapEncoderOptions());
+    }
+
     [AvaloniaTheory]
     [InlineData("dark", false)]
     [InlineData("light", false)]
