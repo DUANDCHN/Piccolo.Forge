@@ -42,6 +42,7 @@
 | 工程 | 干什么 |
 |---|---|
 | `src/Piccolo.Forge.Model` | 纯模型，不依赖 Avalonia：`WindowInfo` / `DesktopLayout` / `ToolWindowManager` / 两个栈 / 默认布局 / 按钮落位 |
+| `src/Piccolo.Forge.Mvvm` | 可观察包装：工具窗口与内容的 VM。**只依赖模型层，不引 Avalonia，也不引任何 MVVM 框架** |
 | `src/Piccolo.Forge.Themes` | 度量常量、缩放、紧凑模式、主题键名与 expUI 两套配色 |
 | `src/Piccolo.Forge.Avalonia` | 控件：条带按钮 / 分隔符 / 条带 / 标题条 / 停靠区 / 整机框架 |
 | `tests/Piccolo.Forge.Tests` | xunit v3 + Avalonia headless（含 Skia 渲染快照） |
@@ -72,6 +73,9 @@ net8.0 / Avalonia 12.1.1，`TreatWarningsAsErrors` 与 `GenerateDocumentationFil
 - 「更多」按钮：同一时刻只有一根条带显示，没东西可挑时整个隐藏
 - 右键菜单、「更多」弹窗、浮动窗口淡出定时器
 - Alt 双击并按住临时浮出条带的状态机（键盘钩子留给宿主接）
+- 宿主接入：`ToolWindowShellViewModel` + `frame.Attach(shell)`，
+  面板内容塞 `object`，视图由宿主自己的 ViewLocator / DataTemplate 解析；
+  **开关面板不会重建任何已有控件**（有用例数构造次数钉住）
 
 **上游已审但有意不做**（原因写在 `工具窗口模型.md` §17）：
 真图标（那是 JetBrains 的美术资产，本项目按审出的尺寸自己画）、

@@ -52,6 +52,17 @@ public class RenderSnapshotTests
         // 摘掉一个条带按钮，好让「更多」按钮有东西可挑
         manager.Hide("Maven", removeFromStripe: true);
 
+        // 内容由**宿主**塞进去（Forge 不编占位内容）
+        foreach (var vm in shell.ToolWindows)
+        {
+            vm.Content = new TextBlock
+            {
+                Text = $"{vm.Title} 的内容",
+                Margin = new Thickness(12, 8, 0, 0),
+                Foreground = new SolidColorBrush(palette.Foreground),
+            };
+        }
+
         manager.Activate("Project");
         manager.Activate("Structure");        // isSplit=true —— 与 Project 分掉左边这一格
         manager.Activate("Version Control");  // 下边这一格，带三个 tab
