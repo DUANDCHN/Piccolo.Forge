@@ -39,11 +39,75 @@ public class ForgeEditorArea : TemplatedControl
         PaletteProperty.Changed.AddClassHandler<ForgeEditorArea>((x, _) => x.Sync());
     }
 
+    /// <summary><see cref="FollowThemeVariant"/> 的属性定义。</summary>
+    public static readonly StyledProperty<bool> FollowThemeVariantProperty =
+        AvaloniaProperty.Register<ForgeEditorArea, bool>(nameof(FollowThemeVariant), defaultValue: true);
+
     /// <summary>建一个编辑区控件。</summary>
     public ForgeEditorArea()
     {
         VisualChildren.Add(_root);
         LogicalChildren.Add(_root);
+        ActualThemeVariantChanged += (_, _) => ApplyThemeVariant();
+    }
+
+    /// <summary>
+    /// 跟着宿主的明暗变体自动切配色。
+    /// </summary>
+    /// <remarks>
+    /// 与 <see cref="ForgeToolWindowFrame.FollowThemeVariant"/> 同义、同默认值。
+    /// <b>它必须和外壳一样默认开着</b>：编辑区是外壳中间那块，两者跟不同的主题走，
+    /// 结果就是浅色界面里中间一大片是黑的 —— 而且看上去像「主题没做」，
+    /// 不像「有个开关没打开」。
+    /// </remarks>
+    public bool FollowThemeVariant
+    {
+        get => GetValue(FollowThemeVariantProperty);
+        set => SetValue(FollowThemeVariantProperty, value);
+    }
+
+    /// <inheritdoc />
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        ApplyThemeVariant();
+    }
+
+    private bool _variantApplied;
+    private bool _paletteSetByHost;
+
+    /// <summary>
+    /// 按当前明暗变体挑一套配色。
+    /// </summary>
+    /// <remarks>
+    /// 宿主显式赋过 <see cref="Palette"/> 就不再插手 —— 判据用 <see cref="AvaloniaObject.IsSet"/>
+    /// 而不是「值变了没有」：属性的默认值本身就是一套配色，宿主赋成同一套时不会有变更通知。
+    /// 我们自己写过之后 <c>IsSet</c> 也为真，所以只在第一次之前认它。
+    /// </remarks>
+    private void ApplyThemeVariant()
+    {
+        if (!FollowThemeVariant)
+        {
+            return;
+        }
+
+        if (!_variantApplied && IsSet(PaletteProperty))
+        {
+            _paletteSetByHost = true;
+        }
+
+        if (_paletteSetByHost)
+        {
+            return;
+        }
+
+        var wanted = ForgePalette.ForVariant(ActualThemeVariant);
+        if (!ReferenceEquals(Palette, wanted))
+        {
+            Palette = wanted;
+        }
+
+        _variantApplied = true;
     }
 
     /// <summary>配色。</summary>

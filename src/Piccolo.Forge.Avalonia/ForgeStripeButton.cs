@@ -255,12 +255,20 @@ public class ForgeStripeButton : ForgeSquareButtonBase
     }
 
     /// <summary>
-    /// 图标占的那块地。
+    /// 图标占的那块地：<see cref="ForgeSquareButtonBase.IconSize"/> 见方，居中。
     /// </summary>
     /// <remarks>
-    /// 按 <see cref="ForgeSquareButtonBase.IconPadding"/> 内缩，正好留出
-    /// <see cref="ForgeSquareButtonBase.IconSize"/>。显示名字时图标只占上面那一块
-    /// （<c>SquareStripeButton.kt:240</c> 的 <c>buttonWrapper</c> 就是干这个）。
+    /// <b>图标尺寸是定值，不是「按钮减 padding」</b>：上游
+    /// <c>SquareStripeButton.kt:356-367 · scaleIcon</c> 把图标直接缩放成
+    /// <c>getStripeToolbarButtonIconSize()</c>（20，紧凑 16），再由 <c>ActionButton</c>
+    /// 按 insets(5) 排进 40×40 的按钮里。
+    /// <para>
+    /// 第一版按 <c>Bounds - IconPadding × 2</c> 算，得 30×30 —— 图标被放大到 1.5 倍，
+    /// 整条条带看着都糊。padding 决定的是<b>按钮内容区</b>，不是图标大小。
+    /// </para>
+    /// <para>
+    /// 显示名字时图标只占上面那一块（<c>:240</c> 的 <c>buttonWrapper</c> 就是干这个）。
+    /// </para>
     /// </remarks>
     /// <param name="size">按钮自己的尺寸。</param>
     /// <returns>图标矩形。</returns>
@@ -268,10 +276,10 @@ public class ForgeStripeButton : ForgeSquareButtonBase
     {
         var iconAreaHeight = ShowName ? ButtonSize : size.Height;
         return new Rect(
-            IconPadding,
-            IconPadding,
-            Math.Max(0, size.Width - (IconPadding * 2)),
-            Math.Max(0, iconAreaHeight - (IconPadding * 2)));
+            (size.Width - IconSize) / 2,
+            (iconAreaHeight - IconSize) / 2,
+            IconSize,
+            IconSize);
     }
 
     private void AttachIconControl(Control? control)

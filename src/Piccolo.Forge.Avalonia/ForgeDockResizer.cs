@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Media;
 using Piccolo.Forge.Model;
 using Piccolo.Forge.Themes;
 
@@ -79,6 +80,17 @@ public class ForgeDockResizer : Control
 
         return ForgeMetrics.NormalizeWeight((float)ratio);
     }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// <b>必须画点东西，哪怕是透明的。</b>Avalonia 的命中测试基于渲染内容 ——
+    /// 一个什么都不画的 <see cref="Control"/> 收不到任何指针事件，
+    /// 于是热区在那儿、光标也变了，就是拖不动。
+    /// 上游那条分隔器<b>可见宽度是 0</b>（<c>ToolWindowPane.kt:197</c>），
+    /// 所以这里也只画透明色：看不见，但吃得到鼠标。
+    /// </remarks>
+    public override void Render(DrawingContext context)
+        => context.FillRectangle(Brushes.Transparent, new Rect(Bounds.Size));
 
     /// <inheritdoc />
     protected override Size MeasureOverride(Size availableSize)

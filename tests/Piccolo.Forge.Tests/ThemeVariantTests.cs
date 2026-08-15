@@ -89,4 +89,48 @@ public class ThemeVariantTests
         frame.Attach(shell);
         return frame;
     }
+
+    [AvaloniaFact]
+    public void The_editor_area_follows_the_host_variant_too()
+    {
+        // 回归：编辑区没跟着变体走，于是浅色界面里中间一大片是黑的 ——
+        // 它是外壳中间那块，两者跟不同主题走没有任何合理性。
+        var editor = new ForgeEditorArea();
+        editor.Attach(new EditorAreaViewModel());
+
+        var window = new Window { Content = editor, RequestedThemeVariant = ThemeVariant.Light };
+        window.Show();
+
+        Assert.Same(ForgePalette.ExpUiLight, editor.Palette);
+
+        window.RequestedThemeVariant = ThemeVariant.Dark;
+        Assert.Same(ForgePalette.ExpUiDark, editor.Palette);
+    }
+
+    [AvaloniaFact]
+    public void The_editor_area_keeps_an_explicit_palette()
+    {
+        var editor = new ForgeEditorArea { Palette = ForgePalette.ExpUiDark };
+        editor.Attach(new EditorAreaViewModel());
+
+        var window = new Window { Content = editor, RequestedThemeVariant = ThemeVariant.Light };
+        window.Show();
+
+        Assert.Same(ForgePalette.ExpUiDark, editor.Palette);
+    }
+
+    [AvaloniaFact]
+    public void The_frame_and_the_editor_agree_on_the_variant()
+    {
+        // 宿主是分别 new 出来的两个控件，装在一起必须是同一套配色。
+        var frame = NewFrame();
+        var editor = new ForgeEditorArea();
+        editor.Attach(new EditorAreaViewModel());
+        frame.EditorContent = editor;
+
+        var window = new Window { Content = frame, RequestedThemeVariant = ThemeVariant.Light };
+        window.Show();
+
+        Assert.Same(frame.Palette, editor.Palette);
+    }
 }

@@ -1,7 +1,10 @@
 using Avalonia;
+using Avalonia.Input;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Avalonia.Media;
 using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Piccolo.Forge.Avalonia;
 using Piccolo.Forge.Model;
@@ -134,6 +137,58 @@ public class ForgeControlsTests
 
         // 左内边距 8，竖直居中（标签页高 28、图标 16）
         Assert.Equal(new Rect(8, 6, 16, 16), icon.Bounds);
+    }
+
+    [AvaloniaFact]
+    public void The_icon_is_20_square_and_centred_not_button_minus_padding()
+    {
+        // 回归：第一版按 Bounds - IconPadding × 2 算，得 30×30，图标被放大到 1.5 倍。
+        // 上游 SquareStripeButton.kt:356-367 · scaleIcon 是把图标**缩放成 iconSize**（20），
+        // padding 决定的是按钮内容区，不是图标大小。
+        var icon = new Border();
+        var button = new ForgeStripeButton { Icon = icon };
+
+        button.Measure(Size.Infinity);
+        button.Arrange(new Rect(button.DesiredSize));
+
+        Assert.Equal(new Rect(10, 10, 20, 20), icon.Bounds);
+    }
+
+    [AvaloniaFact]
+    public void The_icon_shrinks_with_density()
+    {
+        // 紧凑：按钮 32、图标 16 → 居中在 (8, 8)
+        var icon = new Border();
+        var button = new ForgeStripeButton { Icon = icon, IsCompact = true };
+
+        button.Measure(Size.Infinity);
+        button.Arrange(new Rect(button.DesiredSize));
+
+        Assert.Equal(new Rect(8, 8, 16, 16), icon.Bounds);
+    }
+
+    [AvaloniaFact]
+    public void The_resizer_can_actually_be_grabbed()
+    {
+        // 回归：Avalonia 的命中测试基于渲染内容 —— 什么都不画的 Control 收不到指针事件，
+        // 于是热区在那儿、光标也变了，就是拖不动。
+        var resizer = new ForgeDockResizer { Anchor = ToolWindowAnchor.Left };
+        var host = new Border { Child = resizer };
+        var window = new Window { Width = 200, Height = 200, Content = host };
+
+        DockWeightChangedEventArgs? changed = null;
+        resizer.WeightChanged += (_, e) => changed = e;
+
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        // 走完整输入管线：按下 → 拖 → 抬起。收不到事件就说明命中测试没把它算进去。
+        window.MouseDown(new Point(100, 100), MouseButton.Left);
+        window.MouseMove(new Point(60, 100));
+        window.MouseUp(new Point(60, 100), MouseButton.Left);
+
+        Assert.NotNull(changed);
+        Assert.Equal(ToolWindowAnchor.Left, changed!.Anchor);
     }
 
     // ── 宿主塞控件当图标（Icon 是 object，允许 Geometry / Control / null）────
