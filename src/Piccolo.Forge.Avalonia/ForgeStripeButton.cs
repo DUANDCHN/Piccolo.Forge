@@ -15,16 +15,8 @@ namespace Piccolo.Forge.Avalonia;
 /// 40×40、图标 20、图标四周 padding 5、圆角 12（紧凑 8）。
 /// 背景优先级照抄 <c>SquareStripeButton.kt:208-219 · getBackgroundColor</c>。
 /// </remarks>
-public class ForgeStripeButton : TemplatedControl
+public class ForgeStripeButton : ForgeSquareButtonBase
 {
-    /// <summary><see cref="Palette"/> 的属性定义。</summary>
-    public static readonly StyledProperty<ForgePalette> PaletteProperty =
-        AvaloniaProperty.Register<ForgeStripeButton, ForgePalette>(nameof(Palette), ForgePalette.ExpUiDark);
-
-    /// <summary><see cref="IsCompact"/> 的属性定义。</summary>
-    public static readonly StyledProperty<bool> IsCompactProperty =
-        AvaloniaProperty.Register<ForgeStripeButton, bool>(nameof(IsCompact));
-
     /// <summary><see cref="IsToolWindowVisible"/> 的属性定义。</summary>
     public static readonly StyledProperty<bool> IsToolWindowVisibleProperty =
         AvaloniaProperty.Register<ForgeStripeButton, bool>(nameof(IsToolWindowVisible));
@@ -52,32 +44,8 @@ public class ForgeStripeButton : TemplatedControl
     static ForgeStripeButton()
     {
         AffectsRender<ForgeStripeButton>(
-            PaletteProperty,
-            IsCompactProperty,
-            IsToolWindowVisibleProperty,
-            IsToolWindowActiveProperty);
-        AffectsMeasure<ForgeStripeButton>(IsCompactProperty, ShowNameProperty, StripeWidthProperty, TitleProperty);
-        AffectsRender<ForgeStripeButton>(ShowNameProperty, TitleProperty);
-    }
-
-    /// <summary>建一个按钮。</summary>
-    public ForgeStripeButton()
-    {
-        Focusable = true;
-    }
-
-    /// <summary>配色。</summary>
-    public ForgePalette Palette
-    {
-        get => GetValue(PaletteProperty);
-        set => SetValue(PaletteProperty, value);
-    }
-
-    /// <summary>是否紧凑模式（<c>度量与主题键.md</c> §9）。</summary>
-    public bool IsCompact
-    {
-        get => GetValue(IsCompactProperty);
-        set => SetValue(IsCompactProperty, value);
+            IsToolWindowVisibleProperty, IsToolWindowActiveProperty, ShowNameProperty, TitleProperty);
+        AffectsMeasure<ForgeStripeButton>(ShowNameProperty, StripeWidthProperty, TitleProperty);
     }
 
     /// <summary>对应的工具窗口当前是否可见。</summary>
@@ -131,18 +99,6 @@ public class ForgeStripeButton : TemplatedControl
     public double TextPadding
         => IsCompact ? ForgeCompactMetrics.StripeButtonTextPadding : ForgeMetrics.StripeButtonTextPadding;
 
-    /// <summary>按钮边长：紧凑 32，否则 40。</summary>
-    public double ButtonSize => IsCompact ? ForgeCompactMetrics.StripeButtonSize : ForgeMetrics.StripeButtonSize;
-
-    /// <summary>图标边长：紧凑 16，否则 20。</summary>
-    public double IconSize => IsCompact ? ForgeCompactMetrics.StripeButtonIconSize : ForgeMetrics.StripeButtonIconSize;
-
-    /// <summary>图标四周 padding：紧凑 4，否则 5。</summary>
-    public double IconPadding => IsCompact ? ForgeCompactMetrics.StripeButtonIconPadding : ForgeMetrics.StripeButtonIconPadding;
-
-    /// <summary>圆角：紧凑 8，否则 12。</summary>
-    public double Arc => IsCompact ? ForgeCompactMetrics.StripeButtonArc : ForgeMetrics.StripeButtonArc;
-
     /// <summary>
     /// 当前该用哪个背景。
     /// </summary>
@@ -153,7 +109,7 @@ public class ForgeStripeButton : TemplatedControl
     /// 显示的是 pressed 背景而不是 hover 背景。
     /// </remarks>
     /// <returns>背景色；都不满足时是 <see langword="null"/>（不画）。</returns>
-    public Color? ResolveBackground()
+    public override Color? ResolveBackground()
     {
         if (IsToolWindowActive)
         {
@@ -165,13 +121,13 @@ public class ForgeStripeButton : TemplatedControl
             return Palette.ButtonPressedBackground;
         }
 
-        return IsPointerOver ? Palette.ButtonHoverBackground : null;
+        return base.ResolveBackground();
     }
 
     /// <summary>当前该用哪个前景。</summary>
     /// <remarks>激活时是 <c>ToolWindow.Button.selectedForeground</c>，否则 <c>ToolWindow.Button.foreground</c>。</remarks>
     /// <returns>前景色。</returns>
-    public Color ResolveForeground()
+    public override Color ResolveForeground()
         => IsToolWindowActive ? Palette.ButtonSelectedForeground : Palette.ButtonForeground;
 
     /// <summary>
@@ -285,19 +241,6 @@ public class ForgeStripeButton : TemplatedControl
         }
     }
 
-    /// <inheritdoc />
-    protected override void OnPointerEntered(global::Avalonia.Input.PointerEventArgs e)
-    {
-        base.OnPointerEntered(e);
-        InvalidateVisual();
-    }
-
-    /// <inheritdoc />
-    protected override void OnPointerExited(global::Avalonia.Input.PointerEventArgs e)
-    {
-        base.OnPointerExited(e);
-        InvalidateVisual();
-    }
 }
 
 /// <summary>

@@ -92,6 +92,30 @@ public static class ForgeMetrics
     /// <summary>选中 tab 的下划线相对底边下移的厚度 1（<c>ToolWindowTabPainter.kt:35-36</c>）。</summary>
     public const double TabBorderThickness = 1;
 
+    /// <summary>tab 上小图标之间的间距 3（<c>ContentLabel.java:46 · ICONS_GAP</c>）。</summary>
+    public const double TabIconsGap = 3;
+
+    /// <summary>tab 右侧图标区距右缘的偏移 4（<c>ContentLabel.java:252-257</c>）。</summary>
+    public const double TabRightIconInset = 4;
+
+    /// <summary>「更多」弹窗的最小宽度 300（<c>MoreSquareStripeButton.kt:106</c>）。</summary>
+    public const double MorePopupMinWidth = 300;
+
+    /// <summary>浮动窗口淡出的帧间隔 15ms（<c>FloatingDecorator.java:73 · DELAY</c>）。</summary>
+    public const int FloatingFadeFrameDelayMs = 15;
+
+    /// <summary>浮动窗口淡出的总帧数 7（<c>FloatingDecorator.java:74 · TOTAL_FRAME_COUNT</c>）。</summary>
+    public const int FloatingFadeTotalFrames = 7;
+
+    /// <summary>变透明前的等待 1500ms（<c>UISettingsState.kt:182 · alphaModeDelay</c>）。</summary>
+    public const int FloatingFadeDelayMs = 1500;
+
+    /// <summary>失活时的目标透明度 0.5（<c>UISettingsState.kt:184 · alphaModeRatio</c>）。</summary>
+    public const float FloatingFadeRatio = 0.5f;
+
+    /// <summary>浮动窗口淡出默认**关闭**（<c>UISettingsState.kt:180 · enableAlphaMode</c>）。</summary>
+    public const bool FloatingFadeEnabledByDefault = false;
+
     /// <summary>主分隔器的可见宽度 0（<c>ToolWindowPane.kt:197</c>）。</summary>
     public const double SplitterDividerWidth = 0;
 

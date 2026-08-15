@@ -15,13 +15,15 @@ public class ForgeToolWindowFrameTests
     {
         var (frame, _) = Build();
 
-        // 默认布局：左上组 Project/Commit/分隔符/Structure；左下组是 5 个 BOTTOM 的
-        Assert.Equal(4, frame.LeftToolbar.TopGroup.Children.Count);
-        Assert.Equal(5, frame.LeftToolbar.BottomGroup.Children.Count);
+        // 默认布局：左上组 Project/Commit/分隔符/Structure；左下组是 5 个 BOTTOM 的。
+        // 上组末尾还挂着「更多」按钮（ToolWindowToolbar.kt:109），单独数。
+        Assert.Equal(4, StripeItems(frame.LeftToolbar.TopGroup));
+        Assert.Equal(5, StripeItems(frame.LeftToolbar.BottomGroup));
+        Assert.Single(frame.LeftToolbar.TopGroup.Children.OfType<ForgeMoreButton>());
 
         // 右条带下组是空的 —— 默认布局里没有 isSplit=true 的 BOTTOM 窗口
         Assert.Empty(frame.RightToolbar.BottomGroup.Children);
-        Assert.Equal(5, frame.RightToolbar.TopGroup.Children.Count);
+        Assert.Equal(5, StripeItems(frame.RightToolbar.TopGroup));
     }
 
     [AvaloniaFact]
@@ -135,6 +137,10 @@ public class ForgeToolWindowFrameTests
         Assert.Equal(0.25f, manager.Layout.GetInfo("Project")!.Weight);
         Assert.Equal(Math.Floor(frame.DockPane.Bounds.Width * 0.25f), window.Bounds.Width);
     }
+
+    // 一组里除了工具窗口按钮和分隔符，末尾还可能挂着「更多」按钮
+    private static int StripeItems(Panel group)
+        => group.Children.Count(x => x is not ForgeMoreButton);
 
     // 停靠区里除了工具窗口，还有编辑区和几条拖拽热区
     private static List<Border> DockedWindows(ForgeToolWindowFrame frame)

@@ -9,7 +9,31 @@ namespace Piccolo.Forge.Model;
 /// </remarks>
 /// <param name="Id">这块内容的 id。</param>
 /// <param name="DisplayName">tab 上显示的名字。</param>
-public readonly record struct ToolWindowContent(string Id, string DisplayName);
+/// <param name="IsCloseable">这块内容能不能关。</param>
+/// <param name="IsPinned">是不是被固定住了。</param>
+public readonly record struct ToolWindowContent(
+    string Id,
+    string DisplayName,
+    bool IsCloseable = true,
+    bool IsPinned = false);
+
+/// <summary>
+/// 点 tab 上那个图标的结果。
+/// </summary>
+public enum TabIconAction
+{
+    /// <summary>没有图标，什么也不做。</summary>
+    None,
+
+    /// <summary>取消固定（固定住的内容点图标是解固定，不是关闭）。</summary>
+    Unpin,
+
+    /// <summary>关掉这块。</summary>
+    Close,
+
+    /// <summary>关掉其它所有（按住 Alt 时）。</summary>
+    CloseOthers,
+}
 
 /// <summary>
 /// 一个工具窗口里那几块内容，以及选中的是哪块。
@@ -36,8 +60,84 @@ public sealed class ToolWindowContentManager
     /// </remarks>
     public bool IsSoleContent => _contents.Count <= 1;
 
+    /// <summary>
+    /// 这个工具窗口允不允许关掉里面的内容。
+    /// </summary>
+    /// <remarks>
+    /// 关闭图标出现的条件是「内容可关 **且** 工具窗口允许关内容」
+    /// （<c>ContentTabLabel.java:169-171 · canBeClosed</c>）。
+    /// </remarks>
+    public bool CanCloseContents { get; init; } = true;
+
     /// <summary>选中的那块变了。</summary>
     public event EventHandler? SelectionChanged;
+
+    /// <summary>
+    /// 这块内容的 tab 上该不该出现关闭图标。
+    /// </summary>
+    /// <remarks>对应 <c>ContentTabLabel.java:169-171</c>、<c>:244-247</c>。</remarks>
+    /// <param name="content">内容。</param>
+    /// <returns>该出现则为 <see langword="true"/>。</returns>
+    public bool CanBeClosed(ToolWindowContent content) => content.IsCloseable && CanCloseContents;
+
+    /// <summary>
+    /// 点 tab 上那个图标会发生什么。
+    /// </summary>
+    /// <remarks>
+    /// 对应 <c>ContentTabLabel.java:250-257 · CloseContentTabAction.runAction</c>：
+    /// **固定住的先解固定，不关**；按住 Alt 是关掉其它所有 tab。
+    /// </remarks>
+    /// <param name="id">内容 id。</param>
+    /// <param name="isAltPressed">是否按住了 Alt。</param>
+    /// <returns>实际发生的动作。</returns>
+    public TabIconAction ResolveIconAction(string id, bool isAltPressed = false)
+    {
+        var content = _contents.Find(x => string.Equals(x.Id, id, StringComparison.Ordinal));
+        if (string.IsNullOrEmpty(content.Id) || !CanBeClosed(content))
+        {
+            return TabIconAction.None;
+        }
+
+        if (content.IsPinned)
+        {
+            return TabIconAction.Unpin;
+        }
+
+        return isAltPressed ? TabIconAction.CloseOthers : TabIconAction.Close;
+    }
+
+    /// <summary>
+    /// 执行 <see cref="ResolveIconAction"/> 算出来的动作。
+    /// </summary>
+    /// <param name="id">内容 id。</param>
+    /// <param name="isAltPressed">是否按住了 Alt。</param>
+    /// <returns>实际执行的动作。</returns>
+    public TabIconAction InvokeIconAction(string id, bool isAltPressed = false)
+    {
+        var action = ResolveIconAction(id, isAltPressed);
+
+        switch (action)
+        {
+            case TabIconAction.Unpin:
+                var index = _contents.FindIndex(x => string.Equals(x.Id, id, StringComparison.Ordinal));
+                _contents[index] = _contents[index] with { IsPinned = false };
+                break;
+
+            case TabIconAction.Close:
+                Remove(id);
+                break;
+
+            case TabIconAction.CloseOthers:
+                foreach (var other in _contents.Where(x => !string.Equals(x.Id, id, StringComparison.Ordinal)).ToList())
+                {
+                    Remove(other.Id);
+                }
+
+                break;
+        }
+
+        return action;
+    }
 
     /// <summary>加一块内容；第一块自动选中。</summary>
     /// <param name="content">要加的内容。</param>

@@ -111,12 +111,19 @@ public sealed class ToolWindowManager
     public bool Hide(string id, bool hideSide = false, bool removeFromStripe = false)
     {
         var info = Layout.GetInfo(id) ?? throw new InvalidOperationException($"未注册的工具窗口：{id}");
-        if (!info.IsVisible)
+
+        // 上游的 hideToolWindow 对「本来就不可见」**没有**早返回（ToolWindowManagerImpl.kt:819-854），
+        // 它只是把 moveFocus 关掉，摘条带按钮那步照做。
+        // 所以已经隐藏的窗口仍然可以被「隐藏」菜单摘掉按钮。
+        if (!info.IsVisible && !removeFromStripe)
         {
             return false;
         }
 
-        Deactivate(info);
+        if (info.IsVisible)
+        {
+            Deactivate(info);
+        }
 
         if (removeFromStripe)
         {

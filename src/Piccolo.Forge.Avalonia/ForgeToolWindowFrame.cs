@@ -36,6 +36,10 @@ public class ForgeToolWindowFrame : TemplatedControl
     public static readonly StyledProperty<ForgePalette> PaletteProperty =
         AvaloniaProperty.Register<ForgeToolWindowFrame, ForgePalette>(nameof(Palette), ForgePalette.ExpUiDark);
 
+    /// <summary><see cref="MoreButtonSide"/> 的属性定义。</summary>
+    public static readonly StyledProperty<StripeSide> MoreButtonSideProperty =
+        AvaloniaProperty.Register<ForgeToolWindowFrame, StripeSide>(nameof(MoreButtonSide));
+
     /// <summary><see cref="ShowToolWindowNames"/> 的属性定义。</summary>
     public static readonly StyledProperty<bool> ShowToolWindowNamesProperty =
         AvaloniaProperty.Register<ForgeToolWindowFrame, bool>(nameof(ShowToolWindowNames));
@@ -49,6 +53,7 @@ public class ForgeToolWindowFrame : TemplatedControl
         PaletteProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Rebuild());
         EditorContentProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Rebuild());
         ShowToolWindowNamesProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Rebuild());
+        MoreButtonSideProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Rebuild());
     }
 
     /// <summary>建一个框架。</summary>
@@ -68,6 +73,19 @@ public class ForgeToolWindowFrame : TemplatedControl
     {
         get => GetValue(PaletteProperty);
         set => SetValue(PaletteProperty, value);
+    }
+
+    /// <summary>
+    /// 「更多」按钮显示在哪一边。
+    /// </summary>
+    /// <remarks>
+    /// 同一时刻只有一根条带显示它，默认 LEFT
+    /// （<c>ToolWindowManagerState.kt:60</c>、<c>MoreSquareStripeButton.kt:77-79</c>）。
+    /// </remarks>
+    public StripeSide MoreButtonSide
+    {
+        get => GetValue(MoreButtonSideProperty);
+        set => SetValue(MoreButtonSideProperty, value);
     }
 
     /// <summary>
@@ -206,6 +224,12 @@ public class ForgeToolWindowFrame : TemplatedControl
                         ? new ForgeStripeSeparator { Palette = Palette }
                         : CreateStripeButton(item.Window!));
                 }
+
+                // 「更多」按钮挂在上组之后（ToolWindowToolbar.kt:109）
+                if (group == StripeGroup.Top)
+                {
+                    panel.Children.Add(CreateMoreButton(side));
+                }
             }
         }
     }
@@ -285,6 +309,15 @@ public class ForgeToolWindowFrame : TemplatedControl
 
         return button;
     }
+
+    private ForgeMoreButton CreateMoreButton(StripeSide side) => new()
+    {
+        Palette = Palette,
+        Side = side,
+        ActiveSide = MoreButtonSide,
+        // 有条带按钮被摘掉（isShowStripeButton=false）时才有东西可挑
+        HasHiddenToolWindows = _manager!.Layout.GetSortedList().Any(x => !x.IsShowStripeButton && !x.IsVisible),
+    };
 
     /// <summary>拖拽中按钮的透明度（<c>ToolWindowDragHelper.kt:94 · THUMB_OPACITY</c>）。</summary>
     private const double ForgeDragOpacity = 0.85;
@@ -511,11 +544,28 @@ public class ForgeToolWindowFrame : TemplatedControl
                 IsSelected = isSelected,
                 IsWindowActive = isActive,
                 IsSoleContent = contents.IsSoleContent,
+                CanBeClosed = contents.CanBeClosed(content),
+                IsPinned = content.IsPinned,
             };
 
             var contentId = content.Id;
             var windowId = info.Id;
-            tab.PointerPressed += (_, _) => GetContentManager(windowId).Select(contentId);
+            tab.PointerPressed += (_, e) =>
+            {
+                var manager = GetContentManager(windowId);
+                var point = e.GetPosition(tab);
+
+                // 点在右边那个图标上就是关闭/解固定，否则是选中
+                if (tab.CanBeClosed && point.X >= tab.Bounds.Width - tab.IconAreaWidth)
+                {
+                    var alt = e.KeyModifiers.HasFlag(global::Avalonia.Input.KeyModifiers.Alt);
+                    manager.InvokeIconAction(contentId, alt);
+                    Rebuild();
+                    return;
+                }
+
+                manager.Select(contentId);
+            };
 
             header.Tabs.Children.Add(tab);
         }

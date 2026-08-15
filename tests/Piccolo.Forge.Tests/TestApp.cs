@@ -1,8 +1,13 @@
 using Avalonia;
 using Avalonia.Headless;
 using Piccolo.Forge.Tests;
+using Xunit;
 
 [assembly: AvaloniaTestApplication(typeof(TestAppBuilder))]
+
+// Avalonia 的渲染循环是全局的，真 Skia 渲染又要建真 Window，
+// 并行跑会撞线程（"The calling thread cannot access this object"）。
+[assembly: CollectionBehavior(DisableTestParallelization = true)]
 
 namespace Piccolo.Forge.Tests;
 

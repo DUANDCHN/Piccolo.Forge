@@ -44,8 +44,11 @@ public class RenderSnapshotTests
         var vcs = frame.GetContentManager("Version Control");
         vcs.Add(new ToolWindowContent("local", "Local Changes"));
         vcs.Add(new ToolWindowContent("shelf", "Shelf"));
-        vcs.Add(new ToolWindowContent("console", "Console"));
+        vcs.Add(new ToolWindowContent("console", "Console", IsPinned: true));
         vcs.Select("shelf");
+
+        // 摘掉一个条带按钮，好让「更多」按钮有东西可挑
+        manager.Hide("Maven", removeFromStripe: true);
 
         manager.Activate("Project");
         manager.Activate("Structure");        // isSplit=true —— 与 Project 分掉左边这一格

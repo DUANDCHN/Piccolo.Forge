@@ -36,11 +36,20 @@ public class ForgeContentTab : TemplatedControl
     public static readonly StyledProperty<bool> IsSoleContentProperty =
         AvaloniaProperty.Register<ForgeContentTab, bool>(nameof(IsSoleContent));
 
+    /// <summary><see cref="CanBeClosed"/> 的属性定义。</summary>
+    public static readonly StyledProperty<bool> CanBeClosedProperty =
+        AvaloniaProperty.Register<ForgeContentTab, bool>(nameof(CanBeClosed));
+
+    /// <summary><see cref="IsPinned"/> 的属性定义。</summary>
+    public static readonly StyledProperty<bool> IsPinnedProperty =
+        AvaloniaProperty.Register<ForgeContentTab, bool>(nameof(IsPinned));
+
     static ForgeContentTab()
     {
         AffectsRender<ForgeContentTab>(
             PaletteProperty, TitleProperty, IsSelectedProperty, IsWindowActiveProperty, IsSoleContentProperty);
-        AffectsMeasure<ForgeContentTab>(TitleProperty);
+        AffectsMeasure<ForgeContentTab>(TitleProperty, CanBeClosedProperty);
+        AffectsRender<ForgeContentTab>(CanBeClosedProperty, IsPinnedProperty);
     }
 
     /// <summary>配色。</summary>
@@ -84,6 +93,33 @@ public class ForgeContentTab : TemplatedControl
         set => SetValue(IsSoleContentProperty, value);
     }
 
+    /// <summary>这块内容能不能关（决定右边那个图标出不出现）。</summary>
+    /// <remarks>条件是「内容可关 **且** 工具窗口允许关内容」（<c>ContentTabLabel.java:169-171</c>）。</remarks>
+    public bool CanBeClosed
+    {
+        get => GetValue(CanBeClosedProperty);
+        set => SetValue(CanBeClosedProperty, value);
+    }
+
+    /// <summary>是不是被固定住了。</summary>
+    /// <remarks>
+    /// **固定住时那个位置画的是图钉而不是叉**，点它是解固定
+    /// （<c>ContentTabLabel.java:157-159</c>、<c>:250-254</c>）。
+    /// </remarks>
+    public bool IsPinned
+    {
+        get => GetValue(IsPinnedProperty);
+        set => SetValue(IsPinnedProperty, value);
+    }
+
+    /// <summary>右边那个图标占的宽度：图标 + 间距 3 + 右缘 4。</summary>
+    /// <remarks>对应 <c>ContentLabel.java:252-257</c>。</remarks>
+    public double IconAreaWidth
+        => CanBeClosed ? IconSize + ForgeMetrics.TabIconsGap + ForgeMetrics.TabRightIconInset : 0;
+
+    /// <summary>右边那个小图标的边长。</summary>
+    private static double IconSize => 12;
+
     /// <summary>左右内边距 12（<c>ToolWindow.HeaderTab.leftRightInsets</c>）。</summary>
     public static double Inset => ForgeMetrics.HeaderTabInset;
 
@@ -91,7 +127,9 @@ public class ForgeContentTab : TemplatedControl
     protected override Size MeasureOverride(Size availableSize)
     {
         var text = MeasureText();
-        var width = Math.Min(ForgeMetrics.TabMaxWidth, (text?.Width ?? 0) + (Inset * 2));
+        var width = Math.Min(
+            ForgeMetrics.TabMaxWidth,
+            (text?.Width ?? 0) + (Inset * 2) + IconAreaWidth);
 
         return new Size(width, double.IsInfinity(availableSize.Height) ? ForgeMetrics.HeaderHeight : availableSize.Height);
     }
@@ -113,6 +151,37 @@ public class ForgeContentTab : TemplatedControl
         {
             context.DrawText(text, new Point(Inset, (Bounds.Height - text.Height) / 2));
         }
+
+        if (CanBeClosed)
+        {
+            RenderTabIcon(context);
+        }
+    }
+
+    /// <summary>
+    /// 右边那个图标：固定住画图钉，否则画叉。
+    /// </summary>
+    /// <remarks>位置对应 <c>ContentLabel.java:252-257</c>：起点是 <c>宽度 - 4 - 图标宽</c>。</remarks>
+    private void RenderTabIcon(DrawingContext context)
+    {
+        var brush = new SolidColorBrush(Palette.ButtonForeground);
+        var pen = new Pen(brush, 1);
+        var x = Bounds.Width - ForgeMetrics.TabRightIconInset - IconSize;
+        var y = (Bounds.Height - IconSize) / 2;
+        var rect = new Rect(x, y, IconSize, IconSize);
+
+        if (IsPinned)
+        {
+            // 图钉的占位画法：一个小方块加一条竖线
+            var head = new Rect(rect.X + 3, rect.Y + 1, IconSize - 6, IconSize / 2);
+            context.FillRectangle(brush, head);
+            context.DrawLine(pen, new Point(rect.Center.X, head.Bottom), new Point(rect.Center.X, rect.Bottom));
+            return;
+        }
+
+        var pad = 3.0;
+        context.DrawLine(pen, new Point(rect.X + pad, rect.Y + pad), new Point(rect.Right - pad, rect.Bottom - pad));
+        context.DrawLine(pen, new Point(rect.Right - pad, rect.Y + pad), new Point(rect.X + pad, rect.Bottom - pad));
     }
 
     /// <summary>
