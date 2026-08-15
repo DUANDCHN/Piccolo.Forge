@@ -41,11 +41,17 @@
 
 | 工程 | 干什么 |
 |---|---|
-| `src/Piccolo.Forge.Model` | 纯模型，不依赖 Avalonia：`WindowInfo` / `DesktopLayout` / 默认布局 / 按钮落位 |
-| `src/Piccolo.Forge.Themes` | 度量常量与主题键名 |
-| `src/Piccolo.Forge.Avalonia` | 控件 |
-| `tests/Piccolo.Forge.Tests` | xunit v3 + Avalonia headless |
-| `samples/Piccolo.Forge.Sample` | 示例：把默认布局的按钮摆进左右两根条带（含分组分隔符） |
+| `src/Piccolo.Forge.Model` | 纯模型，不依赖 Avalonia：`WindowInfo` / `DesktopLayout` / `ToolWindowManager` / 两个栈 / 默认布局 / 按钮落位 |
+| `src/Piccolo.Forge.Themes` | 度量常量、缩放、紧凑模式、主题键名与 expUI 两套配色 |
+| `src/Piccolo.Forge.Avalonia` | 控件：条带按钮 / 分隔符 / 条带 / 标题条 / 停靠区 / 整机框架 |
+| `tests/Piccolo.Forge.Tests` | xunit v3 + Avalonia headless（含 Skia 渲染快照） |
+| `samples/Piccolo.Forge.Sample` | 示例：默认布局，条带按钮可点开/收起 |
+
+渲染快照默认写到系统临时目录，`FORGE_SNAPSHOT_DIR` 可以改：
+
+```bash
+FORGE_SNAPSHOT_DIR=/tmp/forge dotnet test Piccolo.Forge.slnx
+```
 
 net8.0 / Avalonia 12.1.1，`TreatWarningsAsErrors` 与 `GenerateDocumentationFile` 全开
 （测试与示例不强制 XML 注释）。包版本集中在 `Directory.Packages.props`。

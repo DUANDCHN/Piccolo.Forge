@@ -10,5 +10,8 @@ namespace Piccolo.Forge.Tests;
 public static class TestAppBuilder
 {
     public static AppBuilder BuildAvaloniaApp()
-        => AppBuilder.Configure<Application>().UseHeadless(new AvaloniaHeadlessPlatformOptions());
+        => AppBuilder.Configure<Application>()
+            .UseSkia()
+            // 关掉 headless 的假绘制，走真正的 Skia，这样能把窗口渲成 PNG 看
+            .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false });
 }
