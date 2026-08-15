@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Xml.Linq;
 using Piccolo.Forge.Model;
 
 namespace Piccolo.Forge.Mvvm;
@@ -252,6 +253,60 @@ public sealed class EditorAreaViewModel : ForgeObservableObject
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// 从存档里恢复整个编辑区。
+    /// </summary>
+    /// <remarks>
+    /// 存档里只有身份（id / 标题 / 钉住 / 预览），**没有内容** —— 内容是宿主的对象，
+    /// 不可能塞进 XML。所以恢复分两步：先把树读回来，再让宿主按 id 把内容认领回去。
+    /// <para>
+    /// <paramref name="contentFactory"/> 返回 <see langword="null"/> 表示「这一页认不出来了」
+    /// （文件被删了、插件卸了），这一页会被丢掉 —— 与上游一致：
+    /// <c>EditorsSplitters.kt:1748-1768 · resolveFileOrLogError</c> 解析不到文件时
+    /// 记一条 warn 然后返回 <c>null</c>，那一页就不再恢复。
+    /// </para>
+    /// </remarks>
+    /// <param name="xml">存档根元素（<see cref="EditorLayoutSerializer"/> 写出来的）。</param>
+    /// <param name="contentFactory">按 id 交回内容；不给则所有页都留着、内容为空。</param>
+    /// <returns>丢掉的页 id。</returns>
+    public IReadOnlyList<string> Restore(XElement xml, Func<string, object?>? contentFactory = null)
+    {
+        ArgumentNullException.ThrowIfNull(xml);
+
+        EditorLayoutSerializer.Read(xml, Area);
+
+        if (contentFactory is null)
+        {
+            return [];
+        }
+
+        var dropped = new List<string>();
+        foreach (var group in Area.Groups.ToList())
+        {
+            foreach (var tab in group.Tabs.ToList())
+            {
+                var content = contentFactory(tab.Id);
+                if (content is null)
+                {
+                    dropped.Add(tab.Id);
+                    group.Close(tab.Id);
+                    _tabsById.Remove(tab.Id);
+                    continue;
+                }
+
+                var vm = Resolve(tab.Id);
+                vm.Content = content;
+                if (content is IEditorPanel panel)
+                {
+                    vm.Icon = panel.Icon;
+                }
+            }
+        }
+
+        Sync();
+        return dropped;
     }
 
     /// <summary>按 id 找标签页 VM。</summary>

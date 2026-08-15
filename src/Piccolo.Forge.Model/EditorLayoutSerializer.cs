@@ -57,11 +57,25 @@ public static class EditorLayoutSerializer
         ArgumentNullException.ThrowIfNull(root);
 
         var area = new EditorArea();
+        Read(root, area);
+        return area;
+    }
+
+    /// <summary>
+    /// 读回**已有的**编辑区里 —— 宿主的编辑区通常在装配期就建好了，
+    /// 存档是之后才读到的，这时候不能换对象，只能换里面那棵树。
+    /// </summary>
+    /// <param name="root">根元素。</param>
+    /// <param name="area">要覆盖的编辑区。</param>
+    public static void Read(XElement root, EditorArea area)
+    {
+        ArgumentNullException.ThrowIfNull(root);
+        ArgumentNullException.ThrowIfNull(area);
+
         EditorGroup? current = null;
         var node = ReadNode(root, ref current);
 
         area.ReplaceRoot(node, current ?? node.Groups.First());
-        return area;
     }
 
     private static XElement WriteNode(EditorNode node, EditorGroup currentGroup)

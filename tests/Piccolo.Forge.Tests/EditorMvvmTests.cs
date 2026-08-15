@@ -118,4 +118,58 @@ public class EditorMvvmTests
 
         Assert.True(tab.IsPinned);
     }
+
+    [Fact]
+    public void Restoring_puts_the_tree_back_and_lets_the_host_reclaim_content()
+    {
+        var saved = new EditorAreaViewModel();
+        saved.Open(new ImageDoc("cam-1") { Title = "相机 1" });
+        saved.Open(new ImageDoc("cam-2") { Title = "相机 2" });
+        saved.Area.SetPinned("cam-1", true);
+        saved.Area.Split(saved.Area.CurrentGroup, isVertical: false);
+        var xml = EditorLayoutSerializer.Write(saved.Area);
+
+        var restored = new EditorAreaViewModel();
+        var dropped = restored.Restore(xml, id => new ImageDoc(id) { Title = id });
+
+        Assert.Empty(dropped);
+        Assert.Equal(2, restored.Groups.Count);
+        var tab = restored.Find("cam-1");
+        Assert.NotNull(tab);
+        Assert.True(tab!.IsPinned);
+        Assert.IsType<ImageDoc>(tab.Content);
+    }
+
+    [Fact]
+    public void A_tab_the_host_no_longer_recognises_is_dropped()
+    {
+        // 上游 EditorsSplitters.kt:1748-1768 resolveFileOrLogError：
+        // 解析不到文件就记 warn 然后返回 null，那一页不再恢复。
+        var saved = new EditorAreaViewModel();
+        saved.Open(new ImageDoc("still-here"));
+        saved.Open(new ImageDoc("deleted"));
+        var xml = EditorLayoutSerializer.Write(saved.Area);
+
+        var restored = new EditorAreaViewModel();
+        var dropped = restored.Restore(xml, id => id == "deleted" ? null : new ImageDoc(id));
+
+        Assert.Equal(["deleted"], dropped);
+        Assert.Null(restored.Find("deleted"));
+        Assert.NotNull(restored.Find("still-here"));
+        Assert.Single(restored.Groups[0].Tabs);
+    }
+
+    [Fact]
+    public void Restoring_without_a_factory_keeps_every_tab_with_empty_content()
+    {
+        var saved = new EditorAreaViewModel();
+        saved.Open(new ImageDoc("cam-1"));
+        var xml = EditorLayoutSerializer.Write(saved.Area);
+
+        var restored = new EditorAreaViewModel();
+        Assert.Empty(restored.Restore(xml));
+
+        Assert.Single(restored.Groups[0].Tabs);
+        Assert.Null(restored.Groups[0].Tabs[0].Content);
+    }
 }
