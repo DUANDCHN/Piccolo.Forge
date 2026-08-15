@@ -9,8 +9,14 @@ namespace Piccolo.Forge.Mvvm;
 /// <remarks>
 /// 本层**不引任何 MVVM 框架** —— 宿主用 CommunityToolkit 还是 ReactiveUI 是宿主的事，
 /// 控件库不该替它选。所以这里自己写一个够用的。
+/// <para>
+/// <b>为什么不叫 <c>ObservableObject</c></b>：那个名字在 CommunityToolkit.Mvvm 和
+/// ReactiveUI 里都有。宿主一旦 <c>using Piccolo.Forge.Mvvm;</c> 就会和它自己的
+/// MVVM 框架撞成 CS0104（LDVision 接入时当场撞了）。
+/// 库不该往宿主的命名空间里塞一个注定重名的类型。
+/// </para>
 /// </remarks>
-public abstract class ObservableObject : INotifyPropertyChanged
+public abstract class ForgeObservableObject : INotifyPropertyChanged
 {
     /// <inheritdoc />
     public event PropertyChangedEventHandler? PropertyChanged;

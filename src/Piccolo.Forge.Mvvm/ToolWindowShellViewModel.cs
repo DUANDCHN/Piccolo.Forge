@@ -15,7 +15,7 @@ namespace Piccolo.Forge.Mvvm;
 /// 它们最终都落到 <see cref="Manager"/> 上。
 /// </para>
 /// </remarks>
-public sealed class ToolWindowShellViewModel : ObservableObject
+public sealed class ToolWindowShellViewModel : ForgeObservableObject
 {
     private readonly Dictionary<string, ToolWindowViewModel> _byId = new(StringComparer.Ordinal);
     private readonly ObservableCollection<ToolWindowViewModel> _toolWindows = [];

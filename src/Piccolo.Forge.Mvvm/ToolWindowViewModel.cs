@@ -14,7 +14,7 @@ namespace Piccolo.Forge.Mvvm;
 /// 控件库不认识宿主的视图。
 /// </para>
 /// </remarks>
-public sealed class ToolWindowViewModel : ObservableObject
+public sealed class ToolWindowViewModel : ForgeObservableObject
 {
     private string _title;
     private object? _icon;
