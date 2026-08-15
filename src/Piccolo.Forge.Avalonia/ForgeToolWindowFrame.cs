@@ -199,6 +199,10 @@ public class ForgeToolWindowFrame : TemplatedControl
         _left.CustomWidth = stripeWidth;
         _right.CustomWidth = stripeWidth;
 
+        // 条带空白处的右键菜单只有「显示名字」（ResizeStripeManager.kt:51-59）
+        _left.ContextMenu = ForgeMenuBuilder.ForStripeBackground(() => ShowToolWindowNames = !ShowToolWindowNames);
+        _right.ContextMenu = ForgeMenuBuilder.ForStripeBackground(() => ShowToolWindowNames = !ShowToolWindowNames);
+
         foreach (var side in new[] { StripeSide.Left, StripeSide.Right })
         {
             var toolbar = side == StripeSide.Left ? _left : _right;
@@ -256,8 +260,17 @@ public class ForgeToolWindowFrame : TemplatedControl
 
         var id = info.Id;
 
+        button.ContextMenu = ForgeMenuBuilder.ForStripeButton(
+            _manager!, id, () => ShowToolWindowNames = !ShowToolWindowNames);
+
         button.PointerPressed += (_, e) =>
         {
+            // 右键交给菜单，不当拖拽起点
+            if (e.GetCurrentPoint(button).Properties.IsRightButtonPressed)
+            {
+                return;
+            }
+
             _dragId = id;
             _dragStart = e.GetPosition(this);
             e.Pointer.Capture(button);
@@ -310,14 +323,29 @@ public class ForgeToolWindowFrame : TemplatedControl
         return button;
     }
 
-    private ForgeMoreButton CreateMoreButton(StripeSide side) => new()
+    private ForgeMoreButton CreateMoreButton(StripeSide side)
     {
-        Palette = Palette,
-        Side = side,
-        ActiveSide = MoreButtonSide,
-        // 有条带按钮被摘掉（isShowStripeButton=false）时才有东西可挑
-        HasHiddenToolWindows = _manager!.Layout.GetSortedList().Any(x => !x.IsShowStripeButton && !x.IsVisible),
-    };
+        var button = new ForgeMoreButton
+        {
+            Palette = Palette,
+            Side = side,
+            ActiveSide = MoreButtonSide,
+            // 有条带按钮被摘掉（isShowStripeButton=false）时才有东西可挑
+            HasHiddenToolWindows = ForgeMorePopup.ResolveItems(_manager!.Layout).Count > 0,
+        };
+
+        button.PointerPressed += (_, _) =>
+        {
+            if (!button.IsAvailable)
+            {
+                return;
+            }
+
+            ForgeMorePopup.Create(_manager!)?.ShowAt(button);
+        };
+
+        return button;
+    }
 
     /// <summary>拖拽中按钮的透明度（<c>ToolWindowDragHelper.kt:94 · THUMB_OPACITY</c>）。</summary>
     private const double ForgeDragOpacity = 0.85;
