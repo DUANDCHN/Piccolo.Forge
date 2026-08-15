@@ -4,6 +4,7 @@ using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 using Avalonia.Threading;
 using Piccolo.Forge.Avalonia;
 using Piccolo.Forge.Model;
@@ -167,5 +168,66 @@ public class RenderSnapshotTests
         bitmap.Save(path, new PngBitmapEncoderOptions());
 
         Assert.True(new FileInfo(path).Length > 0);
+    }
+
+    /// <summary>
+    /// 宿主塞控件当图标：真的画出来了吗。
+    /// </summary>
+    /// <remarks>
+    /// 这条是回归：其余快照用例给的都是 <c>Geometry</c>，所以「Icon 是 Control 时
+    /// 一片空白」在快照里看不出来——LDVision 用的恰恰是控件（Material.Icons），
+    /// 一整排条带按钮是空的，而库自己的快照张张好看。
+    /// 这里读**真实像素**，不是看有没有子控件。
+    /// </remarks>
+    [AvaloniaFact]
+    public void A_control_icon_is_actually_painted()
+    {
+        var button = new ForgeStripeButton
+        {
+            Palette = ForgePalette.ExpUiDark,
+            Icon = new Border
+            {
+                Width = 20,
+                Height = 20,
+                Background = new SolidColorBrush(Colors.Red),
+            },
+        };
+
+        var window = new Window
+        {
+            Width = 40,
+            Height = 40,
+            WindowDecorations = WindowDecorations.None,
+            Background = new SolidColorBrush(ForgePalette.ExpUiDark.Background),
+            Content = button,
+        };
+
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        var bitmap = window.CaptureRenderedFrame();
+        Assert.NotNull(bitmap);
+
+        Assert.Equal(Colors.Red, PixelAt(bitmap!, 20, 20));
+    }
+
+    /// <summary>
+    /// 读一个像素。
+    /// </summary>
+    /// <remarks>
+    /// 字节序按 <see cref="ILockedFramebuffer.Format"/> 走，别写死 ——
+    /// headless 后端给的是 <c>Rgba8888</c>，桌面后端多是 <c>Bgra8888</c>，
+    /// 写死一种会得到红蓝互换的结论。
+    /// </remarks>
+    private static Color PixelAt(WriteableBitmap bitmap, int x, int y)
+    {
+        using var buffer = bitmap.Lock();
+        var offset = (y * buffer.RowBytes) + (x * 4);
+        var bytes = new byte[4];
+        System.Runtime.InteropServices.Marshal.Copy(buffer.Address + offset, bytes, 0, 4);
+
+        return buffer.Format == PixelFormat.Rgba8888
+            ? Color.FromArgb(bytes[3], bytes[0], bytes[1], bytes[2])
+            : Color.FromArgb(bytes[3], bytes[2], bytes[1], bytes[0]);
     }
 }
