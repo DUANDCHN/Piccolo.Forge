@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Piccolo.Forge.Avalonia;
 using Piccolo.Forge.Model;
+using Piccolo.Forge.Mvvm;
 using Xunit;
 
 namespace Piccolo.Forge.Tests;
@@ -122,12 +123,13 @@ public class ForgeToolWindowFrameTests
     [AvaloniaFact]
     public void With_unified_sizes_off_the_layout_weight_survives()
     {
-        var manager = new ToolWindowManager(DefaultToolWindowLayout.CreateV2())
+        var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2())
         {
             IsUnifiedToolWindowSizesEnabled = false,
-        };
+        });
+        var manager = shell.Manager;
         var frame = new ForgeToolWindowFrame();
-        frame.Attach(manager);
+        frame.Attach(shell);
 
         manager.Activate("Project");
         frame.Measure(new Size(1000, 800));
@@ -148,9 +150,10 @@ public class ForgeToolWindowFrameTests
 
     private static (ForgeToolWindowFrame Frame, ToolWindowManager Manager) Build()
     {
-        var manager = new ToolWindowManager(DefaultToolWindowLayout.CreateV2());
+        var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
+        var manager = shell.Manager;
         var frame = new ForgeToolWindowFrame();
-        frame.Attach(manager);
+        frame.Attach(shell);
         return (frame, manager);
     }
 }

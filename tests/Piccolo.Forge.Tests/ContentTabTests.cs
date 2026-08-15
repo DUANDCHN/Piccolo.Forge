@@ -3,6 +3,7 @@ using Avalonia.Headless.XUnit;
 using Avalonia.VisualTree;
 using Piccolo.Forge.Avalonia;
 using Piccolo.Forge.Model;
+using Piccolo.Forge.Mvvm;
 using Piccolo.Forge.Themes;
 using Xunit;
 
@@ -113,9 +114,10 @@ public class ContentTabTests
     [AvaloniaFact]
     public void The_frame_puts_tabs_into_the_header_row()
     {
-        var manager = new ToolWindowManager(DefaultToolWindowLayout.CreateV2());
+        var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
+        var manager = shell.Manager;
         var frame = new ForgeToolWindowFrame();
-        frame.Attach(manager);
+        frame.Attach(shell);
 
         var contents = frame.GetContentManager("Version Control");
         contents.Add(new ToolWindowContent("local", "Local Changes"));
@@ -133,9 +135,10 @@ public class ContentTabTests
     public void A_combo_window_shows_only_the_selected_content()
     {
         // 默认布局里 Project 是 COMBO（defaultToolWindowlayoutProvider.kt:258-261）
-        var manager = new ToolWindowManager(DefaultToolWindowLayout.CreateV2());
+        var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
+        var manager = shell.Manager;
         var frame = new ForgeToolWindowFrame();
-        frame.Attach(manager);
+        frame.Attach(shell);
 
         var contents = frame.GetContentManager("Project");
         contents.Add(new ToolWindowContent("a", "Project"));

@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Piccolo.Forge.Avalonia;
 using Piccolo.Forge.Model;
+using Piccolo.Forge.Mvvm;
 using Piccolo.Forge.Themes;
 using Xunit;
 
@@ -58,9 +59,10 @@ public class ForgeDockResizerTests
     [AvaloniaFact]
     public void A_resizer_is_placed_on_every_occupied_edge()
     {
-        var manager = new ToolWindowManager(DefaultToolWindowLayout.CreateV2());
+        var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
+        var manager = shell.Manager;
         var frame = new ForgeToolWindowFrame();
-        frame.Attach(manager);
+        frame.Attach(shell);
 
         manager.Activate("Project");    // LEFT
         manager.Activate("Terminal");   // BOTTOM
@@ -77,9 +79,10 @@ public class ForgeDockResizerTests
     [AvaloniaFact]
     public void The_resizer_straddles_the_boundary()
     {
-        var manager = new ToolWindowManager(DefaultToolWindowLayout.CreateV2());
+        var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
+        var manager = shell.Manager;
         var frame = new ForgeToolWindowFrame();
-        frame.Attach(manager);
+        frame.Attach(shell);
         manager.Activate("Project");
 
         frame.Measure(new Size(1000, 800));

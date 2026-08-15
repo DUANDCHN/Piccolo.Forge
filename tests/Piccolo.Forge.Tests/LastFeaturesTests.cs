@@ -3,6 +3,7 @@ using Avalonia.Headless.XUnit;
 using Avalonia.VisualTree;
 using Piccolo.Forge.Avalonia;
 using Piccolo.Forge.Model;
+using Piccolo.Forge.Mvvm;
 using Piccolo.Forge.Themes;
 using Xunit;
 
@@ -42,10 +43,11 @@ public class ForgeMoreButtonTests
     public void The_frame_puts_it_on_the_left_by_default()
     {
         // ToolWindowManagerState.kt:60 —— 默认 LEFT
-        var manager = new ToolWindowManager(DefaultToolWindowLayout.CreateV2());
+        var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
+        var manager = shell.Manager;
         manager.Hide("Project", removeFromStripe: true);   // 造一个「被摘掉的」
         var frame = new ForgeToolWindowFrame();
-        frame.Attach(manager);
+        frame.Attach(shell);
 
         var left = frame.LeftToolbar.TopGroup.Children.OfType<ForgeMoreButton>().Single();
         var right = frame.RightToolbar.TopGroup.Children.OfType<ForgeMoreButton>().Single();

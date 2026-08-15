@@ -29,6 +29,10 @@ public class ForgeStripeButton : ForgeSquareButtonBase
     public static readonly StyledProperty<string?> TextProperty =
         AvaloniaProperty.Register<ForgeStripeButton, string?>(nameof(Text));
 
+    /// <summary><see cref="Icon"/> 的属性定义。</summary>
+    public static readonly StyledProperty<object?> IconProperty =
+        AvaloniaProperty.Register<ForgeStripeButton, object?>(nameof(Icon));
+
     /// <summary><see cref="ShowName"/> 的属性定义。</summary>
     public static readonly StyledProperty<bool> ShowNameProperty =
         AvaloniaProperty.Register<ForgeStripeButton, bool>(nameof(ShowName));
@@ -62,7 +66,22 @@ public class ForgeStripeButton : ForgeSquareButtonBase
         set => SetValue(IsToolWindowActiveProperty, value);
     }
 
-    /// <summary>按钮上显示的字（占位，等有图标再换）。</summary>
+    /// <summary>
+    /// 条带按钮上的图标。
+    /// </summary>
+    /// <remarks>
+    /// 是 <see cref="object"/>：宿主塞控件、几何图形或字符都行。
+    /// Forge **不带图标资源**（上游的图标是 JetBrains 的美术资产，
+    /// 原因见 <c>工具窗口模型.md</c> §17）；这里只按审出来的尺寸留位置：
+    /// 图标区 <see cref="ForgeSquareButtonBase.IconSize"/>、四周 <see cref="ForgeSquareButtonBase.IconPadding"/>。
+    /// </remarks>
+    public object? Icon
+    {
+        get => GetValue(IconProperty);
+        set => SetValue(IconProperty, value);
+    }
+
+    /// <summary>没有图标时画的占位字符。</summary>
     public string? Text
     {
         get => GetValue(TextProperty);

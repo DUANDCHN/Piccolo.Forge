@@ -6,6 +6,7 @@ using Avalonia.Media;
 using Avalonia.Themes.Fluent;
 using Piccolo.Forge.Avalonia;
 using Piccolo.Forge.Model;
+using Piccolo.Forge.Mvvm;
 using Piccolo.Forge.Themes;
 
 namespace Piccolo.Forge.Sample;
@@ -36,7 +37,8 @@ internal sealed class SampleApp : Application
 
     private static Control BuildContent()
     {
-        var manager = new ToolWindowManager(DefaultToolWindowLayout.CreateV2());
+        var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
+        var manager = shell.Manager;
 
         var frame = new ForgeToolWindowFrame
         {
@@ -55,7 +57,7 @@ internal sealed class SampleApp : Application
             },
         };
 
-        frame.Attach(manager);
+        frame.Attach(shell);
 
         // 开局摆成 Rider 的样子：左边 Project、下边 Terminal
         manager.Activate("Project");

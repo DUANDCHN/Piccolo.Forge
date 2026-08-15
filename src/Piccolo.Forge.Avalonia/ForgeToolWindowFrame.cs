@@ -4,6 +4,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Media;
 using Piccolo.Forge.Model;
+using Piccolo.Forge.Mvvm;
 using Piccolo.Forge.Themes;
 
 namespace Piccolo.Forge.Avalonia;
@@ -25,10 +26,14 @@ public class ForgeToolWindowFrame : TemplatedControl
     private readonly ForgeToolWindowToolbar _right = new() { Side = StripeSide.Right };
     private readonly ForgeDockPane _pane = new();
     private readonly DockPanel _root = new();
-    private readonly Dictionary<string, Control> _content = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, ToolWindowContentManager> _contentManagers = new(StringComparer.Ordinal);
+    // ★ 按 id 复用：**同步时只改属性、增删父子关系，绝不重建这些控件**。
+    //   宿主塞进来的内容（相机实时画面、图表、日志）不能因为开关了别的面板就被重造。
+    private readonly Dictionary<string, ContentControl> _panelContents = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, Border> _panelHosts = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, ForgeToolWindowHeader> _panelHeaders = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, ForgeStripeButton> _stripeButtons = new(StringComparer.Ordinal);
 
-    private ToolWindowManager? _manager;
+    private ToolWindowShellViewModel? _shell;
     private string? _dragId;
     private Point _dragStart;
 
@@ -50,10 +55,10 @@ public class ForgeToolWindowFrame : TemplatedControl
 
     static ForgeToolWindowFrame()
     {
-        PaletteProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Rebuild());
-        EditorContentProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Rebuild());
-        ShowToolWindowNamesProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Rebuild());
-        MoreButtonSideProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Rebuild());
+        PaletteProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Sync());
+        EditorContentProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Sync());
+        ShowToolWindowNamesProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Sync());
+        MoreButtonSideProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Sync());
     }
 
     /// <summary>建一个框架。</summary>
@@ -118,7 +123,7 @@ public class ForgeToolWindowFrame : TemplatedControl
     public ForgeDockPane DockPane => _pane;
 
     /// <summary>
-    /// 取（必要时新建）某个工具窗口的内容管理器。
+    /// 取某个工具窗口的内容管理器。
     /// </summary>
     /// <remarks>一个工具窗口可以装多块内容，标题条上排成 tab（<c>工具窗口模型.md</c> §13）。</remarks>
     /// <param name="id">工具窗口 id。</param>
@@ -127,43 +132,44 @@ public class ForgeToolWindowFrame : TemplatedControl
     {
         ArgumentNullException.ThrowIfNull(id);
 
-        if (!_contentManagers.TryGetValue(id, out var manager))
+        var vm = _shell?.Find(id) ?? throw new InvalidOperationException($"没有登记 id 为 '{id}' 的工具窗口。");
+        if (!_contentSubscriptions.Add(id))
         {
-            manager = new ToolWindowContentManager();
-            manager.SelectionChanged += (_, _) => Rebuild();
-            _contentManagers[id] = manager;
+            return vm.Contents;
         }
 
-        return manager;
+        vm.Contents.SelectionChanged += (_, _) => Sync();
+        return vm.Contents;
     }
+
+    private readonly HashSet<string> _contentSubscriptions = new(StringComparer.Ordinal);
 
     /// <summary>
-    /// 接上一个 manager，之后状态一变就重画。
+    /// 接上外壳 VM，之后状态一变就同步。
     /// </summary>
-    /// <param name="manager">工具窗口管理器。</param>
-    /// <param name="contentFactory">给定 id 造内容；返回 <see langword="null"/> 就用占位。</param>
-    public void Attach(ToolWindowManager manager, Func<string, Control?>? contentFactory = null)
+    /// <remarks>
+    /// **同步不是重建** —— 见 <see cref="Sync"/>。
+    /// </remarks>
+    /// <param name="shell">外壳 VM。</param>
+    public void Attach(ToolWindowShellViewModel shell)
     {
-        ArgumentNullException.ThrowIfNull(manager);
+        ArgumentNullException.ThrowIfNull(shell);
 
-        if (_manager is not null)
+        if (_shell is not null)
         {
-            _manager.StateChanged -= OnManagerStateChanged;
+            _shell.StateChanged -= OnShellStateChanged;
         }
 
-        _manager = manager;
-        _manager.StateChanged += OnManagerStateChanged;
+        _shell = shell;
+        _shell.StateChanged += OnShellStateChanged;
 
-        _content.Clear();
-        foreach (var info in manager.Layout.GetSortedList())
-        {
-            _content[info.Id] = contentFactory?.Invoke(info.Id) ?? CreatePlaceholder(info.Id);
-        }
-
-        Rebuild();
+        Sync();
     }
 
-    private void OnManagerStateChanged(object? sender, ToolWindowStateChangedEventArgs e) => Rebuild();
+    /// <summary>接上的外壳 VM。</summary>
+    public ToolWindowShellViewModel? Shell => _shell;
+
+    private void OnShellStateChanged(object? sender, ToolWindowStateChangedEventArgs e) => Sync();
 
     /// <inheritdoc />
     protected override Size MeasureOverride(Size availableSize)
@@ -179,18 +185,26 @@ public class ForgeToolWindowFrame : TemplatedControl
         return finalSize;
     }
 
-    private void Rebuild()
+    /// <summary>
+    /// 把 VM 的状态同步到控件上。
+    /// </summary>
+    /// <remarks>
+    /// 这个方法**只做三件事**：改已有控件的属性、按需新建**还不存在**的控件、
+    /// 调整父子关系。它不会碰任何已经存在的内容控件 ——
+    /// 这正是 <c>Piccolo.Forge.Mvvm</c> 那一层存在的理由。
+    /// </remarks>
+    private void Sync()
     {
-        if (_manager is null)
+        if (_shell is null)
         {
             return;
         }
 
-        BuildStripes();
-        BuildDockPane();
+        SyncStripes();
+        SyncDockPane();
     }
 
-    private void BuildStripes()
+    private void SyncStripes()
     {
         _left.Palette = Palette;
         _right.Palette = Palette;
@@ -200,8 +214,8 @@ public class ForgeToolWindowFrame : TemplatedControl
         _right.CustomWidth = stripeWidth;
 
         // 条带空白处的右键菜单只有「显示名字」（ResizeStripeManager.kt:51-59）
-        _left.ContextMenu = ForgeMenuBuilder.ForStripeBackground(() => ShowToolWindowNames = !ShowToolWindowNames);
-        _right.ContextMenu = ForgeMenuBuilder.ForStripeBackground(() => ShowToolWindowNames = !ShowToolWindowNames);
+        _left.ContextMenu ??= ForgeMenuBuilder.ForStripeBackground(() => ShowToolWindowNames = !ShowToolWindowNames);
+        _right.ContextMenu ??= ForgeMenuBuilder.ForStripeBackground(() => ShowToolWindowNames = !ShowToolWindowNames);
 
         foreach (var side in new[] { StripeSide.Left, StripeSide.Right })
         {
@@ -210,32 +224,83 @@ public class ForgeToolWindowFrame : TemplatedControl
             foreach (var group in new[] { StripeGroup.Top, StripeGroup.Bottom })
             {
                 var panel = group == StripeGroup.Top ? toolbar.TopGroup : toolbar.BottomGroup;
-                panel.Children.Clear();
-
-                var anchor = ResolveGroupAnchor(side, group);
-                var windows = _manager!.Layout.GetSortedList()
-                    .Where(x => x.IsShowStripeButton || x.IsVisible)
-                    .Where(x => x.Anchor != ToolWindowAnchor.Top)
-                    .Where(x => StripePlacementResolver.Resolve(x.Anchor, x.IsSplit)
-                                == new StripePlacement(side, group));
-
-                // 分组分隔符只用在 LEFT/RIGHT 的那一组（AbstractDroppableStripe.kt:99-105）
-                var useSeparator = group == StripeGroup.Top;
-
-                foreach (var item in StripeGroupLayout.Build(windows, anchor, useSeparator))
-                {
-                    panel.Children.Add(item.IsSeparator
-                        ? new ForgeStripeSeparator { Palette = Palette }
-                        : CreateStripeButton(item.Window!));
-                }
-
-                // 「更多」按钮挂在上组之后（ToolWindowToolbar.kt:109）
-                if (group == StripeGroup.Top)
-                {
-                    panel.Children.Add(CreateMoreButton(side));
-                }
+                SyncGroup(panel, side, group);
             }
         }
+    }
+
+    /// <summary>
+    /// 把一组按钮同步成 VM 说的样子：**复用已有按钮，只调位置**。
+    /// </summary>
+    private void SyncGroup(Panel panel, StripeSide side, StripeGroup group)
+    {
+        var anchor = ResolveGroupAnchor(side, group);
+        var windows = _shell!.GetGroup(side, group);
+
+        // 分组分隔符只用在 LEFT/RIGHT 的那一组（AbstractDroppableStripe.kt:99-105）
+        var useSeparator = group == StripeGroup.Top;
+        var wantedSplit = useSeparator && windows.Any(x => x.IsSplit) && !windows.All(x => x.IsSplit);
+
+        var wanted = new List<Control>();
+        foreach (var vm in windows)
+        {
+            if (wantedSplit && vm.IsSplit && wanted.All(x => x is not ForgeStripeSeparator))
+            {
+                wanted.Add(GetSeparator(side, group));
+            }
+
+            wanted.Add(GetStripeButton(vm));
+        }
+
+        if (group == StripeGroup.Top)
+        {
+            // 「更多」按钮挂在上组之后（ToolWindowToolbar.kt:109）
+            wanted.Add(GetMoreButton(side));
+        }
+
+        Reconcile(panel, wanted);
+    }
+
+    /// <summary>把面板的子控件调成 <paramref name="wanted"/>，只动有差异的位置。</summary>
+    private static void Reconcile(Panel panel, IReadOnlyList<Control> wanted)
+    {
+        for (var i = panel.Children.Count - 1; i >= 0; i--)
+        {
+            if (!wanted.Contains(panel.Children[i]))
+            {
+                panel.Children.RemoveAt(i);
+            }
+        }
+
+        for (var i = 0; i < wanted.Count; i++)
+        {
+            var child = wanted[i];
+            var current = panel.Children.IndexOf(child);
+
+            if (current < 0)
+            {
+                panel.Children.Insert(i, child);
+            }
+            else if (current != i)
+            {
+                panel.Children.Move(current, i);
+            }
+        }
+    }
+
+    private readonly Dictionary<(StripeSide, StripeGroup), ForgeStripeSeparator> _separators = [];
+    private readonly Dictionary<StripeSide, ForgeMoreButton> _moreButtons = [];
+
+    private ForgeStripeSeparator GetSeparator(StripeSide side, StripeGroup group)
+    {
+        if (!_separators.TryGetValue((side, group), out var separator))
+        {
+            separator = new ForgeStripeSeparator();
+            _separators[(side, group)] = separator;
+        }
+
+        separator.Palette = Palette;
+        return separator;
     }
 
     private static ToolWindowAnchor ResolveGroupAnchor(StripeSide side, StripeGroup group)
@@ -243,25 +308,36 @@ public class ForgeToolWindowFrame : TemplatedControl
             ? ToolWindowAnchor.Bottom
             : side == StripeSide.Left ? ToolWindowAnchor.Left : ToolWindowAnchor.Right;
 
-    private Control CreateStripeButton(WindowInfo info)
+    /// <summary>
+    /// 取（必要时新建）某个工具窗口的条带按钮，之后只更新它的状态。
+    /// </summary>
+    private ForgeStripeButton GetStripeButton(ToolWindowViewModel vm)
     {
-        var button = new ForgeStripeButton
+        if (!_stripeButtons.TryGetValue(vm.Id, out var button))
         {
-            Palette = Palette,
-            Text = info.Id[..1],
-            Title = info.Id,
-            ShowName = ShowToolWindowNames,
-            StripeWidth = ShowToolWindowNames ? ForgeMetrics.StripeNamedDefaultWidth : 0,
-            IsToolWindowVisible = info.IsVisible,
-            IsToolWindowActive = string.Equals(_manager!.LastActiveToolWindowId, info.Id, StringComparison.Ordinal)
-                                 && info.IsVisible,
-            Tag = info.Order,
-        };
+            button = new ForgeStripeButton { Tag = vm };
+            WireStripeButton(button, vm);
+            _stripeButtons[vm.Id] = button;
+        }
 
-        var id = info.Id;
+        button.Palette = Palette;
+        button.Icon = vm.Icon;
+        button.Text = vm.Icon is null ? vm.Title[..1] : null;
+        button.Title = vm.Title;
+        button.ShowName = ShowToolWindowNames;
+        button.StripeWidth = ShowToolWindowNames ? ForgeMetrics.StripeNamedDefaultWidth : 0;
+        button.IsToolWindowVisible = vm.IsOpen;
+        button.IsToolWindowActive = vm.IsActive;
+
+        return button;
+    }
+
+    private void WireStripeButton(ForgeStripeButton button, ToolWindowViewModel vm)
+    {
+        var id = vm.Id;
 
         button.ContextMenu = ForgeMenuBuilder.ForStripeButton(
-            _manager!, id, () => ShowToolWindowNames = !ShowToolWindowNames);
+            _shell!.Manager, id, () => ShowToolWindowNames = !ShowToolWindowNames);
 
         button.PointerPressed += (_, e) =>
         {
@@ -316,33 +392,32 @@ public class ForgeToolWindowFrame : TemplatedControl
 
             if (ResolveDropTarget(point) is { } target)
             {
-                _manager!.MoveTo(dragged, target.Anchor, target.Order, target.IsSplit);
+                _shell!.Manager.MoveTo(dragged, target.Anchor, target.Order, target.IsSplit);
             }
         };
-
-        return button;
     }
 
-    private ForgeMoreButton CreateMoreButton(StripeSide side)
+    private ForgeMoreButton GetMoreButton(StripeSide side)
     {
-        var button = new ForgeMoreButton
+        if (!_moreButtons.TryGetValue(side, out var button))
         {
-            Palette = Palette,
-            Side = side,
-            ActiveSide = MoreButtonSide,
-            // 有条带按钮被摘掉（isShowStripeButton=false）时才有东西可挑
-            HasHiddenToolWindows = ForgeMorePopup.ResolveItems(_manager!.Layout).Count > 0,
-        };
-
-        button.PointerPressed += (_, _) =>
-        {
-            if (!button.IsAvailable)
+            button = new ForgeMoreButton { Side = side };
+            var self = button;
+            button.PointerPressed += (_, _) =>
             {
-                return;
-            }
+                if (self.IsAvailable)
+                {
+                    ForgeMorePopup.Create(_shell!.Manager)?.ShowAt(self);
+                }
+            };
 
-            ForgeMorePopup.Create(_manager!)?.ShowAt(button);
-        };
+            _moreButtons[side] = button;
+        }
+
+        button.Palette = Palette;
+        button.ActiveSide = MoreButtonSide;
+        // 有条带按钮被摘掉（isShowStripeButton=false）时才有东西可挑
+        button.HasHiddenToolWindows = ForgeMorePopup.ResolveItems(_shell!.Manager.Layout).Count > 0;
 
         return button;
     }
@@ -352,13 +427,13 @@ public class ForgeToolWindowFrame : TemplatedControl
 
     private void Toggle(string id)
     {
-        if (_manager!.Layout.GetInfo(id)!.IsVisible)
+        if (_shell!.Manager.Layout.GetInfo(id)!.IsVisible)
         {
-            _manager.Hide(id);
+            _shell.Close(id);
         }
         else
         {
-            _manager.Activate(id);
+            _shell.Open(id);
         }
     }
 
@@ -421,116 +496,82 @@ public class ForgeToolWindowFrame : TemplatedControl
         return null;
     }
 
-    private void BuildDockPane()
+    /// <summary>
+    /// 同步停靠区：复用面板宿主，只调可见性与位置。
+    /// </summary>
+    /// <remarks>
+    /// **面板宿主与它的内容控件从不重建** —— 开关别的面板不会让相机画面、
+    /// 图表、日志被重造一遍。
+    /// </remarks>
+    private void SyncDockPane()
     {
-        // 内容控件是缓存复用的，重建前必须先从上一轮的父容器上摘下来，
-        // 否则 Avalonia 会因为「已经有 visual parent」直接抛异常。
-        foreach (var child in _pane.Children.ToList())
+        var wanted = new List<Control>();
+
+        foreach (var vm in _shell!.ToolWindows.Where(x => x.IsOpen))
         {
-            Detach(child);
-        }
+            var info = _shell.Manager.Layout.GetInfo(vm.Id)!;
+            var host = GetPanelHost(vm);
 
-        _pane.Children.Clear();
+            ForgeDockPane.SetAnchor(host, info.Anchor);
+            ForgeDockPane.SetWeight(host, info.Weight);
+            ForgeDockPane.SetIsSplit(host, info.IsSplit);
+            ForgeDockPane.SetSideWeight(host, info.SideWeight);
 
-        foreach (var info in _manager!.Layout.GetSortedList().Where(x => x.IsVisible))
-        {
-            var host = new DockPanel();
-
-            var isActive = string.Equals(_manager.LastActiveToolWindowId, info.Id, StringComparison.Ordinal);
-            var header = new ForgeToolWindowHeader
-            {
-                Palette = Palette,
-                Title = info.Id,
-                IsActive = isActive,
-                ContentUiType = info.ContentUiType,
-            };
-
-            BuildTabs(header, info, isActive);
-            DockPanel.SetDock(header, Dock.Top);
-            host.Children.Add(header);
-            var content = _content.TryGetValue(info.Id, out var c) ? c : CreatePlaceholder(info.Id);
-            Detach(content);
-            host.Children.Add(content);
-
-            var border = new Border
-            {
-                Background = new SolidColorBrush(Palette.Background),
-                BorderBrush = new SolidColorBrush(Palette.WindowBorder),
-                BorderThickness = ResolveBorderThickness(info.Anchor),
-                Child = host,
-            };
-
-            ForgeDockPane.SetAnchor(border, info.Anchor);
-            ForgeDockPane.SetWeight(border, info.Weight);
-            ForgeDockPane.SetIsSplit(border, info.IsSplit);
-            ForgeDockPane.SetSideWeight(border, info.SideWeight);
-            _pane.Children.Add(border);
+            SyncPanel(vm, host);
+            wanted.Add(host);
         }
 
         if (EditorContent is { } editor)
         {
-            Detach(editor);
             ForgeDockPane.SetAnchor(editor, null);
-            _pane.Children.Add(editor);
+            wanted.Add(editor);
         }
 
-        AddResizers();
+        wanted.AddRange(GetResizers());
+        Reconcile(_pane, wanted);
     }
 
-    /// <summary>
-    /// 每条有可见窗口的边，在朝编辑区那一侧放一条 6px 的拖拽热区。
-    /// </summary>
-    /// <remarks>分隔条本身不可见（<c>ToolWindowPane.kt:197</c>），只有热区。</remarks>
-    private void AddResizers()
+    /// <summary>取（必要时新建）一个工具窗口的面板宿主。</summary>
+    private Border GetPanelHost(ToolWindowViewModel vm)
     {
-        var anchors = _manager!.Layout.GetSortedList()
-            .Where(x => x.IsVisible)
-            .Select(x => x.Anchor)
-            .Distinct();
-
-        foreach (var anchor in anchors)
+        if (_panelHosts.TryGetValue(vm.Id, out var existing))
         {
-            var resizer = new ForgeDockResizer { Anchor = anchor };
-            resizer.WeightChanged += OnResizerWeightChanged;
-            ForgeDockPane.SetAnchor(resizer, null);
-            ForgeDockPane.SetIsResizer(resizer, anchor);
-            _pane.Children.Add(resizer);
+            return existing;
         }
+
+        var header = new ForgeToolWindowHeader();
+        DockPanel.SetDock(header, Dock.Top);
+        _panelHeaders[vm.Id] = header;
+
+        // 内容用 ContentControl 承载 object —— 视图由**宿主**的 ViewLocator / DataTemplate 解析
+        var content = new ContentControl();
+        _panelContents[vm.Id] = content;
+
+        var body = new DockPanel();
+        body.Children.Add(header);
+        body.Children.Add(content);
+
+        var host = new Border { Child = body };
+        _panelHosts[vm.Id] = host;
+        return host;
     }
 
-    private void OnResizerWeightChanged(object? sender, DockWeightChangedEventArgs e)
+    private void SyncPanel(ToolWindowViewModel vm, Border host)
     {
-        if (_manager is null)
-        {
-            return;
-        }
+        var info = _shell!.Manager.Layout.GetInfo(vm.Id)!;
 
-        // 新 UI 默认走统一权重：拖一条边等于改这条边的统一权重（§4）
-        _manager.Layout.SetUnifiedAnchorWeight(e.Anchor, e.Weight);
+        host.Background = new SolidColorBrush(Palette.Background);
+        host.BorderBrush = new SolidColorBrush(Palette.WindowBorder);
+        host.BorderThickness = ResolveBorderThickness(info.Anchor);
 
-        foreach (var info in _manager.Layout.GetSortedList().Where(x => x.IsVisible && x.Anchor == e.Anchor))
-        {
-            _manager.Layout.SetInfo(info with { Weight = e.Weight });
-        }
+        var header = _panelHeaders[vm.Id];
+        header.Palette = Palette;
+        header.Title = vm.Title;
+        header.IsActive = vm.IsActive;
+        header.ContentUiType = info.ContentUiType;
+        SyncTabs(header, vm, info.ContentUiType);
 
-        Rebuild();
-    }
-
-    /// <summary>把一个控件从它当前的父容器上摘下来。</summary>
-    private static void Detach(Control control)
-    {
-        switch (control.Parent)
-        {
-            case Panel panel:
-                panel.Children.Remove(control);
-                break;
-            case Decorator decorator when ReferenceEquals(decorator.Child, control):
-                decorator.Child = null;
-                break;
-            case ContentControl host when ReferenceEquals(host.Content, control):
-                host.Content = null;
-                break;
-        }
+        _panelContents[vm.Id].Content = vm.Content;
     }
 
     /// <summary>
@@ -540,14 +581,17 @@ public class ForgeToolWindowFrame : TemplatedControl
     /// COMBO 的工具窗口不排 tab（上游换成一个下拉，<c>ComboContentLayout.java</c>），
     /// 本阶段只画选中那块的名字，不做下拉交互。
     /// </remarks>
-    private void BuildTabs(ForgeToolWindowHeader header, WindowInfo info, bool isActive)
+    private void SyncTabs(ForgeToolWindowHeader header, ToolWindowViewModel vm, ToolWindowContentUiType uiType)
     {
-        if (!_contentManagers.TryGetValue(info.Id, out var contents) || contents.Contents.Count == 0)
+        var contents = vm.Contents;
+        header.Tabs.Children.Clear();
+
+        if (contents.Contents.Count == 0)
         {
             return;
         }
 
-        if (info.ContentUiType == ToolWindowContentUiType.Combo)
+        if (uiType == ToolWindowContentUiType.Combo)
         {
             if (contents.SelectedContent is { } selected)
             {
@@ -564,38 +608,99 @@ public class ForgeToolWindowFrame : TemplatedControl
 
         foreach (var content in contents.Contents)
         {
-            var isSelected = contents.SelectedContent?.Id == content.Id;
             var tab = new ForgeContentTab
             {
                 Palette = Palette,
                 Title = content.DisplayName,
-                IsSelected = isSelected,
-                IsWindowActive = isActive,
+                IsSelected = contents.SelectedContent?.Id == content.Id,
+                IsWindowActive = vm.IsActive,
                 IsSoleContent = contents.IsSoleContent,
                 CanBeClosed = contents.CanBeClosed(content),
                 IsPinned = content.IsPinned,
             };
 
             var contentId = content.Id;
-            var windowId = info.Id;
             tab.PointerPressed += (_, e) =>
             {
-                var manager = GetContentManager(windowId);
                 var point = e.GetPosition(tab);
 
                 // 点在右边那个图标上就是关闭/解固定，否则是选中
                 if (tab.CanBeClosed && point.X >= tab.Bounds.Width - tab.IconAreaWidth)
                 {
                     var alt = e.KeyModifiers.HasFlag(global::Avalonia.Input.KeyModifiers.Alt);
-                    manager.InvokeIconAction(contentId, alt);
-                    Rebuild();
+                    contents.InvokeIconAction(contentId, alt);
+                    Sync();
                     return;
                 }
 
-                manager.Select(contentId);
+                contents.Select(contentId);
             };
 
             header.Tabs.Children.Add(tab);
+        }
+    }
+
+    /// <summary>
+    /// 每条有可见窗口的边，在朝编辑区那一侧放一条 6px 的拖拽热区。
+    /// </summary>
+    /// <remarks>分隔条本身不可见（<c>ToolWindowPane.kt:197</c>），只有热区。</remarks>
+    private IEnumerable<Control> GetResizers()
+    {
+        var anchors = _shell!.ToolWindows
+            .Where(x => x.IsOpen)
+            .Select(x => x.Anchor)
+            .Distinct();
+
+        foreach (var anchor in anchors)
+        {
+            if (!_resizers.TryGetValue(anchor, out var resizer))
+            {
+                resizer = new ForgeDockResizer { Anchor = anchor };
+                resizer.WeightChanged += OnResizerWeightChanged;
+                ForgeDockPane.SetAnchor(resizer, null);
+                ForgeDockPane.SetIsResizer(resizer, anchor);
+                _resizers[anchor] = resizer;
+            }
+
+            yield return resizer;
+        }
+    }
+
+    private readonly Dictionary<ToolWindowAnchor, ForgeDockResizer> _resizers = [];
+
+    private void OnResizerWeightChanged(object? sender, DockWeightChangedEventArgs e)
+    {
+        if (_shell is null)
+        {
+            return;
+        }
+
+        // 新 UI 默认走统一权重：拖一条边等于改这条边的统一权重（§4）
+        var layout = _shell.Manager.Layout;
+        layout.SetUnifiedAnchorWeight(e.Anchor, e.Weight);
+
+        foreach (var info in layout.GetSortedList().Where(x => x.IsVisible && x.Anchor == e.Anchor))
+        {
+            layout.SetInfo(info with { Weight = e.Weight });
+        }
+
+        Sync();
+    }
+
+    /// <summary>把一个控件从它当前的父容器上摘下来。</summary>
+    private static void Detach(Control control)
+    {
+        switch (control.Parent)
+        {
+            case Panel panel:
+                panel.Children.Remove(control);
+                break;
+            case Decorator decorator when ReferenceEquals(decorator.Child, control):
+                decorator.Child = null;
+                break;
+            case ContentControl host when ReferenceEquals(host.Content, control):
+                host.Content = null;
+                break;
         }
     }
 

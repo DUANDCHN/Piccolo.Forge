@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Piccolo.Forge.Avalonia;
 using Piccolo.Forge.Model;
+using Piccolo.Forge.Mvvm;
 using Piccolo.Forge.Themes;
 using Xunit;
 
@@ -42,9 +43,10 @@ public class ForgeMenuBuilderTests
     [AvaloniaFact]
     public void The_frame_hangs_a_menu_on_every_stripe_button()
     {
-        var manager = new ToolWindowManager(DefaultToolWindowLayout.CreateV2());
+        var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
+        var manager = shell.Manager;
         var frame = new ForgeToolWindowFrame();
-        frame.Attach(manager);
+        frame.Attach(shell);
 
         Assert.All(
             frame.LeftToolbar.TopGroup.Children.OfType<ForgeStripeButton>(),

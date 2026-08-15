@@ -7,6 +7,7 @@ using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using Piccolo.Forge.Avalonia;
 using Piccolo.Forge.Model;
+using Piccolo.Forge.Mvvm;
 using Piccolo.Forge.Themes;
 using Xunit;
 
@@ -25,7 +26,8 @@ public class RenderSnapshotTests
     public void Render_the_default_layout(string themeName, bool showNames)
     {
         var palette = themeName == "light" ? ForgePalette.ExpUiLight : ForgePalette.ExpUiDark;
-        var manager = new ToolWindowManager(DefaultToolWindowLayout.CreateV2());
+        var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
+        var manager = shell.Manager;
 
         var frame = new ForgeToolWindowFrame
         {
@@ -38,7 +40,7 @@ public class RenderSnapshotTests
                     : ForgeColor.Parse("#1E1F22")),
             },
         };
-        frame.Attach(manager);
+        frame.Attach(shell);
 
         // Version Control 装三块内容，标题条上排成 tab（§13.1）
         var vcs = frame.GetContentManager("Version Control");

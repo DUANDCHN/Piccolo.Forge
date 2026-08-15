@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Headless.XUnit;
 using Piccolo.Forge.Avalonia;
 using Piccolo.Forge.Model;
+using Piccolo.Forge.Mvvm;
 using Piccolo.Forge.Themes;
 using Xunit;
 
@@ -73,9 +74,10 @@ public class ForgeShowNamesTests
     [AvaloniaFact]
     public void The_frame_switches_the_whole_stripe_at_once()
     {
-        var manager = new ToolWindowManager(DefaultToolWindowLayout.CreateV2());
+        var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
+        var manager = shell.Manager;
         var frame = new ForgeToolWindowFrame { ShowToolWindowNames = true };
-        frame.Attach(manager);
+        frame.Attach(shell);
 
         Assert.Equal(ForgeMetrics.StripeNamedDefaultWidth, frame.LeftToolbar.CustomWidth);
         Assert.All(
