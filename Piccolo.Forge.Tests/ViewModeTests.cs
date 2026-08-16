@@ -527,6 +527,45 @@ public class ViewModeTests
         window.Close();
     }
 
+    /// <summary>
+    /// 面板离开停靠区时，替它加的裁剪要清掉 —— 别带着一条无关的线搬进浮动窗口。
+    /// </summary>
+    [AvaloniaFact]
+    public void 搬出停靠区时清掉裁剪()
+    {
+        var infos = new List<WindowInfo>
+        {
+            new() { Id = "左", Anchor = ToolWindowAnchor.Left, Order = 0, IsVisible = true, Weight = 0.25f },
+            new() { Id = "右", Anchor = ToolWindowAnchor.Right, Order = 0, IsVisible = true, Weight = 0.25f },
+        };
+
+        var shell = new ToolWindowShellViewModel(new ToolWindowManager(new DesktopLayout(infos)));
+        var frame = new ForgeToolWindowFrame { EditorContent = new Border() };
+        frame.Attach(shell);
+
+        var window = new Window { Width = 900, Height = 500, WindowDecorations = WindowDecorations.None, Content = frame };
+        window.Show();
+        Pump(window);
+
+        // 左边滑出 → 右边那块被裁着
+        shell.Manager.SetType("左", ToolWindowType.Sliding);
+        Pump(window);
+
+        var right = frame.DockPane.Children.OfType<Border>()
+            .First(x => ForgeDockPane.GetAnchor(x) == ToolWindowAnchor.Right);
+        Assert.NotNull(right.Clip);
+
+        // 带着裁剪浮出去可不行
+        shell.Manager.SetType("右", ToolWindowType.Floating);
+        Pump(window);
+
+        var floated = frame.ExternalWindows.Single().Window.GetVisualDescendants()
+            .OfType<Border>().First(x => x.GetVisualDescendants().OfType<ForgeToolWindowHeader>().Any());
+        Assert.Null(floated.Clip);
+
+        window.Close();
+    }
+
     /// <summary>独立出去之后，标题条上多一个「停靠回去」；点它就回到原来的内部形态。</summary>
     /// <remarks>上游那组动作的第一个就是 <c>DockToolWindowAction</c>（<c>ToolWindowHeader.kt:119</c>）。</remarks>
     [AvaloniaFact]

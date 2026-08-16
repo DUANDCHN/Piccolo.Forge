@@ -1757,6 +1757,11 @@ public class ForgeToolWindowFrame : TemplatedControl
     /// <summary>把一个控件从它当前的父容器上摘下来。</summary>
     private static void Detach(Control control)
     {
+        // ⚠ 裁剪是停靠区替它加的（被覆盖层压着时让开那条带，见 ForgeDockPane.ClipUnderOverlays）。
+        //   离开停靠区就得清掉：带着它搬进浮动窗口的话，那边没人再管，
+        //   面板会被一条与新容器毫无关系的线切掉一块。
+        control.Clip = null;
+
         switch (control.Parent)
         {
             case Panel panel:
