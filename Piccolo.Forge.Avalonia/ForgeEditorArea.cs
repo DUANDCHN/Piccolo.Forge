@@ -785,7 +785,15 @@ public class ForgeEditorArea : TemplatedControl
                 : 0;
 
             var area = ForgeEditorTabDragTarget.DropArea(bounds, stripHeight);
-            var side = EditorDropPolicy.Resolve(here.X - area.X, here.Y - area.Y, area.Width, area.Height);
+            // 把标签拖回另一组的标签行，本身就是最明确的“并入这一组”。
+            // DropArea 为了避免本组行内重排与分屏判定打架而扣掉了标签行；
+            // 但跨组时若仍把这段判成 None，用户把标签拖到目标标签条上松手就毫无反应。
+            var overTargetStrip = stripHost is not null
+                                  && BoundsIn(stripHost) is { } stripBounds
+                                  && stripBounds.Contains(here);
+            var side = overTargetStrip
+                ? EditorDropSide.Center
+                : EditorDropPolicy.Resolve(here.X - area.X, here.Y - area.Y, area.Width, area.Height);
 
             _dropGroup = candidate;
             _dropSide = side;

@@ -1,5 +1,6 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
@@ -525,6 +526,34 @@ public class EditorTabDragTests
             control.GetVisualDescendants().OfType<ForgeEditorTab>()
                 .OrderBy(x => x.Bounds.X)
                 .Select(x => x.Title));
+    }
+
+    [AvaloniaFact]
+    public void Dropping_a_split_tab_on_the_other_tab_row_merges_the_groups()
+    {
+        var (editor, window, control, _, _) = Shown();
+        var left = editor.Area.Groups[0];
+        editor.Area.DropTab("b", left, EditorDropSide.Right);
+        Dispatcher.UIThread.RunJobs();
+
+        var rightTab = control.GetVisualDescendants().OfType<ForgeEditorTab>()
+            .Single(x => x.Title == "Bravo.cs");
+        var leftStrip = control.GetVisualDescendants().OfType<TabStrip>()
+            .OrderBy(x => x.TranslatePoint(default, control)!.Value.X)
+            .First();
+        var press = GrabPoint(rightTab, window);
+        var drop = leftStrip.TranslatePoint(
+            new Point(leftStrip.Bounds.Width / 2, leftStrip.Bounds.Height / 2), window)!.Value;
+
+        window.MouseDown(press, MouseButton.Left);
+        window.MouseMove(drop);
+        Dispatcher.UIThread.RunJobs();
+        window.MouseUp(drop, MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Single(editor.Area.Groups);
+        Assert.Equal(["a", "c", "b"], editor.Area.Groups[0].Tabs.Select(x => x.Id));
+        Assert.Equal(3, control.GetVisualDescendants().OfType<ForgeEditorTab>().Count());
     }
 
     [AvaloniaFact]
