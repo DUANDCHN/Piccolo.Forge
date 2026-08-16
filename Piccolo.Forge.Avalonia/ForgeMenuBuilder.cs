@@ -34,6 +34,56 @@ public static class ForgeMenuBuilder
     }
 
     /// <summary>
+    /// 面板标题条上 ⋮ 的菜单。
+    /// </summary>
+    /// <remarks>
+    /// 结构见 <see cref="ToolWindowContextMenu.ForHeaderOptions"/>（照 <c>ToolWindowImpl.kt:855-888</c>）：
+    /// 视图模式 ▸ / 移至 ▸ / 分隔线 / 从边栏中移除。
+    /// <para>
+    /// 与条带按钮的右键菜单**是两份**：那份是"这个按钮"的菜单（隐藏、移动、显示名字），
+    /// 这份是"这个面板"的菜单（视图模式、移动、从边栏移除）。上游也是两份。
+    /// </para>
+    /// </remarks>
+    /// <param name="manager">工具窗口管理器。</param>
+    /// <param name="id">哪个工具窗口。</param>
+    /// <param name="extend">宿主往里追加自己的项（上游的 <c>additionalGearActions</c>，加在最前）。</param>
+    /// <returns>菜单。</returns>
+    public static ContextMenu ForHeaderOptions(
+        ToolWindowManager manager, string id, Action<ContextMenu, string>? extend = null)
+    {
+        ArgumentNullException.ThrowIfNull(manager);
+        ArgumentNullException.ThrowIfNull(id);
+
+        var menu = Build(ToolWindowContextMenu.ForHeaderOptions(), manager, id, static () => { }, showNames: false);
+
+        if (extend is null)
+        {
+            return menu;
+        }
+
+        // 宿主的项加在**最前**，后跟一条分隔线（ToolWindowImpl.kt:857-866 就是这个顺序）
+        var mine = new ContextMenu();
+        extend(mine, id);
+
+        if (mine.Items.Count == 0)
+        {
+            return menu;
+        }
+
+        var items = mine.Items.Cast<object>().ToList();
+        mine.Items.Clear();
+        items.Reverse();
+
+        menu.Items.Insert(0, new Separator());
+        foreach (var item in items)
+        {
+            menu.Items.Insert(0, item);
+        }
+
+        return menu;
+    }
+
+    /// <summary>
     /// 条带空白处的右键菜单：只有「显示名字」。
     /// </summary>
     /// <param name="onToggleShowNames">「显示名字」被点了。</param>
@@ -59,6 +109,7 @@ public static class ForgeMenuBuilder
         // 上游那份就是 Move to ▸（用户实测截图亦然）。平铺会得到一条 11 项的长菜单，
         // 而这 8 项本来就是同一件事的取值。
         MenuItem? moveTo = null;
+        MenuItem? viewMode = null;
 
         foreach (var item in items)
         {
@@ -69,7 +120,25 @@ public static class ForgeMenuBuilder
                     break;
 
                 case ToolWindowMenuItemKind.Hide:
-                    menu.Items.Add(Item("隐藏", () => ToolWindowContextMenu.Hide(manager!, id!)));
+                    // 名字照上游的 RemoveStripeButtonAction —— 它做的就是「连条带按钮一起摘掉」，
+                    // 叫「隐藏」会与标题条上那个「—」（只收起、按钮还在）混成一件事。
+                    menu.Items.Add(Item("从边栏中移除", () => ToolWindowContextMenu.Hide(manager!, id!)));
+                    break;
+
+                case ToolWindowMenuItemKind.ViewMode:
+                    var type = item.Type!.Value;
+
+                    if (viewMode is null)
+                    {
+                        viewMode = new MenuItem { Header = "视图模式" };
+                        menu.Items.Add(viewMode);
+                    }
+
+                    // 可勾选：当前是哪一种要一眼看得出（上游那组是单选带 ✓）
+                    var mode = Item(DescribeViewMode(type), () => manager!.SetType(id!, type));
+                    mode.ToggleType = MenuItemToggleType.Radio;
+                    mode.IsChecked = manager?.Layout.GetInfo(id!)?.Type == type;
+                    viewMode.Items.Add(mode);
                     break;
 
                 case ToolWindowMenuItemKind.MoveTo:
@@ -207,6 +276,22 @@ public static class ForgeMenuBuilder
         source.Close(tabId);
         area.Select(tabId);
     }
+
+    /// <summary>视图模式的中文名（对应 <c>TW.ViewModeGroup</c> 那几项）。</summary>
+    /// <remarks>
+    /// 上游还有第五项「取消停靠(Undock)」，本模型的 <see cref="ToolWindowType"/> 没有对应值
+    /// （见那个枚举的说明），所以只给这四项。
+    /// </remarks>
+    /// <param name="type">视图模式。</param>
+    /// <returns>菜单上显示的名字。</returns>
+    private static string DescribeViewMode(ToolWindowType type) => type switch
+    {
+        ToolWindowType.Docked => "停靠固定",
+        ToolWindowType.Sliding => "停靠不固定",
+        ToolWindowType.Floating => "浮动",
+        ToolWindowType.Windowed => "窗口",
+        _ => type.ToString(),
+    };
 
     /// <summary>
     /// 「移到…」这一项该怎么念。

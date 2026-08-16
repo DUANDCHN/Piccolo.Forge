@@ -328,6 +328,17 @@ public class ForgeToolWindowFrame : TemplatedControl
     /// </remarks>
     public Func<string, IReadOnlyList<Control>?>? HeaderButtonsExtension { get; set; }
 
+    /// <summary>
+    /// 宿主往面板 ⋮ 菜单里追加自己的项（加在**最前**，后跟一条分隔线）。
+    /// </summary>
+    /// <remarks>
+    /// 对应上游的 <c>additionalGearActions</c>（<c>ToolWindowImpl.kt:857-866</c>）。
+    /// 上游那份菜单里的「快速搜索 / 显示工具栏 / 标签页分组 / 关闭所有 / 帮助」
+    /// 都属于**面板内容**那一层——库不知道宿主往面板里放了什么，所以不猜，从这里塞。
+    /// 参数是（菜单, 面板 id）。
+    /// </remarks>
+    public Action<ContextMenu, string>? HeaderMenuExtension { get; set; }
+
     /// <summary>中间编辑区放什么。</summary>
     public Control? EditorContent
     {
@@ -1240,8 +1251,7 @@ public class ForgeToolWindowFrame : TemplatedControl
             return;
         }
 
-        var menu = ForgeMenuBuilder.ForStripeButton(
-            shell.Manager, id, () => ShowToolWindowNames = !ShowToolWindowNames, ShowToolWindowNames);
+        var menu = ForgeMenuBuilder.ForHeaderOptions(shell.Manager, id, HeaderMenuExtension);
 
         // 挂在 ⋮ 那个按钮上弹，位置才对得上（挂在整条标题条上会从鼠标处弹）
         menu.PlacementTarget = header.OptionsButton;

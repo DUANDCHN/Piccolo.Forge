@@ -146,6 +146,65 @@ public class HeaderButtonsTests
         window.Close();
     }
 
+    /// <summary>
+    /// ⋮ 的菜单结构照上游的 gear popup（<c>ToolWindowImpl.kt:855-888</c>）：
+    /// 视图模式 ▸ / 移至 ▸ / 分隔线 / 从边栏中移除。
+    /// </summary>
+    /// <remarks>
+    /// 与**条带按钮**的右键菜单是两份，别混：那份是「这个按钮」的（隐藏 / 移动 / 显示名字），
+    /// 这份是「这个面板」的。
+    /// </remarks>
+    [AvaloniaFact]
+    public void 选项菜单是上游那套结构()
+    {
+        var (window, _, shell) = Build();
+
+        var menu = ForgeMenuBuilder.ForHeaderOptions(shell.Manager, "相机列表");
+        var top = menu.Items.OfType<MenuItem>().Select(x => x.Header as string).ToList();
+
+        Assert.Equal(["视图模式", "移至", "从边栏中移除"], top);
+        Assert.Contains(menu.Items, x => x is Separator);
+
+        // 视图模式：四种，当前那种打勾
+        var modes = menu.Items.OfType<MenuItem>().First(x => (string?)x.Header == "视图模式");
+        var names = modes.Items.OfType<MenuItem>().Select(x => x.Header as string).ToList();
+        Assert.Equal(["停靠固定", "停靠不固定", "浮动", "窗口"], names);
+        Assert.Single(modes.Items.OfType<MenuItem>(), x => x.IsChecked);
+
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void 选项菜单里的视图模式真的会切()
+    {
+        var (window, _, shell) = Build();
+
+        var menu = ForgeMenuBuilder.ForHeaderOptions(shell.Manager, "相机列表");
+        var modes = menu.Items.OfType<MenuItem>().First(x => (string?)x.Header == "视图模式");
+        var floating = modes.Items.OfType<MenuItem>().First(x => (string?)x.Header == "浮动");
+        floating.RaiseEvent(new global::Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
+
+        Assert.Equal(ToolWindowType.Floating, shell.Manager.Layout.GetInfo("相机列表")!.Type);
+        window.Close();
+    }
+
+    /// <summary>宿主的项加在最前，后跟一条分隔线（上游 additionalGearActions 的位置）。</summary>
+    [AvaloniaFact]
+    public void 宿主的菜单项排在最前()
+    {
+        var (window, _, shell) = Build();
+
+        var menu = ForgeMenuBuilder.ForHeaderOptions(
+            shell.Manager,
+            "相机列表",
+            (m, _) => m.Items.Add(new MenuItem { Header = "从编辑器自动滚动" }));
+
+        Assert.Equal("从编辑器自动滚动", (menu.Items[0] as MenuItem)?.Header);
+        Assert.IsType<Separator>(menu.Items[1]);
+
+        window.Close();
+    }
+
     private static List<ForgeHeaderButton> Buttons(ForgeToolWindowFrame frame) =>
         [.. frame.GetVisualDescendants().OfType<ForgeToolWindowHeader>()
             .SelectMany(h => h.GetVisualDescendants().OfType<ForgeHeaderButton>())];
