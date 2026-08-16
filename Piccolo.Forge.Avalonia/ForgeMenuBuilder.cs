@@ -52,14 +52,23 @@ public static class ForgeMenuBuilder
     /// <c>Insert(0, …)</c>。与 <c>TabMenuExtension</c> / <c>TabActionsMenuExtension</c> 同形 ——
     /// 三个扩展点行为一致，宿主不用记「哪个会把我的项搬走」。
     /// </param>
+    /// <param name="viewModes">
+    /// 「视图模式」里列哪几种；不给就只列停靠固定。视图层应当只给它**画得出来**的那些
+    /// （<c>ForgeToolWindowFrame.SupportedViewModes</c>）。
+    /// </param>
     /// <returns>菜单。</returns>
     public static ContextMenu ForHeaderOptions(
-        ToolWindowManager manager, string id, Action<ContextMenu, string>? extend = null)
+        ToolWindowManager manager,
+        string id,
+        Action<ContextMenu, string>? extend = null,
+        IReadOnlyList<ToolWindowType>? viewModes = null)
     {
         ArgumentNullException.ThrowIfNull(manager);
         ArgumentNullException.ThrowIfNull(id);
 
-        var menu = Build(ToolWindowContextMenu.ForHeaderOptions(), manager, id, static () => { }, showNames: false);
+        var menu = Build(
+            ToolWindowContextMenu.ForHeaderOptions(viewModes ?? [ToolWindowType.Docked]),
+            manager, id, static () => { }, showNames: false);
         extend?.Invoke(menu, id);
         return menu;
     }

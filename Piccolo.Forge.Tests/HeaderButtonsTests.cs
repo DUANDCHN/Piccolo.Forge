@@ -159,32 +159,40 @@ public class HeaderButtonsTests
     {
         var (window, _, shell) = Build();
 
-        var menu = ForgeMenuBuilder.ForHeaderOptions(shell.Manager, "相机列表");
+        var menu = ForgeMenuBuilder.ForHeaderOptions(
+            shell.Manager, "相机列表", viewModes: ForgeToolWindowFrame.SupportedViewModes);
         var top = menu.Items.OfType<MenuItem>().Select(x => x.Header as string).ToList();
 
         Assert.Equal(["视图模式", "移至", "从边栏中移除"], top);
         Assert.Contains(menu.Items, x => x is Separator);
 
-        // 视图模式：四种，当前那种打勾
+        // 视图模式：只列库画得出来的那些（另见「视图模式只列画得出来的形态」），当前那种打勾
         var modes = menu.Items.OfType<MenuItem>().First(x => (string?)x.Header == "视图模式");
-        var names = modes.Items.OfType<MenuItem>().Select(x => x.Header as string).ToList();
-        Assert.Equal(["停靠固定", "停靠不固定", "浮动", "窗口"], names);
+        Assert.Equal(["停靠固定"], modes.Items.OfType<MenuItem>().Select(x => x.Header as string));
         Assert.Single(modes.Items.OfType<MenuItem>(), x => x.IsChecked);
 
         window.Close();
     }
 
+    /// <summary>视图模式里只列**库画得出来**的那些。</summary>
+    /// <remarks>
+    /// 回归：曾经把 SLIDING / FLOATING / WINDOWED 都摆上去，可 Forge 一个都没实现 ——
+    /// 用户一点「停靠不固定」，视图仍把它当停靠面板塞进同一列，而模型认为
+    /// SLIDING 与 DOCKED 是**两个格**（`ToolWindowSlot` 的键含形态）、互斥判定放行，
+    /// 于是同一列里两块面板叠着画，还写进了存档、重启也回不来。
+    /// </remarks>
     [AvaloniaFact]
-    public void 选项菜单里的视图模式真的会切()
+    public void 视图模式只列画得出来的形态()
     {
         var (window, _, shell) = Build();
 
-        var menu = ForgeMenuBuilder.ForHeaderOptions(shell.Manager, "相机列表");
+        var menu = ForgeMenuBuilder.ForHeaderOptions(
+            shell.Manager, "相机列表", viewModes: ForgeToolWindowFrame.SupportedViewModes);
         var modes = menu.Items.OfType<MenuItem>().First(x => (string?)x.Header == "视图模式");
-        var floating = modes.Items.OfType<MenuItem>().First(x => (string?)x.Header == "浮动");
-        floating.RaiseEvent(new global::Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
 
-        Assert.Equal(ToolWindowType.Floating, shell.Manager.Layout.GetInfo("相机列表")!.Type);
+        Assert.Equal(ForgeToolWindowFrame.SupportedViewModes.Count, modes.Items.Count);
+        Assert.Equal(["停靠固定"], modes.Items.OfType<MenuItem>().Select(x => x.Header as string));
+
         window.Close();
     }
 

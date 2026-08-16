@@ -86,15 +86,18 @@ public static class ToolWindowContextMenu
     /// </para>
     /// </remarks>
     /// <returns>菜单项。</returns>
-    public static IReadOnlyList<ToolWindowMenuItem> ForHeaderOptions()
+    /// <param name="viewModes">
+    /// 「视图模式」里列哪几种 —— <b>由视图层给</b>，只列它真画得出来的那些。
+    /// 摆上一个画不出来的形态，用户一点就把界面弄坏（SLIDING 与 DOCKED 在上游是两个格，
+    /// 互斥判定会放行，于是同一列里两块面板叠着画），而且会写进存档。
+    /// </param>
+    public static IReadOnlyList<ToolWindowMenuItem> ForHeaderOptions(IReadOnlyList<ToolWindowType> viewModes)
     {
+        ArgumentNullException.ThrowIfNull(viewModes);
+
         var items = new List<ToolWindowMenuItem>();
 
-        foreach (var type in new[]
-                 {
-                     ToolWindowType.Docked, ToolWindowType.Sliding,
-                     ToolWindowType.Floating, ToolWindowType.Windowed,
-                 })
+        foreach (var type in viewModes)
         {
             items.Add(new ToolWindowMenuItem(ToolWindowMenuItemKind.ViewMode, Type: type));
         }

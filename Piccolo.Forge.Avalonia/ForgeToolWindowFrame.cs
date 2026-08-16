@@ -423,6 +423,7 @@ public class ForgeToolWindowFrame : TemplatedControl
 
         _shell = shell;
         _shell.StateChanged += OnShellStateChanged;
+        NormalizeViewModes();
         _shell.PropertyChanged += OnShellPropertyChanged;
 
         // 「显示名字」的真相在 VM（它跟布局一起存），控件跟着它走 ——
@@ -454,7 +455,12 @@ public class ForgeToolWindowFrame : TemplatedControl
     /// <summary>接上的外壳 VM。</summary>
     public ToolWindowShellViewModel? Shell => _shell;
 
-    private void OnShellStateChanged(object? sender, ToolWindowStateChangedEventArgs e) => Sync();
+    private void OnShellStateChanged(object? sender, ToolWindowStateChangedEventArgs e)
+    {
+        // 读档走的也是这条（RestoreLayout → StateChanged），所以掰形态放在这儿
+        NormalizeViewModes();
+        Sync();
+    }
 
     /// <inheritdoc />
     protected override Size MeasureOverride(Size availableSize)
@@ -1303,6 +1309,48 @@ public class ForgeToolWindowFrame : TemplatedControl
     }
 
     /// <summary>标题条上 ⋮ 的菜单：与条带按钮右键菜单同一份。</summary>
+    /// <summary>
+    /// 这个控件**画得出来**的视图形态。
+    /// </summary>
+    /// <remarks>
+    /// 目前只有停靠固定：SLIDING（滑出覆盖在编辑区上）、FLOATING / WINDOWED（独立窗口）
+    /// 都还没做（REQ-066 的移植清单里那条「自动隐藏浮层」还空着）。
+    /// <para>
+    /// ⚠ <b>没实现的形态就不该摆上菜单</b>：模型允许它们（那是照上游建的），
+    /// 但一旦被选中，视图就把这个面板当普通停靠面板塞进同一列 ——
+    /// 而 SLIDING 与 DOCKED 在上游是**两个格**（<c>ToolWindowSlot</c> 的键含形态，
+    /// <c>ToolWindowManagerImpl.kt:962-966</c>），互斥判定放行，于是同一列里两块面板
+    /// 叠在一起画，看起来就是「按钮亮了两个、面板只显示一个」。
+    /// 而且它会写进布局存档，重启也回不来。
+    /// </para>
+    /// <para>实现了哪个就往这里加哪个。</para>
+    /// </remarks>
+    public static IReadOnlyList<ToolWindowType> SupportedViewModes { get; } = [ToolWindowType.Docked];
+
+    /// <summary>
+    /// 把画不出来的形态掰回停靠固定。
+    /// </summary>
+    /// <remarks>
+    /// 兜的是**存档**：老版本（或这一版加了视图模式菜单之后）存下过 SLIDING 之类，
+    /// 读回来就是一列里两块面板叠着。修完菜单只是不再产生新的坏状态，
+    /// 已经躺在用户磁盘上的那份还得在这儿治好。
+    /// </remarks>
+    private void NormalizeViewModes()
+    {
+        if (_shell is not { } shell)
+        {
+            return;
+        }
+
+        foreach (var info in shell.Manager.Layout.GetSortedList().ToList())
+        {
+            if (!SupportedViewModes.Contains(info.Type))
+            {
+                shell.Manager.SetType(info.Id, ToolWindowType.Docked);
+            }
+        }
+    }
+
     private void ShowHeaderOptions(string id)
     {
         if (_shell is not { } shell || !_panelHeaders.TryGetValue(id, out var header))
@@ -1310,7 +1358,7 @@ public class ForgeToolWindowFrame : TemplatedControl
             return;
         }
 
-        var menu = ForgeMenuBuilder.ForHeaderOptions(shell.Manager, id, HeaderMenuExtension);
+        var menu = ForgeMenuBuilder.ForHeaderOptions(shell.Manager, id, HeaderMenuExtension, SupportedViewModes);
 
         // 挂在 ⋮ 那个按钮上弹，位置才对得上（挂在整条标题条上会从鼠标处弹）
         menu.PlacementTarget = header.OptionsButton;
