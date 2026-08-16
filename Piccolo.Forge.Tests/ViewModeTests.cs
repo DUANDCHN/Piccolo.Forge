@@ -335,9 +335,16 @@ public class ViewModeTests
             Assert.Null(resizer.LineBrush);
             Assert.True(panel.CornerRadius.TopLeft > 0, "岛该是圆角的");
 
-            // 缝要**整条**：并排的两座岛各让一半凑成一条（BorderWidth），
-            // 浮在编辑区上的这座没有邻居帮它凑，只让一半就只剩半条、几乎看不出来。
-            Assert.Equal(3, panel.Margin.Right, 0.01);
+            // 缝要**整条**，而且缝里要有"海"：岛看得见靠的就是缝里那片主窗口底
+            //（Islands 的立意是「岛浮在海上」）。这座岛底下压着编辑区、同色，
+            // 不自己把海画上就等于没有缝 —— 所以让位改成同宽的边框、边框色取海色。
+            Assert.Equal(3, panel.BorderThickness.Right, 0.01);
+            Assert.Equal(
+                frame.Palette.MainBackground,
+                Assert.IsType<SolidColorBrush>(panel.BorderBrush).Color);
+
+            // 海必须与岛**不同色**，否则画了也白画（这才是"看得见"的判据）
+            Assert.NotEqual(frame.Palette.Background, frame.Palette.MainBackground);
         }
         else
         {
