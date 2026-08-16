@@ -1,12 +1,11 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Primitives;
 using Piccolo.Forge.Themes;
 
 namespace Piccolo.Forge.Avalonia;
 
 /// <summary>
-/// 标题条里那一排 tab 的排布：横着排，间隙 0，放不下的压成 0 宽。
+/// 一排 tab 的排布：横着排，间隙 0。
 /// </summary>
 /// <remarks>
 /// 对应 <c>platform/platform-impl/src/com/intellij/openapi/wm/impl/content/TabContentLayout.java:171-230
@@ -41,6 +40,19 @@ public class HeaderTabsPanel : Panel
     /// </remarks>
     public double DraggedX { get; set; }
 
+    /// <summary>
+    /// 放不下就<b>换行</b>，一个都不藏。
+    /// </summary>
+    /// <remarks>
+    /// 编辑区的文档标签行用这个：文档是用户自己开的，藏起来就等于找不回来
+    /// （标签行还没有「更多」弹窗，见 <see cref="ArrangeOverride"/> 的说明）。
+    /// <para>
+    /// 工具窗口的标题条**不能**换行（那一行还有标题和工具按钮，高度是固定的），
+    /// 所以默认关着，仍走上游 <c>TabContentLayout</c> 的「压成 0 宽 + 更多弹窗」。
+    /// </para>
+    /// </remarks>
+    public bool WrapRows { get; set; }
+
     /// <inheritdoc />
     protected override Size MeasureOverride(Size availableSize)
     {
@@ -59,73 +71,85 @@ public class HeaderTabsPanel : Panel
             height = Math.Max(height, child.DesiredSize.Height);
         }
 
-        return new Size(width, height);
+        if (!WrapRows || double.IsInfinity(availableSize.Width) || width <= availableSize.Width)
+        {
+            return new Size(width, height);
+        }
+
+        // 换行：宽度吃满给的，高度按排出来的行数长
+        var wrapped = Wrap(availableSize.Width, height);
+        var rows = wrapped.Count == 0 ? 1 : wrapped[^1].Row + 1;
+        return new Size(availableSize.Width, height * rows);
+    }
+
+    /// <summary>
+    /// 按给定宽度把标签折成若干行。
+    /// </summary>
+    /// <remarks>
+    /// 一个标签比整行还宽时**独占一行**并按行宽收窄——否则这一行永远排不下，会死循环。
+    /// 这是换行布局里唯一还会"切"的地方。
+    /// </remarks>
+    private List<(Control Child, int Row, Rect Slot)> Wrap(double width, double rowHeight)
+    {
+        var result = new List<(Control, int, Rect)>();
+        var x = 0.0;
+        var row = 0;
+
+        foreach (var child in Children)
+        {
+            if (!child.IsVisible)
+            {
+                continue;
+            }
+
+            var w = WidthOf(child);
+            if (x > 0 && x + w > width)
+            {
+                row++;
+                x = 0;
+            }
+
+            var slot = new Rect(x, row * rowHeight, Math.Min(w, width), rowHeight);
+            result.Add((child, row, slot));
+            x += slot.Width;
+        }
+
+        return result;
     }
 
     /// <inheritdoc />
     /// <remarks>
-    /// 放不下时按两条规矩排：
-    /// <list type="number">
-    /// <item>
-    /// <b>第一个越界的切一半，不是压成 0</b> —— 照抄
-    /// <c>TabContentLayout.java:249-272 · layout</c> 里的 <c>reachedBounds</c> 那一支
-    /// （<c>width = bounds.width - eachX - toolbarWidth</c>）。只有它**之后**的才真压成 0 宽
-    /// （<c>:161</c> 靠 <c>width == 0</c> 挑出被藏起来的）。
-    /// </item>
-    /// <item>
-    /// <b>选中的那个一定看得见</b> —— 从头排会把它挤到行外时，整行的起点往后挪，
-    /// 挪到它排得下为止（等价于「滚动到选中项」，与 <c>JBTabsImpl</c> 的单行布局同义）。
-    /// </item>
-    /// </list>
+    /// 两条路：<see cref="WrapRows"/> 开着就**换行**（编辑区的文档标签），
+    /// 关着走上游 <c>TabContentLayout.java:249-272 · layout</c> 的单行规则
+    /// （工具窗口的标题条，那一行高度固定、换不了行）。
     /// <para>
-    /// ⚠ 这两条以前都没有，只剩「放不下 → 0 宽」一句。后果不是"少显示几个"，
-    /// 而是**一个都不显示**：窄窗格里第一个标签就放不下，于是从它起全被压成 0，
-    /// 标签行整条空白 —— 文档还开着，看上去却像没开。
+    /// 单行这一支照抄上游的 <c>reachedBounds</c>：**第一个越界的用剩下的宽度画出来**
+    /// （<c>width = bounds.width - eachX - toolbarWidth</c>），只有它之后的才压成 0 宽
+    /// （<c>:161</c> 靠 <c>width == 0</c> 挑出被藏起来的）。
+    /// ⚠ 本仓原来只留了「放不下 → 0 宽」那一句，后果不是"少显示几个"，而是
+    /// **一个都不显示**：窄行里第一个标签就放不下，从它起全被压成 0。
     /// </para>
     /// <para>
-    /// <b>有意不照抄上游的「淘汰」那一段</b>（<c>:223-247</c>：总宽超了就从两端往下丢）：
-    /// 上游丢掉的那些能从标签行末尾的「更多」弹窗里选回来
-    /// （<c>:161-168 · showMorePopup</c>），而本仓的标签行**还没有那个弹窗**——
-    /// 照抄就等于把文档丢进一个打不开的抽屉。改成挪起点，一个都不会失联。
-    /// 将来补上「更多」弹窗时，这里可以换回上游那一段。
+    /// <b>两支都不照抄上游的「淘汰」那一段</b>（<c>:223-247</c>：总宽超了就从两端往下丢、
+    /// 只保选中的那个）：上游丢掉的能从标签行末尾的「更多」弹窗里选回来
+    /// （<c>:161-168 · showMorePopup</c>），而本仓还没有那个弹窗 ——
+    /// 照抄等于把标签丢进一个打不开的抽屉，而且会让**左边的标签凭空消失**。
     /// </para>
     /// </remarks>
     protected override Size ArrangeOverride(Size finalSize)
     {
+        if (WrapRows)
+        {
+            return ArrangeWrapped(finalSize);
+        }
+
         var x = 0.0;
         var hidden = 0;
 
         var laying = Children.Where(c => c.IsVisible).ToList();
-
-        // 起点：默认从第一个排；选中的那个若排不进来，起点往后挪到它排得下为止
-        var start = 0;
-        var selected = laying.FindIndex(IsSelected);
-        if (selected >= 0)
-        {
-            var span = 0.0;
-            for (var i = selected; i >= 0; i--)
-            {
-                span += WidthOf(laying[i]);
-                if (span > finalSize.Width)
-                {
-                    // i 这一个已经挤不进来了，起点取它的下一个（选中的那个自己也可能被切一半）
-                    start = Math.Min(i + 1, selected);
-                    break;
-                }
-            }
-        }
-
-        for (var i = 0; i < start; i++)
-        {
-            var empty = new Rect(0, 0, 0, finalSize.Height);
-            _slots[laying[i]] = empty;
-            laying[i].Arrange(empty);
-            hidden++;
-        }
-
         var reachedBounds = false;
 
-        foreach (var child in laying.Skip(start))
+        foreach (var child in laying)
         {
             var width = WidthOf(child);
 
@@ -171,11 +195,34 @@ public class HeaderTabsPanel : Panel
         return finalSize;
     }
 
+    /// <summary>换行排布：一个都不藏，放不下就往下一行放。</summary>
+    private Size ArrangeWrapped(Size finalSize)
+    {
+        var rowHeight = Children.Where(c => c.IsVisible).Select(c => c.DesiredSize.Height).DefaultIfEmpty(0).Max();
+
+        foreach (var (child, _, slot) in Wrap(finalSize.Width, rowHeight))
+        {
+            _slots[child] = slot;
+
+            // 被拖的那一个只改 x，其余照排布来（同非换行那一支）
+            if (ReferenceEquals(child, DraggedChild))
+            {
+                child.ZIndex = 1;
+                child.Arrange(slot.WithX(DraggedX));
+            }
+            else
+            {
+                child.ZIndex = 0;
+                child.Arrange(slot);
+            }
+        }
+
+        HiddenTabCount = 0;
+        return finalSize;
+    }
+
     /// <summary>这一个标签排布时该占多宽（封顶 <see cref="ForgeMetrics.TabMaxWidth"/>）。</summary>
     private static double WidthOf(Control child) => Math.Min(child.DesiredSize.Width, ForgeMetrics.TabMaxWidth);
-
-    /// <summary>是不是当前选中的那一个 —— 淘汰阶段它有豁免权。</summary>
-    private static bool IsSelected(Control child) => child is TabStripItem { IsSelected: true };
 
     private readonly Dictionary<Control, Rect> _slots = [];
 

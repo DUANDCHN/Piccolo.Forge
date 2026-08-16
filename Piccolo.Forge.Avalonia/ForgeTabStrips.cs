@@ -17,7 +17,9 @@ internal sealed class ForgeEditorTabStrip : TabStrip
 {
     public ForgeEditorTabStrip()
     {
-        ItemsPanel = new FuncTemplate<Panel?>(() => new HeaderTabsPanel());
+        // 文档标签放不下就**换行**，一个都不藏：文档是用户自己开的，
+        // 藏起来就等于找不回来（标签行没有「更多」弹窗，也没有滚动箭头）。
+        ItemsPanel = new FuncTemplate<Panel?>(() => new HeaderTabsPanel { WrapRows = true });
         Template = ForgeTabStripTemplate.Create<ForgeEditorTabStrip>();
     }
 

@@ -1,28 +1,34 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Piccolo.Forge.Avalonia;
+using Piccolo.Forge.Mvvm;
 using Xunit;
 
 namespace Piccolo.Forge.Tests;
 
 /// <summary>
-/// 标签行放不下时怎么排（<c>TabContentLayout.java:224-272 · layout</c>）。
+/// 文档标签行放不下时怎么排：<b>换行，一个都不藏</b>。
 /// </summary>
 /// <remarks>
-/// 回归：本仓原来只照抄了「放不下 → 压成 0 宽」那一句，漏掉了排布阶段的
-/// <c>reachedBounds</c>「第一个越界的用剩余宽度画出来」，也没有「选中的一定看得见」。
-/// 后果不是少显示几个，而是**一个都不显示**：窄窗格里第一个标签就放不下，
-/// 从它起全被压成 0，标签行整条空白。
+/// 回归过两轮：
+/// <list type="number">
+/// <item>原实现只照抄了上游「放不下 → 压成 0 宽」一句，窄窗格里**整排标签消失**；</item>
+/// <item>接着试过「起点往后挪、保住选中的」，那会让**左边的标签凭空消失**——同样是丢东西。</item>
+/// </list>
+/// 文档是用户自己开的，而标签行既没有「更多」弹窗也没有滚动箭头，藏起来就等于找不回来。
+/// 所以编辑区这一行改成换行排布。
 /// </remarks>
 public class TabOverflowTests
 {
-    private static HeaderTabsPanel Panel(int count, int selected = 0)
+    private static HeaderTabsPanel Panel(int count, bool wrap = true)
     {
-        var panel = new HeaderTabsPanel();
+        var panel = new HeaderTabsPanel { WrapRows = wrap };
         for (var i = 0; i < count; i++)
         {
-            panel.Children.Add(new ForgeEditorTab { Title = $"文档 {i}", IsSelected = i == selected });
+            panel.Children.Add(new ForgeEditorTab { Title = $"文档 {i}", IsSelected = i == 0 });
         }
 
         panel.Measure(new Size(double.PositiveInfinity, 41));
@@ -30,58 +36,84 @@ public class TabOverflowTests
     }
 
     [AvaloniaFact]
-    public void 窄到放不下一个标签时也要画出半个()
+    public void 放不下就换行而不是藏起来()
     {
-        var panel = Panel(3);
-        var full = panel.Children[0].DesiredSize.Width;
-        var narrow = full / 3;
+        var panel = Panel(4);
+        var one = panel.Children[0].DesiredSize.Width;
 
-        panel.Arrange(new Rect(0, 0, narrow, 41));
+        // 一行只放得下两个
+        panel.Measure(new Size(one * 2, double.PositiveInfinity));
+        var rowHeight = panel.Children[0].DesiredSize.Height;
+        panel.Arrange(new Rect(0, 0, one * 2, panel.DesiredSize.Height));
 
-        // 关键：不是全空。至少有一个占着实际宽度（被切掉一截，但看得见）
-        var shown = panel.Children.Where(x => x.Bounds.Width > 0).ToList();
-        Assert.NotEmpty(shown);
-        // 排布会按布局像素取整，比到 1px 就够
-        Assert.Equal(narrow, shown.Sum(x => x.Bounds.Width), 1.0);
-    }
-
-    [AvaloniaFact]
-    public void 第一个越界的被切一半而不是消失()
-    {
-        var panel = Panel(3);
-        var full = panel.Children[0].DesiredSize.Width;
-
-        // 一个半的宽度
-        panel.Arrange(new Rect(0, 0, full * 1.5, 41));
-
-        var widths = panel.Children.Select(x => x.Bounds.Width).ToList();
-        Assert.Equal(full, widths[0], 3);                    // 第一个整格
-        Assert.InRange(widths[1], 0.1, full - 0.1);          // 第二个被切一半
-        Assert.Equal(0, widths[2], 3);                       // 再往后才真的没有
-    }
-
-    [AvaloniaFact]
-    public void 选中的那个一定看得见()
-    {
-        // 选中最后一个，宽度只够一个 —— 留下来的必须是它
-        var panel = Panel(4, selected: 3);
-        var full = panel.Children[0].DesiredSize.Width;
-
-        panel.Arrange(new Rect(0, 0, full, 41));
-
-        var selected = panel.Children[3];
-        Assert.True(selected.Bounds.Width > 0, "选中的标签被挤出了标签行");
-    }
-
-    [AvaloniaFact]
-    public void 宽度够时人人整格()
-    {
-        var panel = Panel(3);
-        var full = panel.Children.Sum(x => x.DesiredSize.Width);
-
-        panel.Arrange(new Rect(0, 0, full + 100, 41));
-
+        // 四个全在，宽度都是完整的
+        Assert.All(panel.Children, x => Assert.Equal(one, x.Bounds.Width, 1.0));
         Assert.Equal(0, panel.HiddenTabCount);
-        Assert.All(panel.Children, x => Assert.True(x.Bounds.Width > 0));
+
+        // 排成两行，面板也跟着长高
+        Assert.Equal(2, panel.Children.Select(x => x.Bounds.Y).Distinct().Count());
+        Assert.Equal(rowHeight * 2, panel.DesiredSize.Height, 1.0);
+    }
+
+    [AvaloniaFact]
+    public void 一行放得下就不换行()
+    {
+        var panel = Panel(3);
+        var total = panel.Children.Sum(x => x.DesiredSize.Width);
+
+        panel.Measure(new Size(total + 100, double.PositiveInfinity));
+        var rowHeight = panel.Children[0].DesiredSize.Height;
+        panel.Arrange(new Rect(0, 0, total + 100, panel.DesiredSize.Height));
+
+        Assert.Single(panel.Children.Select(x => x.Bounds.Y).Distinct());
+        Assert.Equal(rowHeight, panel.DesiredSize.Height, 1.0);
+    }
+
+    [AvaloniaFact]
+    public void 单个标签比整行还宽时收到行宽而不是消失()
+    {
+        var panel = Panel(2);
+        var one = panel.Children[0].DesiredSize.Width;
+        var narrow = one / 2;
+
+        panel.Measure(new Size(narrow, double.PositiveInfinity));
+        panel.Arrange(new Rect(0, 0, narrow, panel.DesiredSize.Height));
+
+        Assert.All(panel.Children, x => Assert.Equal(narrow, x.Bounds.Width, 1.0));
+        Assert.Equal(2, panel.Children.Select(x => x.Bounds.Y).Distinct().Count());
+    }
+
+    /// <summary>工具窗口的标题条高度固定、不换行，但也不能整排消失。</summary>
+    [AvaloniaFact]
+    public void 标题条不换行但第一个越界的仍要看得见()
+    {
+        var panel = Panel(3, wrap: false);
+        var one = panel.Children[0].DesiredSize.Width;
+
+        panel.Arrange(new Rect(0, 0, one / 2, 41));
+
+        Assert.True(panel.Children[0].Bounds.Width > 0, "标题条第一个标签也没了");
+    }
+
+    /// <summary>真接上编辑区：窄窗格里标签仍然一个不少。</summary>
+    [AvaloniaFact]
+    public void 编辑区窄窗格里标签一个不少()
+    {
+        var vm = new EditorAreaViewModel();
+        var area = new ForgeEditorArea();
+        var window = new Window { Content = area, Width = 260, Height = 400 };
+        area.Attach(vm);
+        window.Show();
+
+        for (var i = 0; i < 4; i++)
+        {
+            vm.Open($"d{i}", $"很长很长的文档标题 {i}", new TextBlock());
+        }
+
+        Dispatcher.UIThread.RunJobs();
+
+        var tabs = area.GetVisualDescendants().OfType<ForgeEditorTab>().ToList();
+        Assert.Equal(4, tabs.Count);
+        Assert.All(tabs, t => Assert.True(t.Bounds.Width > 0, $"「{t.Title}」被藏起来了"));
     }
 }
