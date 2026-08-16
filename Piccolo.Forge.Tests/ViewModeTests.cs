@@ -180,10 +180,16 @@ public class ViewModeTests
         Assert.Contains("相机列表", mine.Title);
         Assert.NotNull(mine.Content);
 
-        // 浮动那边工厂返回 null → 用库自带的窗口
+        // 长相归宿主，但"在不在任务栏里"是形态语义，库说了算
+        Assert.True(mine.ShowInTaskbar, "独立窗口该在任务栏里有自己的一项");
+
+        // 浮动那边工厂返回 null → 用库自带的窗口，而且不进任务栏
         shell.Manager.SetType("相机列表", ToolWindowType.Floating);
         Pump(window);
-        Assert.NotSame(mine, frame.ExternalWindows.Single().Window);
+
+        var floating = frame.ExternalWindows.Single();
+        Assert.NotSame(mine, floating.Window);
+        Assert.False(floating.ShowInTaskbar, "浮动是挂在主窗口上的，不该在任务栏里另起一项");
 
         window.Close();
     }

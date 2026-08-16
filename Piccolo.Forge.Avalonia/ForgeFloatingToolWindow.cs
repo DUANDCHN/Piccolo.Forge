@@ -50,6 +50,12 @@ public sealed class ForgeFloatingToolWindow
             _window = host;
             _window.Title = ComposeTitle(type, toolWindowTitle, projectName);
             _window.Content = content;
+
+            // ★ 但「在不在任务栏里」不是长相，是形态语义，得由库定：
+            //   WINDOWED 是独立窗口（JFrame，任务栏里有自己的一项），
+            //   FLOATING 是挂在主窗口上的浮动件（JDialog），不该在任务栏里另起一个
+            //   （ToolWindowManagerDecorators.kt:81 / :98）。
+            _window.ShowInTaskbar = type == ToolWindowType.Windowed;
             return;
         }
 
