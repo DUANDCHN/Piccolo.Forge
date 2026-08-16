@@ -951,7 +951,9 @@ public class ForgeEditorArea : TemplatedControl
         _reorderTargetId = null;
         _dragStarted = false;
 
-        if (releasePointer && pointer?.Captured == this)
+        // 比的是「捕获在不在我手上」这个身份，不是相等 —— 用 ReferenceEquals 说明白，
+        // 免得读的人以为 IInputElement 上有值语义的相等。
+        if (releasePointer && pointer is not null && ReferenceEquals(pointer.Captured, this))
         {
             pointer.Capture(null);
         }
@@ -967,9 +969,14 @@ public class ForgeEditorArea : TemplatedControl
 
         // 先从会话中拍下命令，再完整销毁手势状态。模型变更不会再
         // 触及源 TabStripItem；这个边界对应 IntelliJ DragSession.process/release。
-        var drop = commit && session.Target is not null && session.Side != EditorDropSide.None
-            ? (Source: session.Source.Group, Target: session.Target.Group, session.TabId, session.Side)
-            : default;
+        //
+        // ⚠ 用**可空**元组而不是 `default` 当哨兵：`default` 的四个字段全是 null，
+        //   而它们的声明类型是非空 —— 判据 `drop != default` 还得靠元组相等去逐字段比引用。
+        //   可空元组让「有没有这条命令」由类型系统答，取出来的字段天然非空。
+        (EditorGroup Source, EditorGroup Target, string TabId, EditorDropSide Side)? drop =
+            commit && session.Target is not null && session.Side != EditorDropSide.None
+                ? (session.Source.Group, session.Target.Group, session.TabId, session.Side)
+                : null;
 
         _dockDrag = null;
         _overlay.Clear();
@@ -979,14 +986,14 @@ public class ForgeEditorArea : TemplatedControl
         // DragPreviewHelper.Hide() 的生命周期。
         _overlay.IsVisible = false;
         _overlay.InvalidateVisual();
-        if (session.Pointer.Captured == this)
+        if (ReferenceEquals(session.Pointer.Captured, this))
         {
             session.Pointer.Capture(null);
         }
 
-        if (drop != default)
+        if (drop is { } move)
         {
-            _area!.DropTab(drop.TabId, drop.Source, drop.Target, drop.Side);
+            _area!.DropTab(move.TabId, move.Source, move.Target, move.Side);
         }
     }
 
