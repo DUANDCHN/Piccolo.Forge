@@ -47,12 +47,22 @@ public static class ForgeIslandDecor
     /// 底色；<see langword="null"/> 用 <see cref="ForgePalette.Background"/>（工具窗口那档）。
     /// 编辑区要传 <see cref="ForgePalette.EditorBackground"/>。
     /// </param>
+    /// <param name="overlayGap">
+    /// 这座岛**浮在别的内容上**（取消停靠）时，四周那条缝拿什么填；<see langword="null"/> = 不填。
+    /// <para>
+    /// 停靠的岛不用填：缝底下什么都没有，露出来的就是窗口底板。浮着的这座缝底下压着编辑区，
+    /// 不填就露出编辑区 —— 而它与工具窗口在岛配色里同色（IslandsDark 都是 <c>#191A1C</c>），
+    /// 于是缝等于不存在。库没法在编辑区上挖洞，**底板长什么样只有宿主知道**
+    /// （可能是云母、可能是纯色），所以由宿主把那个色传进来。
+    /// </para>
+    /// </param>
     public static void Apply(
         Border host,
         ForgePalette palette,
         ToolWindowAnchor? anchor,
         ForgeIslandMetrics? metricsOverride = null,
-        Color? background = null)
+        Color? background = null,
+        IBrush? overlayGap = null)
     {
         ArgumentNullException.ThrowIfNull(host);
         ArgumentNullException.ThrowIfNull(palette);
@@ -71,7 +81,7 @@ public static class ForgeIslandDecor
         }
 
         // 缝是**两边各出一半**：两座岛并排，各让 HalfBorderWidth，中间就是完整的 BorderWidth。
-        // 取消停靠的那块也一样 —— 它就是一座岛，间距与别的岛分毫不差，不做任何特殊处理。
+        // 取消停靠的那块也一样 —— 它就是一座岛，间距与别的岛分毫不差。
         host.Margin = new Thickness(island.HalfBorderWidth);
         host.CornerRadius = new CornerRadius(island.CornerRadius);
 
@@ -84,6 +94,18 @@ public static class ForgeIslandDecor
         // 是把抗锯齿后的圆角边缘补实。别改成对比色。
         host.BorderBrush = new SolidColorBrush(palette.IslandBorder);
         host.BorderThickness = new Thickness(1);
+
+        if (overlayGap is null)
+        {
+            return;
+        }
+
+        // 浮着的岛：把那条缝按底板色填上（理由见 overlayGap）。
+        // 让位改成同宽的边框 —— 边框画在控件内部，正好占住原本让出去的那条缝，
+        // 圆角落在外沿，与停靠时的岛看上去分毫不差。
+        host.Margin = default;
+        host.BorderBrush = overlayGap;
+        host.BorderThickness = new Thickness(island.HalfBorderWidth);
     }
 
     /// <summary>非岛形态下，一块面板朝向编辑区的那一条 1px 分隔线画在哪一侧。</summary>

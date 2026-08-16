@@ -311,6 +311,9 @@ public class ViewModeTests
         frame.IslandMetrics = ForgeIslandMetrics.Default with { BorderWidth = 3 };
         Pump(window);
 
+        // 宿主会把窗口底板色告诉外壳（取消停靠那条缝要露它）
+        frame.BackdropBrush = Brushes.Black;
+
         shell.Manager.SetType("相机列表", ToolWindowType.Sliding);
         Pump(window);
 
@@ -340,9 +343,15 @@ public class ViewModeTests
             //   · 四角都圆 —— 包括贴着条带的那一侧；
             //   · 不额外加边框、不填海色、不加投影 —— 这三样我都试过，全是画蛇添足。
             var metrics = ForgeIslandMetrics.Default with { BorderWidth = 3 };
-            Assert.Equal(new Thickness(metrics.HalfBorderWidth), panel.Margin);
             Assert.Equal(new CornerRadius(metrics.CornerRadius), panel.CornerRadius);
-            Assert.Equal(new Thickness(1), panel.BorderThickness);
+
+            // 缝的**宽度**与停靠的岛一样（各让半条），但缝里要露"底板"：
+            // 停靠时缝底下什么都没有，露的就是窗口底板；这座岛底下压着编辑区，
+            // 不把底板色填上就露出编辑区（岛配色里两者同色，缝等于不存在）。
+            // 宿主给了底板色就用边框占住那条缝，没给就还是留白。
+            Assert.Equal(new Thickness(metrics.HalfBorderWidth), panel.BorderThickness);
+            Assert.Same(frame.BackdropBrush, panel.BorderBrush);
+            Assert.Equal(default, panel.Margin);
         }
         else
         {
