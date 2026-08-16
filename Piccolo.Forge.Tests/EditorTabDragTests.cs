@@ -812,6 +812,35 @@ public class EditorTabDragTests
     }
 
     /// <summary>
+    /// 一页都没开时不摆标签行 —— 空的标签行只剩底下那条分隔线，凭空在编辑区顶上画一道。
+    /// </summary>
+    [AvaloniaFact]
+    public void 空的编辑区不画标签行那条线()
+    {
+        var editor = new EditorAreaViewModel();
+        var control = new ForgeEditorArea();
+        control.Attach(editor);
+
+        var window = new Window { Width = 600, Height = 400, Content = control };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.DoesNotContain(
+            window.GetVisualDescendants().OfType<Border>(),
+            x => x.IsEffectivelyVisible && x.BorderThickness.Bottom > 0);
+
+        // 开一页，线跟着标签行一起回来
+        editor.Open("a", "Alpha.cs");
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Contains(
+            window.GetVisualDescendants().OfType<Border>(),
+            x => x.IsEffectivelyVisible && x.BorderThickness.Bottom > 0);
+
+        window.Close();
+    }
+
+    /// <summary>
     /// 浮窗里只有一份文档时不摆标签条，文档名写在窗口标题上。
     /// </summary>
     /// <remarks>一个窗口一份文档，还挂个标签条是重复的（与 Rider 一致）。再开一页标签条自然回来。</remarks>

@@ -885,10 +885,12 @@ public class ForgeEditorArea : TemplatedControl
         SyncStrip(vm, _groupStrips[vm]);
         SyncTabActions(vm);
 
-        // 浮出去的窗口里只剩一页时不摆标签条：文档名写在**窗口标题**上，
-        // 与 Rider 一致 —— 一个窗口一份文档，还挂个标签条是重复的。
-        // 再开第二页或者分了屏，标签条自然回来。
-        _groupStripHosts[vm].IsVisible = !IsSingleDocumentWindow;
+        // 标签行什么时候不摆：
+        //   · 一页都没开 —— 空的标签行只剩底下那条分隔线，凭空在编辑区顶上画一道；
+        //   · 浮出去的窗口里只剩一页 —— 文档名写在**窗口标题**上，与 Rider 一致，
+        //     一个窗口一份文档还挂个标签条是重复的。
+        // 开了标签、或者分了屏，标签行自然回来。
+        _groupStripHosts[vm].IsVisible = vm.Tabs.Count > 0 && !IsSingleDocumentWindow;
 
         _groupStripHosts[vm].BorderBrush = new SolidColorBrush(Palette.EditorTabsBorder);
 
