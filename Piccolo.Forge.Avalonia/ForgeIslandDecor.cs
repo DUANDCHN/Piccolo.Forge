@@ -47,18 +47,12 @@ public static class ForgeIslandDecor
     /// 底色；<see langword="null"/> 用 <see cref="ForgePalette.Background"/>（工具窗口那档）。
     /// 编辑区要传 <see cref="ForgePalette.EditorBackground"/>。
     /// </param>
-    /// <param name="isFloatingIsland">
-    /// 这座岛是不是浮在别的内容上（取消停靠的面板）。是的话四周让满一整条缝 ——
-    /// 见 <see cref="ForgeIslandMetrics.HalfBorderWidth"/>：并排的岛各让一半凑成一条，
-    /// 浮着的这座没有邻居帮它凑。
-    /// </param>
     public static void Apply(
         Border host,
         ForgePalette palette,
         ToolWindowAnchor? anchor,
         ForgeIslandMetrics? metricsOverride = null,
-        Color? background = null,
-        bool isFloatingIsland = false)
+        Color? background = null)
     {
         ArgumentNullException.ThrowIfNull(host);
         ArgumentNullException.ThrowIfNull(palette);
@@ -77,8 +71,8 @@ public static class ForgeIslandDecor
         }
 
         // 缝是**两边各出一半**：两座岛并排，各让 HalfBorderWidth，中间就是完整的 BorderWidth。
-        // 浮在别的内容上的那座岛没有邻居出另一半（下面是编辑区，不是岛），得自己让满。
-        host.Margin = new Thickness(isFloatingIsland ? island.BorderWidth : island.HalfBorderWidth);
+        // 取消停靠的那块也一样 —— 它就是一座岛，间距与别的岛分毫不差，不做任何特殊处理。
+        host.Margin = new Thickness(island.HalfBorderWidth);
         host.CornerRadius = new CornerRadius(island.CornerRadius);
 
         // ⚠ **必须裁**：CornerRadius 只管 Border 自己画的背景与描边，**不裁子控件**。
@@ -90,22 +84,6 @@ public static class ForgeIslandDecor
         // 是把抗锯齿后的圆角边缘补实。别改成对比色。
         host.BorderBrush = new SolidColorBrush(palette.IslandBorder);
         host.BorderThickness = new Thickness(1);
-
-        if (!isFloatingIsland)
-        {
-            return;
-        }
-
-        // ★ 浮着的这座岛，缝里得有"海"。
-        // 岛之所以看得见，靠的是缝里那片比岛亮/暗一档的主窗口底（Islands 的立意就是
-        // 「岛浮在海上」：tool-window-bg vs main-window-bg）。停靠区那些缝露的是宿主的
-        // 窗口底（宿主可能特意透出云母），而这座岛底下压着的是**编辑区**，
-        // 一样的颜色 —— 不自己把海画上，缝就等于不存在。
-        // 画法：让位改成同宽的边框，边框色取海色 —— 边框画在控件内部，正好把缝填上，
-        // 圆角也落在外沿，与上游那圈 outerInsets 是一回事。
-        host.Margin = default;
-        host.BorderBrush = new SolidColorBrush(palette.MainBackground);
-        host.BorderThickness = new Thickness(island.BorderWidth);
     }
 
     /// <summary>非岛形态下，一块面板朝向编辑区的那一条 1px 分隔线画在哪一侧。</summary>

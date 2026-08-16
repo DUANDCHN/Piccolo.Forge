@@ -1533,13 +1533,7 @@ public class ForgeToolWindowFrame : TemplatedControl
     {
         var info = _shell!.Manager.Layout.GetInfo(vm.Id)!;
 
-        // 取消停靠的那块浮在编辑区上，四周要让满一整条缝（理由见 isFloatingIsland）
-        ForgeIslandDecor.Apply(
-            host,
-            Palette,
-            info.Anchor,
-            IslandMetrics,
-            isFloatingIsland: info.Type == ToolWindowType.Sliding);
+        ForgeIslandDecor.Apply(host, Palette, info.Anchor, IslandMetrics);
 
         var header = _panelHeaders[vm.Id];
         header.Palette = Palette;

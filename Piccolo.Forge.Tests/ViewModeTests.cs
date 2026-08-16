@@ -335,16 +335,14 @@ public class ViewModeTests
             Assert.Null(resizer.LineBrush);
             Assert.True(panel.CornerRadius.TopLeft > 0, "岛该是圆角的");
 
-            // 缝要**整条**，而且缝里要有"海"：岛看得见靠的就是缝里那片主窗口底
-            //（Islands 的立意是「岛浮在海上」）。这座岛底下压着编辑区、同色，
-            // 不自己把海画上就等于没有缝 —— 所以让位改成同宽的边框、边框色取海色。
-            Assert.Equal(3, panel.BorderThickness.Right, 0.01);
-            Assert.Equal(
-                frame.Palette.MainBackground,
-                Assert.IsType<SolidColorBrush>(panel.BorderBrush).Color);
-
-            // 海必须与岛**不同色**，否则画了也白画（这才是"看得见"的判据）
-            Assert.NotEqual(frame.Palette.Background, frame.Palette.MainBackground);
+            // 取消停靠的那块**就是一座岛**，和别的岛一模一样：
+            //   · 四周各让半条缝（并排时两边各一半凑成整条 BorderWidth=3）；
+            //   · 四角都圆 —— 包括贴着条带的那一侧；
+            //   · 不额外加边框、不填海色、不加投影 —— 这三样我都试过，全是画蛇添足。
+            var metrics = ForgeIslandMetrics.Default with { BorderWidth = 3 };
+            Assert.Equal(new Thickness(metrics.HalfBorderWidth), panel.Margin);
+            Assert.Equal(new CornerRadius(metrics.CornerRadius), panel.CornerRadius);
+            Assert.Equal(new Thickness(1), panel.BorderThickness);
         }
         else
         {
