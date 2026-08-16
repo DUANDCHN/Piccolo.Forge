@@ -131,16 +131,10 @@ public class ForgeToolWindowFrame : TemplatedControl
 
         ActualThemeVariantChanged += (_, _) => ApplyThemeVariant();
 
-        // ★ 条带按钮的**手势归框架管，不归按钮管**。
-        //
-        //   同步（Sync）会重排、重挂条带按钮 —— 按钮一旦被摘下再挂上，
-        //   落在它身上的指针捕获就没了，松手事件再也到不了它，这一下点击整个被吞掉。
-        //   而同步的触发时机是随机的（焦点变化、状态广播），所以表现成
-        //   **「侧边栏按钮偶尔要点两下」**：第一下按下、中途来了次同步、松手丢了；
-        //   第二下没赶上同步，正常。
-        //
-        //   框架自己不参与那次重挂，所以捕获在它手上就稳。同一条规矩编辑区
-        //   已经为标签拖拽立过（见 ForgeEditorArea 构造函数处的注释）。
+        // ★ 拖动与松手接在**框架**上：同步（Sync）会重排、重挂条带按钮，
+        //   接在按钮身上的处理器会跟着那次重挂一起失效。
+        //   **点击不在其列** —— 那归 Button 自己（见 WireStripeButton），
+        //   框架只管"拖没拖、拖到哪"。
         const RoutingStrategies gestureRoutes =
             RoutingStrategies.Tunnel | RoutingStrategies.Bubble | RoutingStrategies.Direct;
         AddHandler(PointerMovedEvent, OnStripePointerMoved, gestureRoutes, handledEventsToo: true);
@@ -683,7 +677,16 @@ public class ForgeToolWindowFrame : TemplatedControl
     {
         var id = vm.Id;
 
-        button.PointerPressed += (_, e) =>
+        // 点击**归框架控件管**：Button 只在「按下与松开落在同一个按钮上」时才发 Click，
+        // 那正是点击的定义 —— 手抖多少像素都不影响，键盘空格 / 回车也照发。
+        // 曾经这里自己判"位移没超过拖拽死区才算点击"，做出过「侧边栏按钮有时要点两下」。
+        button.Click += (_, _) => Toggle(id);
+
+        // ⚠ 必须 handledEventsToo：Button 的类处理器会把 PointerPressed 标成 handled
+        //   （它要靠这一下进入按下态），普通的 `+=` 处理器会被跳过 —— 于是拖拽起不来。
+        button.AddHandler(
+            PointerPressedEvent,
+            (object? _, PointerPressedEventArgs e) =>
         {
             // 右键交给菜单，不当拖拽起点
             if (e.GetCurrentPoint(button).Properties.IsRightButtonPressed)
@@ -700,9 +703,11 @@ public class ForgeToolWindowFrame : TemplatedControl
                 ? new Rect(origin, button.Bounds.Size)
                 : default;
 
-            // ⚠ 捕获给**框架**，不是按钮：按钮会被同步重挂，捕获跟着丢（见构造函数处的说明）。
-            e.Pointer.Capture(this);
-        };
+            // ⚠ **全程不抢指针捕获**：捕获在 Button 手上，它才收得到松手、才发得出 Click。
+            //    抢过来自己管，就等于把"按下-松开算一次点击"重新实现一遍。
+        },
+            RoutingStrategies.Tunnel | RoutingStrategies.Bubble | RoutingStrategies.Direct,
+            handledEventsToo: true);
     }
 
     private void OnStripePointerMoved(object? sender, PointerEventArgs e)
@@ -715,55 +720,46 @@ public class ForgeToolWindowFrame : TemplatedControl
         var point = e.GetPosition(this);
         var moved = Math.Sqrt(Math.Pow(point.X - _dragStart.X, 2) + Math.Pow(point.Y - _dragStart.Y, 2));
 
-        // 条带按钮走基类的死区 7（MouseDragHelper.java:32）
-        if (moved >= ForgeMetrics.StripeButtonDragStartDeadzone)
+        // 拖动开始的两个条件，缺一不可：
+        //   ① 走够基类的死区 7（MouseDragHelper.java:32）；
+        //   ② **已经离开这个按钮**。
+        // ② 不是上游的原话，是这边必须加的一条：拖动一开始就会把被拖按钮排成零尺寸
+        //   （腾出落点槽），而按钮一旦没了尺寸，Button 就判不出"松手落在自己身上"、
+        //   发不出 Click —— 手抖八九个像素的一次点击会当场变成"拖了一下又没拖成"，
+        //   也就是「侧边栏按钮有时要点两下」。
+        if (moved < ForgeMetrics.StripeButtonDragStartDeadzone || _dragButtonBounds.Contains(point))
         {
-            // 快照只拍一次：拍在按钮**还排在原位**的时候（此后它被排成零尺寸就拍不到了）。
-            // 对应上游 createStripeButtonDragImage 在 dragStarted 时产出 BufferedImage。
-            _dragThumb ??= ForgeDragOverlay.CaptureThumb(button);
-            UpdateDragFeedback(point);
+            return;
         }
+
+        // 拖动**从这一刻**起有视觉：快照拍在按钮还排在原位的时候（此后它被排成零尺寸就拍不到了），
+        // 对应上游 createStripeButtonDragImage 在 dragStarted 时产出 BufferedImage。
+        // 这一步只改视觉，不碰捕获 —— 理由见按下处。
+        _dragThumb ??= ForgeDragOverlay.CaptureThumb(button);
+        UpdateDragFeedback(point);
     }
 
     private void OnStripePointerReleased(object? sender, PointerReleasedEventArgs e)
+        => EndStripeGesture(e.GetPosition(this), commit: true);
+
+    /// <summary>捕获丢了（窗口失活、别处抢走…）：拖到一半被打断，按取消收尾。</summary>
+    private void OnStripePointerCaptureLost(object? sender, PointerCaptureLostEventArgs e)
+        => EndStripeGesture(_dragStart, commit: false);
+
+    /// <summary>
+    /// 手势收尾：只管「搬没搬家」，<b>点击不归这里</b>（那是 <c>Button.Click</c>）。
+    /// </summary>
+    /// <remarks>
+    /// 「拖起来了」且「松手落在原按钮**之外**」才算搬家。落回原处 = 什么都没搬，
+    /// 而 Button 会照常发 Click —— 于是它就是一次点击，不用这里再判一遍。
+    /// </remarks>
+    private void EndStripeGesture(Point point, bool commit)
     {
         if (_dragId is null)
         {
             return;
         }
 
-        // ⚠ 顺序：**先收尾、后放捕获**。
-        //   Capture(null) 会**同步**触发 PointerCaptureLost，而那个处理器会把手势按
-        //   「取消」收掉；先放捕获的话，等这里再调 EndStripeGesture 时 _dragId 已经被
-        //   清空，点击当场丢掉 —— 与这次要修的 bug 一模一样，只是换了个触发源。
-        EndStripeGesture(e.GetPosition(this), commit: true);
-        e.Pointer.Capture(null);
-    }
-
-    /// <summary>
-    /// 捕获丢了怎么办 —— <b>看这一下是不是已经拖起来了</b>。
-    /// </summary>
-    /// <remarks>
-    /// <b>已经在拖</b>（虚影拍过了）：按取消收尾，把虚影和排布态清干净 ——
-    /// 捕获都没了，落点无从谈起。
-    /// <para>
-    /// <b>还只是按着没动</b>：**什么都不做，把这一下留给随后的松手**。
-    /// 捕获会在同步重排时被抖掉（这正是本次要修的那个 bug 的成因），
-    /// 而那时用户手指还按着、明明白白是要点这个按钮；在这儿一刀切成"取消"，
-    /// 症状就从「点了没反应」变成「点了还是没反应」，只是换了个地方丢。
-    /// 松手事件本来就会照常送到框架（指针还在它的子树上），不靠捕获也收得到。
-    /// </para>
-    /// </remarks>
-    private void OnStripePointerCaptureLost(object? sender, PointerCaptureLostEventArgs e)
-    {
-        if (_dragId is not null && _dragThumb is not null)
-        {
-            EndStripeGesture(_dragStart, commit: false);
-        }
-    }
-
-    private void EndStripeGesture(Point point, bool commit)
-    {
         if (DraggedButton is { } button)
         {
             button.Opacity = 1;
@@ -772,42 +768,17 @@ public class ForgeToolWindowFrame : TemplatedControl
         _overlay.Clear();
 
         var dragged = _dragId;
-        var moved = Math.Sqrt(Math.Pow(point.X - _dragStart.X, 2) + Math.Pow(point.Y - _dragStart.Y, 2));
-
-        // 「松手时还在原按钮上」= 点击。**与中间抖了多少像素无关** ——
-        //
-        // ⚠ 这里曾经只按死区判：抖过 7px（`MouseDragHelper.java:32`）就一律当拖拽，
-        //   而这一下又落不到任何有效槽位，于是什么都不做 —— 表现成
-        //   **「侧边栏按钮有时要点两下」**。真人按鼠标抖七八个像素再正常不过，
-        //   等于把「能点的地方」缩成了按下点周围 7px 的一个小圈。
-        //   上游没有这个问题：SquareStripeButton 继承 ActionButton，点击是 Swing 的
-        //   「释放在组件内即触发」，拖拽助手只在真正拖离按钮之后才接管。
-        // 判据用**按下那一刻**按钮所在的矩形：拖起来之后它会被排成零尺寸（好腾出落点槽），
-        // 那时再读 Bounds 恒为空，判据当场失效。
-        var onButton = _dragButtonBounds.Contains(point);
+        var moved = _dragThumb is not null && !_dragButtonBounds.Contains(point);
 
         // ⚠ 顺序要紧：ResolveDropTarget 靠 DraggedButton（读 _dragId）把被拖项排除在外，
         // 所以**先算落点，再清 _dragId 与排布态**。反过来的话被拖的那个又被算进序列，
         // 落点当场偏一格 —— 正是「放在下面、框提示在上面」那个 bug 的另一半。
-        var target = !commit || onButton || moved < ForgeMetrics.StripeButtonDragStartDeadzone
-            ? null
-            : ResolveDropTarget(point);
+        var target = commit && moved ? ResolveDropTarget(point) : null;
 
         _dragId = null;
         ClearDragLayout();
 
-        if (!commit || dragged is null)
-        {
-            return;
-        }
-
-        if (onButton || moved < ForgeMetrics.StripeButtonDragStartDeadzone)
-        {
-            Toggle(dragged);
-            return;
-        }
-
-        if (target is { } t)
+        if (commit && moved && dragged is not null && target is { } t)
         {
             _shell!.Manager.MoveTo(dragged, t.Anchor, t.Order, t.IsSplit);
         }
@@ -819,7 +790,7 @@ public class ForgeToolWindowFrame : TemplatedControl
         {
             button = new ForgeMoreButton { Side = side, IsLeftStripe = side == StripeSide.Left };
             var self = button;
-            button.PointerPressed += (_, _) =>
+            button.Click += (_, _) =>
             {
                 if (self.IsAvailable)
                 {
@@ -841,7 +812,7 @@ public class ForgeToolWindowFrame : TemplatedControl
     /// <summary>拖拽中按钮的透明度（<c>ToolWindowDragHelper.kt:94 · THUMB_OPACITY</c>）。</summary>
     private const double ForgeDragOpacity = 0.85;
 
-    /// <summary>按下那一刻，被按的条带按钮在框架坐标系里的矩形（松手落在它里面就算点击）。</summary>
+    /// <summary>按下那一刻，被按的条带按钮在框架坐标系里的矩形（松手落回它里面 = 没搬家）。</summary>
     private Rect _dragButtonBounds;
 
     /// <summary>上一次算出来的空槽落点：哪一组、第几个之前。</summary>

@@ -1,4 +1,4 @@
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
@@ -30,7 +30,7 @@ public class StripeButtonClickTests
     [AvaloniaTheory]
     [InlineData(0)]    // 稳稳一点
     [InlineData(8)]    // 抖过死区，但还在按钮里
-    [InlineData(20)]   // 抖得更多，仍在按钮里（40 宽的按钮）
+    [InlineData(15)]   // 抖得更多，但仍落在按钮里（按钮 40 高，从中心往下 15 还在里面）
     public void 在同一个按钮上按下松开就是点击(double jitter)
     {
         var (window, frame, shell) = Build();

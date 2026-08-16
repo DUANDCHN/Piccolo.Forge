@@ -1,5 +1,6 @@
-using Avalonia;
-using Avalonia.Controls.Primitives;
+﻿using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.Templates;
 using Avalonia.Media;
 using Piccolo.Forge.Themes;
 
@@ -12,8 +13,20 @@ namespace Piccolo.Forge.Avalonia;
 /// 对应上游的 <c>AbstractSquareStripeButton</c>（<c>SquareStripeButton.kt:62-80</c>）——
 /// 工具窗口按钮和「更多」按钮在上游是**兄弟**，都继承它，
 /// 而不是后者继承前者。这里保持同样的层级。
+/// <para>
+/// <b>底座是 Avalonia 的 <see cref="Button"/>。</b>上游那边也是 <c>ActionButton</c>（Swing 的按钮）——
+/// 「按下与松开落在同一个按钮上才算一次点击」「键盘空格 / 回车」「按下态」这些框架早就做对了。
+/// 自己实现的那一版做出过 <b>侧边栏按钮有时要点两下</b>：它拿"位移有没有超过拖拽死区"当点击判据，
+/// 手抖七八个像素就白点一下。
+/// </para>
+/// <para>
+/// <b>长相仍然全自绘</b>：<c>Render</c> 画背景与图标，颜色只认 <see cref="ForgePalette"/>，
+/// 不吃宿主主题（Avalonia 按控件的**实际类型**找 <c>ControlTheme</c>，宿主主题里那份是给
+/// <c>Button</c> 的、落不到子类头上）。模板换成一个只用来放宿主图标控件的空槽
+/// （<see cref="ForgeIconHost"/>）——理由见那个类。
+/// </para>
 /// </remarks>
-public abstract class ForgeSquareButtonBase : TemplatedControl
+public abstract class ForgeSquareButtonBase : Button
 {
     /// <summary><see cref="Palette"/> 的属性定义。</summary>
     public static readonly StyledProperty<ForgePalette> PaletteProperty =
@@ -25,7 +38,9 @@ public abstract class ForgeSquareButtonBase : TemplatedControl
 
     static ForgeSquareButtonBase()
     {
-        AffectsRender<ForgeSquareButtonBase>(PaletteProperty, IsCompactProperty, IsLeftStripeProperty);
+        // 悬停 / 按下两种态归框架管，我们只管"变了就重画"
+        AffectsRender<ForgeSquareButtonBase>(
+            PaletteProperty, IsCompactProperty, IsLeftStripeProperty, IsPointerOverProperty, IsPressedProperty);
         // 换族会改按钮宽（40 ↔ 37），所以 Palette 也要触发重新测量，不只是重画
         AffectsMeasure<ForgeSquareButtonBase>(IsCompactProperty, PaletteProperty, IsLeftStripeProperty);
     }
@@ -62,7 +77,54 @@ public abstract class ForgeSquareButtonBase : TemplatedControl
     protected ForgeSquareButtonBase()
     {
         Focusable = true;
+
+        // 换掉 Button 自带的模板：那份会把手工挂上去的图标控件扫掉（见 ForgeIconHost）。
+        Template = new FuncControlTemplate((owner, _) =>
+        {
+            var button = (ForgeSquareButtonBase)owner;
+            var host = new ForgeIconHost { Placement = button.IconRect };
+            button._iconHost = host;
+            host.Icon = button._iconControl;
+            return host;
+        });
     }
+
+    private ForgeIconHost? _iconHost;
+    private Control? _iconControl;
+
+    /// <summary>
+    /// 宿主塞进来的图标控件（<c>MaterialIcon</c>、<c>Image</c>…）。
+    /// </summary>
+    /// <remarks>
+    /// 放进模板里那个槽，不直接挂在按钮上 —— 挂上去会被 <c>ApplyTemplate</c> 扫掉。
+    /// </remarks>
+    /// <param name="control">图标控件；<see langword="null"/> 表示没有。</param>
+    protected void SetIconControl(Control? control)
+    {
+        if (ReferenceEquals(control, _iconControl))
+        {
+            return;
+        }
+
+        _iconControl = control;
+
+        if (_iconHost is not null)
+        {
+            _iconHost.Icon = control;
+        }
+
+        InvalidateMeasure();
+    }
+
+    /// <summary>当前挂着的图标控件。</summary>
+    protected Control? IconControl => _iconControl;
+
+    /// <summary>
+    /// 图标占的那块地（按钮自己的坐标系）。
+    /// </summary>
+    /// <param name="size">按钮尺寸。</param>
+    /// <returns>图标矩形。</returns>
+    protected virtual Rect IconRect(Size size) => BackgroundRect(new Rect(size));
 
     /// <summary>配色。</summary>
     public ForgePalette Palette
@@ -126,7 +188,7 @@ public abstract class ForgeSquareButtonBase : TemplatedControl
     /// <c>RoundRectangle2D</c> 的 <c>arcw/arch</c> 用），而 Avalonia 的 <c>RoundedRect</c> 收半径。
     /// 画的时候一律用这个属性，别直接用 <see cref="Arc"/> —— 那样圆角会大一倍。
     /// <para>
-    /// 名字**不叫 <c>CornerRadius</c>**：那会隐藏 <see cref="TemplatedControl"/> 的同名属性，
+    /// 名字**不叫 <c>CornerRadius</c>**：那会隐藏 <c>TemplatedControl</c> 的同名属性，
     /// 编译器只给个警告，而两者语义不同（那个是控件自身边框的圆角）。
     /// </para>
     /// </remarks>
@@ -155,17 +217,4 @@ public abstract class ForgeSquareButtonBase : TemplatedControl
     /// <inheritdoc />
     protected override Size MeasureOverride(Size availableSize) => new(ButtonWidth, ButtonHeight);
 
-    /// <inheritdoc />
-    protected override void OnPointerEntered(global::Avalonia.Input.PointerEventArgs e)
-    {
-        base.OnPointerEntered(e);
-        InvalidateVisual();
-    }
-
-    /// <inheritdoc />
-    protected override void OnPointerExited(global::Avalonia.Input.PointerEventArgs e)
-    {
-        base.OnPointerExited(e);
-        InvalidateVisual();
-    }
 }

@@ -1,7 +1,6 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Primitives;
-using Avalonia.Input;
+using Avalonia.Controls.Templates;
 using Avalonia.Media;
 using Piccolo.Forge.Themes;
 
@@ -18,12 +17,16 @@ namespace Piccolo.Forge.Avalonia;
 /// 这个只是一个动作按钮 —— 只有悬停/按下两种底，没有"这个窗口开着"的状态。
 /// </para>
 /// <para>
+/// 底座是 <see cref="Button"/>：点击、键盘、按下态都归框架（理由同
+/// <see cref="ForgeSquareButtonBase"/>）。模板换成空的，只留自绘。
+/// </para>
+/// <para>
 /// <b>宿主可以直接 new 它来塞自己的按钮</b>（<c>ForgeToolWindowFrame.HeaderButtonsExtension</c> /
 /// <c>ForgeEditorArea.TabActionsExtension</c>），也可以塞任意别的 <see cref="Control"/> ——
 /// 库不规定宿主的按钮长什么样，只保证位置和排布。
 /// </para>
 /// </remarks>
-public class ForgeHeaderButton : TemplatedControl
+public class ForgeHeaderButton : Button
 {
     /// <summary><see cref="Palette"/> 的属性定义。</summary>
     public static readonly StyledProperty<ForgePalette> PaletteProperty =
@@ -35,13 +38,17 @@ public class ForgeHeaderButton : TemplatedControl
 
     static ForgeHeaderButton()
     {
-        AffectsRender<ForgeHeaderButton>(PaletteProperty, IconProperty, IsPointerOverProperty);
+        AffectsRender<ForgeHeaderButton>(PaletteProperty, IconProperty, IsPointerOverProperty, IsPressedProperty);
     }
 
     /// <summary>建一个标题条按钮。</summary>
     public ForgeHeaderButton()
     {
         Focusable = false;
+
+        // 换掉 Button 自带的模板：这个按钮只有自绘内容，模板里放一个空壳就行。
+        // ⚠ 不能返回 null —— Avalonia 应用模板时会当场 NRE。
+        Template = new FuncControlTemplate((_, _) => new Panel());
     }
 
     /// <summary>配色。</summary>
@@ -63,9 +70,6 @@ public class ForgeHeaderButton : TemplatedControl
     /// <see cref="ForgeIcons.Hide"/>）设 <see langword="false"/>。</remarks>
     public bool IsFilledIcon { get; set; } = true;
 
-    /// <summary>点了。</summary>
-    public event EventHandler<PointerReleasedEventArgs>? Click;
-
     /// <inheritdoc />
     protected override Size MeasureOverride(Size availableSize)
         => new(ForgeMetrics.HeaderButtonSize, ForgeMetrics.HeaderButtonSize);
@@ -79,7 +83,7 @@ public class ForgeHeaderButton : TemplatedControl
     {
         ForgeHitArea.Fill(context, Bounds.Size);
 
-        if (IsPointerOver)
+        if (IsPointerOver || IsPressed)
         {
             context.DrawRectangle(
                 new SolidColorBrush(Palette.ButtonHoverBackground),
@@ -102,15 +106,4 @@ public class ForgeHeaderButton : TemplatedControl
         }
     }
 
-    /// <inheritdoc />
-    protected override void OnPointerReleased(PointerReleasedEventArgs e)
-    {
-        base.OnPointerReleased(e);
-
-        if (new Rect(Bounds.Size).Contains(e.GetPosition(this)))
-        {
-            Click?.Invoke(this, e);
-            e.Handled = true;
-        }
-    }
 }

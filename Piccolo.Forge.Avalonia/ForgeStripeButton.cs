@@ -194,22 +194,6 @@ public class ForgeStripeButton : ForgeSquareButtonBase
         return new Size(width, height);
     }
 
-    /// <summary>
-    /// 宿主塞进来的图标控件。
-    /// </summary>
-    /// <remarks>
-    /// <see cref="Icon"/> 是 <see cref="object"/>，允许三种东西：
-    /// <list type="bullet">
-    /// <item><see cref="Geometry"/> —— 库自绘那一套（<c>ForgeIcons</c>），直接画；</item>
-    /// <item><see cref="Control"/> —— 宿主自己的图标控件（Material.Icons、Image…），
-    ///       挂成子元素，由它自己画；</item>
-    /// <item><see langword="null"/> —— 画默认图形。</item>
-    /// </list>
-    /// 第二种是这个字段存在的理由：库<b>不带图标资源</b>（上游那套是 JetBrains 的美术资产），
-    /// 也不想强迫宿主改用某个图标库，所以必须能收下一个现成的控件。
-    /// </remarks>
-    private Control? _iconControl;
-
     /// <inheritdoc />
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
@@ -217,7 +201,7 @@ public class ForgeStripeButton : ForgeSquareButtonBase
 
         if (change.Property == IconProperty)
         {
-            AttachIconControl(change.GetNewValue<object?>() as Control);
+            SetIconControl(change.GetNewValue<object?>() as Control);
         }
 
         if (change.Property == IconProperty
@@ -238,27 +222,12 @@ public class ForgeStripeButton : ForgeSquareButtonBase
     /// </remarks>
     private void UpdateIconForeground()
     {
-        if (_iconControl is null)
+        if (IconControl is null)
         {
             return;
         }
 
         SetCurrentValue(ForegroundProperty, new SolidColorBrush(ResolveForeground()));
-    }
-
-    /// <inheritdoc />
-    protected override Size ArrangeOverride(Size finalSize)
-    {
-        var size = base.ArrangeOverride(finalSize);
-
-        if (_iconControl is not null)
-        {
-            var rect = IconRect(finalSize);
-            _iconControl.Measure(rect.Size);
-            _iconControl.Arrange(rect);
-        }
-
-        return size;
     }
 
     /// <summary>
@@ -286,7 +255,7 @@ public class ForgeStripeButton : ForgeSquareButtonBase
     /// </remarks>
     /// <param name="size">按钮自己的尺寸。</param>
     /// <returns>图标矩形。</returns>
-    private Rect IconRect(Size size)
+    protected override Rect IconRect(Size size)
     {
         // 显名时按钮被名字撑高，图标只在上面那一格里排
         var cell = ShowName
@@ -299,30 +268,6 @@ public class ForgeStripeButton : ForgeSquareButtonBase
             area.Y + ((area.Height - IconSize) / 2),
             IconSize,
             IconSize);
-    }
-
-    private void AttachIconControl(Control? control)
-    {
-        if (ReferenceEquals(control, _iconControl))
-        {
-            return;
-        }
-
-        if (_iconControl is not null)
-        {
-            VisualChildren.Remove(_iconControl);
-            LogicalChildren.Remove(_iconControl);
-        }
-
-        _iconControl = control;
-
-        if (_iconControl is not null)
-        {
-            VisualChildren.Add(_iconControl);
-            LogicalChildren.Add(_iconControl);
-        }
-
-        InvalidateMeasure();
     }
 
     /// <inheritdoc />
@@ -357,8 +302,8 @@ public class ForgeStripeButton : ForgeSquareButtonBase
         }
 
         // 宿主给的是控件（MaterialIcon、Image、任何 Control）——它自己会画，这里什么都不做。
-        // 位置在 ArrangeOverride 里安排好了。
-        if (_iconControl is not null)
+        // 位置由模板里那个槽（ForgeIconHost）按 IconRect 安排。
+        if (IconControl is not null)
         {
             return;
         }

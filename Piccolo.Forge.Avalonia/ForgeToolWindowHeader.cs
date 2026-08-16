@@ -1,7 +1,7 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
-using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Media;
 using Piccolo.Forge.Model;
 using Piccolo.Forge.Themes;
@@ -78,10 +78,10 @@ public class ForgeToolWindowHeader : TemplatedControl
     }
 
     /// <summary>⋮ 被点了 —— 宿主在这里弹「选项」菜单。</summary>
-    public event EventHandler<PointerReleasedEventArgs>? OptionsRequested;
+    public event EventHandler<RoutedEventArgs>? OptionsRequested;
 
     /// <summary>— 被点了 —— 宿主在这里收起这个面板。</summary>
-    public event EventHandler<PointerReleasedEventArgs>? HideRequested;
+    public event EventHandler<RoutedEventArgs>? HideRequested;
 
     /// <summary>⋮ 那个按钮（宿主要挂菜单时用得着它的位置）。</summary>
     public ForgeHeaderButton OptionsButton => _options;

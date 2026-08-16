@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using Avalonia;
 using Avalonia.Input;
 using Avalonia.Threading;
@@ -315,7 +315,9 @@ public class ForgeControlsTests
         button.Measure(Size.Infinity);
         button.Arrange(new Rect(button.DesiredSize));
 
-        Assert.Same(button, icon.GetVisualParent());
+        // 图标挂在**模板里的槽**（ForgeIconHost）上，不直接挂按钮 —— Button 的 ApplyTemplate
+        // 会清空 VisualChildren，手工挂在按钮身上的东西活不过一次测量（见 ForgeIconHost）。
+        Assert.Contains(icon, button.GetVisualDescendants());
 
         // 图标位是 40 - padding 5 × 2 = 30×30，居中放在按钮里；
         // 控件自己有多大由它自己说了算（这里 Border 显式 20×20），只要它是居中的。
@@ -330,10 +332,14 @@ public class ForgeControlsTests
         var second = new Border();
         var button = new ForgeStripeButton { Icon = first };
 
+        button.Measure(Size.Infinity);
+        button.Arrange(new Rect(button.DesiredSize));
         button.Icon = second;
+        button.Measure(Size.Infinity);
+        button.Arrange(new Rect(button.DesiredSize));
 
-        Assert.Null(first.GetVisualParent());
-        Assert.Same(button, second.GetVisualParent());
+        Assert.DoesNotContain(first, button.GetVisualDescendants());
+        Assert.Contains(second, button.GetVisualDescendants());
     }
 
     [AvaloniaFact]
@@ -344,7 +350,8 @@ public class ForgeControlsTests
         button.Measure(Size.Infinity);
         button.Arrange(new Rect(button.DesiredSize));
 
-        Assert.Empty(button.GetVisualChildren());
+        // 模板里那个槽恒在（Button 必须有模板），槽里没有图标控件才是「不托管控件」
+        Assert.DoesNotContain(button.GetVisualDescendants(), x => x is Border);
     }
 
     [AvaloniaFact]

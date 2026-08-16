@@ -362,7 +362,11 @@ public class EditorTabDragTests
         window.Show();
         Dispatcher.UIThread.RunJobs();
 
-        control.GetVisualDescendants().OfType<Button>().First().Focus();
+        // ⚠ 按内容挑，别拿 OfType<Button>().First() —— 标签条右端那个 ⋮（ForgeHeaderButton）
+        //   也是 Button，排在前面，焦点会跑到它身上，这条就白测了。
+        // ⚠ 挑**宿主内容**里那个按钮，别拿 OfType<Button>().First() —— 标签条右端那个 ⋮
+        //   （ForgeHeaderButton）也是 Button 且排在前面，焦点跑到它身上这条就白测了。
+        control.GetVisualDescendants().OfType<Button>().First(x => x is not ForgeHeaderButton).Focus();
         Dispatcher.UIThread.RunJobs();
         Assert.True(control.IsKeyboardFocusWithin, "前置条件：焦点得真在编辑区里，否则这条测不到东西");
 
