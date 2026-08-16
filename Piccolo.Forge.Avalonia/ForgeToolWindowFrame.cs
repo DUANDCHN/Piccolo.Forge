@@ -1319,6 +1319,11 @@ public class ForgeToolWindowFrame : TemplatedControl
             ExternalWindowFactory?.Invoke(info.Type));
         _externalWindows[vm.Id] = external;
 
+        if (ExternalWindowTitle?.Invoke(info.Type, vm.Title) is { } title)
+        {
+            external.Window.Title = title;
+        }
+
         var id = vm.Id;
         external.Window.Closing += (_, _) =>
         {
@@ -1426,6 +1431,17 @@ public class ForgeToolWindowFrame : TemplatedControl
     /// </remarks>
     public double CaptionButtonsWidth { get; set; }
 
+    /// <summary>
+    /// 外部窗口的标题写什么。
+    /// </summary>
+    /// <remarks>
+    /// 入参是形态和面板名，返回 <see langword="null"/> 表示这一种不改、走默认。
+    /// 不设就按上游那套（浮动只用面板名，独立窗口是
+    /// <c>"{面板名} - {项目名}"</c>，见 <see cref="ForgeFloatingToolWindow.ComposeTitle"/>）。
+    /// 宿主的窗体若自带标题栏、想在那一行写别的（比如软件名），在这里给。
+    /// </remarks>
+    public Func<ToolWindowType, string, string?>? ExternalWindowTitle { get; set; }
+
     /// <summary>取（必要时新建）一个工具窗口的面板宿主。</summary>
     private Border GetPanelHost(ToolWindowViewModel vm)
     {
@@ -1485,10 +1501,10 @@ public class ForgeToolWindowFrame : TemplatedControl
         // 「停靠回去」只在独立出去之后才有意义
         header.ShowDockButton = ToolWindowManager.IsExternal(info.Type);
 
-        // 切出去之后这条标题条就是那个窗口的标题栏（宿主窗体不再自带一条，两条会重影）
-        //  → 按窗口标题栏的高度长；独立窗口再往左让出它的系统按钮（见 CaptionButtonsWidth）。
-        var external = ToolWindowManager.IsExternal(info.Type);
-        header.TitleBarHeight = external ? TitleBarHeight : double.NaN;
+        // 浮动时宿主窗体没有标题栏，这条兼任 → 按窗口标题栏的高度长。
+        // 独立窗口另说：那种窗体自带标题栏（第一行），这条仍是普通的面板标题条（第二行）；
+        // 只有当宿主把系统按钮也摆到这一行时才需要让位（CaptionButtonsWidth，默认 0 不让）。
+        header.TitleBarHeight = info.Type == ToolWindowType.Floating ? TitleBarHeight : double.NaN;
         header.CaptionButtonsWidth = info.Type == ToolWindowType.Windowed ? CaptionButtonsWidth : 0;
         header.SetExtraButtons(HeaderButtonsExtension?.Invoke(vm.Id));
         SyncTabs(header, vm, info.ContentUiType);
