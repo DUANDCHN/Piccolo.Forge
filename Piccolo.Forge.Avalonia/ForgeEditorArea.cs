@@ -780,25 +780,45 @@ public class ForgeEditorArea : TemplatedControl
         strip.ItemsSource ??= vm.Tabs;
         strip.SelectedItem = vm.Selected;
 
+        // ⚠ 容器可能**这一刻还没实现出来**（刚给 ItemsSource 的那一轮尤其如此），
+        //   那样这里的赋值全落空。所以再挂一次「容器实现时」的钩子补配 ——
+        //   右键菜单就是这么丢的：标题之类后来还会被别的同步重刷一遍，
+        //   菜单只在这儿配一次，落空就永远没有。
+        if (_wiredStrips.Add(strip))
+        {
+            strip.ContainerPrepared += (_, e) =>
+            {
+                if (e.Container is ForgeEditorTab prepared && e.Index < vm.Tabs.Count)
+                {
+                    ApplyTabContainer(vm.Tabs[e.Index], prepared, strip);
+                }
+            };
+        }
+
         for (var i = 0; i < vm.Tabs.Count; i++)
         {
-            if (strip.ContainerFromIndex(i) is not ForgeEditorTab control)
+            if (strip.ContainerFromIndex(i) is ForgeEditorTab control)
             {
-                continue;
+                ApplyTabContainer(vm.Tabs[i], control, strip);
             }
-
-            var tab = vm.Tabs[i];
-            control.Palette = Palette;
-            control.ContextMenu = ForgeMenuBuilder.ForEditorTab(
-                _area!, tab.Id, tab.IsPinned, TabMenuExtension, MoveToNewWindow);
-            control.Title = tab.Title;
-            control.Icon = ResolveIcon(control, tab.Icon);
-            control.IsSelected = tab.IsSelected;
-            control.IsGroupActive = strip.IsGroupActive;
-            control.IsPinned = tab.IsPinned;
-            control.CanBeClosed = tab.IsCloseable && !tab.IsPinned;
-            control.DataContext = tab;
         }
+    }
+
+    private readonly HashSet<ForgeEditorTabStrip> _wiredStrips = [];
+
+    /// <summary>把一个标签页 VM 的样子落到它的容器上。</summary>
+    private void ApplyTabContainer(EditorTabViewModel tab, ForgeEditorTab control, ForgeEditorTabStrip strip)
+    {
+        control.Palette = Palette;
+        control.ContextMenu = ForgeMenuBuilder.ForEditorTab(
+            _area!, tab.Id, tab.IsPinned, TabMenuExtension, MoveToNewWindow);
+        control.Title = tab.Title;
+        control.Icon = ResolveIcon(control, tab.Icon);
+        control.IsSelected = tab.IsSelected;
+        control.IsGroupActive = strip.IsGroupActive;
+        control.IsPinned = tab.IsPinned;
+        control.CanBeClosed = tab.IsCloseable && !tab.IsPinned;
+        control.DataContext = tab;
     }
 
     /// <summary>

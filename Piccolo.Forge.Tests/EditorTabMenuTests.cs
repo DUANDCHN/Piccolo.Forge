@@ -1,4 +1,7 @@
 ﻿using Avalonia.Controls;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
+using System.Linq;
 using Avalonia.Headless.XUnit;
 using Piccolo.Forge.Avalonia;
 using Piccolo.Forge.Model;
@@ -51,6 +54,36 @@ public class EditorTabMenuTests
         Assert.DoesNotContain(
             menu.Items.OfType<MenuItem>().Select(x => (string?)x.Header),
             x => x == "在新窗口中打开标签页");
+    }
+
+    /// <summary>
+    /// 每个标签容器身上都得挂着右键菜单 —— 否则右键什么都不弹。
+    /// </summary>
+    /// <remarks>
+    /// 回归：菜单只在同步那一轮配一次，而那一刻容器**可能还没实现出来**
+    /// （刚给 ItemsSource 的那轮尤其如此），赋值落空后就再没人补 ——
+    /// 标题之类后来还会被别的同步重刷，菜单不会。现在容器一实现就配。
+    /// <para>
+    /// 这里不断言"右键之后菜单打开了"：headless 平台不发 ContextRequested
+    /// （那是系统手势），断言得到的只会是假绿。
+    /// </para>
+    /// </remarks>
+    [AvaloniaFact]
+    public void 标签容器上必须挂着右键菜单()
+    {
+        var area = NewArea();
+        var control = new ForgeEditorArea();
+        control.Attach(area);
+
+        var window = new Window { Width = 600, Height = 400, Content = control };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        var tabs = window.GetVisualDescendants().OfType<ForgeEditorTab>().ToList();
+        Assert.NotEmpty(tabs);
+        Assert.All(tabs, tab => Assert.NotNull(tab.ContextMenu));
+
+        window.Close();
     }
 
     [AvaloniaFact]
