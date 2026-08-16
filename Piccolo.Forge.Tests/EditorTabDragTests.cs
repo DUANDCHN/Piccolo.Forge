@@ -564,6 +564,42 @@ public class EditorTabDragTests
     }
 
     [AvaloniaFact]
+    public void Leaving_the_source_strip_horizontally_starts_cross_group_dragging()
+    {
+        var (editor, window, control, _, _) = Shown();
+        var left = editor.Area.Groups[0];
+        editor.Area.DropTab("b", left, EditorDropSide.Right);
+        Dispatcher.UIThread.RunJobs();
+
+        // 源组仍有 a/c 两页，a 不在标签条边缘。旧实现只看纵向位移，
+        // 沿同一标签行平拖到右窗格时永远停在行内重排状态。
+        var sourceTab = control.GetVisualDescendants().OfType<ForgeEditorTab>()
+            .Single(x => x.Title == "Alpha.cs");
+        var targetStrip = control.GetVisualDescendants().OfType<TabStrip>()
+            .OrderBy(x => x.TranslatePoint(default, control)!.Value.X)
+            .Last();
+        var overlay = control.GetVisualDescendants().OfType<ForgeDragOverlay>().Single();
+        var press = GrabPoint(sourceTab, window);
+        var drop = targetStrip.TranslatePoint(
+            new Point(targetStrip.Bounds.Width / 2, targetStrip.Bounds.Height / 2), window)!.Value;
+        drop = new Point(drop.X, press.Y);
+
+        window.MouseDown(press, MouseButton.Left);
+        window.MouseMove(drop);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.NotNull(overlay.ThumbImage);
+        Assert.NotNull(overlay.AreaRect);
+
+        window.MouseUp(drop, MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(2, editor.Area.Groups.Count);
+        Assert.Equal(["c"], editor.Area.Groups[0].Tabs.Select(x => x.Id));
+        Assert.Equal(["b", "a"], editor.Area.Groups[1].Tabs.Select(x => x.Id));
+    }
+
+    [AvaloniaFact]
     public void Releasing_over_the_editor_body_always_clears_the_drag_session()
     {
         var (_, window, control, a, _) = Shown();

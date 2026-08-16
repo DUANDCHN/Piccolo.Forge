@@ -514,7 +514,10 @@ public class ForgeEditorArea : TemplatedControl
             panel.Children.Add(stripHost);
             panel.Children.Add(body);
 
-            host = new Border { Child = panel };
+            // Dock.Avalonia 的 DocumentControl 把整个 PART_DockPanel 设成透明 DropArea。
+            // Border 默认无背景时，正文空白处可能根本命不中视觉元素，
+            // 独立 DragSession 就找不到应该合并进的组。
+            host = new Border { Child = panel, Background = Brushes.Transparent };
             _groupHosts[vm] = host;
         }
 
@@ -591,6 +594,12 @@ public class ForgeEditorArea : TemplatedControl
 
     private void OnDragPointerMoved(object? sender, PointerEventArgs e)
     {
+        if (_dockDrag is not null)
+        {
+            UpdateDockDrag(_dockDrag, e);
+            return;
+        }
+
         if (_dragGroup is not null && _dragTab is not null)
         {
             DragTo(_dragGroup, _dragTab, e);
@@ -599,17 +608,29 @@ public class ForgeEditorArea : TemplatedControl
 
     private void OnDragPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
+        if (_dockDrag is not null)
+        {
+            EndDockDrag(commit: true);
+            return;
+        }
+
         if (_dragGroup is not null && _dragTab is not null)
         {
-            EndDrag(_dragGroup, _dragTab, commit: true);
+            EndInlineDrag(_dragGroup, _dragTab);
         }
     }
 
     private void OnDragPointerCaptureLost(object? sender, PointerCaptureLostEventArgs e)
     {
+        if (_dockDrag is not null)
+        {
+            EndDockDrag(commit: false);
+            return;
+        }
+
         if (_dragGroup is not null && _dragTab is not null)
         {
-            EndDrag(_dragGroup, _dragTab, commit: false);
+            EndInlineDrag(_dragGroup, _dragTab);
         }
     }
 
@@ -621,10 +642,32 @@ public class ForgeEditorArea : TemplatedControl
     private Vector _holdDelta;
     private Rect _dragOriginalRec;
     private bool _dragStarted;
-    private bool _dragOut;
-    private EditorGroupViewModel? _dropGroup;
-    private EditorDropSide _dropSide;
-    private global::Avalonia.Media.Imaging.RenderTargetBitmap? _dragThumb;
+    private EditorDockDragSession? _dockDrag;
+
+    /// <summary>
+    /// 离开标签行后的独立拖放会话。
+    /// </summary>
+    /// <remarks>
+    /// 对应 IntelliJ <c>EditorTabbedContainerDragOutDelegate</c> 持有的 <c>DragSession</c>：
+    /// 它只记模型身份和快照，不持有离开标签行后可能被回收的标签控件。
+    /// </remarks>
+    private sealed class EditorDockDragSession(
+        IPointer pointer,
+        EditorGroupViewModel source,
+        string tabId,
+        Vector holdDelta,
+        Size thumbSize,
+        global::Avalonia.Media.Imaging.RenderTargetBitmap? thumb)
+    {
+        public IPointer Pointer { get; } = pointer;
+        public EditorGroupViewModel Source { get; } = source;
+        public string TabId { get; } = tabId;
+        public Vector HoldDelta { get; } = holdDelta;
+        public Size ThumbSize { get; } = thumbSize;
+        public global::Avalonia.Media.Imaging.RenderTargetBitmap? Thumb { get; } = thumb;
+        public EditorGroupViewModel? Target { get; set; }
+        public EditorDropSide Side { get; set; }
+    }
 
     /// <summary>
     /// 按下：记住是谁、按在哪，但**先不算拖拽**。
@@ -694,20 +737,23 @@ public class ForgeEditorArea : TemplatedControl
         // （MouseDragHelper.java:207-217：myDetachingMode 是个单向闩，
         //  置上那一刻先 processDragFinish(e, true) 收掉行内那套，此后只走 processDragOut）。
         // 少了这个闩，人在标签行上下边缘来回蹭时会在"重排"与"分屏"之间反复横跳。
-        if (!_dragOut
-            && ForgeEditorTabDragTarget.IsDragOut(origin, stripControl.Bounds.Width, moved.X, moved.Y))
+        // IntelliJ 用纵向脱离判据；Dock.Avalonia ItemDragHelper 在指针离开
+        // 整个 TabStrip 边界时交给跨窗格拖放。Forge 同时支持两者：
+        // 在源条内水平移动仍是重排，但水平跨出源条后必须能合并相邻分屏。
+        var pointInStrip = e.GetPosition(stripControl);
+        var leftSourceStrip = !new Rect(stripControl.Bounds.Size).Contains(pointInStrip);
+        if (leftSourceStrip
+            || ForgeEditorTabDragTarget.IsDragOut(origin, stripControl.Bounds.Width, moved.X, moved.Y))
         {
-            _dragOut = true;
-            _dragThumb = ForgeDragOverlay.CaptureThumb(control);
-
-            // 收掉行内拖动：标签落回自己的格子，接下来它以虚影的形式跟着光标
+            // MouseDragHelper.java:207-217：进入 detaching mode 前先完整结束
+            // 行内拖动，再把模型身份交给独立 DragSession。
+            var session = new EditorDockDragSession(
+                _dragPointer!, group, _dragId, _holdDelta, origin.Size, ForgeDragOverlay.CaptureThumb(control));
             strip.DraggedChild = null;
             strip.InvalidateArrange();
-        }
-
-        if (_dragOut)
-        {
-            UpdateDropOver(e, origin.Size);
+            ClearInlineDrag(releasePointer: false);
+            _dockDrag = session;
+            UpdateDockDrag(session, e);
             return;
         }
 
@@ -748,23 +794,21 @@ public class ForgeEditorArea : TemplatedControl
     /// 与其中的 <c>MyDropAreaPainter</c>。落点方向的梯形判定复用模型层的
     /// <see cref="EditorDropPolicy"/>（它照的是 <c>TabsUtil.getDropSideFor</c>）。
     /// </remarks>
-    private void UpdateDropOver(PointerEventArgs e, Size thumbSize)
+    private void UpdateDockDrag(EditorDockDragSession session, PointerEventArgs e)
     {
         var here = e.GetPosition(this);
 
-        _dropGroup = null;
-        _dropSide = EditorDropSide.None;
+        session.Target = null;
+        session.Side = EditorDropSide.None;
         _overlay.AreaRect = null;
 
-        foreach (var candidate in _area!.Groups)
+        // DockableEditorTabbedContainer.getTabsAt / DockControlState 都从当前指针下的
+        // 真实视觉元素向上找停靠容器。不再遍历缓存矩形猜测目标。
+        var candidate = FindGroupAt(here);
+        if (candidate is not null
+            && _groupHosts.TryGetValue(candidate, out var host)
+            && BoundsIn(host) is { } bounds)
         {
-            if (!_groupHosts.TryGetValue(candidate, out var host)
-                || BoundsIn(host) is not { } bounds
-                || !bounds.Contains(here))
-            {
-                continue;
-            }
-
             var stripHeight = _groupStripHosts.TryGetValue(candidate, out var stripHost)
                 ? stripHost.Bounds.Height
                 : 0;
@@ -780,15 +824,42 @@ public class ForgeEditorArea : TemplatedControl
                 ? EditorDropSide.Center
                 : EditorDropPolicy.Resolve(here.X - area.X, here.Y - area.Y, area.Width, area.Height);
 
-            _dropGroup = candidate;
-            _dropSide = side;
+            session.Target = candidate;
+            session.Side = side;
             _overlay.AreaRect = ForgeEditorTabDragTarget.HighlightFor(area, side);
-            break;
         }
 
         _overlay.Palette = Palette;
-        _overlay.ThumbImage = _dragThumb;
-        _overlay.ThumbRect = new Rect(here.X - _holdDelta.X, here.Y - _holdDelta.Y, thumbSize.Width, thumbSize.Height);
+        _overlay.ThumbImage = session.Thumb;
+        _overlay.ThumbRect = new Rect(
+            here.X - session.HoldDelta.X,
+            here.Y - session.HoldDelta.Y,
+            session.ThumbSize.Width,
+            session.ThumbSize.Height);
+    }
+
+    private EditorGroupViewModel? FindGroupAt(Point point)
+    {
+        var topLevel = TopLevel.GetTopLevel(this);
+        if (topLevel is null
+            || this.TranslatePoint(point, topLevel) is not { } topLevelPoint
+            || topLevel.InputHitTest(topLevelPoint) is not Visual hit)
+        {
+            return null;
+        }
+
+        for (Visual? current = hit; current is not null; current = current.GetVisualParent())
+        {
+            foreach (var pair in _groupHosts)
+            {
+                if (ReferenceEquals(pair.Value, current))
+                {
+                    return pair.Key;
+                }
+            }
+        }
+
+        return null;
     }
 
     private readonly Dictionary<ForgeEditorTab, (object Source, Control Made)> _madeIcons = [];
@@ -827,7 +898,7 @@ public class ForgeEditorArea : TemplatedControl
     private Rect? BoundsIn(Control child) =>
         child.TranslatePoint(default, this) is { } origin ? new Rect(origin, child.Bounds.Size) : null;
 
-    private void EndDrag(EditorGroupViewModel group, ForgeEditorTab control, bool commit)
+    private void EndInlineDrag(EditorGroupViewModel group, ForgeEditorTab control)
     {
         if (!ReferenceEquals(_dragTab, control))
         {
@@ -841,38 +912,48 @@ public class ForgeEditorArea : TemplatedControl
             strip.InvalidateArrange();
         }
 
-        // 先把要提交的命令拍成稳定快照。DropTab 会同步广播 Changed，
-        // 视图随即会增删分屏节点和源标签容器，不能边读拖拽字段边改树。
-        var drop = commit && _dragOut && _dragId is not null && _dropGroup is not null
-                   && _dropSide != EditorDropSide.None
-            ? (Id: _dragId, Source: group.Group, Target: _dropGroup.Group, Side: _dropSide)
-            : default;
-        var pointer = _dragPointer;
+        ClearInlineDrag(releasePointer: true);
+    }
 
-        // 拖拽会话和模型变更是两个事务：手势必须先完整结束，再修改分屏树。
-        // 旧顺序是 DropTab -> Changed -> Sync -> 摘挂 TabStrip -> 清状态，
-        // 它会让 Avalonia 在指针仍被捕获、DraggedChild 仍存在时改视觉树，
-        // 截图里的悬空标签就是这个中间态被留下。
-        _overlay.Clear();
-        _dragThumb = null;
-        _dragOut = false;
-        _dropGroup = null;
-        _dropSide = EditorDropSide.None;
+    private void ClearInlineDrag(bool releasePointer)
+    {
+        var pointer = _dragPointer;
         _dragTab = null;
         _dragPointer = null;
         _dragGroup = null;
         _dragId = null;
         _dragStarted = false;
 
-        // 稳定的会话所有者主动释放捕获；后续 CaptureLost 看到的已是空会话。
-        if (pointer?.Captured == this)
+        if (releasePointer && pointer?.Captured == this)
         {
             pointer.Capture(null);
+        }
+    }
+
+    private void EndDockDrag(bool commit)
+    {
+        var session = _dockDrag;
+        if (session is null)
+        {
+            return;
+        }
+
+        // 先从会话中拍下命令，再完整销毁手势状态。模型变更不会再
+        // 触及源 TabStripItem；这个边界对应 IntelliJ DragSession.process/release。
+        var drop = commit && session.Target is not null && session.Side != EditorDropSide.None
+            ? (Source: session.Source.Group, Target: session.Target.Group, session.TabId, session.Side)
+            : default;
+
+        _dockDrag = null;
+        _overlay.Clear();
+        if (session.Pointer.Captured == this)
+        {
+            session.Pointer.Capture(null);
         }
 
         if (drop != default)
         {
-            _area!.DropTab(drop.Id, drop.Source, drop.Target, drop.Side);
+            _area!.DropTab(drop.TabId, drop.Source, drop.Target, drop.Side);
         }
     }
 
