@@ -45,6 +45,35 @@ public class ForgeDockPane : Panel
     public static readonly AttachedProperty<double> SideWeightProperty =
         AvaloniaProperty.RegisterAttached<ForgeDockPane, Control, double>("SideWeight", 0.5);
 
+    /// <summary>
+    /// 这个面板是**盖在编辑区上**的（SLIDING / 停靠不固定），不占编辑区的地方。
+    /// </summary>
+    /// <remarks>
+    /// 上游把 SLIDING 的装饰器加进 layeredPane 的 PALETTE_LAYER
+    /// （<c>ToolWindowPane.kt:432-459 · setComponent</c> 那一支），所以它**不参与**
+    /// 四条边的尺寸分配 —— 编辑区该多大还是多大，面板浮在上面。
+    /// </remarks>
+    public static readonly AttachedProperty<bool> IsOverlayProperty =
+        AvaloniaProperty.RegisterAttached<ForgeDockPane, Control, bool>("IsOverlay");
+
+    /// <summary>读一个子控件是不是覆盖层面板。</summary>
+    /// <param name="control">子控件。</param>
+    /// <returns>是则为 <see langword="true"/>。</returns>
+    public static bool GetIsOverlay(Control control)
+    {
+        ArgumentNullException.ThrowIfNull(control);
+        return control.GetValue(IsOverlayProperty);
+    }
+
+    /// <summary>设一个子控件是不是覆盖层面板。</summary>
+    /// <param name="control">子控件。</param>
+    /// <param name="value">是不是。</param>
+    public static void SetIsOverlay(Control control, bool value)
+    {
+        ArgumentNullException.ThrowIfNull(control);
+        control.SetValue(IsOverlayProperty, value);
+    }
+
     /// <summary>这个子控件是哪条边的拖拽热区（<see langword="null"/> 表示不是）。</summary>
     public static readonly AttachedProperty<ToolWindowAnchor?> IsResizerProperty =
         AvaloniaProperty.RegisterAttached<ForgeDockPane, Control, ToolWindowAnchor?>("IsResizer");
@@ -78,6 +107,7 @@ public class ForgeDockPane : Panel
         WeightProperty.Changed.AddClassHandler<Control>((c, _) => (c.Parent as ForgeDockPane)?.InvalidateMeasure());
         IsSplitProperty.Changed.AddClassHandler<Control>((c, _) => (c.Parent as ForgeDockPane)?.InvalidateMeasure());
         SideWeightProperty.Changed.AddClassHandler<Control>((c, _) => (c.Parent as ForgeDockPane)?.InvalidateMeasure());
+        IsOverlayProperty.Changed.AddClassHandler<Control>((c, _) => (c.Parent as ForgeDockPane)?.InvalidateMeasure());
     }
 
     /// <summary>
@@ -243,6 +273,21 @@ public class ForgeDockPane : Panel
         return finalSize;
     }
 
+    /// <summary>覆盖层面板贴边的矩形：按自己的 weight 算厚度，沿边铺满。</summary>
+    private static Rect OverlayRect(Size paneSize, ToolWindowAnchor anchor, double weight)
+    {
+        var w = Math.Clamp(weight, 0.05, 0.95);
+
+        return anchor switch
+        {
+            ToolWindowAnchor.Top => new Rect(0, 0, paneSize.Width, paneSize.Height * w),
+            ToolWindowAnchor.Bottom => new Rect(
+                0, paneSize.Height * (1 - w), paneSize.Width, paneSize.Height * w),
+            ToolWindowAnchor.Left => new Rect(0, 0, paneSize.Width * w, paneSize.Height),
+            _ => new Rect(paneSize.Width * (1 - w), 0, paneSize.Width * w, paneSize.Height),
+        };
+    }
+
     // 热区骑在边界上，中心对准分界线；宽度 6（registry.properties:290）
     private static Rect ResizerRect(Size paneSize, DockSizes sizes, ToolWindowAnchor anchor)
     {
@@ -367,7 +412,8 @@ public class ForgeDockPane : Panel
         var weights = new Dictionary<ToolWindowAnchor, double>();
         foreach (var child in Children)
         {
-            if (!child.IsVisible || GetAnchor(child) is not { } anchor)
+            // 覆盖层（SLIDING）不占地方：不进边尺寸的计算，编辑区照旧铺满
+            if (!child.IsVisible || GetIsOverlay(child) || GetAnchor(child) is not { } anchor)
             {
                 continue;
             }
@@ -424,6 +470,17 @@ public class ForgeDockPane : Panel
             }
 
             var anchor = GetAnchor(child);
+
+            if (GetIsOverlay(child) && anchor is { } overlayAnchor)
+            {
+                // 盖在编辑区上：尺寸按它自己的 weight 算（而不是与别人分摊的那一份），
+                // 贴着自己那条边、铺满整条边的长度；ZIndex 抬高才盖得住编辑区。
+                child.ZIndex = 1;
+                result.Add((child, OverlayRect(paneSize, overlayAnchor, GetWeight(child))));
+                continue;
+            }
+
+            child.ZIndex = 0;
             var slot = anchor switch
             {
                 ToolWindowAnchor.Top => new Rect(verticalBandX, 0, verticalBandWidth, sizes.Top),

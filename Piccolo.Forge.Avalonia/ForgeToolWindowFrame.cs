@@ -1238,13 +1238,36 @@ public class ForgeToolWindowFrame : TemplatedControl
             var info = _shell.Manager.Layout.GetInfo(vm.Id)!;
             var host = GetPanelHost(vm);
 
+            SyncPanel(vm, host);
+
+            // 外部形态（浮动 / 独立窗口）不进停靠区，交给自己的宿主窗口
+            if (ToolWindowManager.IsExternal(info.Type))
+            {
+                ShowExternal(vm, info, host);
+                continue;
+            }
+
+            CloseExternal(vm.Id);
+
             ForgeDockPane.SetAnchor(host, info.Anchor);
             ForgeDockPane.SetWeight(host, info.Weight);
             ForgeDockPane.SetIsSplit(host, info.IsSplit);
             ForgeDockPane.SetSideWeight(host, info.SideWeight);
 
-            SyncPanel(vm, host);
+            // SLIDING = 盖在编辑区上，不占它的地方（ToolWindowPane.kt:432-459 的 PALETTE_LAYER 那一支）
+            ForgeDockPane.SetIsOverlay(host, info.Type == ToolWindowType.Sliding);
+
             wanted.Add(host);
+        }
+
+        // 关掉的、或者切回内部形态的，把外部窗口收掉
+        foreach (var id in _externalWindows.Keys.ToList())
+        {
+            var info = _shell.Manager.Layout.GetInfo(id);
+            if (info is null || !info.IsVisible || !ToolWindowManager.IsExternal(info.Type))
+            {
+                CloseExternal(id);
+            }
         }
 
         if (EditorContent is { } editor)
@@ -1256,6 +1279,71 @@ public class ForgeToolWindowFrame : TemplatedControl
         wanted.AddRange(GetResizers());
         Reconcile(_pane, wanted);
     }
+
+    private readonly Dictionary<string, ForgeFloatingToolWindow> _externalWindows = new(StringComparer.Ordinal);
+
+    /// <summary>当前开着的外部宿主窗口（浮动 / 独立窗口）。</summary>
+    public IReadOnlyCollection<ForgeFloatingToolWindow> ExternalWindows => _externalWindows.Values;
+
+    /// <summary>
+    /// 浮动 / 独立窗口：把面板宿主搬进它自己的窗口。
+    /// </summary>
+    /// <remarks>
+    /// 宿主控件是**同一个**（<see cref="GetPanelHost"/> 缓存的那个），只是换了父容器 ——
+    /// 相机画面、图表这些不会因为切形态被重造。
+    /// <para>
+    /// 关窗口 = 收起这个工具窗口（<c>FloatingDecorator</c> 的关闭按钮走的也是 hide），
+    /// 否则窗口没了、台账还记着"开着"。
+    /// </para>
+    /// </remarks>
+    private void ShowExternal(ToolWindowViewModel vm, WindowInfo info, Border host)
+    {
+        if (_externalWindows.TryGetValue(vm.Id, out var existing) && existing.Type == info.Type)
+        {
+            return;
+        }
+
+        CloseExternal(vm.Id);
+        Detach(host);
+
+        var external = new ForgeFloatingToolWindow(info.Type, vm.Title, ProjectName, host);
+        _externalWindows[vm.Id] = external;
+
+        var id = vm.Id;
+        external.Window.Closing += (_, _) =>
+        {
+            if (_externalWindows.Remove(id) && _shell?.Manager.Layout.GetInfo(id) is { IsVisible: true })
+            {
+                _shell.Manager.Hide(id);
+            }
+        };
+
+        if (TopLevel.GetTopLevel(this) is Window owner)
+        {
+            external.Window.Show(owner);
+        }
+        else
+        {
+            external.Window.Show();
+        }
+    }
+
+    /// <summary>收掉某个工具窗口的外部宿主窗口，把面板宿主还回来。</summary>
+    private void CloseExternal(string id)
+    {
+        if (!_externalWindows.Remove(id, out var external))
+        {
+            return;
+        }
+
+        // 先把内容摘出来再关窗，否则宿主控件跟着窗口一起没了
+        external.Window.Content = null;
+        external.Window.Close();
+    }
+
+    /// <summary>独立窗口标题里那个项目名（<c>"{面板名} - {项目名}"</c>）。</summary>
+    /// <remarks>宿主没给就用空串 —— 库不知道"项目"是什么。</remarks>
+    public string ProjectName { get; set; } = string.Empty;
 
     /// <summary>取（必要时新建）一个工具窗口的面板宿主。</summary>
     private Border GetPanelHost(ToolWindowViewModel vm)
@@ -1325,7 +1413,8 @@ public class ForgeToolWindowFrame : TemplatedControl
     /// </para>
     /// <para>实现了哪个就往这里加哪个。</para>
     /// </remarks>
-    public static IReadOnlyList<ToolWindowType> SupportedViewModes { get; } = [ToolWindowType.Docked];
+    public static IReadOnlyList<ToolWindowType> SupportedViewModes { get; } =
+        [ToolWindowType.Docked, ToolWindowType.Sliding, ToolWindowType.Floating, ToolWindowType.Windowed];
 
     /// <summary>
     /// 把画不出来的形态掰回停靠固定。
