@@ -632,6 +632,52 @@ public class ViewModeTests
         window.Close();
     }
 
+    /// <summary>
+    /// 拖出去之后再拖回条带上松手 = 重新停靠到落点那一格。
+    /// </summary>
+    /// <remarks>
+    /// 对位上游 <c>ToolWindowDragHelper</c> 的另一半：落点判定与拖条带按钮是**同一套**
+    /// （条带让出插入槽、画高亮），所以拖回来能落到指定的边和次序上。
+    /// </remarks>
+    [AvaloniaFact]
+    public void 拖回条带上松手就重新停靠()
+    {
+        var (window, frame, shell, _) = Build();
+        var header = frame.GetVisualDescendants().OfType<ForgeToolWindowHeader>().Single();
+
+        Press(header, header);
+        Move(frame, new Point(300, 200));
+        Pump(window);
+        Assert.Equal(ToolWindowType.Floating, shell.Manager.Layout.GetInfo("相机列表")!.Type);
+
+        // 拖回右边条带上松手
+        var stripe = frame.GetVisualDescendants().OfType<ForgeToolWindowToolbar>()
+            .First(x => x.Side == StripeSide.Right);
+        var onStripe = stripe.TranslatePoint(new Point(stripe.Bounds.Width / 2, 60), frame)!.Value;
+
+        Move(frame, onStripe);
+        Release(frame, onStripe);
+        Pump(window);
+
+        var info = shell.Manager.Layout.GetInfo("相机列表")!;
+        Assert.Equal(ToolWindowType.Docked, info.Type);
+        Assert.Equal(ToolWindowAnchor.Right, info.Anchor);
+        Assert.Empty(frame.ExternalWindows);
+
+        window.Close();
+    }
+
+    private static void Release(Control target, Point position)
+        => target.RaiseEvent(new PointerReleasedEventArgs(
+            target,
+            new Pointer(0, PointerType.Mouse, isPrimary: true),
+            target,
+            position,
+            0,
+            new PointerPointProperties(RawInputModifiers.None, PointerUpdateKind.LeftButtonReleased),
+            KeyModifiers.None,
+            MouseButton.Left));
+
     private static void Press(Control target, Visual source)
         => target.RaiseEvent(new PointerPressedEventArgs(
             source,

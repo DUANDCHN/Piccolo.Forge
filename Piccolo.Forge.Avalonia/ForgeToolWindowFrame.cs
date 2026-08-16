@@ -825,17 +825,42 @@ public class ForgeToolWindowFrame : TemplatedControl
         }
 
         FollowPointer(id, point);
+
+        // 落点反馈与拖条带按钮**同一套**：条带上让出插入槽、画高亮。
+        // 拖回条带上松手 = 重新停靠（见 OnHeaderPointerReleased）。
+        UpdateDragFeedback(point);
     }
 
     private void OnHeaderPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
-        if (_headerDragging && _headerDragId is { } id)
+        if (!_headerDragging || _headerDragId is not { } id || _shell is not { } shell)
         {
-            FollowPointer(id, e.GetPosition(this));
+            _headerDragId = null;
+            _headerDragging = false;
+            return;
         }
 
+        var point = e.GetPosition(this);
+
+        // ⚠ 顺序同拖条带按钮那条：**先算落点，再清拖拽态** ——
+        //   落点判定靠 DraggedButton（读 _headerDragId）把自己排除在外。
+        var target = ResolveDropTarget(point);
+
+        _overlay.Clear();
         _headerDragId = null;
         _headerDragging = false;
+        ClearDragLayout();
+
+        if (target is not { } t)
+        {
+            // 松手不在条带上 → 就停在浮动状态，位置已经跟着光标了
+            return;
+        }
+
+        // 落回条带 = 重新停靠：先回内部形态（模型记着上次是停靠固定还是不固定），
+        // 再搬到落点那一格。次序不能反 —— 还浮着的时候搬位置，落点那格的互斥判定看不到它。
+        shell.Manager.SetType(id, shell.Manager.ResolveInternalType(id));
+        shell.Manager.MoveTo(id, t.Anchor, t.Order, t.IsSplit);
     }
 
     /// <summary>让浮出来的窗口跟着光标走，抓点保持在按下时的那个位置。</summary>
@@ -960,9 +985,15 @@ public class ForgeToolWindowFrame : TemplatedControl
     /// <summary>上一次算出来的空槽落点：哪一组、第几个之前。</summary>
     private (StripeItemsPanel Panel, int Index)? _lastDropSlot;
 
-    /// <summary>正在被拖走的那个条带按钮；没在拖就是 <see langword="null"/>。</summary>
+    /// <summary>
+    /// 正在被拖走的那个条带按钮；没在拖就是 <see langword="null"/>。
+    /// </summary>
+    /// <remarks>
+    /// 两种拖法共用它：拖条带按钮，和**拖面板标题条**（那时面板已经浮出来了，
+    /// 但落点判定要把它自己的按钮排除在外 —— 与拖按钮时是同一件事）。
+    /// </remarks>
     private ForgeStripeButton? DraggedButton
-        => _dragId is { } id && _stripeButtons.TryGetValue(id, out var button) ? button : null;
+        => (_headerDragId ?? _dragId) is { } id && _stripeButtons.TryGetValue(id, out var button) ? button : null;
 
     /// <summary>
     /// 一个条带按钮对应的工具窗口在模型里的 order。
