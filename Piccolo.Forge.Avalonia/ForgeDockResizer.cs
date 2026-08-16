@@ -118,16 +118,51 @@ public class ForgeDockResizer : Control
         return ForgeMetrics.NormalizeWeight((float)ratio);
     }
 
+    /// <summary>
+    /// 画一条 1px 的分界线；<see langword="null"/> 表示不画（停靠边界本来就不画线）。
+    /// </summary>
+    /// <remarks>
+    /// 停靠的面板与编辑区之间不需要线：两块颜色本来就不同，上游那条分隔器可见宽度是 0
+    /// （<c>ToolWindowPane.kt:197</c>）。**覆盖层（SLIDING）要**：它浮在编辑区上面，
+    /// 不画线就分不出哪儿是面板、哪儿是被盖住的内容 —— 上游为此单给 SLIDING 加了一条 divider
+    /// （<c>InternalDecoratorImpl.kt:599-612</c>，按 anchor 加在 EAST/WEST/NORTH/SOUTH）。
+    /// </remarks>
+    public IBrush? LineBrush
+    {
+        get => _lineBrush;
+        set
+        {
+            if (Equals(_lineBrush, value)) return;
+            _lineBrush = value;
+            InvalidateVisual();
+        }
+    }
+
+    private IBrush? _lineBrush;
+
     /// <inheritdoc />
     /// <remarks>
     /// <b>必须画点东西，哪怕是透明的。</b>Avalonia 的命中测试基于渲染内容 ——
     /// 一个什么都不画的 <see cref="Control"/> 收不到任何指针事件，
     /// 于是热区在那儿、光标也变了，就是拖不动。
-    /// 上游那条分隔器<b>可见宽度是 0</b>（<c>ToolWindowPane.kt:197</c>），
-    /// 所以这里也只画透明色：看不见，但吃得到鼠标。
     /// </remarks>
     public override void Render(DrawingContext context)
-        => context.FillRectangle(Brushes.Transparent, new Rect(Bounds.Size));
+    {
+        context.FillRectangle(Brushes.Transparent, new Rect(Bounds.Size));
+
+        if (LineBrush is not { } brush)
+        {
+            return;
+        }
+
+        // 线画在热区正中 —— 热区骑在边界上，中线就是边界（见 ForgeDockPane.ResizerRect）
+        var horizontalBar = IsSplitDivider ? !Anchor.IsHorizontal() : Anchor.IsHorizontal();
+        var rect = horizontalBar
+            ? new Rect(0, Math.Round((Bounds.Height - 1) / 2), Bounds.Width, 1)
+            : new Rect(Math.Round((Bounds.Width - 1) / 2), 0, 1, Bounds.Height);
+
+        context.FillRectangle(brush, rect);
+    }
 
     /// <inheritdoc />
     protected override Size MeasureOverride(Size availableSize)

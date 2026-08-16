@@ -4,6 +4,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 using Piccolo.Forge.Model;
 using Piccolo.Forge.Mvvm;
 using Piccolo.Forge.Themes;
@@ -140,6 +141,45 @@ public class ForgeToolWindowFrame : TemplatedControl
         AddHandler(PointerMovedEvent, OnStripePointerMoved, gestureRoutes, handledEventsToo: true);
         AddHandler(PointerReleasedEvent, OnStripePointerReleased, gestureRoutes, handledEventsToo: true);
         AddHandler(PointerCaptureLostEvent, OnStripePointerCaptureLost, gestureRoutes, handledEventsToo: true);
+
+        // ★ 焦点跟踪：「失焦自动收起」（停靠不固定 / 取消停靠）靠它才动得起来。
+        //   上游是全局焦点监听（ToolWindowManagerLifecycle.kt:97-106）；这里用**按下**当焦点转移的时机 ——
+        //   面板内容五花八门（图像、表格、宿主的自绘控件），不少压根不接受键盘焦点，
+        //   只等 GotFocus 会漏掉一大半点击。Tunnel + handledEventsToo：子控件吃掉的按下也算数。
+        AddHandler(PointerPressedEvent, OnFocusMoved, RoutingStrategies.Tunnel, handledEventsToo: true);
+        AddHandler(GotFocusEvent, OnFocusMoved, gestureRoutes, handledEventsToo: true);
+    }
+
+    /// <summary>
+    /// 焦点落到了某处：按下/取得焦点的位置在哪个面板里，别的「失焦就收」的面板就该收了。
+    /// </summary>
+    /// <remarks>
+    /// 落点不在任何面板里（编辑区、条带空白、命令栏…）就等同于"焦点离开了工具窗口"，
+    /// 对应上游的 <c>OnEditorFocused</c> 那一支。
+    /// <para>条带按钮不算：点它是开关面板，<see cref="Toggle"/> 会自己走激活/收起那条路，
+    /// 在这里再判一次会把刚要打开的那个当成"焦点去了别处"。</para>
+    /// </remarks>
+    private void OnFocusMoved(object? sender, RoutedEventArgs e)
+    {
+        if (_shell is not { } shell || e.Source is not Visual source)
+        {
+            return;
+        }
+
+        if (source.GetSelfAndVisualAncestors().OfType<ForgeStripeButton>().Any())
+        {
+            return;
+        }
+
+        var owner = _panelHosts.FirstOrDefault(x => source.GetSelfAndVisualAncestors().Contains(x.Value));
+
+        if (owner.Key is null)
+        {
+            shell.Manager.OnEditorFocused();
+            return;
+        }
+
+        shell.Manager.AutoHideOthers(owner.Key);
     }
 
     /// <inheritdoc />
@@ -1627,6 +1667,15 @@ public class ForgeToolWindowFrame : TemplatedControl
                 ForgeDockPane.SetIsResizer(resizer, anchor);
                 _resizers[anchor] = resizer;
             }
+
+            // 覆盖层（取消停靠）浮在编辑区上，得画一条线才分得清哪儿是面板
+            //（停靠的不用：两块底色本来就不同 —— 见 ForgeDockResizer.LineBrush）
+            var overlay = _shell.ToolWindows.Any(x =>
+                x.IsOpen
+                && x.Anchor == anchor
+                && _shell.Manager.Layout.GetInfo(x.Id)?.Type == ToolWindowType.Sliding);
+
+            resizer.LineBrush = overlay ? new SolidColorBrush(Palette.WindowBorder) : null;
 
             yield return resizer;
         }

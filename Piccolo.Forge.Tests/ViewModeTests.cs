@@ -1,5 +1,6 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
@@ -251,6 +252,76 @@ public class ViewModeTests
         var external = frame.ExternalWindows.Single().Window;
         Assert.Equal(docked.Width, external.Width, 1.0);
         Assert.Equal(docked.Height, external.Height, 1.0);
+
+        window.Close();
+    }
+
+    /// <summary>
+    /// 点到编辑区 = 焦点离开工具窗口 → 「失焦就收」的那些真的收起来。
+    /// </summary>
+    /// <remarks>
+    /// 回归：模型早就有收起的判据（<c>ToolWindowManagerLifecycle.kt:116</c>），
+    /// 但视图层没人在焦点变化时调它，于是"停靠不固定 / 取消停靠"点到别处纹丝不动。
+    /// </remarks>
+    [AvaloniaTheory]
+    [InlineData(ToolWindowViewMode.DockUnpinned)]
+    [InlineData(ToolWindowViewMode.Undock)]
+    public void 点到编辑区会把失焦就收的面板收起(ToolWindowViewMode mode)
+    {
+        var (window, frame, shell, editor) = Build();
+
+        ToolWindowViewModes.Apply(shell.Manager, "相机列表", mode);
+        shell.Manager.Show("相机列表");
+        Pump(window);
+        Assert.True(shell.Manager.Layout.GetInfo("相机列表")!.IsVisible);
+
+        editor.RaiseEvent(new PointerPressedEventArgs(
+            editor,
+            new Pointer(0, PointerType.Mouse, isPrimary: true),
+            editor,
+            default,
+            0,
+            new PointerPointProperties(RawInputModifiers.LeftMouseButton, PointerUpdateKind.LeftButtonPressed),
+            KeyModifiers.None));
+        Pump(window);
+
+        Assert.False(shell.Manager.Layout.GetInfo("相机列表")!.IsVisible);
+
+        window.Close();
+    }
+
+    /// <summary>
+    /// 取消停靠（覆盖层）也要能拖宽窄，而且与被盖住的内容之间有一条分界线。
+    /// </summary>
+    /// <remarks>
+    /// 上游同样给 SLIDING 配了 resizer（<c>ToolWindowPane.kt:565-607 · Resizer.LayeredPane</c>）
+    /// 和一条 divider（<c>InternalDecoratorImpl.kt:599-612</c>）。
+    /// </remarks>
+    [AvaloniaFact]
+    public void 取消停靠能拖大小且画分界线()
+    {
+        var (window, frame, shell, _) = Build();
+
+        shell.Manager.SetType("相机列表", ToolWindowType.Sliding);
+        Pump(window);
+
+        var panel = frame.DockPane.Children.OfType<Border>()
+            .First(x => x.GetVisualDescendants().OfType<ForgeToolWindowHeader>().Any());
+        var resizer = frame.DockPane.Children.OfType<ForgeDockResizer>()
+            .Single(x => x.Anchor == ToolWindowAnchor.Left && !x.IsSplitDivider);
+
+        // 拖手要骑在覆盖层的内沿上，而不是停靠尺寸（覆盖层不占位，那儿是 0）
+        Assert.Equal(panel.Bounds.Right, resizer.Bounds.Center.X, 1.0);
+
+        // 抓得到：覆盖层 ZIndex 1，拖手得更高
+        Assert.True(resizer.ZIndex > panel.ZIndex, "拖手被覆盖层盖住了");
+
+        // 画线：停靠时不画（两块底色本来就不同），覆盖时要画
+        Assert.NotNull(resizer.LineBrush);
+
+        shell.Manager.SetType("相机列表", ToolWindowType.Docked);
+        Pump(window);
+        Assert.Null(resizer.LineBrush);
 
         window.Close();
     }
