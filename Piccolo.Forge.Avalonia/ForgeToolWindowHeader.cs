@@ -150,7 +150,11 @@ public class ForgeToolWindowHeader : TemplatedControl
     static ForgeToolWindowHeader()
     {
         AffectsRender<ForgeToolWindowHeader>(PaletteProperty, TitleProperty, IsActiveProperty);
-        AffectsMeasure<ForgeToolWindowHeader>(IsCompactProperty, ShowButtonsProperty, ShowDockButtonProperty);
+        AffectsMeasure<ForgeToolWindowHeader>(
+            IsCompactProperty,
+            ShowButtonsProperty,
+            ShowDockButtonProperty,
+            TitleBarHeightProperty);
         ContentUiTypeProperty.Changed.AddClassHandler<ForgeToolWindowHeader>((h, _) => h.InvalidateMeasure());
     }
 
@@ -201,8 +205,30 @@ public class ForgeToolWindowHeader : TemplatedControl
     /// </remarks>
     public ForgeContentTabStrip Tabs => _tabs;
 
-    /// <summary>标题条高度：紧凑 31，否则 41。</summary>
-    public double HeaderHeight => IsCompact ? ForgeCompactMetrics.HeaderHeight : ForgeMetrics.HeaderHeight;
+    /// <summary>
+    /// 这条标题条**兼任窗口标题栏**时的高度；<see cref="double.NaN"/> 表示不兼任，按面板的高度走。
+    /// </summary>
+    /// <remarks>
+    /// 浮动形态没有系统标题栏（见 <see cref="OnPointerPressed"/>），这条就是那个窗口的标题栏 ——
+    /// 那它该按**窗口标题栏**的高度长，而不是面板标题条的 41
+    /// （<c>JBUI.java:1178-1180</c> 那个高度是给停靠着的面板定的，摞在窗口顶上会明显偏高）。
+    /// 具体多高由宿主定（<c>ForgeToolWindowFrame.TitleBarHeight</c>），因为"这个应用的窗口标题栏多高"
+    /// 是宿主的事。
+    /// </remarks>
+    public static readonly StyledProperty<double> TitleBarHeightProperty =
+        AvaloniaProperty.Register<ForgeToolWindowHeader, double>(nameof(TitleBarHeight), double.NaN);
+
+    /// <summary>兼任窗口标题栏时的高度，NaN = 不兼任。</summary>
+    public double TitleBarHeight
+    {
+        get => GetValue(TitleBarHeightProperty);
+        set => SetValue(TitleBarHeightProperty, value);
+    }
+
+    /// <summary>标题条高度：兼任窗口标题栏时按 <see cref="TitleBarHeight"/>，否则紧凑 31 / 常规 41。</summary>
+    public double HeaderHeight => double.IsNaN(TitleBarHeight)
+        ? (IsCompact ? ForgeCompactMetrics.HeaderHeight : ForgeMetrics.HeaderHeight)
+        : TitleBarHeight;
 
     /// <summary>
     /// 标题在左边占多宽 —— tab 从这里往右排。

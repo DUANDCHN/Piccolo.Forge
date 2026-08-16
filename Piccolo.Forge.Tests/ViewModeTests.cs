@@ -109,6 +109,28 @@ public class ViewModeTests
     }
 
     /// <summary>
+    /// 浮动时标题条兼任窗口标题栏 → 按窗口标题栏的高度长；停靠回去仍是面板的 41。
+    /// </summary>
+    [AvaloniaFact]
+    public void 浮动时标题条按窗口标题栏的高度()
+    {
+        var (window, frame, shell, _) = Build();
+        var header = frame.GetVisualDescendants().OfType<ForgeToolWindowHeader>().Single();
+
+        Assert.Equal(ForgeMetrics.HeaderHeight, header.Bounds.Height, 1.0);
+
+        shell.Manager.SetType("相机列表", ToolWindowType.Floating);
+        Pump(window);
+        Assert.Equal(ForgeMetrics.WindowTitleBarHeight, header.HeaderHeight, 1.0);
+
+        shell.Manager.SetType("相机列表", ToolWindowType.Docked);
+        Pump(window);
+        Assert.Equal(ForgeMetrics.HeaderHeight, header.Bounds.Height, 1.0);
+
+        window.Close();
+    }
+
+    /// <summary>
     /// 独立窗口的窗体可以由宿主提供 —— 一个应用里所有窗体该是同一副长相，
     /// 那副长相是宿主的事，库只往里塞标题和内容。
     /// </summary>

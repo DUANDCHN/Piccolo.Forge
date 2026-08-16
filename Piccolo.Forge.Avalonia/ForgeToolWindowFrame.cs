@@ -1407,6 +1407,15 @@ public class ForgeToolWindowFrame : TemplatedControl
     /// </remarks>
     public Func<ToolWindowType, Window?>? ExternalWindowFactory { get; set; }
 
+    /// <summary>
+    /// 浮动窗口的标题栏多高 —— 浮动没有系统标题栏，面板标题条兼任，就该按这个高度长。
+    /// </summary>
+    /// <remarks>
+    /// 默认取 <see cref="ForgeMetrics.WindowTitleBarHeight"/>；宿主自绘的窗体标题栏若是别的高度，
+    /// 在这里对齐，浮动出来的窗口才和应用里其它窗口一个身量。
+    /// </remarks>
+    public double TitleBarHeight { get; set; } = ForgeMetrics.WindowTitleBarHeight;
+
     /// <summary>取（必要时新建）一个工具窗口的面板宿主。</summary>
     private Border GetPanelHost(ToolWindowViewModel vm)
     {
@@ -1465,6 +1474,10 @@ public class ForgeToolWindowFrame : TemplatedControl
 
         // 「停靠回去」只在独立出去之后才有意义
         header.ShowDockButton = ToolWindowManager.IsExternal(info.Type);
+
+        // 浮动时这条标题条就是那个窗口的标题栏 → 按窗口标题栏的高度长（见 TitleBarHeight 的说明）。
+        // 独立窗口不算：它有自己的标题栏，这条仍然是面板标题条。
+        header.TitleBarHeight = info.Type == ToolWindowType.Floating ? TitleBarHeight : double.NaN;
         header.SetExtraButtons(HeaderButtonsExtension?.Invoke(vm.Id));
         SyncTabs(header, vm, info.ContentUiType);
 
