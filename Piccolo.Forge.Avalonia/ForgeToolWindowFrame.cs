@@ -1643,6 +1643,12 @@ public class ForgeToolWindowFrame : TemplatedControl
     public double TitleBarHeight { get; set; } = ForgeMetrics.WindowTitleBarHeight;
 
     /// <summary>
+    /// 面板标题条上那行字的字重。
+    /// </summary>
+    /// <remarks>上游是常规字重，所以默认 <see cref="FontWeight.Normal"/>。</remarks>
+    public FontWeight HeaderTitleFontWeight { get; set; } = FontWeight.Normal;
+
+    /// <summary>
     /// 独立窗口形态下，标题条右端要给窗口的最小化 / 最大化 / 关闭留出多宽。
     /// </summary>
     /// <remarks>
@@ -1717,6 +1723,7 @@ public class ForgeToolWindowFrame : TemplatedControl
         var header = _panelHeaders[vm.Id];
         header.Palette = Palette;
         header.Title = vm.Title;
+        header.TitleFontWeight = HeaderTitleFontWeight;
         header.IsActive = vm.IsActive;
         header.ContentUiType = info.ContentUiType;
         header.ShowButtons = ShowHeaderButtons;

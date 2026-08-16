@@ -208,6 +208,12 @@ public class ForgeEditorArea : TemplatedControl
     public Func<Window>? ExternalWindowFactory { get; set; }
 
     /// <summary>
+    /// 文档标签上那行字的字重。
+    /// </summary>
+    /// <remarks>上游是常规字重，所以默认 <see cref="FontWeight.Normal"/>。</remarks>
+    public FontWeight TabTitleFontWeight { get; set; } = FontWeight.Normal;
+
+    /// <summary>
     /// 指针跑出本编辑区之后的反馈：示意窗口跟着走，停靠提示交给光标底下那个编辑区。
     /// </summary>
     /// <remarks>
@@ -955,6 +961,7 @@ public class ForgeEditorArea : TemplatedControl
     private void ApplyTabContainer(EditorTabViewModel tab, ForgeEditorTab control, ForgeEditorTabStrip strip)
     {
         control.Palette = Palette;
+        control.TitleFontWeight = TabTitleFontWeight;
 
         // 菜单**实例建一次**，内容在每次打开前刷 —— 每次同步都换个新实例的话，
         // 右键按下与松手之间实例就被换掉了，系统那套弹出流程落空，表现是右键没反应。

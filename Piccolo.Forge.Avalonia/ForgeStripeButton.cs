@@ -330,7 +330,7 @@ public class ForgeStripeButton : ForgeSquareButtonBase
             Text,
             System.Globalization.CultureInfo.CurrentCulture,
             FlowDirection.LeftToRight,
-            Typeface.Default,
+            ResolveTypeface(),
             IconSize * 0.7,
             new SolidColorBrush(ResolveForeground()));
 
@@ -366,7 +366,7 @@ public class ForgeStripeButton : ForgeSquareButtonBase
                 line,
                 System.Globalization.CultureInfo.CurrentCulture,
                 FlowDirection.LeftToRight,
-                Typeface.Default,
+                ResolveTypeface(),
                 NameFontSize,
                 new SolidColorBrush(ResolveForeground()));
 
@@ -375,6 +375,17 @@ public class ForgeStripeButton : ForgeSquareButtonBase
         }
     }
 
+    /// <summary>
+    /// 画文字用的字形 —— **走控件自己继承下来的字体**，不是 <see cref="Typeface.Default"/>。
+    /// </summary>
+    /// <remarks>
+    /// 这些文字是自绘的，不像 <c>TextBlock</c> 那样自动吃到宿主的全局字体样式；
+    /// 用 <see cref="Typeface.Default"/> 的话，整个外壳（面板标题、条带名字、标签页）
+    /// 会与宿主其余部分**用两种字体**，宿主内嵌了字体时尤其明显。
+    /// <see cref="TemplatedControl.FontFamily"/> 是可继承属性，读它就跟着宿主走。
+    /// </remarks>
+    private Typeface ResolveTypeface(FontWeight weight = FontWeight.Normal)
+        => new(FontFamily, FontStyle.Normal, weight);
 }
 
 /// <summary>

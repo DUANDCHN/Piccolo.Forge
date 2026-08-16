@@ -169,6 +169,7 @@ public class ForgeToolWindowHeader : TemplatedControl
     static ForgeToolWindowHeader()
     {
         AffectsRender<ForgeToolWindowHeader>(PaletteProperty, TitleProperty, IsActiveProperty);
+        AffectsMeasure<ForgeToolWindowHeader>(TitleFontWeightProperty);
         AffectsMeasure<ForgeToolWindowHeader>(
             IsCompactProperty,
             ShowButtonsProperty,
@@ -237,6 +238,23 @@ public class ForgeToolWindowHeader : TemplatedControl
     /// </remarks>
     public static readonly StyledProperty<double> TitleBarHeightProperty =
         AvaloniaProperty.Register<ForgeToolWindowHeader, double>(nameof(TitleBarHeight), double.NaN);
+
+    /// <summary>
+    /// 标题文字的字重。
+    /// </summary>
+    /// <remarks>
+    /// 上游那条标题是常规字重，所以默认 <see cref="FontWeight.Normal"/>；
+    /// 想让面板名更立得住的项目自己调（<c>ForgeToolWindowFrame.HeaderTitleFontWeight</c>）。
+    /// </remarks>
+    public static readonly StyledProperty<FontWeight> TitleFontWeightProperty =
+        AvaloniaProperty.Register<ForgeToolWindowHeader, FontWeight>(nameof(TitleFontWeight), FontWeight.Normal);
+
+    /// <summary>标题文字的字重。</summary>
+    public FontWeight TitleFontWeight
+    {
+        get => GetValue(TitleFontWeightProperty);
+        set => SetValue(TitleFontWeightProperty, value);
+    }
 
     /// <summary>兼任窗口标题栏时的高度，NaN = 不兼任。</summary>
     public double TitleBarHeight
@@ -446,7 +464,7 @@ public class ForgeToolWindowHeader : TemplatedControl
                 Title,
                 System.Globalization.CultureInfo.CurrentCulture,
                 FlowDirection.LeftToRight,
-                Typeface.Default,
+                ResolveTypeface(TitleFontWeight),
                 12,
                 new SolidColorBrush(Palette.Foreground));
 
@@ -472,4 +490,15 @@ public class ForgeToolWindowHeader : TemplatedControl
                     (Bounds.Height - text.Height) / 2));
         }
     }
+    /// <summary>
+    /// 画文字用的字形 —— **走控件自己继承下来的字体**，不是 <see cref="Typeface.Default"/>。
+    /// </summary>
+    /// <remarks>
+    /// 这些文字是自绘的，不像 <c>TextBlock</c> 那样自动吃到宿主的全局字体样式；
+    /// 用 <see cref="Typeface.Default"/> 的话，整个外壳（面板标题、条带名字、标签页）
+    /// 会与宿主其余部分**用两种字体**，宿主内嵌了字体时尤其明显。
+    /// <see cref="TemplatedControl.FontFamily"/> 是可继承属性，读它就跟着宿主走。
+    /// </remarks>
+    private Typeface ResolveTypeface(FontWeight weight = FontWeight.Normal)
+        => new(FontFamily, FontStyle.Normal, weight);
 }
