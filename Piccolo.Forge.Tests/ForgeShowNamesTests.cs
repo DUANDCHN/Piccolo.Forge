@@ -146,6 +146,65 @@ public class ForgeShowNamesTests
         Assert.Equal(onIconRow.ToUInt32(), onLabelRow.ToUInt32());          // 名字那一行是同一块高亮
     }
 
+    /// <summary>「显示名字」跟着布局一起存 —— 不另开存档分支。</summary>
+    /// <remarks>
+    /// 宿主有两条存档路径（自动存的「上次退出时的样子」、用户自己存的布局文件），
+    /// 写出去的都是 <c>SaveLayout()</c> 这一份 XML。把开关放在这份 XML 里，
+    /// 两条路自动都带上；放在控件上则每条路都要单独记一次，迟早漏一条。
+    /// </remarks>
+    [AvaloniaFact]
+    public void 显示名字跟着布局一起存档()
+    {
+        var saved = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()))
+        {
+            ShowToolWindowNames = true,
+        };
+
+        var xml = saved.SaveLayout();
+
+        var loaded = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
+        Assert.False(loaded.ShowToolWindowNames);
+
+        loaded.RestoreLayout(xml);
+        Assert.True(loaded.ShowToolWindowNames);
+    }
+
+    /// <summary>老存档（没写这条）不该把用户当前的选择冲掉。</summary>
+    [AvaloniaFact]
+    public void 存档里没写这条就保持当前值()
+    {
+        var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()))
+        {
+            ShowToolWindowNames = true,
+        };
+
+        var old = shell.SaveLayout();
+        old.Attribute(ToolWindowLayoutSerializer.ShowNamesAttribute)!.Remove();
+
+        shell.RestoreLayout(old);
+        Assert.True(shell.ShowToolWindowNames);
+    }
+
+    /// <summary>控件与 VM 两头对齐：菜单改控件要写回 VM，读档改 VM 要反映到控件。</summary>
+    [AvaloniaFact]
+    public void 控件与VM的显示名字两头对齐()
+    {
+        var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
+        var frame = new ForgeToolWindowFrame();
+        frame.Attach(shell);
+
+        // 菜单那一路：改控件 → 落到 VM（否则存不下去）
+        frame.ShowToolWindowNames = true;
+        Assert.True(shell.ShowToolWindowNames);
+
+        // 读档那一路：改 VM → 控件跟上（宿主是先 Attach 后读存档）
+        shell.ShowToolWindowNames = false;
+        Assert.False(frame.ShowToolWindowNames);
+        Assert.All(
+            frame.LeftToolbar.TopGroup.Children.OfType<ForgeStripeButton>(),
+            x => Assert.False(x.ShowName));
+    }
+
     private static ForgeStripeButton Named(string title)
     {
         var button = new ForgeStripeButton

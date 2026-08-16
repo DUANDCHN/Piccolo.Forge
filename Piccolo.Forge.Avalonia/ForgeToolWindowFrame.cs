@@ -93,7 +93,17 @@ public class ForgeToolWindowFrame : TemplatedControl
         IslandMetricsProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Sync());
         StripeButtonArcProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Sync());
         EditorContentProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Sync());
-        ShowToolWindowNamesProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Sync());
+        ShowToolWindowNamesProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) =>
+        {
+            // 菜单里的「显示工具窗口名称」改的是控件属性；写回 VM 才跟着布局一起存下去。
+            // 两边都是幂等 setter，回写不会来回弹。
+            if (f._shell is { } shell)
+            {
+                shell.ShowToolWindowNames = f.ShowToolWindowNames;
+            }
+
+            f.Sync();
+        });
         MoreButtonSideProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Sync());
     }
 
@@ -340,12 +350,37 @@ public class ForgeToolWindowFrame : TemplatedControl
         if (_shell is not null)
         {
             _shell.StateChanged -= OnShellStateChanged;
+            _shell.PropertyChanged -= OnShellPropertyChanged;
         }
 
         _shell = shell;
         _shell.StateChanged += OnShellStateChanged;
+        _shell.PropertyChanged += OnShellPropertyChanged;
+
+        // 「显示名字」的真相在 VM（它跟布局一起存），控件跟着它走 ——
+        // 宿主的恢复顺序是「先 Attach、后读存档」，所以还得订阅着，等存档读回来再跟一次。
+        //
+        // 接上的这一刻谁说了算：**宿主显式设过控件就以控件为准**（判据用 IsSet，
+        // 同 Palette 那处），否则以 VM 为准。反过来的话，宿主在建控件时配的初值
+        // 会被一个还没读存档的 VM 冲掉。
+        if (IsSet(ShowToolWindowNamesProperty))
+        {
+            _shell.ShowToolWindowNames = ShowToolWindowNames;
+        }
+        else
+        {
+            ShowToolWindowNames = _shell.ShowToolWindowNames;
+        }
 
         Sync();
+    }
+
+    private void OnShellPropertyChanged(object? sender, global::System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(ToolWindowShellViewModel.ShowToolWindowNames) && _shell is { } shell)
+        {
+            ShowToolWindowNames = shell.ShowToolWindowNames;
+        }
     }
 
     /// <summary>接上的外壳 VM。</summary>

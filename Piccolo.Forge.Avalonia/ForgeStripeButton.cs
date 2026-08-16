@@ -405,7 +405,15 @@ public class ForgeStripeButton : ForgeSquareButtonBase
         }
 
         var totalWidth = Math.Max(0, Bounds.Width - (TextPadding * 2));
-        var y = ButtonHeight + ForgeMetrics.StripeIconLabelGap;
+
+        // ⚠ 名字贴着**图标的下沿**起，不是贴着按钮那一格的下沿。
+        //   上游（SquareStripeButton.kt:247-257）是
+        //     iconPosition.y += renderedIcon.iconHeight;  var y = iconPosition.y + iconLabelGap
+        //   —— 图标在 40 的格子里居中（10..30），所以文字从 33 起；按钮总高 40+3+行高，
+        //   多出来的一截留在**下面**。
+        //   本仓原来从 ButtonHeight(40)+3=43 起画，图标与名字之间凭空多了 10px，
+        //   看着就是"图标和文字离得太远"，而按钮底下反倒一点余地都没有。
+        var y = IconRect(Bounds.Size).Bottom + ForgeMetrics.StripeIconLabelGap;
 
         foreach (var line in lines)
         {

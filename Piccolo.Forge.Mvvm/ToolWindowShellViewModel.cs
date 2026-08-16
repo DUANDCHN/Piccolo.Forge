@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Xml.Linq;
 using Piccolo.Forge.Model;
@@ -56,6 +56,12 @@ public sealed class ToolWindowShellViewModel : ForgeObservableObject
     public ReadOnlyObservableCollection<ToolWindowViewModel> ToolWindows { get; }
 
     /// <summary>条带上是否在图标下面显示名字。</summary>
+    /// <remarks>
+    /// <b>这里是真相</b>，控件（<c>ForgeToolWindowFrame.ShowToolWindowNames</c>）跟着它走。
+    /// 放在 VM 上而不是控件上，是因为它要**跟布局一起存**
+    /// （<see cref="SaveLayout"/> / <see cref="RestoreLayout"/>）——
+    /// 存在控件上的话，宿主每条存档路径都得单独记一次这个开关。
+    /// </remarks>
     public bool ShowToolWindowNames
     {
         get => _showToolWindowNames;
@@ -257,12 +263,15 @@ public sealed class ToolWindowShellViewModel : ForgeObservableObject
     public IReadOnlyList<string> RestoreLayout(XElement xml)
     {
         ArgumentNullException.ThrowIfNull(xml);
+
+        // 存档里没写这条就保持当前值（老存档、或别处写出来的片段）
+        ShowToolWindowNames = ToolWindowLayoutSerializer.ReadShowNames(xml, ShowToolWindowNames);
         return Manager.SetLayout(ToolWindowLayoutSerializer.Read(xml));
     }
 
     /// <summary>把当前摆放写成存档。</summary>
     /// <returns>存档根元素。</returns>
-    public XElement SaveLayout() => ToolWindowLayoutSerializer.Write(Manager.Layout);
+    public XElement SaveLayout() => ToolWindowLayoutSerializer.Write(Manager.Layout, ShowToolWindowNames);
 
     private void Track(ToolWindowViewModel vm)
     {
