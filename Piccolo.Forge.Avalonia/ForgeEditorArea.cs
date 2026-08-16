@@ -27,7 +27,10 @@ public class ForgeEditorArea : TemplatedControl
     private readonly Dictionary<EditorGroupViewModel, ForgeEditorTabStrip> _groupStrips = [];
     private readonly Dictionary<EditorGroupViewModel, Border> _groupStripHosts = [];
     private readonly Dictionary<EditorGroupViewModel, ContentControl> _groupBodies = [];
-    private readonly Decorator _root = new();
+    // IntelliJ/Rider 的整个文档区是一座连续的 editor island；分屏叶子只是
+    // 这座岛内部的 EditorWindow，不能各自再套 Margin/圆角，否则拆分后会
+    // 变成两座互不相干的岛，也会在中间制造一条错误的“海”。
+    private readonly Border _root = new();
 
     private EditorAreaViewModel? _area;
 
@@ -109,6 +112,7 @@ public class ForgeEditorArea : TemplatedControl
         // 落点高亮必须盖在分屏与正文之上才看得见（同 ForgeToolWindowFrame）。
         VisualChildren.Add(_overlay);
         LogicalChildren.Add(_overlay);
+        _overlay.IsVisible = false;
 
         ActualThemeVariantChanged += (_, _) => ApplyThemeVariant();
 
@@ -239,6 +243,8 @@ public class ForgeEditorArea : TemplatedControl
         {
             return;
         }
+
+        ForgeIslandDecor.Apply(_root, Palette, anchor: null, IslandMetrics);
 
         // ★ 重建过程中**不接受重入**。
         //
@@ -371,11 +377,13 @@ public class ForgeEditorArea : TemplatedControl
             return;
         }
 
+        ForgeIslandDecor.Apply(_root, Palette, anchor: null, IslandMetrics);
+
         foreach (var vm in _area.Groups)
         {
             if (_groupHosts.TryGetValue(vm, out var host))
             {
-                ForgeIslandDecor.Apply((Border)host, Palette, anchor: null, IslandMetrics);
+                ApplyEditorWindowDecor((Border)host);
             }
 
             if (_groupStripHosts.TryGetValue(vm, out var stripHost))
@@ -521,8 +529,7 @@ public class ForgeEditorArea : TemplatedControl
             _groupHosts[vm] = host;
         }
 
-        // anchor 传 null：编辑区在中间，方角形态下不画分隔线（那条线归四边的面板画）
-        ForgeIslandDecor.Apply((Border)host, Palette, anchor: null, IslandMetrics);
+        ApplyEditorWindowDecor((Border)host);
         SyncStrip(vm, _groupStrips[vm]);
 
         _groupStripHosts[vm].BorderBrush = new SolidColorBrush(Palette.EditorTabsBorder);
@@ -533,6 +540,17 @@ public class ForgeEditorArea : TemplatedControl
         // 就地摘：调用方（Grid 或 _root）马上就要收养它。理由见 Detach 的说明。
         Detach(host);
         return host;
+    }
+
+    /// <summary>分屏叶子是连续文档岛内部的 EditorWindow，不是独立岛。</summary>
+    private void ApplyEditorWindowDecor(Border host)
+    {
+        host.Background = new SolidColorBrush(Palette.Background);
+        host.Margin = default;
+        host.CornerRadius = default;
+        host.BorderBrush = null;
+        host.BorderThickness = default;
+        host.ClipToBounds = true;
     }
 
     private void SyncStrip(EditorGroupViewModel vm, ForgeEditorTabStrip strip)
@@ -796,6 +814,7 @@ public class ForgeEditorArea : TemplatedControl
     /// </remarks>
     private void UpdateDockDrag(EditorDockDragSession session, PointerEventArgs e)
     {
+        _overlay.IsVisible = true;
         var here = e.GetPosition(this);
 
         session.Target = null;
@@ -840,26 +859,31 @@ public class ForgeEditorArea : TemplatedControl
 
     private EditorGroupViewModel? FindGroupAt(Point point)
     {
-        var topLevel = TopLevel.GetTopLevel(this);
-        if (topLevel is null
-            || this.TranslatePoint(point, topLevel) is not { } topLevelPoint
-            || topLevel.InputHitTest(topLevelPoint) is not Visual hit)
+        // 文档正文可能是 NativeControlHost、GPU/视频画面或主动跳过命中测试的控件。
+        // 这种情况下 TopLevel.InputHitTest 会停在原生表面、甚至直接返回 null，
+        // 再沿 VisualParent 找组就永远找不到目标。停靠目标属于编辑区布局树，
+        // 应当像 DockControlState 的注册目标那样按已排布的组宿主边界判定，
+        // 与正文采用哪种渲染技术无关。
+        EditorGroupViewModel? result = null;
+        var resultArea = double.PositiveInfinity;
+        foreach (var pair in _groupHosts)
         {
-            return null;
-        }
-
-        for (Visual? current = hit; current is not null; current = current.GetVisualParent())
-        {
-            foreach (var pair in _groupHosts)
+            if (pair.Value.IsVisible
+                && BoundsIn(pair.Value) is { } bounds
+                && bounds.Contains(point))
             {
-                if (ReferenceEquals(pair.Value, current))
+                // 正常的分屏叶子互不重叠；取最小者也让将来组宿主出现嵌套时
+                // 命中最具体的目标，而不是依赖字典枚举顺序。
+                var area = bounds.Width * bounds.Height;
+                if (area < resultArea)
                 {
-                    return pair.Key;
+                    result = pair.Key;
+                    resultArea = area;
                 }
             }
         }
 
-        return null;
+        return result;
     }
 
     private readonly Dictionary<ForgeEditorTab, (object Source, Control Made)> _madeIcons = [];
@@ -946,6 +970,12 @@ public class ForgeEditorArea : TemplatedControl
 
         _dockDrag = null;
         _overlay.Clear();
+        // 真窗口上只清 StyledProperty 后，同一输入派发里紧接着的
+        // 分屏树更换可以让合成器保留上一帧拖影。会话结束就直接
+        // 把整层移出渲染，下次会话再显示；这也等价于 Dock.Avalonia
+        // DragPreviewHelper.Hide() 的生命周期。
+        _overlay.IsVisible = false;
+        _overlay.InvalidateVisual();
         if (session.Pointer.Captured == this)
         {
             session.Pointer.Capture(null);

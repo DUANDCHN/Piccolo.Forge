@@ -52,21 +52,15 @@ internal sealed class SampleApp : Application
         shell.Add(new SampleTool("Services", "Services", ForgeIcons.Services).Init(), ToolWindowAnchor.Bottom, isSplit: true);
 
         // ③ 建控件并接上。配色跟着宿主的明暗变体走，这里不用管。
-        var frame = new ForgeToolWindowFrame
-        {
-            EditorContent = new Border
-            {
-                Background = new SolidColorBrush(ForgeColor.Parse("#1E1F22")),
-                Child = new TextBlock
-                {
-                    Text = "编辑区占位\n\n点左右条带上的按钮开合工具窗口",
-                    TextAlignment = TextAlignment.Center,
-                    Foreground = new SolidColorBrush(Palette.Foreground),
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center,
-                },
-            },
-        };
+        var editor = new EditorAreaViewModel();
+        editor.Open("sample-a", "Sample A", Document("Sample A"));
+        editor.Open("sample-b", "Sample B", Document("Sample B"));
+        editor.Area.DropTab("sample-b", editor.Area.Groups[0], EditorDropSide.Right);
+
+        var editorControl = new ForgeEditorArea();
+        editorControl.Attach(editor);
+
+        var frame = new ForgeToolWindowFrame { EditorContent = editorControl };
 
         frame.Attach(shell);
 
@@ -92,4 +86,17 @@ internal sealed class SampleApp : Application
 
         return frame;
     }
+
+    private static Control Document(string title) => new Border
+    {
+        Background = new SolidColorBrush(ForgeColor.Parse("#1E1F22")),
+        Child = new TextBlock
+        {
+            Text = $"{title}\n\n把标签拖到另一个窗格中心合并",
+            TextAlignment = TextAlignment.Center,
+            Foreground = new SolidColorBrush(Palette.Foreground),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+        },
+    };
 }
