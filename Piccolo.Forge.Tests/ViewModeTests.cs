@@ -601,6 +601,58 @@ public class ViewModeTests
         window.Close();
     }
 
+    /// <summary>
+    /// 按住标题条往外拖 → 面板浮出来，且与菜单里点「浮动」是同一种状态。
+    /// </summary>
+    /// <remarks>
+    /// 对位上游 <c>ToolWindowDragHelper</c>。走的是同一条路（<c>SetType(Floating)</c>）——
+    /// 不另开一种"拖出来的浮动"，否则两套行为早晚对不齐。
+    /// 起拖同样要走够死区，不然手抖一下面板就飞出去了。
+    /// </remarks>
+    [AvaloniaFact]
+    public void 拖标题条把面板拖成浮动()
+    {
+        var (window, frame, shell, _) = Build();
+        var header = frame.GetVisualDescendants().OfType<ForgeToolWindowHeader>().Single();
+
+        Press(header, header);
+
+        // 抖一下不算：还在死区里
+        Move(frame, new Point(3, 3));
+        Assert.Equal(ToolWindowType.Docked, shell.Manager.Layout.GetInfo("相机列表")!.Type);
+        Assert.Empty(frame.ExternalWindows);
+
+        // 拖出去
+        Move(frame, new Point(200, 160));
+        Pump(window);
+
+        Assert.Equal(ToolWindowType.Floating, shell.Manager.Layout.GetInfo("相机列表")!.Type);
+        Assert.Single(frame.ExternalWindows);
+
+        window.Close();
+    }
+
+    private static void Press(Control target, Visual source)
+        => target.RaiseEvent(new PointerPressedEventArgs(
+            source,
+            new Pointer(0, PointerType.Mouse, isPrimary: true),
+            target,
+            default,
+            0,
+            new PointerPointProperties(RawInputModifiers.LeftMouseButton, PointerUpdateKind.LeftButtonPressed),
+            KeyModifiers.None));
+
+    private static void Move(Control target, Point position)
+        => target.RaiseEvent(new PointerEventArgs(
+            InputElement.PointerMovedEvent,
+            target,
+            new Pointer(0, PointerType.Mouse, isPrimary: true),
+            target,
+            position,
+            0,
+            new PointerPointProperties(RawInputModifiers.LeftMouseButton, PointerUpdateKind.Other),
+            KeyModifiers.None));
+
     /// <summary>独立出去之后，标题条上多一个「停靠回去」；点它就回到原来的内部形态。</summary>
     /// <remarks>上游那组动作的第一个就是 <c>DockToolWindowAction</c>（<c>ToolWindowHeader.kt:119</c>）。</remarks>
     [AvaloniaFact]

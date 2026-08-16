@@ -142,6 +142,10 @@ public class ForgeToolWindowFrame : TemplatedControl
         AddHandler(PointerReleasedEvent, OnStripePointerReleased, gestureRoutes, handledEventsToo: true);
         AddHandler(PointerCaptureLostEvent, OnStripePointerCaptureLost, gestureRoutes, handledEventsToo: true);
 
+        // 标题条拖出去 = 浮动（见 WireHeaderDrag）
+        AddHandler(PointerMovedEvent, OnHeaderPointerMoved, gestureRoutes, handledEventsToo: true);
+        AddHandler(PointerReleasedEvent, OnHeaderPointerReleased, gestureRoutes, handledEventsToo: true);
+
         // ★ 焦点跟踪：「失焦自动收起」（停靠不固定 / 取消停靠）靠它才动得起来。
         //   上游是全局焦点监听（ToolWindowManagerLifecycle.kt:97-106）；这里用**按下**当焦点转移的时机 ——
         //   面板内容五花八门（图像、表格、宿主的自绘控件），不少压根不接受键盘焦点，
@@ -758,6 +762,94 @@ public class ForgeToolWindowFrame : TemplatedControl
         },
             RoutingStrategies.Tunnel | RoutingStrategies.Bubble | RoutingStrategies.Direct,
             handledEventsToo: true);
+    }
+
+    // ── 标题条拖出去 = 浮动 ────────────────────────────────────────────────
+    //
+    // 对位上游 ToolWindowDragHelper：按住面板的标题条往外拖，面板就脱出来浮着。
+    // 走的是**和菜单里「浮动」同一条路**（SetType(Floating)），不另开一种状态 ——
+    // 否则就会有"拖出来的浮动"和"点出来的浮动"两套行为，早晚对不齐。
+
+    private string? _headerDragId;
+    private Point _headerDragStart;
+    private Point _headerDragGrab;
+    private bool _headerDragging;
+
+    private void WireHeaderDrag(ForgeToolWindowHeader header, string id)
+        => header.AddHandler(
+            PointerPressedEvent,
+            (object? _, PointerPressedEventArgs e) =>
+            {
+                // 已经兼任窗口标题栏的（浮动）不在此列：那时按住是**搬窗口**，归系统
+                if (header.IsWindowTitleBar
+                    || !e.GetCurrentPoint(header).Properties.IsLeftButtonPressed
+                    || !header.IsWindowDragArea(e.Source as Visual))
+                {
+                    return;
+                }
+
+                _headerDragId = id;
+                _headerDragging = false;
+                _headerDragStart = e.GetPosition(this);
+
+                // 抓在面板的哪个位置 —— 浮出来之后要让同一个点待在光标下，不然会"跳"一下
+                _headerDragGrab = _panelHosts.TryGetValue(id, out var host)
+                    ? e.GetPosition(host)
+                    : default;
+            },
+            RoutingStrategies.Tunnel | RoutingStrategies.Bubble,
+            handledEventsToo: true);
+
+    private void OnHeaderPointerMoved(object? sender, PointerEventArgs e)
+    {
+        if (_headerDragId is not { } id || _shell is not { } shell)
+        {
+            return;
+        }
+
+        var point = e.GetPosition(this);
+
+        if (!_headerDragging)
+        {
+            var moved = Math.Sqrt(Math.Pow(point.X - _headerDragStart.X, 2) + Math.Pow(point.Y - _headerDragStart.Y, 2));
+            if (moved < ForgeMetrics.StripeButtonDragStartDeadzone)
+            {
+                return;
+            }
+
+            _headerDragging = true;
+            shell.Manager.SetType(id, ToolWindowType.Floating);
+
+            // 拖出去之后指针还得归我们，不然一出主窗口就收不到移动了
+            e.Pointer.Capture(this);
+        }
+
+        FollowPointer(id, point);
+    }
+
+    private void OnHeaderPointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        if (_headerDragging && _headerDragId is { } id)
+        {
+            FollowPointer(id, e.GetPosition(this));
+        }
+
+        _headerDragId = null;
+        _headerDragging = false;
+    }
+
+    /// <summary>让浮出来的窗口跟着光标走，抓点保持在按下时的那个位置。</summary>
+    private void FollowPointer(string id, Point point)
+    {
+        if (!_externalWindows.TryGetValue(id, out var external))
+        {
+            return;
+        }
+
+        if (this.PointToScreen(point - _headerDragGrab) is { } origin)
+        {
+            external.Window.Position = origin;
+        }
     }
 
     private void OnStripePointerMoved(object? sender, PointerEventArgs e)
@@ -1515,6 +1607,8 @@ public class ForgeToolWindowFrame : TemplatedControl
                 shell.Manager.SetType(id, shell.Manager.ResolveInternalType(id));
             }
         };
+
+        WireHeaderDrag(header, id);
 
         // 内容用 ContentControl 承载 object —— 视图由**宿主**的 ViewLocator / DataTemplate 解析
         var content = new ContentControl();
