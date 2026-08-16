@@ -1512,25 +1512,28 @@ public class ForgeToolWindowFrame : TemplatedControl
         _panelContents[vm.Id].Content = vm.Content;
     }
 
-    /// <summary>标题条上 ⋮ 的菜单：与条带按钮右键菜单同一份。</summary>
     /// <summary>
-    /// 这个控件**画得出来**的视图形态。
+    /// 这个控件**画得出来**的视图模式。
     /// </summary>
     /// <remarks>
-    /// 目前只有停靠固定：SLIDING（滑出覆盖在编辑区上）、FLOATING / WINDOWED（独立窗口）
-    /// 都还没做（REQ-066 的移植清单里那条「自动隐藏浮层」还空着）。
+    /// 五种都画得出来。注意它们不是五种 <see cref="ToolWindowType"/> ——
+    /// 停靠固定与停靠不固定是同一种形态（DOCKED），差在失焦收不收
+    /// （见 <see cref="ToolWindowViewMode"/>）。
     /// <para>
-    /// ⚠ <b>没实现的形态就不该摆上菜单</b>：模型允许它们（那是照上游建的），
-    /// 但一旦被选中，视图就把这个面板当普通停靠面板塞进同一列 ——
-    /// 而 SLIDING 与 DOCKED 在上游是**两个格**（<c>ToolWindowSlot</c> 的键含形态，
-    /// <c>ToolWindowManagerImpl.kt:962-966</c>），互斥判定放行，于是同一列里两块面板
-    /// 叠在一起画，看起来就是「按钮亮了两个、面板只显示一个」。
-    /// 而且它会写进布局存档，重启也回不来。
+    /// ⚠ <b>画不出来的模式不该摆上菜单</b>：模型允许它们（那是照上游建的），
+    /// 但视图若把它当普通停靠面板塞进同一列，就会得到「按钮亮了两个、面板只显示一个」
+    /// ——SLIDING 与 DOCKED 在上游是**两个格**（<c>ToolWindowSlot</c> 的键含形态，
+    /// <c>ToolWindowManagerImpl.kt:962-966</c>），互斥判定会放行。而且会写进布局存档。
     /// </para>
-    /// <para>实现了哪个就往这里加哪个。</para>
     /// </remarks>
-    public static IReadOnlyList<ToolWindowType> SupportedViewModes { get; } =
-        [ToolWindowType.Docked, ToolWindowType.Sliding, ToolWindowType.Floating, ToolWindowType.Windowed];
+    public static IReadOnlyList<ToolWindowViewMode> SupportedViewModes { get; } =
+    [
+        ToolWindowViewMode.DockPinned,
+        ToolWindowViewMode.DockUnpinned,
+        ToolWindowViewMode.Undock,
+        ToolWindowViewMode.Float,
+        ToolWindowViewMode.Window,
+    ];
 
     /// <summary>
     /// 把画不出来的形态掰回停靠固定。
@@ -1549,7 +1552,7 @@ public class ForgeToolWindowFrame : TemplatedControl
 
         foreach (var info in shell.Manager.Layout.GetSortedList().ToList())
         {
-            if (!SupportedViewModes.Contains(info.Type))
+            if (!SupportedViewModes.Contains(ToolWindowViewModes.Resolve(info)))
             {
                 shell.Manager.SetType(info.Id, ToolWindowType.Docked);
             }

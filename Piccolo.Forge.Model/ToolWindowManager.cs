@@ -185,6 +185,11 @@ public sealed class ToolWindowManager
         }
 
         _activeStack.Push(id);
+
+        // 焦点到了这个面板 → 别的「失焦就收」的面板该收了
+        // （上游是全局焦点监听触发，见 AutoHideOthers；这里以"激活"为焦点转移的时机）
+        AutoHideOthers(id);
+
         OnStateChanged(ToolWindowChangeKind.Activated, id);
     }
 
@@ -202,8 +207,15 @@ public sealed class ToolWindowManager
     /// <summary>
     /// 编辑区拿到焦点：清空易失栈，持久栈不动。
     /// </summary>
-    /// <remarks>对应 <c>ToolWindowManagerLifecycle.kt:85-92</c>。</remarks>
-    public void OnEditorFocused() => _activeStack.Clear();
+    /// <remarks>
+    /// 对应 <c>ToolWindowManagerLifecycle.kt:85-92</c>。焦点离开了所有工具窗口，
+    /// 所以「失焦就收」的那些也一并收起（同一处上游代码里紧跟着的那件事）。
+    /// </remarks>
+    public void OnEditorFocused()
+    {
+        _activeStack.Clear();
+        AutoHideOthers(exceptId: null);
+    }
 
     /// <summary>
     /// 焦点跑到别处时，该不该自动隐藏这个窗口。
@@ -239,6 +251,56 @@ public sealed class ToolWindowManager
 
         Deactivate(info);
         OnStateChanged(ToolWindowChangeKind.Hidden, id);
+        return true;
+    }
+
+    /// <summary>
+    /// 焦点落到别处了：把该自动收起的都收起来。
+    /// </summary>
+    /// <remarks>
+    /// 对应 <c>ToolWindowManagerLifecycle.kt:97-106 · 遍历所有 id 逐个
+    /// hideIfAutoHideToolWindowLostFocus</c>。上游是全局焦点监听触发的；这里由调用方
+    /// 在"焦点确实换了地方"的时刻调用（激活另一个面板、编辑区拿到焦点）。
+    /// </remarks>
+    /// <param name="exceptId">刚拿到焦点的那个工具窗口；焦点去了编辑区就传 <see langword="null"/>。</param>
+    /// <returns>被收起来的 id。</returns>
+    public IReadOnlyList<string> AutoHideOthers(string? exceptId)
+    {
+        var hidden = new List<string>();
+
+        foreach (var info in Layout.GetSortedList().ToList())
+        {
+            if (info.Id == exceptId || !ShouldAutoHideOnFocusLost(info))
+            {
+                continue;
+            }
+
+            if (AutoHideOnFocusLost(info.Id))
+            {
+                hidden.Add(info.Id);
+            }
+        }
+
+        return hidden;
+    }
+
+    /// <summary>
+    /// 设「失焦自动收起」。
+    /// </summary>
+    /// <remarks>对应 <c>ToolWindowManagerImpl.kt:1727-1740 · setToolWindowAutoHide</c>。</remarks>
+    /// <param name="id">工具窗口 id。</param>
+    /// <param name="autoHide">是否自动收起。</param>
+    /// <returns>确实改了则为 <see langword="true"/>。</returns>
+    public bool SetAutoHide(string id, bool autoHide)
+    {
+        var info = Layout.GetInfo(id) ?? throw new InvalidOperationException($"未注册的工具窗口：{id}");
+        if (info.IsAutoHide == autoHide)
+        {
+            return false;
+        }
+
+        Layout.SetInfo(info with { IsAutoHide = autoHide });
+        OnStateChanged(ToolWindowChangeKind.TypeChanged, id);
         return true;
     }
 

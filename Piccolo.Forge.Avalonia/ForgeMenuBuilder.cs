@@ -61,13 +61,13 @@ public static class ForgeMenuBuilder
         ToolWindowManager manager,
         string id,
         Action<ContextMenu, string>? extend = null,
-        IReadOnlyList<ToolWindowType>? viewModes = null)
+        IReadOnlyList<ToolWindowViewMode>? viewModes = null)
     {
         ArgumentNullException.ThrowIfNull(manager);
         ArgumentNullException.ThrowIfNull(id);
 
         var menu = Build(
-            ToolWindowContextMenu.ForHeaderOptions(viewModes ?? [ToolWindowType.Docked]),
+            ToolWindowContextMenu.ForHeaderOptions(viewModes ?? [ToolWindowViewMode.DockPinned]),
             manager, id, static () => { }, showNames: false);
         extend?.Invoke(menu, id);
         return menu;
@@ -116,7 +116,7 @@ public static class ForgeMenuBuilder
                     break;
 
                 case ToolWindowMenuItemKind.ViewMode:
-                    var type = item.Type!.Value;
+                    var wanted = item.ViewMode!.Value;
 
                     if (viewMode is null)
                     {
@@ -125,9 +125,12 @@ public static class ForgeMenuBuilder
                     }
 
                     // 可勾选：当前是哪一种要一眼看得出（上游那组是单选带 ✓）
-                    var mode = Item(DescribeViewMode(type), () => manager!.SetType(id!, type));
+                    var mode = Item(
+                        DescribeViewMode(wanted),
+                        () => ToolWindowViewModes.Apply(manager!, id!, wanted));
                     mode.ToggleType = MenuItemToggleType.Radio;
-                    mode.IsChecked = manager?.Layout.GetInfo(id!)?.Type == type;
+                    mode.IsChecked = manager?.Layout.GetInfo(id!) is { } current
+                                     && ToolWindowViewModes.Resolve(current) == wanted;
                     viewMode.Items.Add(mode);
                     break;
 
@@ -269,18 +272,19 @@ public static class ForgeMenuBuilder
 
     /// <summary>视图模式的中文名（对应 <c>TW.ViewModeGroup</c> 那几项）。</summary>
     /// <remarks>
-    /// 上游还有第五项「取消停靠(Undock)」，本模型的 <see cref="ToolWindowType"/> 没有对应值
-    /// （见那个枚举的说明），所以只给这四项。
+    /// 五项齐了。曾经缺「取消停靠」，是因为把它和 SLIDING 混成了「停靠不固定」——
+    /// 上游这两件事分在 <c>type</c> 与 <c>isAutoHide</c> 两个字段上，见 <see cref="ToolWindowViewMode"/>。
     /// </remarks>
-    /// <param name="type">视图模式。</param>
+    /// <param name="mode">视图模式。</param>
     /// <returns>菜单上显示的名字。</returns>
-    private static string DescribeViewMode(ToolWindowType type) => type switch
+    private static string DescribeViewMode(ToolWindowViewMode mode) => mode switch
     {
-        ToolWindowType.Docked => "停靠固定",
-        ToolWindowType.Sliding => "停靠不固定",
-        ToolWindowType.Floating => "浮动",
-        ToolWindowType.Windowed => "窗口",
-        _ => type.ToString(),
+        ToolWindowViewMode.DockPinned => "停靠固定",
+        ToolWindowViewMode.DockUnpinned => "停靠不固定",
+        ToolWindowViewMode.Undock => "取消停靠",
+        ToolWindowViewMode.Float => "浮动",
+        ToolWindowViewMode.Window => "窗口",
+        _ => mode.ToString(),
     };
 
     /// <summary>

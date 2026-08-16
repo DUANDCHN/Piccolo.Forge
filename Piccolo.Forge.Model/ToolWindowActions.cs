@@ -6,12 +6,12 @@
 /// <param name="Kind">是哪一项。</param>
 /// <param name="Anchor">「移到某边」时的目标边，其余项为 <see langword="null"/>。</param>
 /// <param name="IsSplit">「移到某边」时落到哪一半。</param>
-/// <param name="Type">「视图模式」时切到哪一种，其余项为 <see langword="null"/>。</param>
+/// <param name="ViewMode">「视图模式」时切到哪一种，其余项为 <see langword="null"/>。</param>
 public readonly record struct ToolWindowMenuItem(
     ToolWindowMenuItemKind Kind,
     ToolWindowAnchor? Anchor = null,
     bool IsSplit = false,
-    ToolWindowType? Type = null);
+    ToolWindowViewMode? ViewMode = null);
 
 /// <summary>右键菜单项的种类。</summary>
 public enum ToolWindowMenuItemKind
@@ -28,7 +28,7 @@ public enum ToolWindowMenuItemKind
     /// <summary>切换「显示名字」。</summary>
     ToggleShowNames,
 
-    /// <summary>切换视图模式（停靠固定 / 停靠不固定 / 浮动 / 窗口）。</summary>
+    /// <summary>切换视图模式（停靠固定 / 停靠不固定 / 取消停靠 / 浮动 / 窗口）。</summary>
     ViewMode,
 }
 
@@ -71,7 +71,8 @@ public static class ToolWindowContextMenu
     /// 结构照 <c>ToolWindowImpl.kt:855-888 · GearActionGroup.getChildren</c>，
     /// 只留本模型撑得住的那几组：
     /// <list type="number">
-    /// <item><b>视图模式</b>（<c>TW.ViewModeGroup</c>）—— 对应 <see cref="ToolWindowType"/>；</item>
+    /// <item><b>视图模式</b>（<c>TW.ViewModeGroup</c>）—— 对应 <see cref="ToolWindowViewMode"/>
+    /// （**不是** <see cref="ToolWindowType"/>，它是 type × isAutoHide 的组合，见那个枚举的说明）；</item>
     /// <item><b>移至</b>（<c>SquareStripeButton.createMoveGroup()</c>）—— 与条带右键菜单同一组；</item>
     /// <item>分隔线 + <b>从边栏中移除</b>（<c>RemoveStripeButtonAction</c>）。</item>
     /// </list>
@@ -88,18 +89,18 @@ public static class ToolWindowContextMenu
     /// <returns>菜单项。</returns>
     /// <param name="viewModes">
     /// 「视图模式」里列哪几种 —— <b>由视图层给</b>，只列它真画得出来的那些。
-    /// 摆上一个画不出来的形态，用户一点就把界面弄坏（SLIDING 与 DOCKED 在上游是两个格，
+    /// 摆上一个画不出来的模式，用户一点就把界面弄坏（SLIDING 与 DOCKED 在上游是两个格，
     /// 互斥判定会放行，于是同一列里两块面板叠着画），而且会写进存档。
     /// </param>
-    public static IReadOnlyList<ToolWindowMenuItem> ForHeaderOptions(IReadOnlyList<ToolWindowType> viewModes)
+    public static IReadOnlyList<ToolWindowMenuItem> ForHeaderOptions(IReadOnlyList<ToolWindowViewMode> viewModes)
     {
         ArgumentNullException.ThrowIfNull(viewModes);
 
         var items = new List<ToolWindowMenuItem>();
 
-        foreach (var type in viewModes)
+        foreach (var mode in viewModes)
         {
-            items.Add(new ToolWindowMenuItem(ToolWindowMenuItemKind.ViewMode, Type: type));
+            items.Add(new ToolWindowMenuItem(ToolWindowMenuItemKind.ViewMode, ViewMode: mode));
         }
 
         foreach (var anchor in new[] { ToolWindowAnchor.Left, ToolWindowAnchor.Right, ToolWindowAnchor.Bottom })

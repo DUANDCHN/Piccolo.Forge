@@ -168,7 +168,9 @@ public class HeaderButtonsTests
 
         // 视图模式：只列库画得出来的那些（另见「视图模式只列画得出来的形态」），当前那种打勾
         var modes = menu.Items.OfType<MenuItem>().First(x => (string?)x.Header == "视图模式");
-        Assert.Equal(["停靠固定", "停靠不固定", "浮动", "窗口"], modes.Items.OfType<MenuItem>().Select(x => x.Header as string));
+        Assert.Equal(
+            ["停靠固定", "停靠不固定", "取消停靠", "浮动", "窗口"],
+            modes.Items.OfType<MenuItem>().Select(x => x.Header as string));
         Assert.Single(modes.Items.OfType<MenuItem>(), x => x.IsChecked);
 
         window.Close();
