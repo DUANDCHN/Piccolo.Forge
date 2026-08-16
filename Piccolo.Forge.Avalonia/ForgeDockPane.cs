@@ -292,14 +292,16 @@ public class ForgeDockPane : Panel
     // overlayWeight 有值时这条边站着一块覆盖层（SLIDING）：边界不在停靠尺寸上，
     // 而在覆盖层自己那块的内沿 —— 上游同样给 SLIDING 配了 resizer
     //（ToolWindowPane.kt:565-607 · Resizer.LayeredPane.Left/Right/Top/Bottom）。
-    private static Rect ResizerRect(Size paneSize, DockSizes sizes, ToolWindowAnchor anchor, double? overlayWeight)
+    private static Rect ResizerRect(Size paneSize, DockSizes sizes, ToolWindowAnchor anchor, (double Weight, Thickness Margin)? overlay)
     {
         var zone = ForgeMetrics.SplitterMouseZone;
         var half = zone / 2;
 
-        if (overlayWeight is { } weight)
+        if (overlay is { } o)
         {
-            var rect = OverlayRect(paneSize, anchor, weight);
+            // 骑在**看得见的**那条边上：岛让出的缝里没有东西可抓，
+            // 抓手对准几何边界的话，一半落在缝里、一半落在编辑区上，就是不在面板边上。
+            var rect = OverlayRect(paneSize, anchor, o.Weight).Deflate(o.Margin);
             return anchor switch
             {
                 ToolWindowAnchor.Left => new Rect(rect.Right - half, 0, zone, paneSize.Height),
@@ -425,7 +427,7 @@ public class ForgeDockPane : Panel
         // 一条边上有两个窗口时，整格的宽/高取**非 split 那个**的 weight
         // （ToolWindowPane.kt:723-728：竖边竖切走 normalizeWeight(info.weight) 分支）
         var weights = new Dictionary<ToolWindowAnchor, double>();
-        var overlays = new Dictionary<ToolWindowAnchor, double>();
+        var overlays = new Dictionary<ToolWindowAnchor, (double Weight, Thickness Margin)>();
         foreach (var child in Children)
         {
             // 覆盖层（SLIDING）不占地方：不进边尺寸的计算，编辑区照旧铺满 ——
@@ -437,7 +439,7 @@ public class ForgeDockPane : Panel
 
             if (GetIsOverlay(child))
             {
-                overlays[anchor] = GetWeight(child);
+                overlays[anchor] = (GetWeight(child), child.Margin);
                 continue;
             }
 
@@ -475,11 +477,11 @@ public class ForgeDockPane : Panel
 
             if (GetIsResizer(child) is { } resizerAnchor)
             {
-                var overlayWeight = overlays.TryGetValue(resizerAnchor, out var ow) ? ow : (double?)null;
+                var overlay = overlays.TryGetValue(resizerAnchor, out var o) ? o : ((double, Thickness)?)null;
 
                 // 覆盖层盖在编辑区上（ZIndex 1），它的 resizer 得再高一层才抓得到
-                child.ZIndex = overlayWeight is null ? 0 : 2;
-                result.Add((child, ResizerRect(paneSize, sizes, resizerAnchor, overlayWeight)));
+                child.ZIndex = overlay is null ? 0 : 2;
+                result.Add((child, ResizerRect(paneSize, sizes, resizerAnchor, overlay)));
                 continue;
             }
 

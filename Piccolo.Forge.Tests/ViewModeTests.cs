@@ -334,7 +334,10 @@ public class ViewModeTests
         {
             Assert.Null(resizer.LineBrush);
             Assert.True(panel.CornerRadius.TopLeft > 0, "岛该是圆角的");
-            Assert.True(panel.Margin.Right > 0, "岛四周该留缝，缝里透出下面的编辑区");
+
+            // 缝要**整条**：并排的两座岛各让一半凑成一条（BorderWidth），
+            // 浮在编辑区上的这座没有邻居帮它凑，只让一半就只剩半条、几乎看不出来。
+            Assert.Equal(3, panel.Margin.Right, 0.01);
         }
         else
         {

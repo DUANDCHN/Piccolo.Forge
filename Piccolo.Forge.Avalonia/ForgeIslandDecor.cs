@@ -47,12 +47,18 @@ public static class ForgeIslandDecor
     /// 底色；<see langword="null"/> 用 <see cref="ForgePalette.Background"/>（工具窗口那档）。
     /// 编辑区要传 <see cref="ForgePalette.EditorBackground"/>。
     /// </param>
+    /// <param name="isFloatingIsland">
+    /// 这座岛是不是浮在别的内容上（取消停靠的面板）。是的话四周让满一整条缝 ——
+    /// 见 <see cref="ForgeIslandMetrics.HalfBorderWidth"/>：并排的岛各让一半凑成一条，
+    /// 浮着的这座没有邻居帮它凑。
+    /// </param>
     public static void Apply(
         Border host,
         ForgePalette palette,
         ToolWindowAnchor? anchor,
         ForgeIslandMetrics? metricsOverride = null,
-        Color? background = null)
+        Color? background = null,
+        bool isFloatingIsland = false)
     {
         ArgumentNullException.ThrowIfNull(host);
         ArgumentNullException.ThrowIfNull(palette);
@@ -70,7 +76,10 @@ public static class ForgeIslandDecor
             return;
         }
 
-        host.Margin = new Thickness(island.HalfBorderWidth);
+        // 缝是**两边各出一半**：两座岛并排，各让 HalfBorderWidth，中间就是完整的 BorderWidth。
+        // 浮在编辑区上的那座岛没有邻居出另一半（下面是编辑区，不是岛），
+        // 只让一半就只剩半条缝、几乎看不出来 —— 它得自己让满。
+        host.Margin = new Thickness(isFloatingIsland ? island.BorderWidth : island.HalfBorderWidth);
         host.CornerRadius = new CornerRadius(island.CornerRadius);
 
         // ⚠ **必须裁**：CornerRadius 只管 Border 自己画的背景与描边，**不裁子控件**。
