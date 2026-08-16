@@ -1,5 +1,6 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Chrome;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -63,6 +64,17 @@ public class ForgeToolWindowHeader : TemplatedControl
 
         // 拖动窗口：子控件吃掉的按下也要收得到（理由见 OnHeaderPressed）
         AddHandler(PointerPressedEvent, OnHeaderPressed, RoutingStrategies.Bubble, handledEventsToo: true);
+
+        // 客户区延伸到装饰区的窗口（宿主自绘 chrome 那种），装饰层**盖在内容之上**，
+        // 自绘的 PointerPressed 根本收不到按下 —— 拖动得靠命中角色交给系统
+        // （Win32 映射为 HTCAPTION，还顺带拿到双击最大化）。
+        // 标题条整条是拖动区；按钮标成 User，让它们照常收到点击。
+        WindowDecorationProperties.SetElementRole(this, WindowDecorationsElementRole.TitleBar);
+        WindowDecorationProperties.SetElementRole(_tabs, WindowDecorationsElementRole.User);
+        foreach (var button in new Control[] { _dock, _options, _hide })
+        {
+            WindowDecorationProperties.SetElementRole(button, WindowDecorationsElementRole.User);
+        }
 
         _dock.Click += (_, e) => DockRequested?.Invoke(this, e);
         _options.Click += (_, e) => OptionsRequested?.Invoke(this, e);
@@ -139,6 +151,8 @@ public class ForgeToolWindowHeader : TemplatedControl
 
         foreach (var button in _extra)
         {
+            // 同内置按钮：标题条整条是窗口拖动区，按钮得标出来才收得到点击（见构造里那段）
+            WindowDecorationProperties.SetElementRole(button, WindowDecorationsElementRole.User);
             VisualChildren.Add(button);
             LogicalChildren.Add(button);
         }
@@ -158,7 +172,8 @@ public class ForgeToolWindowHeader : TemplatedControl
             IsCompactProperty,
             ShowButtonsProperty,
             ShowDockButtonProperty,
-            TitleBarHeightProperty);
+            TitleBarHeightProperty,
+            CaptionButtonsWidthProperty);
         ContentUiTypeProperty.Changed.AddClassHandler<ForgeToolWindowHeader>((h, _) => h.InvalidateMeasure());
     }
 
@@ -229,6 +244,26 @@ public class ForgeToolWindowHeader : TemplatedControl
         set => SetValue(TitleBarHeightProperty, value);
     }
 
+    /// <summary>
+    /// 右端要给窗口的系统按钮（最小化 / 最大化 / 关闭）留出多宽。
+    /// </summary>
+    /// <remarks>
+    /// 独立窗口形态下，标题条与窗口的标题栏是**同一行**：左边是面板的标题和标签，
+    /// 中间偏右是面板自己的按钮（⿴ ⋮ —），最右边才是窗口的三个系统按钮。
+    /// 那三个按钮由宿主的 chrome 画在客户区上层，布局里看不见，所以得在这里留出它们的宽度，
+    /// 否则面板的按钮会被压在它们底下。
+    /// <para>具体多宽只有宿主知道（各家 chrome 不一样），由 <c>ForgeToolWindowFrame.CaptionButtonsWidth</c> 给。</para>
+    /// </remarks>
+    public static readonly StyledProperty<double> CaptionButtonsWidthProperty =
+        AvaloniaProperty.Register<ForgeToolWindowHeader, double>(nameof(CaptionButtonsWidth));
+
+    /// <summary>右端给系统按钮留的宽度；0 = 不留（这个窗口的标题栏不在这一行）。</summary>
+    public double CaptionButtonsWidth
+    {
+        get => GetValue(CaptionButtonsWidthProperty);
+        set => SetValue(CaptionButtonsWidthProperty, value);
+    }
+
     /// <summary>标题条高度：兼任窗口标题栏时按 <see cref="TitleBarHeight"/>，否则紧凑 31 / 常规 41。</summary>
     public double HeaderHeight => double.IsNaN(TitleBarHeight)
         ? (IsCompact ? ForgeCompactMetrics.HeaderHeight : ForgeMetrics.HeaderHeight)
@@ -266,11 +301,11 @@ public class ForgeToolWindowHeader : TemplatedControl
             }
 
             var count = Buttons.Count();
-            return count == 0
+            return CaptionButtonsWidth + (count == 0
                 ? 0
                 : ForgeMetrics.HeaderToolbarInsetLeft
                   + (count * ForgeMetrics.HeaderButtonSize)
-                  + ForgeMetrics.HeaderToolbarInsetRight;
+                  + ForgeMetrics.HeaderToolbarInsetRight);
         }
     }
 
@@ -292,8 +327,9 @@ public class ForgeToolWindowHeader : TemplatedControl
     /// <inheritdoc />
     protected override Size ArrangeOverride(Size finalSize)
     {
-        // 按钮靠右（上游是 BorderLayout.EAST，ToolWindowHeader.kt:202），标签页排在标题与按钮之间
-        var x = finalSize.Width - ForgeMetrics.HeaderToolbarInsetRight;
+        // 按钮靠右（上游是 BorderLayout.EAST，ToolWindowHeader.kt:202），标签页排在标题与按钮之间；
+        // 独立窗口形态下再往左让出窗口那三个系统按钮的地方（见 CaptionButtonsWidth）
+        var x = finalSize.Width - ForgeMetrics.HeaderToolbarInsetRight - CaptionButtonsWidth;
         foreach (var button in Buttons.Reverse())
         {
             if (!ShowButtons)

@@ -1416,6 +1416,16 @@ public class ForgeToolWindowFrame : TemplatedControl
     /// </remarks>
     public double TitleBarHeight { get; set; } = ForgeMetrics.WindowTitleBarHeight;
 
+    /// <summary>
+    /// 独立窗口形态下，标题条右端要给窗口的最小化 / 最大化 / 关闭留出多宽。
+    /// </summary>
+    /// <remarks>
+    /// 独立窗口的标题栏与面板标题条**合成一行**：面板的标题和标签在左，面板自己的按钮居右，
+    /// 窗口那三个系统按钮在最右。那三个由宿主的 chrome 画在客户区上层、不参与布局，
+    /// 所以得在这里报出宽度。0 = 宿主窗体自带标题栏，这一行不用让。
+    /// </remarks>
+    public double CaptionButtonsWidth { get; set; }
+
     /// <summary>取（必要时新建）一个工具窗口的面板宿主。</summary>
     private Border GetPanelHost(ToolWindowViewModel vm)
     {
@@ -1475,9 +1485,11 @@ public class ForgeToolWindowFrame : TemplatedControl
         // 「停靠回去」只在独立出去之后才有意义
         header.ShowDockButton = ToolWindowManager.IsExternal(info.Type);
 
-        // 浮动时这条标题条就是那个窗口的标题栏 → 按窗口标题栏的高度长（见 TitleBarHeight 的说明）。
-        // 独立窗口不算：它有自己的标题栏，这条仍然是面板标题条。
-        header.TitleBarHeight = info.Type == ToolWindowType.Floating ? TitleBarHeight : double.NaN;
+        // 切出去之后这条标题条就是那个窗口的标题栏（宿主窗体不再自带一条，两条会重影）
+        //  → 按窗口标题栏的高度长；独立窗口再往左让出它的系统按钮（见 CaptionButtonsWidth）。
+        var external = ToolWindowManager.IsExternal(info.Type);
+        header.TitleBarHeight = external ? TitleBarHeight : double.NaN;
+        header.CaptionButtonsWidth = info.Type == ToolWindowType.Windowed ? CaptionButtonsWidth : 0;
         header.SetExtraButtons(HeaderButtonsExtension?.Invoke(vm.Id));
         SyncTabs(header, vm, info.ContentUiType);
 

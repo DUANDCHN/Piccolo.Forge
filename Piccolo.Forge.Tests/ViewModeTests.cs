@@ -161,6 +161,43 @@ public class ViewModeTests
     }
 
     /// <summary>
+    /// 独立窗口形态下，标题条与窗口标题栏是同一行：面板的按钮要给右边那三个系统按钮让位。
+    /// </summary>
+    [AvaloniaFact]
+    public void 独立窗口时面板按钮给系统按钮让位()
+    {
+        var (window, frame, shell, _) = Build();
+        frame.CaptionButtonsWidth = 140;
+
+        var header = frame.GetVisualDescendants().OfType<ForgeToolWindowHeader>().Single();
+        var dockedRight = header.GetVisualDescendants().OfType<ForgeHeaderButton>()
+            .Where(x => x.IsVisible).Max(x => x.Bounds.Right);
+
+        shell.Manager.SetType("相机列表", ToolWindowType.Windowed);
+        Pump(window);
+
+        var windowedRight = header.GetVisualDescendants().OfType<ForgeHeaderButton>()
+            .Where(x => x.IsVisible).Max(x => x.Bounds.Right);
+        Assert.True(
+            windowedRight <= header.Bounds.Width - 140,
+            $"面板按钮压到系统按钮底下了：右端 {windowedRight}，条宽 {header.Bounds.Width}");
+
+        // 浮动没有系统按钮，不该让位
+        shell.Manager.SetType("相机列表", ToolWindowType.Floating);
+        Pump(window);
+        Assert.Equal(0, header.CaptionButtonsWidth);
+
+        // 停回去更不该让位
+        shell.Manager.SetType("相机列表", ToolWindowType.Docked);
+        Pump(window);
+        var backRight = header.GetVisualDescendants().OfType<ForgeHeaderButton>()
+            .Where(x => x.IsVisible).Max(x => x.Bounds.Right);
+        Assert.Equal(dockedRight, backRight, 1.0);
+
+        window.Close();
+    }
+
+    /// <summary>
     /// 独立窗口的窗体可以由宿主提供 —— 一个应用里所有窗体该是同一副长相，
     /// 那副长相是宿主的事，库只往里塞标题和内容。
     /// </summary>
