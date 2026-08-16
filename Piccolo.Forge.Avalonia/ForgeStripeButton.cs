@@ -1,4 +1,4 @@
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Media;
@@ -334,14 +334,19 @@ public class ForgeStripeButton : ForgeSquareButtonBase
         var background = ResolveBackground();
         if (background is { } color)
         {
-            // 高亮画的是「按钮矩形 − 图标内边距」（SquareStripeButtonLook.kt:64-70），
-            // 不是整块按钮。显名时按钮被名字撑高，高亮只占上面那一格。
-            var cell = ShowName
-                ? new Rect((Bounds.Width - ButtonWidth) / 2, 0, ButtonWidth, ButtonHeight)
-                : new Rect(Bounds.Size);
-
+            // 高亮画的是「按钮矩形 − 图标内边距」（SquareStripeButtonLook.kt:64-70：
+            // Rectangle(component.size) 减 insets 再减 iconPadding）。
+            //
+            // ⚠ **显名时也是整块按钮，含名字那一截** —— 上游 SquareStripeButton.kt:196-198
+            // 的 paintButtonLook 里，paintBackground 收到的就是 button 本身（它的 size 已经
+            // 包含名字的高度），只有 paintIcon 才把高度砍掉一截去摆图标（:227-242 那个
+            // buttonWrapper，注释原话是 "we need change height for right icon layout"）。
+            // 之前这里跟着图标一起砍，于是高亮只包住图标、名字露在背景板外面 ——
+            // 看着就是"选中的是图标，不是这一项"。
             context.DrawRectangle(
-                new SolidColorBrush(color), null, new RoundedRect(BackgroundRect(cell), ArcRadius));
+                new SolidColorBrush(color),
+                null,
+                new RoundedRect(BackgroundRect(new Rect(Bounds.Size)), ArcRadius));
         }
 
         var iconRect = IconRect(Bounds.Size);
