@@ -1304,6 +1304,11 @@ public class ForgeToolWindowFrame : TemplatedControl
         }
 
         CloseExternal(vm.Id);
+
+        // ★ 默认尺寸 = 面板**停靠时的那块地方**，不是让窗口自己按内容长
+        //   （ToolWindowManagerDecorators.kt:237-243：先取 internalDecorator.size，为 0 才退回 preferredSize）。
+        //   所以要在 Detach 之前量，摘下来之后 Bounds 就归零了。
+        var docked = host.Bounds.Size;
         Detach(host);
 
         var external = new ForgeFloatingToolWindow(info.Type, vm.Title, ProjectName, host);
@@ -1318,7 +1323,10 @@ public class ForgeToolWindowFrame : TemplatedControl
             }
         };
 
-        if (TopLevel.GetTopLevel(this) is Window owner)
+        var owner = TopLevel.GetTopLevel(this) as Window;
+        PlaceExternal(external, info, docked, owner);
+
+        if (owner is not null)
         {
             external.Window.Show(owner);
         }
@@ -1326,6 +1334,40 @@ public class ForgeToolWindowFrame : TemplatedControl
         {
             external.Window.Show();
         }
+    }
+
+    /// <summary>
+    /// 摆好外部窗口的位置和大小。
+    /// </summary>
+    /// <remarks>
+    /// 三条分支全在 <see cref="FloatingBoundsResolver"/> 里（对位
+    /// <c>ToolWindowManagerDecorators.kt:212-252 · setExternalDecoratorBounds</c>）：
+    /// 存过且还在屏幕上就原样用，跑出屏幕就拉回来再居中，没存过就用停靠时的大小再居中。
+    /// </remarks>
+    private static void PlaceExternal(
+        ForgeFloatingToolWindow external,
+        WindowInfo info,
+        Size docked,
+        Window? owner)
+    {
+        var fallback = (
+            Width: (int)Math.Round(docked.Width > 0 ? docked.Width : ForgeMetrics.DefaultExternalWidth),
+            Height: (int)Math.Round(docked.Height > 0 ? docked.Height : ForgeMetrics.DefaultExternalHeight));
+
+        var ideFrame = owner is null
+            ? new FloatingBounds(0, 0, fallback.Width, fallback.Height)
+            : new FloatingBounds(
+                owner.Position.X,
+                owner.Position.Y,
+                (int)Math.Round(owner.Bounds.Width),
+                (int)Math.Round(owner.Bounds.Height));
+
+        var screenArea = owner?.Screens.ScreenFromWindow(owner)?.WorkingArea;
+        var screen = screenArea is { } area
+            ? new FloatingBounds(area.X, area.Y, area.Width, area.Height)
+            : ideFrame;
+
+        external.ApplyBounds(info.FloatingBounds, screen, ideFrame, fallback);
     }
 
     /// <summary>收掉某个工具窗口的外部宿主窗口，把面板宿主还回来。</summary>

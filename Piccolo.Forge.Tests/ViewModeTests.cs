@@ -82,12 +82,17 @@ public class ViewModeTests
         window.Close();
     }
 
-    /// <summary>浮动 / 独立窗口都用**自绘 chrome**：没有系统标题栏，面板自己的标题条就是它的标题栏。</summary>
-    /// <remarks>对位上游：FloatingDecorator / WindowedDecorator 里装的就是带 ToolWindowHeader 的装饰器。</remarks>
+    /// <summary>
+    /// 两种外部形态差在**有没有系统标题栏**：独立窗口留着（最小/最大/关闭齐全），浮动去掉。
+    /// </summary>
+    /// <remarks>
+    /// 上游：WINDOWED 是 <c>FrameWrapper</c> 包的普通 JFrame（<c>ToolWindowManagerDecorators.kt:98</c>），
+    /// FLOATING 是 JDialog 且 Windows 上 <c>setUndecorated(true)</c>（<c>FloatingDecorator.java:102-108</c>）。
+    /// </remarks>
     [AvaloniaTheory]
-    [InlineData(ToolWindowType.Floating)]
-    [InlineData(ToolWindowType.Windowed)]
-    public void 外部窗口没有系统标题栏(ToolWindowType type)
+    [InlineData(ToolWindowType.Floating, true)]
+    [InlineData(ToolWindowType.Windowed, false)]
+    public void 只有浮动去掉系统标题栏(ToolWindowType type, bool selfDrawn)
     {
         var (window, frame, shell, _) = Build();
 
@@ -95,8 +100,31 @@ public class ViewModeTests
         Pump(window);
 
         var host = frame.ExternalWindows.Single().Window;
-        Assert.True(host.ExtendClientAreaToDecorationsHint, "客户区没延伸到装饰区，系统标题栏还在");
-        Assert.Equal(-1, host.ExtendClientAreaTitleBarHeightHint);
+        Assert.Equal(selfDrawn, host.ExtendClientAreaToDecorationsHint);
+
+        window.Close();
+    }
+
+    /// <summary>
+    /// 切出去的窗口用**面板停靠时的那块大小**，不按内容长。
+    /// </summary>
+    /// <remarks>对位 <c>ToolWindowManagerDecorators.kt:237-243</c>；居中在主窗口上（<c>:248-251</c>）。</remarks>
+    [AvaloniaFact]
+    public void 外部窗口沿用停靠时的尺寸()
+    {
+        var (window, frame, shell, _) = Build();
+
+        var host = frame.DockPane.Children.OfType<Border>()
+            .First(x => x.GetVisualDescendants().OfType<ForgeToolWindowHeader>().Any());
+        var docked = host.Bounds.Size;
+        Assert.True(docked.Width > 0, "面板还没排过版，这条断言没意义");
+
+        shell.Manager.SetType("相机列表", ToolWindowType.Floating);
+        Pump(window);
+
+        var external = frame.ExternalWindows.Single().Window;
+        Assert.Equal(docked.Width, external.Width, 1.0);
+        Assert.Equal(docked.Height, external.Height, 1.0);
 
         window.Close();
     }

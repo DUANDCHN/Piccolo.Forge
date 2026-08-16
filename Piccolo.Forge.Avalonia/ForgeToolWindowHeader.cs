@@ -288,16 +288,18 @@ public class ForgeToolWindowHeader : TemplatedControl
 
     /// <inheritdoc />
     /// <remarks>
-    /// 外部形态（浮动 / 独立窗口）用的是**自绘 chrome**（没有系统标题栏），
+    /// 浮动形态没有系统标题栏（上游 <c>FloatingDecorator.java:102 · setUndecorated(true)</c>），
     /// 所以标题条自己得担起「按住拖动整个窗口」——同主窗口的做法。
-    /// 判据是这个窗口有没有系统装饰（WindowDecorations）：有就说明不是自绘 chrome 的那种窗口，不该抢它的手势。
+    /// 判据是**这个窗口还有没有系统标题栏**：客户区延伸到装饰区、或者压根没装饰，就说明标题栏归自绘，
+    /// 该我们担；独立窗口形态留着系统标题条，它自己会拖，别抢。
     /// </remarks>
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);
 
         if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
-            && TopLevel.GetTopLevel(this) is Window { WindowDecorations: not WindowDecorations.Full } window)
+            && TopLevel.GetTopLevel(this) is Window window
+            && (window.ExtendClientAreaToDecorationsHint || window.WindowDecorations != WindowDecorations.Full))
         {
             window.BeginMoveDrag(e);
         }

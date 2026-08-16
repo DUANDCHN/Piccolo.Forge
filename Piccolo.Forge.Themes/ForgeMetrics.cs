@@ -114,6 +114,20 @@ public static class ForgeMetrics
     /// </remarks>
     public const double HeaderButtonSize = 24;
 
+    /// <summary>
+    /// 浮动 / 独立窗口在**量不到停靠尺寸**时的兜底宽度。
+    /// </summary>
+    /// <remarks>
+    /// 上游没有这个常数：它默认尺寸取的是内部装饰器当时的实际大小
+    /// （<c>ToolWindowManagerDecorators.kt:237-243</c>），量不到才退回 <c>preferredSize</c>。
+    /// 我们这边"量不到"只发生在面板还没排过版就被切出去，给一个小而合理的窗口，
+    /// 而不是让它按内容长成半个屏幕。
+    /// </remarks>
+    public const double DefaultExternalWidth = 480;
+
+    /// <summary>浮动 / 独立窗口量不到停靠尺寸时的兜底高度，理由同 <see cref="DefaultExternalWidth"/>。</summary>
+    public const double DefaultExternalHeight = 360;
+
     /// <summary>标题条按钮里图标的边长 16（新 UI 的动作图标标准尺寸）。</summary>
     public const double HeaderButtonIconSize = 16;
 
