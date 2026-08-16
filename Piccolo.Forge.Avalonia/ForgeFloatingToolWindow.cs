@@ -56,7 +56,12 @@ public sealed class ForgeFloatingToolWindow
         _window = new Window
         {
             Title = ComposeTitle(type, toolWindowTitle, projectName),
-            Content = content,
+
+            // 浮动没有任何装饰，改大小靠自己那圈 3px 边条（同上游 BorderItem）
+            Content = type == ToolWindowType.Floating
+                ? new ForgeWindowResizeFrame(content)
+                : content,
+
             // WINDOWED 是真正的独立窗口，FLOATING 是挂在主窗口上的对话框
             // （FloatingDecorator.java:63 是 JDialog，WindowedDecorator 是 JFrame）
             ShowInTaskbar = type == ToolWindowType.Windowed,
@@ -68,18 +73,40 @@ public sealed class ForgeFloatingToolWindow
             //   · FLOATING = JDialog，且 Windows 上 setUndecorated(true)
             //     （FloatingDecorator.java:102-108）—— 没有那层标题栏，
             //     面板自己的标题条（ForgeToolWindowHeader）就是它的把手。
-            //   浮动取 BorderOnly（有边框、能改大小、贴边、投影，就是没有标题栏那条），
-            //   而不是 ExtendClientArea —— 后者只是把标题栏"让"给内容画，
-            //   最小/最大/关闭那排按钮仍然会叠在右上角，而浮动一个都不该有。
-            //   也不取 None：那连边框和改大小都没了。
+            //   浮动取 None，一点装饰都不留：
+            //     · ExtendClientArea 不行 —— 它只是把标题栏"让"给内容画，
+            //       最小/最大/关闭那排按钮仍然叠在右上角，而浮动一个都不该有；
+            //     · BorderOnly 也不行 —— 它会在四周画一圈边框，暗色下顶上那条尤其显眼，
+            //       还把标题条整体往下顶一像素；标题条此时**就是**这个窗口的标题栏，
+            //       上面横一条线就不像标题栏了。
+            //   代价是改大小得自己担 —— 就是 ForgeWindowResizeFrame 那圈 3px 边条，
+            //   和上游一样（FloatingDecorator 也是 undecorated + 自己塞 BorderItem）。
             WindowDecorations = type == ToolWindowType.Floating
-                ? WindowDecorations.BorderOnly
+                ? WindowDecorations.None
                 : WindowDecorations.Full,
         };
     }
 
     /// <summary>形态。</summary>
     public ToolWindowType Type { get; }
+
+    /// <summary>
+    /// 把面板内容摘出来还给调用方 —— 关窗之前必须做，否则宿主控件跟着窗口一起没了。
+    /// </summary>
+    /// <remarks>
+    /// 不能只写 <c>Window.Content = null</c>：浮动时内容外面还裹着
+    /// <see cref="ForgeWindowResizeFrame"/>，那层不解开，面板仍然挂在它下面，
+    /// 搬回停靠区时会撞上「已有别的父级」。
+    /// </remarks>
+    public void ReleaseContent()
+    {
+        if (_window.Content is ForgeWindowResizeFrame wrapper)
+        {
+            wrapper.Children.Clear();
+        }
+
+        _window.Content = null;
+    }
 
     /// <summary>宿主窗口。</summary>
     public Window Window => _window;

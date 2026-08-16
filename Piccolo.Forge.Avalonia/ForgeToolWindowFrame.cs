@@ -1384,7 +1384,7 @@ public class ForgeToolWindowFrame : TemplatedControl
         }
 
         // 先把内容摘出来再关窗，否则宿主控件跟着窗口一起没了
-        external.Window.Content = null;
+        external.ReleaseContent();
         external.Window.Close();
     }
 

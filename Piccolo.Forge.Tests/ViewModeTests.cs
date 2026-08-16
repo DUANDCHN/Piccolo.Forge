@@ -90,7 +90,7 @@ public class ViewModeTests
     /// FLOATING 是 JDialog 且 Windows 上 <c>setUndecorated(true)</c>（<c>FloatingDecorator.java:102-108</c>）。
     /// </remarks>
     [AvaloniaTheory]
-    [InlineData(ToolWindowType.Floating, WindowDecorations.BorderOnly)]
+    [InlineData(ToolWindowType.Floating, WindowDecorations.None)]
     [InlineData(ToolWindowType.Windowed, WindowDecorations.Full)]
     public void 只有浮动去掉标题栏(ToolWindowType type, WindowDecorations decorations)
     {
@@ -101,9 +101,43 @@ public class ViewModeTests
 
         var host = frame.ExternalWindows.Single().Window;
 
-        // BorderOnly = 有边框能改大小，但没有标题栏那条，也就没有最小/最大/关闭；
+        // None = 一点装饰都不留（连四周那圈边框也不要，暗色下顶上那条会顶掉标题条的样子）；
         // Full = 完整装饰，独立窗口该有的三个按钮都在。
         Assert.Equal(decorations, host.WindowDecorations);
+
+        // 浮动的改大小靠自己那圈 3px 边条（同上游 BorderItem）
+        Assert.Equal(
+            type == ToolWindowType.Floating,
+            host.GetVisualDescendants().OfType<ForgeWindowResizeFrame>().Any());
+
+        window.Close();
+    }
+
+    /// <summary>
+    /// 标题条**处处**能拖窗口，只让开按钮和标签 —— 此前落在标签条上的按下被子控件吃掉，
+    /// 表现为"标题条有些地方拖不动"。
+    /// </summary>
+    [AvaloniaFact]
+    public void 标题条上除了按钮和标签都能拖窗口()
+    {
+        var (window, frame, shell, _) = Build();
+        shell.Manager.SetType("相机列表", ToolWindowType.Floating);
+        Pump(window);
+
+        // 面板已经搬进外部窗口了，标题条要从那边找
+        var header = frame.ExternalWindows.Single().Window
+            .GetVisualDescendants().OfType<ForgeToolWindowHeader>().Single();
+
+        Assert.True(header.IsWindowDragArea(header), "标题条自身该是把手");
+        Assert.True(header.IsWindowDragArea(header.Tabs), "标签条上没被标签占到的地方也是把手");
+        Assert.False(header.IsWindowDragArea(
+            header.GetVisualDescendants().OfType<ForgeHeaderButton>().First(x => x.IsVisible)));
+
+        var tab = header.GetVisualDescendants().OfType<ForgeContentTab>().FirstOrDefault();
+        if (tab is not null)
+        {
+            Assert.False(header.IsWindowDragArea(tab), "标签是用来切内容和搬标签页的");
+        }
 
         window.Close();
     }

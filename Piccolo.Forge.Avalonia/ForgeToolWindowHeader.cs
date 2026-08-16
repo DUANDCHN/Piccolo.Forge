@@ -4,6 +4,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 using Piccolo.Forge.Model;
 using Piccolo.Forge.Themes;
 
@@ -59,6 +60,9 @@ public class ForgeToolWindowHeader : TemplatedControl
     {
         VisualChildren.Add(_tabs);
         LogicalChildren.Add(_tabs);
+
+        // 拖动窗口：子控件吃掉的按下也要收得到（理由见 OnHeaderPressed）
+        AddHandler(PointerPressedEvent, OnHeaderPressed, RoutingStrategies.Bubble, handledEventsToo: true);
 
         _dock.Click += (_, e) => DockRequested?.Invoke(this, e);
         _options.Click += (_, e) => OptionsRequested?.Invoke(this, e);
@@ -209,7 +213,7 @@ public class ForgeToolWindowHeader : TemplatedControl
     /// 这条标题条**兼任窗口标题栏**时的高度；<see cref="double.NaN"/> 表示不兼任，按面板的高度走。
     /// </summary>
     /// <remarks>
-    /// 浮动形态没有系统标题栏（见 <see cref="OnPointerPressed"/>），这条就是那个窗口的标题栏 ——
+    /// 浮动形态没有系统标题栏（见 <see cref="IsWindowDragArea"/>），这条就是那个窗口的标题栏 ——
     /// 那它该按**窗口标题栏**的高度长，而不是面板标题条的 41
     /// （<c>JBUI.java:1178-1180</c> 那个高度是给停靠着的面板定的，摞在窗口顶上会明显偏高）。
     /// 具体多高由宿主定（<c>ForgeToolWindowFrame.TitleBarHeight</c>），因为"这个应用的窗口标题栏多高"
@@ -312,24 +316,54 @@ public class ForgeToolWindowHeader : TemplatedControl
         return finalSize;
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// 按住标题条拖动整个窗口。
+    /// </summary>
     /// <remarks>
     /// 浮动形态没有系统标题栏（上游 <c>FloatingDecorator.java:102 · setUndecorated(true)</c>），
-    /// 所以标题条自己得担起「按住拖动整个窗口」——同主窗口的做法。
+    /// 所以标题条自己得担起这件事 —— 同主窗口的做法。
     /// 判据是**这个窗口还有没有系统标题栏**：客户区延伸到装饰区、或者压根没装饰，就说明标题栏归自绘，
     /// 该我们担；独立窗口形态留着系统标题条，它自己会拖，别抢。
+    /// <para>
+    /// ⚠ 不能只覆写 <c>OnPointerPressed</c>：标题条上摆着标签条等子控件，
+    /// 落在它们身上的按下**到不了**这里（被它们标成已处理），于是"标题条上有些地方拖不动"。
+    /// 所以走 <c>handledEventsToo</c> 的冒泡处理器，只把真正有别的用处的地方让出去：
+    /// 按钮（点它们是执行动作）和标签（点它是切内容、拖它是搬标签页）。
+    /// </para>
     /// </remarks>
-    protected override void OnPointerPressed(PointerPressedEventArgs e)
+    /// <param name="sender">事件源，未用。</param>
+    /// <param name="e">按下事件。</param>
+    private void OnHeaderPressed(object? sender, PointerPressedEventArgs e)
     {
-        base.OnPointerPressed(e);
-
-        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
-            && TopLevel.GetTopLevel(this) is Window window
-            && (window.ExtendClientAreaToDecorationsHint || window.WindowDecorations != WindowDecorations.Full))
+        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
+            || TopLevel.GetTopLevel(this) is not Window window
+            || (!window.ExtendClientAreaToDecorationsHint && window.WindowDecorations == WindowDecorations.Full))
         {
-            window.BeginMoveDrag(e);
+            return;
         }
+
+        if (!IsWindowDragArea(e.Source as Visual))
+        {
+            return;
+        }
+
+        window.BeginMoveDrag(e);
     }
+
+    /// <summary>
+    /// 标题条上这个位置能不能用来拖窗口。
+    /// </summary>
+    /// <remarks>
+    /// 除了两类地方，标题条**处处**都能拖：按钮（点它们是执行动作）和标签（点它是切内容、
+    /// 拖它是搬标签页）。其余部分——标题文字、空白、标签条里没被标签占到的地方——都算把手。
+    /// </remarks>
+    /// <param name="source">按下落在哪个控件上。</param>
+    /// <returns>能拖为 <see langword="true"/>。</returns>
+    public bool IsWindowDragArea(Visual? source)
+        => source is not null
+           && !source.GetSelfAndVisualAncestors()
+               .TakeWhile(x => !ReferenceEquals(x, this))
+               .Any(x => x is Button or ForgeContentTab);
 
     /// <inheritdoc />
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
