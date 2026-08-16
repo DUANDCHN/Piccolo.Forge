@@ -45,8 +45,18 @@ public sealed class EditorSplit(EditorNode first, EditorNode second, bool isVert
     /// <summary>第二块。</summary>
     public EditorNode Second { get; internal set; } = second;
 
+    private float _proportion = Math.Clamp(proportion, MinProportion, MaxProportion);
+
     /// <summary>第一块占的比例，夹在 [0.1, 0.9]。</summary>
-    public float Proportion { get; set; } = Math.Clamp(proportion, MinProportion, MaxProportion);
+    /// <remarks>
+    /// 夹取在 <b>setter</b> 里，不只在构造时 —— 拖分割线、最大化、宫格摊匀都会写它，
+    /// 少夹一处就能拖出一条 0 宽的格子（而且它还回不来：0 宽的格子抓不住）。
+    /// </remarks>
+    public float Proportion
+    {
+        get => _proportion;
+        set => _proportion = Math.Clamp(value, MinProportion, MaxProportion);
+    }
 
     /// <inheritdoc />
     public override IEnumerable<EditorGroup> Groups => First.Groups.Concat(Second.Groups);

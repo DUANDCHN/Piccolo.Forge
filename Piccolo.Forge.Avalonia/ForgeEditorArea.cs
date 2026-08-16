@@ -406,13 +406,42 @@ public class ForgeEditorArea : TemplatedControl
 
         foreach (var splitter in _splitters)
         {
-            splitter.Background = new SolidColorBrush(Palette.WindowBorder);
+            splitter.Palette = Palette;
+            splitter.InvalidateVisual();
         }
 
         _overlay.Palette = Palette;
     }
 
-    private readonly List<GridSplitter> _splitters = [];
+    private readonly List<ForgeEditorSplitter> _splitters = [];
+
+    /// <summary>
+    /// 拖动中的即时反馈：只改这一个 Grid 的行列比例。
+    /// </summary>
+    /// <remarks>
+    /// 不走模型，所以不触发重建 —— 拖的时候把整棵树连同相机画面重画一遍，
+    /// 既卡又会打断正在进行的手势。真值等松手时一次写回。
+    /// </remarks>
+    private static void Preview(Grid grid, bool isVertical, float proportion)
+    {
+        var clamped = Math.Clamp(proportion, EditorSplit.MinProportion, EditorSplit.MaxProportion);
+        var definitions = isVertical ? (IReadOnlyList<DefinitionBase>)grid.RowDefinitions : grid.ColumnDefinitions;
+        if (definitions.Count != 3)
+        {
+            return;
+        }
+
+        if (isVertical)
+        {
+            grid.RowDefinitions[0].Height = new GridLength(clamped, GridUnitType.Star);
+            grid.RowDefinitions[2].Height = new GridLength(1 - clamped, GridUnitType.Star);
+        }
+        else
+        {
+            grid.ColumnDefinitions[0].Width = new GridLength(clamped, GridUnitType.Star);
+            grid.ColumnDefinitions[2].Width = new GridLength(1 - clamped, GridUnitType.Star);
+        }
+    }
 
     /// <summary>
     /// 把一个控件从当前父容器上摘下来。
@@ -461,16 +490,19 @@ public class ForgeEditorArea : TemplatedControl
             var grid = new Grid();
             var first = BuildNode(split.First);
             var second = BuildNode(split.Second);
-            var splitter = new GridSplitter { Background = new SolidColorBrush(Palette.WindowBorder) };
+            var splitter = new ForgeEditorSplitter(split.IsVertical) { Palette = Palette };
             _splitters.Add(splitter);
+
+            // 拖动中只改这个 Grid（图像不重建），松手才写回模型 ——
+            // 与标签拖拽「行内仅预览、松手才提交」同一条规矩。
+            splitter.Preview += (_, p) => Preview(grid, split.IsVertical, p);
+            splitter.Committed += (_, p) => _area!.Area.SetProportion(split, p);
 
             if (split.IsVertical)
             {
                 grid.RowDefinitions.Add(new RowDefinition(split.Proportion, GridUnitType.Star));
                 grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
                 grid.RowDefinitions.Add(new RowDefinition(1 - split.Proportion, GridUnitType.Star));
-                splitter.Height = ForgeMetrics.SplitDividerWidth;
-                splitter.HorizontalAlignment = global::Avalonia.Layout.HorizontalAlignment.Stretch;
                 Grid.SetRow(first, 0);
                 Grid.SetRow(splitter, 1);
                 Grid.SetRow(second, 2);
@@ -480,16 +512,15 @@ public class ForgeEditorArea : TemplatedControl
                 grid.ColumnDefinitions.Add(new ColumnDefinition(split.Proportion, GridUnitType.Star));
                 grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
                 grid.ColumnDefinitions.Add(new ColumnDefinition(1 - split.Proportion, GridUnitType.Star));
-                splitter.Width = ForgeMetrics.SplitDividerWidth;
-                splitter.VerticalAlignment = global::Avalonia.Layout.VerticalAlignment.Stretch;
                 Grid.SetColumn(first, 0);
                 Grid.SetColumn(splitter, 1);
                 Grid.SetColumn(second, 2);
             }
 
             grid.Children.Add(first);
-            grid.Children.Add(splitter);
             grid.Children.Add(second);
+
+            grid.Children.Add(splitter);
             return grid;
         }
 

@@ -480,6 +480,39 @@ public sealed class EditorArea
             OnChanged);
     }
 
+    /// <summary>
+    /// 改一次分屏比例 —— 用户拖分割线走这里。
+    /// </summary>
+    /// <remarks>
+    /// ⚠ **必须走这一层，不能让视图自己去改 <see cref="EditorSplit.Proportion"/>**：
+    /// 那样改完没人广播，别的视图（另一个编辑区控件、存档）看不到；更要紧的是
+    /// 视图那边的比例只活在 Grid 的行列定义里，下一次重建就按模型重画、
+    /// 把用户拖出来的比例打回原样 —— 同 <see cref="Select"/> / <see cref="SetPinned"/>
+    /// 注释里记过的那条规矩。
+    /// </remarks>
+    /// <param name="split">哪一刀。</param>
+    /// <param name="proportion">第一块占的比例；自动夹在 [0.1, 0.9]。</param>
+    /// <returns>确实改了则为 <see langword="true"/>。</returns>
+    public bool SetProportion(EditorSplit split, float proportion)
+    {
+        ArgumentNullException.ThrowIfNull(split);
+
+        if (!AllSplits(_root).Any(x => ReferenceEquals(x, split)))
+        {
+            return false;
+        }
+
+        var before = split.Proportion;
+        split.Proportion = proportion;
+        if (Math.Abs(split.Proportion - before) < float.Epsilon)
+        {
+            return false;
+        }
+
+        OnChanged();
+        return true;
+    }
+
     /// <summary>一直合到只剩一组。</summary>
     /// <remarks>对应 <c>EditorWindow.kt:983-988 · unsplitAll</c>。</remarks>
     /// <param name="group">保留下来的那一组。</param>
