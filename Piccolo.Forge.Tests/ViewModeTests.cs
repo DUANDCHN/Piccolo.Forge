@@ -388,6 +388,50 @@ public class ViewModeTests
         window.Close();
     }
 
+    /// <summary>
+    /// 被覆盖层压着的**都要**让开，不只是编辑区。
+    /// </summary>
+    /// <remarks>
+    /// 滑出的面板贴边铺满整条边长，所以一块底部的滑出面板会同时压住左右停靠的面板。
+    /// 它们不让开，那条缝里露的就是它们，底板照样透不上来。
+    /// 这条规则属于停靠区这一层，不是每块面板各自去处理 —— 面板不知道自己被谁盖着。
+    /// </remarks>
+    [AvaloniaFact]
+    public void 底部滑出时左右停靠的面板也让开()
+    {
+        // 左边停靠一块、底部滑出一块
+        var infos = new List<WindowInfo>
+        {
+            new() { Id = "相机列表", Anchor = ToolWindowAnchor.Left, Order = 0, IsVisible = true, Weight = 0.25f },
+            new() { Id = "图像库", Anchor = ToolWindowAnchor.Bottom, Order = 0, IsVisible = true, Weight = 0.3f },
+        };
+
+        var shell = new ToolWindowShellViewModel(new ToolWindowManager(new DesktopLayout(infos)));
+        var editor = new Border();
+        var frame = new ForgeToolWindowFrame { EditorContent = editor };
+        frame.Attach(shell);
+
+        var window = new Window { Width = 900, Height = 500, WindowDecorations = WindowDecorations.None, Content = frame };
+        window.Show();
+        Pump(window);
+
+        shell.Manager.SetType("图像库", ToolWindowType.Sliding);
+        Pump(window);
+
+        var docked = frame.DockPane.Children.OfType<Border>()
+            .First(x => ForgeDockPane.GetAnchor(x) == ToolWindowAnchor.Left);
+
+        var editorClip = Assert.IsType<RectangleGeometry>(editor.Clip);
+        var dockedClip = Assert.IsType<RectangleGeometry>(docked.Clip);
+
+        Assert.Equal(editorClip.Rect.Bottom, dockedClip.Rect.Bottom, 0.01);
+        Assert.True(
+            dockedClip.Rect.Bottom < docked.Bounds.Bottom,
+            "左边那块没让开：滑出的面板压着它，缝里露的就是它，底板透不上来");
+
+        window.Close();
+    }
+
     /// <summary>独立出去之后，标题条上多一个「停靠回去」；点它就回到原来的内部形态。</summary>
     /// <remarks>上游那组动作的第一个就是 <c>DockToolWindowAction</c>（<c>ToolWindowHeader.kt:119</c>）。</remarks>
     [AvaloniaFact]

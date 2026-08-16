@@ -278,13 +278,18 @@ public class ForgeDockPane : Panel
     }
 
     /// <summary>
-    /// 把覆盖层压着的那条带，从下面那块内容（编辑区）的绘制里减掉。
+    /// 把覆盖层压着的那条带，从**所有被它压着的**子控件的绘制里减掉。
     /// </summary>
     /// <remarks>
     /// 取消停靠的面板是**一座浮在底板上的岛**：它四周那条缝，露的应当与停靠时两岛之间那条缝
     /// 是同一层东西 —— 宿主的窗口底板（可能是云母那种活的材质）。可缝底下压着编辑区，
     /// 编辑区是不透明的，底板根本透不上来 —— 拿任何纯色去"填"那条缝，都只会是一条色带。
-    /// 唯一做得对的办法是让编辑区在那块**不画**，下面的窗口自己露出来。
+    /// 唯一做得对的办法是让被压着的那些在那块**不画**，下面的窗口自己露出来。
+    /// <para>
+    /// 这条规则属于**停靠区这一层**：谁被覆盖层压着，谁就在那条带上不画。
+    /// 不是"每块面板各自去处理" —— 面板不知道自己有没有被谁盖住，
+    /// 知道的是排布它们的这里。
+    /// </para>
     /// <para>
     /// 减的是**整条边的矩形带**（面板 + 它四周的缝），不是面板的圆角形状：
     /// 滑出的面板本来就贴边铺满整条边长，矩形足够；而非矩形裁剪要开离屏缓冲做遮罩，
@@ -304,16 +309,21 @@ public class ForgeDockPane : Panel
             }
         }
 
+        var clip = remaining == new Rect(paneSize) ? null : new RectangleGeometry(remaining);
+
         foreach (var (child, _) in placed)
         {
-            // 只裁"底下那块"：条带、面板、拖手都不是被盖住的一方
-            if (GetIsOverlay(child) || GetIsResizer(child) is not null
-                || GetIsSplitResizer(child) is not null || GetAnchor(child) is not null)
+            // **所有被压着的都要让开**，不只是编辑区：滑出的面板贴边铺满整条边长，
+            // 一块底部的滑出面板会同时压住左右停靠的面板 —— 它们不让开，
+            // 那条缝里露的就是它们，底板照样透不上来。
+            // 拖手不裁：它本来就该骑在覆盖层的边上（还得抓得到）。
+            if (GetIsOverlay(child) || GetIsResizer(child) is not null || GetIsSplitResizer(child) is not null)
             {
+                child.Clip = null;
                 continue;
             }
 
-            child.Clip = remaining == new Rect(paneSize) ? null : new RectangleGeometry(remaining);
+            child.Clip = clip;
         }
     }
 
