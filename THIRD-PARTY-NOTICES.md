@@ -2,8 +2,13 @@
 
 ## Dock
 
-Forge 的文档停靠契约、`DocumentDockFactory` 搬移事务边界，以及标签拖拽的
-“行内仅预览、离开标签条后捕获、松手时提交”生命周期，改编自：
+Forge 的 `DocumentDockFactory` 搬移事务边界（先从 source detach、再向 target attach、
+最后一次性提交），以及标签拖拽的“行内仅预览、离开标签条后捕获、松手时提交”生命周期，
+改编自：
+
+> 借的是**行为**，不是词汇：Forge 用自己的 `EditorTab` / `EditorGroup` / `EditorDropSide`
+> 建模，不复刻 Dock 的 `IDockable` / `IDocumentDock` / `DockOperation` 等类型。
+
 
 - Project: Dock
 - Repository: https://github.com/wieslawsoltes/Dock

@@ -1,4 +1,4 @@
-namespace Piccolo.Forge.Model;
+﻿namespace Piccolo.Forge.Model;
 
 /// <summary>
 /// 分屏树的一个节点：要么是一次分屏，要么是一组标签页。
@@ -56,7 +56,7 @@ public sealed class EditorSplit(EditorNode first, EditorNode second, bool isVert
 /// 一组标签页 —— 分屏树的叶子。
 /// </summary>
 /// <remarks>对应上游的 <c>EditorWindow</c>：**只有叶子持有标签页**。</remarks>
-public sealed class EditorGroup : EditorNode, IDocumentDock
+public sealed class EditorGroup : EditorNode
 {
     private readonly List<EditorTab> _tabs = [];
     private string? _selectedId;
@@ -64,12 +64,6 @@ public sealed class EditorGroup : EditorNode, IDocumentDock
 
     /// <summary>这一组里的标签页，按显示次序。</summary>
     public IReadOnlyList<EditorTab> Tabs => _tabs;
-
-    /// <inheritdoc />
-    public IReadOnlyList<EditorTab> VisibleDockables => _tabs;
-
-    /// <inheritdoc />
-    public string? ActiveDockableId => _selectedId;
 
     /// <summary>当前选中的标签页 id。</summary>
     public string? SelectedId => _selectedId;

@@ -1,4 +1,4 @@
-namespace Piccolo.Forge.Model;
+﻿namespace Piccolo.Forge.Model;
 
 /// <summary>
 /// 编辑区里的一个标签页。
@@ -23,7 +23,7 @@ public readonly record struct EditorTab(
     bool IsPinned = false,
     bool IsPreview = false,
     bool IsCloseable = true,
-    bool IsInHistory = true) : IDockable;
+    bool IsInHistory = true);
 
 /// <summary>
 /// 关掉一个标签页之后该选中谁。

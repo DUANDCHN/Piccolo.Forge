@@ -473,18 +473,8 @@ public sealed class EditorArea
             return false;
         }
 
-        var operation = side switch
-        {
-            EditorDropSide.Center => DocumentDockOperation.Fill,
-            EditorDropSide.Left => DocumentDockOperation.Left,
-            EditorDropSide.Right => DocumentDockOperation.Right,
-            EditorDropSide.Top => DocumentDockOperation.Top,
-            EditorDropSide.Bottom => DocumentDockOperation.Bottom,
-            _ => DocumentDockOperation.None,
-        };
-
         return DocumentDockFactory.MoveDockable(
-            tabId, source, target, operation,
+            tabId, source, target, side,
             Replace,
             group => CurrentGroup = group,
             OnChanged);
