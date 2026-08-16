@@ -166,7 +166,11 @@ public class ForgeToolWindowFrame : TemplatedControl
             return;
         }
 
-        if (source.GetSelfAndVisualAncestors().OfType<ForgeStripeButton>().Any())
+        // 这两样都不是「焦点去了别处」，按下它们不该把面板收掉：
+        //   · 条带按钮 —— 点它是开关面板，Toggle 自己会走激活/收起那条路；
+        //   · 拖手 —— 拖的正是这块面板的边界。⚠ 这条不写就得到「取消停靠的面板抓不住」：
+        //     本处理器是 Tunnel，按下时**先于**拖手跑，判成失焦 → 面板当场收起 → 拖动无从开始。
+        if (source.GetSelfAndVisualAncestors().Any(x => x is ForgeStripeButton or ForgeDockResizer))
         {
             return;
         }
@@ -1670,12 +1674,15 @@ public class ForgeToolWindowFrame : TemplatedControl
 
             // 覆盖层（取消停靠）浮在编辑区上，得画一条线才分得清哪儿是面板
             //（停靠的不用：两块底色本来就不同 —— 见 ForgeDockResizer.LineBrush）
+            // ⚠ 用 EditorTabsBorder 而**不是** WindowBorder：后者在 Islands 两套配色里是
+            //   #00000000（岛之间靠留白分隔，本就不需要框线），拿它画等于没画。
+            //   EditorTabsBorder 是"内容与内容之间那条线"（分屏那条也用它），语义正对得上。
             var overlay = _shell.ToolWindows.Any(x =>
                 x.IsOpen
                 && x.Anchor == anchor
                 && _shell.Manager.Layout.GetInfo(x.Id)?.Type == ToolWindowType.Sliding);
 
-            resizer.LineBrush = overlay ? new SolidColorBrush(Palette.WindowBorder) : null;
+            resizer.LineBrush = overlay ? new SolidColorBrush(Palette.EditorTabsBorder) : null;
 
             yield return resizer;
         }

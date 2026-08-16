@@ -1,6 +1,7 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Media;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
@@ -297,10 +298,18 @@ public class ViewModeTests
     /// 上游同样给 SLIDING 配了 resizer（<c>ToolWindowPane.kt:565-607 · Resizer.LayeredPane</c>）
     /// 和一条 divider（<c>InternalDecoratorImpl.kt:599-612</c>）。
     /// </remarks>
-    [AvaloniaFact]
-    public void 取消停靠能拖大小且画分界线()
+    [AvaloniaTheory]
+    [InlineData(ForgeThemeFamily.ExpUi)]
+    [InlineData(ForgeThemeFamily.Islands)]
+    public void 取消停靠能拖大小且画分界线(ForgeThemeFamily family)
     {
         var (window, frame, shell, _) = Build();
+
+        // 按宿主的真实配置来：岛形态下面板有外边距和圆角，配色也是另一套
+        //（回归：Islands 的 WindowBorder 是全透明，用它画线等于没画）
+        frame.ThemeFamily = family;
+        frame.IslandMetrics = ForgeIslandMetrics.Default with { BorderWidth = 3 };
+        Pump(window);
 
         shell.Manager.SetType("相机列表", ToolWindowType.Sliding);
         Pump(window);
@@ -316,8 +325,31 @@ public class ViewModeTests
         // 抓得到：覆盖层 ZIndex 1，拖手得更高
         Assert.True(resizer.ZIndex > panel.ZIndex, "拖手被覆盖层盖住了");
 
-        // 画线：停靠时不画（两块底色本来就不同），覆盖时要画
-        Assert.NotNull(resizer.LineBrush);
+        // 画线：停靠时不画（两块底色本来就不同），覆盖时要画 —— 而且必须**看得见**
+        // （回归：Islands 配色的 WindowBorder 是 #00000000 全透明，画了等于没画）
+        var line = Assert.IsType<SolidColorBrush>(resizer.LineBrush);
+        Assert.True(line.Color.A > 0, "分界线是透明的，等于没画");
+
+        // 真的抓得到：命中测试必须落在拖手上，而不是被覆盖层或编辑区吃掉
+        var probe = new Point(resizer.Bounds.Center.X, resizer.Bounds.Center.Y);
+        Assert.Same(resizer, frame.DockPane.InputHitTest(probe));
+
+        // 而且按下去面板得还在 ——
+        // 回归：框架的焦点跟踪是 Tunnel，先于拖手跑，把"按在拖手上"判成了失焦，
+        // 面板当场收起，表现就是「取消停靠的边界抓不住」。
+        resizer.RaiseEvent(new PointerPressedEventArgs(
+            resizer,
+            new Pointer(0, PointerType.Mouse, isPrimary: true),
+            resizer,
+            default,
+            0,
+            new PointerPointProperties(RawInputModifiers.LeftMouseButton, PointerUpdateKind.LeftButtonPressed),
+            KeyModifiers.None));
+        Pump(window);
+
+        Assert.True(
+            shell.Manager.Layout.GetInfo("相机列表")!.IsVisible,
+            "按在拖手上就把面板收了，等于抓不住");
 
         shell.Manager.SetType("相机列表", ToolWindowType.Docked);
         Pump(window);
