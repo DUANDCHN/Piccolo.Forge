@@ -1476,32 +1476,6 @@ public class ForgeToolWindowFrame : TemplatedControl
     public double CaptionButtonsWidth { get; set; }
 
     /// <summary>
-    /// 窗口底板长什么样 —— 取消停靠的面板四周那条缝拿它填。
-    /// </summary>
-    /// <remarks>
-    /// 停靠的岛之间那条缝底下什么都没有，露出来的就是宿主的窗口底板；取消停靠的那座岛
-    /// 底下压着编辑区，缝里露的就成了编辑区（岛配色里两者同色，于是缝等于不存在）。
-    /// 库没法在编辑区上挖洞，而底板可能是云母、可能是纯色，**只有宿主知道**，所以由宿主给。
-    /// <para>不给（<see langword="null"/>）就不填 —— 那是"底板正好与面板同色"或非岛形态的场合。</para>
-    /// </remarks>
-    public IBrush? BackdropBrush
-    {
-        get => _backdropBrush;
-        set
-        {
-            if (Equals(_backdropBrush, value))
-            {
-                return;
-            }
-
-            _backdropBrush = value;
-            Sync();
-        }
-    }
-
-    private IBrush? _backdropBrush;
-
-    /// <summary>
     /// 外部窗口的标题写什么。
     /// </summary>
     /// <remarks>
@@ -1559,12 +1533,7 @@ public class ForgeToolWindowFrame : TemplatedControl
     {
         var info = _shell!.Manager.Layout.GetInfo(vm.Id)!;
 
-        ForgeIslandDecor.Apply(
-            host,
-            Palette,
-            info.Anchor,
-            IslandMetrics,
-            overlayGap: info.Type == ToolWindowType.Sliding ? BackdropBrush : null);
+        ForgeIslandDecor.Apply(host, Palette, info.Anchor, IslandMetrics);
 
         var header = _panelHeaders[vm.Id];
         header.Palette = Palette;

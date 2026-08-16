@@ -1,4 +1,5 @@
 ﻿using Avalonia;
+using Avalonia.Media;
 using Avalonia.Controls;
 using Piccolo.Forge.Model;
 using Piccolo.Forge.Themes;
@@ -265,13 +266,67 @@ public class ForgeDockPane : Panel
     /// <inheritdoc />
     protected override Size ArrangeOverride(Size finalSize)
     {
-        foreach (var (child, rect) in Layout(finalSize))
+        var placed = Layout(finalSize);
+
+        foreach (var (child, rect) in placed)
         {
             child.Arrange(rect);
         }
 
+        ClipUnderOverlays(placed, finalSize);
         return finalSize;
     }
+
+    /// <summary>
+    /// 把覆盖层压着的那条带，从下面那块内容（编辑区）的绘制里减掉。
+    /// </summary>
+    /// <remarks>
+    /// 取消停靠的面板是**一座浮在底板上的岛**：它四周那条缝，露的应当与停靠时两岛之间那条缝
+    /// 是同一层东西 —— 宿主的窗口底板（可能是云母那种活的材质）。可缝底下压着编辑区，
+    /// 编辑区是不透明的，底板根本透不上来 —— 拿任何纯色去"填"那条缝，都只会是一条色带。
+    /// 唯一做得对的办法是让编辑区在那块**不画**，下面的窗口自己露出来。
+    /// <para>
+    /// 减的是**整条边的矩形带**（面板 + 它四周的缝），不是面板的圆角形状：
+    /// 滑出的面板本来就贴边铺满整条边长，矩形足够；而非矩形裁剪要开离屏缓冲做遮罩，
+    /// 图像区每帧都得多合成一次 —— 那儿跑的是相机实时画面，这个开销不能要。
+    /// 圆角缺口那几小块照样露底板，因为整条带都不画了。
+    /// </para>
+    /// </remarks>
+    private void ClipUnderOverlays(List<(Control Child, Rect Rect)> placed, Size paneSize)
+    {
+        var remaining = new Rect(paneSize);
+
+        foreach (var (child, rect) in placed)
+        {
+            if (child.IsVisible && GetIsOverlay(child) && GetAnchor(child) is { } anchor)
+            {
+                remaining = Exclude(remaining, rect, anchor);
+            }
+        }
+
+        foreach (var (child, _) in placed)
+        {
+            // 只裁"底下那块"：条带、面板、拖手都不是被盖住的一方
+            if (GetIsOverlay(child) || GetIsResizer(child) is not null
+                || GetIsSplitResizer(child) is not null || GetAnchor(child) is not null)
+            {
+                continue;
+            }
+
+            child.Clip = remaining == new Rect(paneSize) ? null : new RectangleGeometry(remaining);
+        }
+    }
+
+    /// <summary>从一块矩形里减掉贴着某条边的一条带。</summary>
+    private static Rect Exclude(Rect area, Rect band, ToolWindowAnchor anchor) => anchor switch
+    {
+        ToolWindowAnchor.Left => area.WithX(Math.Max(area.X, band.Right))
+            .WithWidth(Math.Max(0, area.Right - Math.Max(area.X, band.Right))),
+        ToolWindowAnchor.Right => area.WithWidth(Math.Max(0, Math.Min(area.Right, band.X) - area.X)),
+        ToolWindowAnchor.Top => area.WithY(Math.Max(area.Y, band.Bottom))
+            .WithHeight(Math.Max(0, area.Bottom - Math.Max(area.Y, band.Bottom))),
+        _ => area.WithHeight(Math.Max(0, Math.Min(area.Bottom, band.Y) - area.Y)),
+    };
 
     /// <summary>覆盖层面板贴边的矩形：按自己的 weight 算厚度，沿边铺满。</summary>
     private static Rect OverlayRect(Size paneSize, ToolWindowAnchor anchor, double weight)

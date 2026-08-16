@@ -303,16 +303,13 @@ public class ViewModeTests
     [InlineData(ForgeThemeFamily.Islands)]
     public void 取消停靠能拖大小且画分界线(ForgeThemeFamily family)
     {
-        var (window, frame, shell, _) = Build();
+        var (window, frame, shell, editor) = Build();
 
         // 按宿主的真实配置来：岛形态下面板有外边距和圆角，配色也是另一套
         //（回归：Islands 的 WindowBorder 是全透明，用它画线等于没画）
         frame.ThemeFamily = family;
         frame.IslandMetrics = ForgeIslandMetrics.Default with { BorderWidth = 3 };
         Pump(window);
-
-        // 宿主会把窗口底板色告诉外壳（取消停靠那条缝要露它）
-        frame.BackdropBrush = Brushes.Black;
 
         shell.Manager.SetType("相机列表", ToolWindowType.Sliding);
         Pump(window);
@@ -345,13 +342,17 @@ public class ViewModeTests
             var metrics = ForgeIslandMetrics.Default with { BorderWidth = 3 };
             Assert.Equal(new CornerRadius(metrics.CornerRadius), panel.CornerRadius);
 
-            // 缝的**宽度**与停靠的岛一样（各让半条），但缝里要露"底板"：
-            // 停靠时缝底下什么都没有，露的就是窗口底板；这座岛底下压着编辑区，
-            // 不把底板色填上就露出编辑区（岛配色里两者同色，缝等于不存在）。
-            // 宿主给了底板色就用边框占住那条缝，没给就还是留白。
-            Assert.Equal(new Thickness(metrics.HalfBorderWidth), panel.BorderThickness);
-            Assert.Same(frame.BackdropBrush, panel.BorderBrush);
-            Assert.Equal(default, panel.Margin);
+            // 与停靠的岛分毫不差：各让半条缝、1px 描边补圆角，不加任何特殊装饰
+            Assert.Equal(new Thickness(metrics.HalfBorderWidth), panel.Margin);
+            Assert.Equal(new Thickness(1), panel.BorderThickness);
+
+            // ★ 缝里要露**底板**（宿主那层可能是云母的活材质），所以压在下面的编辑区
+            //   必须在这条带上**不画** —— 否则不透明的编辑区把底板挡死，
+            //   缝里只会是编辑区的颜色（岛配色里它与面板同色，等于没有缝）。
+            var clip = Assert.IsType<RectangleGeometry>(editor.Clip);
+            Assert.True(
+                clip.Rect.X >= panel.Bounds.Right,
+                $"编辑区没让开：裁到 {clip.Rect.X}，而面板右沿在 {panel.Bounds.Right}");
         }
         else
         {
