@@ -68,8 +68,9 @@ public class ForgeToolWindowHeader : TemplatedControl
         // 客户区延伸到装饰区的窗口（宿主自绘 chrome 那种），装饰层**盖在内容之上**，
         // 自绘的 PointerPressed 根本收不到按下 —— 拖动得靠命中角色交给系统
         // （Win32 映射为 HTCAPTION，还顺带拿到双击最大化）。
-        // 标题条整条是拖动区；按钮标成 User，让它们照常收到点击。
-        WindowDecorationProperties.SetElementRole(this, WindowDecorationsElementRole.TitleBar);
+        // ⚠ 角色只在**这条标题条兼任窗口标题栏**时才给（见 IsWindowTitleBar）：
+        //   主窗口自己也是自绘 chrome，无条件给的话，每块停靠面板的标题条
+        //   都会变成主窗口的拖动区 —— 拖谁都在搬主窗口。
         WindowDecorationProperties.SetElementRole(_tabs, WindowDecorationsElementRole.User);
         foreach (var button in new Control[] { _dock, _options, _hide })
         {
@@ -264,6 +265,21 @@ public class ForgeToolWindowHeader : TemplatedControl
         set => SetValue(CaptionButtonsWidthProperty, value);
     }
 
+    /// <summary>
+    /// 这条标题条是不是**兼任所在窗口的标题栏**。
+    /// </summary>
+    /// <remarks>
+    /// 只有浮动形态是（宿主窗体没有标题栏那一行，由它顶上，见 <see cref="TitleBarHeight"/>）。
+    /// 停靠着的、以及独立窗口形态（那种窗体自带标题栏）都不是 —— 那时这条只是面板标题条，
+    /// 按住它不该搬动任何窗口。
+    /// <para>
+    /// ⚠ 判据必须是**这条标题条自己**，不能问"这个窗口有没有系统标题栏"：
+    /// 主窗口往往也是自绘 chrome（客户区延伸），那样问的话每块停靠面板的标题条
+    /// 都会变成主窗口的拖动区。
+    /// </para>
+    /// </remarks>
+    public bool IsWindowTitleBar => !double.IsNaN(TitleBarHeight);
+
     /// <summary>标题条高度：兼任窗口标题栏时按 <see cref="TitleBarHeight"/>，否则紧凑 31 / 常规 41。</summary>
     public double HeaderHeight => double.IsNaN(TitleBarHeight)
         ? (IsCompact ? ForgeCompactMetrics.HeaderHeight : ForgeMetrics.HeaderHeight)
@@ -371,9 +387,9 @@ public class ForgeToolWindowHeader : TemplatedControl
     /// <param name="e">按下事件。</param>
     private void OnHeaderPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
-            || TopLevel.GetTopLevel(this) is not Window window
-            || (!window.ExtendClientAreaToDecorationsHint && window.WindowDecorations == WindowDecorations.Full))
+        if (!IsWindowTitleBar
+            || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
+            || TopLevel.GetTopLevel(this) is not Window window)
         {
             return;
         }
@@ -405,6 +421,14 @@ public class ForgeToolWindowHeader : TemplatedControl
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
+
+        if (change.Property == TitleBarHeightProperty)
+        {
+            // 兼任窗口标题栏时才把整条交给系统做拖动区（见 IsWindowTitleBar）
+            WindowDecorationProperties.SetElementRole(
+                this,
+                IsWindowTitleBar ? WindowDecorationsElementRole.TitleBar : WindowDecorationsElementRole.None);
+        }
 
         if (change.Property == PaletteProperty)
         {

@@ -1,5 +1,6 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Chrome;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Headless;
@@ -112,7 +113,41 @@ public class ViewModeTests
     }
 
     /// <summary>
-    /// 标题条**处处**能拖窗口，只让开按钮和标签 —— 此前落在标签条上的按下被子控件吃掉，
+    /// 只有**兼任窗口标题栏**的那条（浮动）能拖窗口；停靠着的、独立窗口里的都不能。
+    /// </summary>
+    /// <remarks>
+    /// 回归：判据一度取的是"这个窗口有没有系统标题栏"，而主窗口本身就是自绘 chrome
+    /// （客户区已延伸）—— 于是**每块停靠面板的标题条都成了主窗口的拖动区**，
+    /// 按住谁都在搬主窗口。判据必须是这条标题条自己。
+    /// </remarks>
+    [AvaloniaFact]
+    public void 只有兼任窗口标题栏的那条才拖窗口()
+    {
+        var (window, frame, shell, _) = Build();
+        var header = frame.GetVisualDescendants().OfType<ForgeToolWindowHeader>().Single();
+
+        Assert.False(header.IsWindowTitleBar, "停靠着的面板标题条不该能搬窗口");
+        Assert.Equal(
+            WindowDecorationsElementRole.None,
+            WindowDecorationProperties.GetElementRole(header));
+
+        shell.Manager.SetType("相机列表", ToolWindowType.Floating);
+        Pump(window);
+        Assert.True(header.IsWindowTitleBar);
+        Assert.Equal(
+            WindowDecorationsElementRole.TitleBar,
+            WindowDecorationProperties.GetElementRole(header));
+
+        // 独立窗口那种窗体自带标题栏，这条又只是面板标题条了
+        shell.Manager.SetType("相机列表", ToolWindowType.Windowed);
+        Pump(window);
+        Assert.False(header.IsWindowTitleBar);
+
+        window.Close();
+    }
+
+    /// <summary>
+    /// 兼任标题栏时，**处处**能拖窗口，只让开按钮和标签 —— 此前落在标签条上的按下被子控件吃掉，
     /// 表现为"标题条有些地方拖不动"。
     /// </summary>
     [AvaloniaFact]
