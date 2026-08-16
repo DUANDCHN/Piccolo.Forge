@@ -406,6 +406,28 @@ public class ForgeEditorArea : TemplatedControl
         }
     }
 
+    /// <summary>
+    /// 把一个浮出去的编辑窗口整个停靠回来：里面的文档全部退回主编辑区，窗口关掉。
+    /// </summary>
+    /// <remarks>
+    /// 单文档的浮窗不摆标签条（文档名在窗口标题上），也就没有可拖的抓手 ——
+    /// 所以要有这么一个明确的入口。宿主把它接到窗体标题栏的按钮上。
+    /// </remarks>
+    /// <param name="window">要停靠回来的那个窗口；不是本编辑区浮出去的就什么都不做。</param>
+    /// <returns>确实停回来了则为 <see langword="true"/>。</returns>
+    public bool DockBack(Window window)
+    {
+        var owner = _floatingOwner ?? this;
+        if (window is null || !owner._floatingWindows.ContainsKey(window))
+        {
+            return false;
+        }
+
+        // 关窗时那段收尾会把里面的文档退回主编辑区（见 FloatOut 里的 Closing）
+        window.Close();
+        return true;
+    }
+
     /// <summary>浮窗里一页都不剩了就关掉它。</summary>
     private void CloseIfEmpty()
     {
