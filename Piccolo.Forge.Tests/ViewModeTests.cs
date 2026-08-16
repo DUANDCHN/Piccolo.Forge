@@ -325,10 +325,22 @@ public class ViewModeTests
         // 抓得到：覆盖层 ZIndex 1，拖手得更高
         Assert.True(resizer.ZIndex > panel.ZIndex, "拖手被覆盖层盖住了");
 
-        // 画线：停靠时不画（两块底色本来就不同），覆盖时要画 —— 而且必须**看得见**
-        // （回归：Islands 配色的 WindowBorder 是 #00000000 全透明，画了等于没画）
-        var line = Assert.IsType<SolidColorBrush>(resizer.LineBrush);
-        Assert.True(line.Color.A > 0, "分界线是透明的，等于没画");
+        // 怎么分开这两块，**按配色族**走上游：
+        //   · 非岛：一条看得见的 1px divider（InternalDecoratorImpl.kt:599-612）；
+        //     ⚠ 必须真有颜色 —— 曾经用 WindowBorder，它在岛配色里是 #00000000，画了等于没画。
+        //   · 岛：面板自己就是一座岛，圆角 + 四周留缝、缝里透出下面的编辑区
+        //     （XNextRoundedBorder.kt:38-47），这时不画线。
+        if (family == ForgeThemeFamily.Islands)
+        {
+            Assert.Null(resizer.LineBrush);
+            Assert.True(panel.CornerRadius.TopLeft > 0, "岛该是圆角的");
+            Assert.True(panel.Margin.Right > 0, "岛四周该留缝，缝里透出下面的编辑区");
+        }
+        else
+        {
+            var line = Assert.IsType<SolidColorBrush>(resizer.LineBrush);
+            Assert.True(line.Color.A > 0, "分界线是透明的，等于没画");
+        }
 
         // 真的抓得到：命中测试必须落在拖手上，而不是被覆盖层或编辑区吃掉
         var probe = new Point(resizer.Bounds.Center.X, resizer.Bounds.Center.Y);

@@ -1672,17 +1672,25 @@ public class ForgeToolWindowFrame : TemplatedControl
                 _resizers[anchor] = resizer;
             }
 
-            // 覆盖层（取消停靠）浮在编辑区上，得画一条线才分得清哪儿是面板
-            //（停靠的不用：两块底色本来就不同 —— 见 ForgeDockResizer.LineBrush）
-            // ⚠ 用 EditorTabsBorder 而**不是** WindowBorder：后者在 Islands 两套配色里是
-            //   #00000000（岛之间靠留白分隔，本就不需要框线），拿它画等于没画。
-            //   EditorTabsBorder 是"内容与内容之间那条线"（分屏那条也用它），语义正对得上。
+            // 覆盖层（取消停靠）浮在编辑区上，得有东西把它和被盖住的内容分开。
+            // **两套配色的分法不一样，照上游走**：
+            //   · 非岛（expUI）：面板与编辑区贴死，靠一条 1px 的 divider
+            //     （InternalDecoratorImpl.kt:599-612，专给 SLIDING 加的那条）。
+            //     颜色取 EditorTabsBorder（"内容与内容之间那条线"，分屏那条也是它）——
+            //     不能用 WindowBorder，它在岛配色里是 #00000000，画了等于没画。
+            //   · 岛（Islands）：面板本来就是一座岛 —— 圆角、四周留缝，缝里透出下面的编辑区
+            //     （XNextRoundedBorder.kt:38-47：arc 35、outerInsets 5~6，
+            //     且那圈是用 withEditorBackground 画的）。**这时不画线**，
+            //     画了就等于在岛外面又糊一条边，反而把"透底"糊死。
             var overlay = _shell.ToolWindows.Any(x =>
                 x.IsOpen
                 && x.Anchor == anchor
                 && _shell.Manager.Layout.GetInfo(x.Id)?.Type == ToolWindowType.Sliding);
 
-            resizer.LineBrush = overlay ? new SolidColorBrush(Palette.EditorTabsBorder) : null;
+            // 形态由**配色族**决定，与宿主给的岛几何无关 —— 同 ForgeIslandDecor.Apply 的判据
+            var isIsland = Palette.Island is not null;
+
+            resizer.LineBrush = overlay && !isIsland ? new SolidColorBrush(Palette.EditorTabsBorder) : null;
 
             yield return resizer;
         }
