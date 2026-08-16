@@ -1,4 +1,4 @@
-namespace Piccolo.Forge.Model;
+﻿namespace Piccolo.Forge.Model;
 
 /// <summary>
 /// 工具窗口的显示/隐藏/激活。
@@ -316,12 +316,51 @@ public sealed class ToolWindowManager
             Layout.SetUnifiedAnchorWeight(anchor, layout.GetUnifiedAnchorWeight(anchor));
         }
 
+        EnforceOneVisiblePerSlot();
+
         foreach (var id in applied)
         {
             OnStateChanged(ToolWindowChangeKind.Moved, id);
         }
 
         return applied;
+    }
+
+    /// <summary>
+    /// 一格里最多一个可见 —— 读档之后补这条不变量。
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Show"/> 与 <see cref="MoveTo"/> 一直在维护它（<see cref="HideOthersInSameSlot"/>），
+    /// 唯独 <see cref="SetLayout"/> 是**直接把存档写进台账**，一条都不判 ——
+    /// 于是存档里只要有「同一格两个都可见」，这个状态就永久留着，重启也修不好。
+    /// <para>
+    /// 症状很具体：那一格的两个条带按钮**都亮着背板**，而两块面板被排在同一个位置、
+    /// 后画的盖住前面的 —— 看起来就是「选中的是甲，开着的却是乙」；
+    /// 关掉乙，甲又冒出来。四个角里只有你手动摆过的那个角会这样，
+    /// 因为只有它的存档进过这种状态。
+    /// </para>
+    /// <para>
+    /// 留下**序号最小**的那个：确定性，且与条带上从上往下的次序一致；
+    /// 被挤掉的走 <see cref="Deactivate"/>，与 <see cref="HideOthersInSameSlot"/> 同一条路。
+    /// 外部形态（浮动 / 独立窗口）不占格，不参与。
+    /// </para>
+    /// </remarks>
+    private void EnforceOneVisiblePerSlot()
+    {
+        var seen = new HashSet<ToolWindowSlot>();
+
+        foreach (var info in Layout.GetSortedList().ToList())
+        {
+            if (!info.IsVisible || IsExternal(info.Type))
+            {
+                continue;
+            }
+
+            if (!seen.Add(info.Slot))
+            {
+                Deactivate(info);
+            }
+        }
     }
 
     /// <summary>
