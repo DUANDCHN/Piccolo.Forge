@@ -25,18 +25,32 @@ public class EditorTabMenuTests
     public void The_menu_only_carries_editor_semantics()
     {
         var area = NewArea();
-        var menu = ForgeMenuBuilder.ForEditorTab(area, "b", isPinned: false);
+        var menu = ForgeMenuBuilder.ForEditorTab(area, "b", isPinned: false, moveToNewWindow: _ => { });
 
         var headers = menu.Items.OfType<MenuItem>().Select(x => (string?)x.Header).ToList();
 
         Assert.Equal(
             ["关闭", "关闭其他标签页", "关闭所有标签页", "关闭左侧标签页", "关闭右侧标签页",
-             "向右拆分", "拆分并右移", "向下拆分", "拆分并下移", "固定标签页"],
+             "向右拆分", "拆分并右移", "向下拆分", "拆分并下移", "固定标签页", "在新窗口中打开标签页"],
             headers);
 
         // ⚠ 刻意**不含** Git / 书签 / 本地历史 / 复制路径 / 重命名 —— 那些依赖宿主能力，
         //    让库去建模它们是错的分层（见 EditorTabContextMenu 的说明）。
         Assert.DoesNotContain(headers, x => x is not null && (x.Contains("Git") || x.Contains("书签")));
+    }
+
+    /// <summary>
+    /// 「在新窗口中打开」得有人来做才出现 —— 嵌在别处的宿主未必有窗口可开。
+    /// </summary>
+    [AvaloniaFact]
+    public void 没人接管新窗口时就不摆这一项()
+    {
+        var area = NewArea();
+        var menu = ForgeMenuBuilder.ForEditorTab(area, "b", isPinned: false);
+
+        Assert.DoesNotContain(
+            menu.Items.OfType<MenuItem>().Select(x => (string?)x.Header),
+            x => x == "在新窗口中打开标签页");
     }
 
     [AvaloniaFact]

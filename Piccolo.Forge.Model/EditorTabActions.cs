@@ -41,6 +41,9 @@ public enum EditorTabMenuItemKind
 
     /// <summary>固定 / 取消固定。</summary>
     TogglePinned,
+
+    /// <summary>在新窗口中打开这一页（浮出去，成为一个独立的编辑窗口）。</summary>
+    MoveToNewWindow,
 }
 
 /// <summary>
@@ -57,6 +60,7 @@ public readonly record struct EditorTabMenuItem(EditorTabMenuItemKind Kind);
 /// 上游那张菜单里还有「复制路径 / 引用」「重写文件类型」「重命名文件」「书签」
 /// 「本地历史记录」「Git」「创建 Gist」「在新窗口中打开」等等 ——
 /// 那些要么是 IDE 概念，要么依赖宿主的能力（版本控制、文件系统、书签库）。
+/// 取的是**布局那一半**：关闭系列、拆分系列、固定、在新窗口中打开。
 /// <para>
 /// <b>Forge 不认识这些，也不该认识。</b>宿主要往菜单里加自己的项，走
 /// <c>ForgeEditorArea.TabMenuExtension</c> 那个口子追加，而不是让库去建模 Git。
@@ -84,5 +88,6 @@ public static class EditorTabContextMenu
         new(EditorTabMenuItemKind.SplitAndMoveDown),
         new(EditorTabMenuItemKind.Separator),
         new(EditorTabMenuItemKind.TogglePinned),
+        new(EditorTabMenuItemKind.MoveToNewWindow),
     ];
 }

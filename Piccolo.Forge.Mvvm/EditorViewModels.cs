@@ -214,6 +214,12 @@ public sealed class EditorAreaViewModel : ForgeObservableObject
                 return;
             }
 
+            // 摘走（搬去别的编辑区）不是关闭：不问宿主要不要拦，也不告诉它"这页关了"
+            if (string.Equals(_detaching, e.Tab.Id, StringComparison.Ordinal))
+            {
+                return;
+            }
+
             var args = new EditorTabClosingViewModelEventArgs(vm);
             TabClosing?.Invoke(this, args);
             e.Cancel = args.Cancel;
@@ -222,6 +228,11 @@ public sealed class EditorAreaViewModel : ForgeObservableObject
         {
             // 关掉的那一页从缓存里摘掉 —— 不摘的话宿主塞的内容（相机会话、图像帧）
             // 会被这个字典一直强引用着，Dispose 了也回收不掉。
+            if (string.Equals(_detaching, e.Tab.Id, StringComparison.Ordinal))
+            {
+                return;
+            }
+
             if (_tabsById.Remove(e.Tab.Id, out var vm))
             {
                 TabClosed?.Invoke(this, vm);
@@ -331,6 +342,58 @@ public sealed class EditorAreaViewModel : ForgeObservableObject
     /// <param name="id">标签页 id。</param>
     /// <returns>确实关掉了则为 <see langword="true"/>。</returns>
     public bool Close(string id) => Area.Close(id);
+
+    /// <summary>
+    /// 把一个标签页从这个编辑区**摘下来**（不当作关闭）。
+    /// </summary>
+    /// <remarks>
+    /// 给"拖到另一个编辑区/浮出成独立窗口"用：标签的图标与内容都是**宿主的实例**
+    /// （相机实时画面就在里头），搬家必须搬同一个对象，不能关掉再重建 ——
+    /// 那等于把相机连接断了重连。
+    /// <para>
+    /// 因此这里绕开 <see cref="Close"/>：不发 <c>TabClosing</c> / <c>TabClosed</c>，
+    /// 宿主不会以为这块内容该释放了。
+    /// </para>
+    /// </remarks>
+    /// <param name="id">标签页 id。</param>
+    /// <returns>摘下来的标签页 VM；这里没有这一页就是 <see langword="null"/>。</returns>
+    public EditorTabViewModel? Detach(string id)
+    {
+        if (!_tabsById.TryGetValue(id, out var vm))
+        {
+            return null;
+        }
+
+        _detaching = id;
+        try
+        {
+            Area.Close(id);
+        }
+        finally
+        {
+            _detaching = null;
+        }
+
+        _tabsById.Remove(id);
+        return vm;
+    }
+
+    /// <summary>
+    /// 把一个别处摘下来的标签页收进这个编辑区。
+    /// </summary>
+    /// <remarks>与 <see cref="Detach"/> 成对；标签的身份、图标、内容原样带过来。</remarks>
+    /// <param name="tab">标签页 VM。</param>
+    /// <param name="select">收进来之后要不要选中它。</param>
+    /// <exception cref="ArgumentNullException"><paramref name="tab"/> 为 <see langword="null"/>。</exception>
+    public void Attach(EditorTabViewModel tab, bool select = true)
+    {
+        ArgumentNullException.ThrowIfNull(tab);
+
+        _tabsById[tab.Id] = tab;
+        Area.Open(new EditorTab(tab.Id, tab.Title, IsPreview: tab.IsPreview), select);
+    }
+
+    private string? _detaching;
 
     /// <summary>选中一个标签页。</summary>
     /// <param name="id">标签页 id。</param>

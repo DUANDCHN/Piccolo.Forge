@@ -174,12 +174,17 @@ public static class ForgeMenuBuilder
     /// <param name="tabId">这一页的 id。</param>
     /// <param name="isPinned">这一页当前是否固定（决定「固定 / 取消固定」的文案与勾选）。</param>
     /// <param name="extend">宿主的追加项；<see langword="null"/> 表示不追加。</param>
+    /// <param name="moveToNewWindow">
+    /// 「在新窗口中打开」怎么做；<see langword="null"/> 表示这一项不出现
+    /// （嵌在别处的宿主未必有窗口可开）。
+    /// </param>
     /// <returns>菜单。</returns>
     public static ContextMenu ForEditorTab(
         EditorAreaViewModel area,
         string tabId,
         bool isPinned,
-        Action<ContextMenu, string>? extend = null)
+        Action<ContextMenu, string>? extend = null,
+        Action<string>? moveToNewWindow = null)
     {
         ArgumentNullException.ThrowIfNull(area);
         ArgumentNullException.ThrowIfNull(tabId);
@@ -238,6 +243,12 @@ public static class ForgeMenuBuilder
                     pin.ToggleType = MenuItemToggleType.CheckBox;
                     pin.IsChecked = isPinned;
                     menu.Items.Add(pin);
+                    break;
+
+                // 与"把标签拖出编辑区"是同一条路（ForgeEditorArea.MoveToNewWindow），
+                // 不另开一种"菜单开出来的窗口"。
+                case EditorTabMenuItemKind.MoveToNewWindow when moveToNewWindow is not null:
+                    menu.Items.Add(Item("在新窗口中打开标签页", () => moveToNewWindow(tabId)));
                     break;
             }
         }

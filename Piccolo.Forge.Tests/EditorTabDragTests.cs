@@ -769,6 +769,73 @@ public class EditorTabDragTests
     private static Point GrabPoint(ForgeEditorTab tab, Window window) =>
         tab.TranslatePoint(new Point(10, tab.Bounds.Height / 2), window)!.Value;
 
+    /// <summary>
+    /// 把标签拖出整个编辑区 → 浮成一个独立的编辑窗口，内容对象**原样搬过去**。
+    /// </summary>
+    /// <remarks>
+    /// 对位上游 <c>DockManagerImpl</c>：拖离所有容器就新开一个窗口装着
+    /// （<c>DockableEditorTabbedContainer</c>）。浮窗里是一整个编辑区，不是"单文档窗口"。
+    /// <para>
+    /// 内容与图标是宿主的实例（相机实时画面就在里头），必须搬同一个对象 ——
+    /// 关掉再开一个等于把相机断了重连，所以走 Detach/Attach 而不是 Close/Open。
+    /// </para>
+    /// </remarks>
+    [AvaloniaFact]
+    public void 把标签拖出编辑区就浮成独立窗口()
+    {
+        var (editor, window, control, a, _) = Shown();
+        var content = new object();
+        editor.Find("a")!.Content = content;
+
+        var press = GrabPoint(a, window);
+        window.MouseDown(press, MouseButton.Left);
+
+        // 竖着拖出标签行，再远远离开整个编辑区
+        window.MouseMove(press.WithY(press.Y + 40));
+        Dispatcher.UIThread.RunJobs();
+        window.MouseMove(new Point(press.X, window.Height + 200));
+        Dispatcher.UIThread.RunJobs();
+        window.MouseUp(new Point(press.X, window.Height + 200), MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(["b", "c"], Order(editor));
+
+        var floating = Assert.Single(control.FloatingWindows);
+        var floatedArea = floating.GetVisualDescendants().OfType<ForgeEditorArea>().Single();
+        var floatedTab = floatedArea.Area!.Find("a");
+
+        Assert.NotNull(floatedTab);
+        Assert.Same(content, floatedTab!.Content);
+
+        floating.Close();
+        window.Close();
+    }
+
+    /// <summary>关掉浮窗，里面还开着的文档回到主编辑区 —— 别把宿主的内容跟着窗口一起扔了。</summary>
+    [AvaloniaFact]
+    public void 关掉浮窗文档回到主编辑区()
+    {
+        var (editor, window, control, a, _) = Shown();
+
+        var press = GrabPoint(a, window);
+        window.MouseDown(press, MouseButton.Left);
+        window.MouseMove(press.WithY(press.Y + 40));
+        Dispatcher.UIThread.RunJobs();
+        window.MouseMove(new Point(press.X, window.Height + 200));
+        Dispatcher.UIThread.RunJobs();
+        window.MouseUp(new Point(press.X, window.Height + 200), MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+
+        var floating = Assert.Single(control.FloatingWindows);
+        floating.Close();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Contains("a", Order(editor));
+        Assert.Empty(control.FloatingWindows);
+
+        window.Close();
+    }
+
     private static (EditorAreaViewModel Editor, Window Window, ForgeEditorArea Control, ForgeEditorTab A, ForgeEditorTab B) Shown()
     {
         // 标题给真实长度：一个字母的标签只有 49px 宽，几何上不足以演示重排。

@@ -185,6 +185,143 @@ public class ForgeEditorArea : TemplatedControl
         ApplyThemeVariant();
     }
 
+    // ── 拖出去 = 浮成独立的编辑窗口 ────────────────────────────────────────
+    //
+    // 对位上游 DockManagerImpl / DockableEditorTabbedContainer：把标签拖离所有容器，
+    // 就新开一个窗口装着它；拖到别的容器上，就交给那个容器。
+    // 浮窗里是**一整个编辑区**（能再开标签、能分屏），不是"单文档窗口"。
+
+    private readonly Dictionary<Window, ForgeEditorArea> _floatingWindows = [];
+    private ForgeEditorArea? _floatingOwner;
+
+    /// <summary>这个编辑区浮出去的那些窗口。</summary>
+    public IReadOnlyCollection<Window> FloatingWindows => _floatingWindows.Keys;
+
+    /// <summary>
+    /// 浮出去的编辑窗口用什么窗体装。
+    /// </summary>
+    /// <remarks>
+    /// 与工具窗口那边同一个道理：一个应用里所有窗体该是同一副长相，而那副长相是宿主的事，
+    /// 库只往里塞内容。不给就用一个朴素窗口。
+    /// </remarks>
+    public Func<Window>? ExternalWindowFactory { get; set; }
+
+    /// <summary>这一家：主编辑区，加上它浮出去的那些。</summary>
+    private IEnumerable<ForgeEditorArea> Family()
+    {
+        var owner = _floatingOwner ?? this;
+        yield return owner;
+
+        foreach (var floating in owner._floatingWindows.Values)
+        {
+            yield return floating;
+        }
+    }
+
+    /// <summary>屏幕上这一点是不是落在这个编辑区里。</summary>
+    private bool HitTestScreen(PixelPoint screen)
+    {
+        if (!IsEffectivelyVisible || TopLevel.GetTopLevel(this) is not Window window || !window.IsVisible)
+        {
+            return false;
+        }
+
+        var origin = ToScreen(default);
+        var end = ToScreen(new Point(Bounds.Width, Bounds.Height));
+
+        return screen.X >= origin.X && screen.X <= end.X
+            && screen.Y >= origin.Y && screen.Y <= end.Y;
+    }
+
+    private PixelPoint ToScreen(Point point)
+        => TopLevel.GetTopLevel(this) is Window window ? window.PointToScreen(point + Bounds.Position) : default;
+
+    /// <summary>
+    /// 把一页挪到新窗口里（右键菜单「在新窗口中打开标签页」走的就是这里）。
+    /// </summary>
+    /// <remarks>与"把标签拖出编辑区"是**同一条路** —— 不另开一种"菜单开出来的窗口"。</remarks>
+    /// <param name="tabId">标签页 id。</param>
+    public void MoveToNewWindow(string tabId)
+    {
+        if (_area?.Detach(tabId) is not { } tab)
+        {
+            return;
+        }
+
+        // 没有拖拽起点，就摆在这个编辑区的中间偏上一点
+        var screen = ToScreen(new Point(Bounds.Width / 3, Bounds.Height / 4));
+        FloatOut(tab, screen, default);
+        CloseIfEmpty();
+    }
+
+    /// <summary>把一页浮出去：新开一个窗口，里面是一整个编辑区。</summary>
+    private void FloatOut(EditorTabViewModel tab, PixelPoint screen, Vector holdDelta)
+    {
+        var owner = _floatingOwner ?? this;
+        var area = new EditorAreaViewModel();
+        var control = new ForgeEditorArea
+        {
+            ThemeFamily = ThemeFamily,
+            IslandMetrics = IslandMetrics,
+            ExternalWindowFactory = owner.ExternalWindowFactory,
+            _floatingOwner = owner,
+        };
+
+        control.Attach(area);
+        area.Attach(tab);
+
+        var window = owner.ExternalWindowFactory?.Invoke() ?? new Window();
+        window.Title = tab.Title;
+        window.Content = control;
+        window.Width = Math.Max(480, Bounds.Width / 2);
+        window.Height = Math.Max(360, Bounds.Height / 2);
+        window.Position = new PixelPoint(
+            screen.X - (int)holdDelta.X,
+            screen.Y - (int)holdDelta.Y);
+
+        // 关掉浮窗 = 把里面还开着的文档送回主编辑区（别把宿主的内容跟着窗口一起扔了）
+        window.Closing += (_, _) =>
+        {
+            foreach (var id in area.Groups.SelectMany(g => g.Tabs).Select(t => t.Id).Distinct().ToList())
+            {
+                if (area.Detach(id) is { } back)
+                {
+                    owner.Area?.Attach(back, select: false);
+                }
+            }
+
+            owner._floatingWindows.Remove(window);
+        };
+
+        owner._floatingWindows[window] = control;
+
+        if (TopLevel.GetTopLevel(owner) is Window ownerWindow)
+        {
+            window.Show(ownerWindow);
+        }
+        else
+        {
+            window.Show();
+        }
+    }
+
+    /// <summary>浮窗里一页都不剩了就关掉它。</summary>
+    private void CloseIfEmpty()
+    {
+        if (_floatingOwner is not { } owner || _area is not { } area)
+        {
+            return;
+        }
+
+        if (area.Groups.Any(g => g.Tabs.Count > 0))
+        {
+            return;
+        }
+
+        var window = owner._floatingWindows.FirstOrDefault(x => ReferenceEquals(x.Value, this)).Key;
+        window?.Close();
+    }
+
     /// <inheritdoc />
     /// <remarks>焦点进出要重画：活动 / 失焦是两套配色（见 Sync 里 IsGroupActive 的注释）。</remarks>
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -652,7 +789,8 @@ public class ForgeEditorArea : TemplatedControl
 
             var tab = vm.Tabs[i];
             control.Palette = Palette;
-            control.ContextMenu = ForgeMenuBuilder.ForEditorTab(_area!, tab.Id, tab.IsPinned, TabMenuExtension);
+            control.ContextMenu = ForgeMenuBuilder.ForEditorTab(
+                _area!, tab.Id, tab.IsPinned, TabMenuExtension, MoveToNewWindow);
             control.Title = tab.Title;
             control.Icon = ResolveIcon(control, tab.Icon);
             control.IsSelected = tab.IsSelected;
@@ -836,6 +974,7 @@ public class ForgeEditorArea : TemplatedControl
     {
         if (_dockDrag is not null)
         {
+            _dockDrag.LastScreenPoint = ToScreen(e.GetPosition(this));
             EndDockDrag(commit: true);
             return;
         }
@@ -894,6 +1033,9 @@ public class ForgeEditorArea : TemplatedControl
         public global::Avalonia.Media.Imaging.RenderTargetBitmap? Thumb { get; } = thumb;
         public EditorGroupViewModel? Target { get; set; }
         public EditorDropSide Side { get; set; }
+
+        /// <summary>最后一次指针位置（屏幕坐标）—— 松手落在别的窗口上时要靠它找落点。</summary>
+        public PixelPoint LastScreenPoint { get; set; }
     }
 
     /// <summary>
@@ -1202,7 +1344,63 @@ public class ForgeEditorArea : TemplatedControl
         if (drop is { } move)
         {
             _area!.DropTab(move.TabId, move.Source, move.Target, move.Side);
+            return;
         }
+
+        if (commit)
+        {
+            DropOutside(session);
+        }
+    }
+
+    /// <summary>
+    /// 松手时不在本编辑区的任何一组上：搬去光标底下那个编辑区，没有就浮出成独立窗口。
+    /// </summary>
+    /// <remarks>
+    /// 对位上游 <c>DockManagerImpl</c> 那条路：拖出去落在别的容器上就交给它，
+    /// 落在空处就新开一个窗口装着（<c>DockableEditorTabbedContainer</c>）。
+    /// <para>
+    /// 标签的图标与内容是**宿主的实例**（相机实时画面就在里头），所以走
+    /// <c>EditorAreaViewModel.Detach/Attach</c> 搬同一个对象，不是关掉再开一个。
+    /// </para>
+    /// </remarks>
+    private void DropOutside(EditorDockDragSession session)
+    {
+        if (_area is not { } area)
+        {
+            return;
+        }
+
+        var screen = session.LastScreenPoint;
+
+        // 落在另一个编辑区上（比如从浮窗拖回主窗口）。
+        // ⚠ 只在**同一家人**里找：主编辑区和它浮出去的那些窗口。
+        //   不搞全局登记表 —— 那样会把别的窗口（甚至别的实例）也算成落点，
+        //   而且屏幕坐标重叠时根本分不出该给谁。
+        var target = Family().FirstOrDefault(x => !ReferenceEquals(x, this) && x.HitTestScreen(screen));
+
+        // 浮窗里就这一页，再拖出去只是把窗口换个位置 —— 没意义
+        if (target is null && _floatingOwner is not null && area.Groups.Sum(g => g.Tabs.Count) <= 1)
+        {
+            return;
+        }
+
+        if (area.Detach(session.TabId) is not { } tab)
+        {
+            return;
+        }
+
+        if (target is not null)
+        {
+            target.Area!.Attach(tab);
+        }
+        else
+        {
+            FloatOut(tab, screen, session.HoldDelta);
+        }
+
+        // 源头空了：浮窗就没有存在的必要了（主编辑区空着是正常状态，不动它）
+        CloseIfEmpty();
     }
 
     /// <summary>
