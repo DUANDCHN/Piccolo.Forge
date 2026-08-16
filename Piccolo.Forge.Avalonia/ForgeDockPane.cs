@@ -305,7 +305,10 @@ public class ForgeDockPane : Panel
         {
             if (child.IsVisible && GetIsOverlay(child) && GetAnchor(child) is { } anchor)
             {
-                remaining = Exclude(remaining, rect, anchor);
+                // 让开的宽度要够**一整条缝**：岛与岛并排时两边各出一半，
+                // 而被压着的这块整个被裁掉了，出不了它那一半 —— 由裁剪线替它让出来，
+                // 否则挨着覆盖层的那条缝只有半条宽，比别处窄一半。
+                remaining = Exclude(remaining, rect.Inflate(child.Margin), anchor);
             }
         }
 
@@ -326,9 +329,12 @@ public class ForgeDockPane : Panel
             // ⚠ Clip 用的是**子控件自己的坐标系**，remaining 算在停靠区的坐标里 —— 要换算过去。
             //   不换算的话，左边有滑出面板时 remaining.X 是几百，套进右面板（自身才两百来宽）
             //   的坐标就成了空矩形，整块面板被裁没。
+            // ⚠ 平移的基准是控件的 **Bounds**（排布矩形去掉外边距之后的那个），不是排布矩形本身：
+            //   Clip 就长在 Bounds 的坐标系里。用排布矩形去平移，谁有外边距谁就多让一截 ——
+            //   表现为同一条缝在挨着不同面板的地方宽窄不一。
             child.Clip = remaining == whole
                 ? null
-                : new RectangleGeometry(remaining.Translate(-(Vector)rect.Position));
+                : new RectangleGeometry(remaining.Translate(-(Vector)child.Bounds.Position));
         }
     }
 

@@ -473,6 +473,60 @@ public class ViewModeTests
         window.Close();
     }
 
+    /// <summary>
+    /// 覆盖层旁边那条缝，**处处一样宽**，且与岛间距同宽。
+    /// </summary>
+    /// <remarks>
+    /// 两处曾经踩空：<br/>
+    /// ① 平移基准取了排布矩形而不是 <c>Bounds</c> —— 谁有外边距谁就多让一截，
+    /// 同一条缝挨着编辑区和挨着面板宽窄不一；<br/>
+    /// ② 只让了半条缝 —— 岛与岛并排时两边各出一半，而被压着的那块整个被裁掉、
+    /// 出不了它那一半，得由裁剪线替它让出来。
+    /// </remarks>
+    [AvaloniaFact]
+    public void 覆盖层旁边那条缝处处等宽()
+    {
+        var infos = new List<WindowInfo>
+        {
+            new() { Id = "左", Anchor = ToolWindowAnchor.Left, Order = 0, IsVisible = true, Weight = 0.25f },
+            new() { Id = "底", Anchor = ToolWindowAnchor.Bottom, Order = 0, IsVisible = true, Weight = 0.3f },
+        };
+
+        var metrics = ForgeIslandMetrics.Default with { BorderWidth = 3 };
+        var shell = new ToolWindowShellViewModel(new ToolWindowManager(new DesktopLayout(infos)));
+        var editor = new Border();
+        var frame = new ForgeToolWindowFrame
+        {
+            EditorContent = editor,
+            ThemeFamily = ForgeThemeFamily.Islands,
+            IslandMetrics = metrics,
+        };
+        frame.Attach(shell);
+
+        var window = new Window { Width = 900, Height = 500, WindowDecorations = WindowDecorations.None, Content = frame };
+        window.Show();
+        Pump(window);
+
+        shell.Manager.SetType("左", ToolWindowType.Sliding);
+        Pump(window);
+
+        var overlay = frame.DockPane.Children.OfType<Border>()
+            .First(x => ForgeDockPane.GetIsOverlay(x));
+
+        // 每块被压住的，可见左沿 = 自身位置 + 裁剪线
+        var edges = frame.DockPane.Children.OfType<Border>()
+            .Where(x => !ForgeDockPane.GetIsOverlay(x) && x.Clip is RectangleGeometry)
+            .Select(x => x.Bounds.X + ((RectangleGeometry)x.Clip!).Rect.X)
+            .ToList();
+
+        Assert.NotEmpty(edges);
+        Assert.All(edges, edge => Assert.Equal(edges[0], edge, 0.01));
+        // 容差半像素：排布尺寸会被对齐到整像素（如 215.25 → 215），差的是对齐不是逻辑
+        Assert.Equal(metrics.BorderWidth, edges[0] - overlay.Bounds.Right, 0.5);
+
+        window.Close();
+    }
+
     /// <summary>独立出去之后，标题条上多一个「停靠回去」；点它就回到原来的内部形态。</summary>
     /// <remarks>上游那组动作的第一个就是 <c>DockToolWindowAction</c>（<c>ToolWindowHeader.kt:119</c>）。</remarks>
     [AvaloniaFact]
