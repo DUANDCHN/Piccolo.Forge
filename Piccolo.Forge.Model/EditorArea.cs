@@ -458,62 +458,21 @@ public sealed class EditorArea
             return false;
         }
 
-        var tab = source.Tabs.FirstOrDefault(t => t.Id == tabId);
-        if (tab.Id is null)
+        var operation = side switch
         {
-            return false;
-        }
+            EditorDropSide.Center => DocumentDockOperation.Fill,
+            EditorDropSide.Left => DocumentDockOperation.Left,
+            EditorDropSide.Right => DocumentDockOperation.Right,
+            EditorDropSide.Top => DocumentDockOperation.Top,
+            EditorDropSide.Bottom => DocumentDockOperation.Bottom,
+            _ => DocumentDockOperation.None,
+        };
 
-        if (side == EditorDropSide.Center)
-        {
-            if (ReferenceEquals(source, target))
-            {
-                return false;
-            }
-
-            source.Close(tabId);
-            if (!target.Tabs.Any(x => x.Id == tabId))
-            {
-                target.Add(tab);
-            }
-            else
-            {
-                target.Select(tabId);
-            }
-
-            CurrentGroup = target;
-            OnChanged();
-            return true;
-        }
-
-        // 这一落点不会改变分组构成 —— 别动树。
-        //
-        // ⚠ 不是为了防空组：空组由 OnChanged 的不变量兜住，这里删掉也不会漏。
-        //   留着是为了**保住组的身份**。真去搬一趟的话，target 会被不变量摘掉、
-        //   树塌回新建的 created —— 组对象换了一个，视图那边按组缓存的宿主与内容控件
-        //   随之重建，宿主塞进去的实时画面会被重新挂载。
-        //   为一个净效果为零的手势付这个代价是不对的。
-        if (ReferenceEquals(source, target) && source.Tabs.Count <= 1)
-        {
-            return false;
-        }
-
-        var created = new EditorGroup();
-        created.Add(tab);
-
-        var split = EditorDropPolicy.NewGroupIsSecond(side)
-            ? new EditorSplit(target, created, EditorDropPolicy.IsVertical(side))
-            : new EditorSplit(created, target, EditorDropPolicy.IsVertical(side));
-
-        Replace(target, split);
-        source.Close(tabId);
-
-        // 源空了（含"源就是目标、只有这一页"那一路）交给 OnChanged 的不变量收拾：
-        // 那种情况下 target 会被摘掉，树塌回 created 一个组 —— 净效果就是什么都没发生，
-        // 与上游一致（EditorWindow.kt:546-548 的 split 不生成会留下空窗格的分屏）。
-        CurrentGroup = created;
-        OnChanged();
-        return true;
+        return DocumentDockFactory.MoveDockable(
+            tabId, source, target, operation,
+            Replace,
+            group => CurrentGroup = group,
+            OnChanged);
     }
 
     /// <summary>一直合到只剩一组。</summary>

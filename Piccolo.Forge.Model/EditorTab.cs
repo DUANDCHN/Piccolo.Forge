@@ -23,7 +23,7 @@ public readonly record struct EditorTab(
     bool IsPinned = false,
     bool IsPreview = false,
     bool IsCloseable = true,
-    bool IsInHistory = true);
+    bool IsInHistory = true) : IDockable;
 
 /// <summary>
 /// 关掉一个标签页之后该选中谁。

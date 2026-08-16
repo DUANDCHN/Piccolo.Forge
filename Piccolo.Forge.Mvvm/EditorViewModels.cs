@@ -141,6 +141,26 @@ public sealed class EditorGroupViewModel : ForgeObservableObject
         Selected = wanted.FirstOrDefault(x => x.IsSelected);
     }
 
+    /// <summary>
+    /// 在跨 DocumentDock 搬移的 add 阶段之前，先摘掉已经不属于本组的文档。
+    /// </summary>
+    /// <remarks>
+    /// 对应 Dock 的 Factory.MoveDockable：先从 source VisibleDockables remove，
+    /// 再向 target add。若反过来，同一个宿主 Control 图标会同时被两个 TabStrip
+    /// 容器收养，目标容器实现失败后就永久显示为缺页。
+    /// </remarks>
+    internal void PruneMovedDockables()
+    {
+        var wantedIds = Group.Tabs.Select(x => x.Id).ToHashSet(StringComparer.Ordinal);
+        for (var i = _tabs.Count - 1; i >= 0; i--)
+        {
+            if (!wantedIds.Contains(_tabs[i].Id))
+            {
+                _tabs.RemoveAt(i);
+            }
+        }
+    }
+
     private static void Reconcile(ObservableCollection<EditorTabViewModel> target, IReadOnlyList<EditorTabViewModel> wanted)
     {
         for (var i = target.Count - 1; i >= 0; i--)
@@ -450,6 +470,14 @@ public sealed class EditorAreaViewModel : ForgeObservableObject
     private void Sync()
     {
         var wanted = new List<EditorGroupViewModel>();
+
+        // Dock Factory.MoveDockable 的事务顺序：所有 source 先 detach，所有 target
+        // 后 attach。不能边枚举最终组边各自 Reconcile；目标组通常排在源组前面，
+        // 那会短暂让同一个 VM（以及宿主给它的 Control 图标）同时存在于两条 TabStrip。
+        foreach (var vm in _groupsByModel.Values)
+        {
+            vm.PruneMovedDockables();
+        }
 
         foreach (var group in Area.Groups)
         {

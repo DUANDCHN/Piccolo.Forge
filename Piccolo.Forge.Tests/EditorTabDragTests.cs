@@ -144,10 +144,14 @@ public class EditorTabDragTests
         window.MouseMove(release);
         Dispatcher.UIThread.RunJobs();
 
-        Assert.Equal(["b", "a", "c"], Order(editor));
+        // Dock.Avalonia ItemDragHelper 只做位移预览，Released() 才调用
+        // Factory.MoveDockable；手势中途绝不能重建 TabStrip 容器。
+        Assert.Equal(["a", "b", "c"], Order(editor));
 
         window.MouseUp(release, MouseButton.Left);
         Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(["b", "a", "c"], Order(editor));
 
         var strip = window.GetVisualDescendants().OfType<HeaderTabsPanel>().First();
         Assert.Null(strip.DraggedChild);
@@ -464,8 +468,8 @@ public class EditorTabDragTests
     public void Merging_a_split_group_back_keeps_both_visual_tabs()
     {
         var editor = new EditorAreaViewModel();
-        editor.Open("a", "Alpha.cs");
-        editor.Open("b", "Bravo.cs");
+        editor.Open("a", "Alpha.cs").Icon = new Border { Width = 12, Height = 12 };
+        editor.Open("b", "Bravo.cs").Icon = new Border { Width = 12, Height = 12 };
 
         var control = new ForgeEditorArea();
         control.Attach(editor);
@@ -483,6 +487,7 @@ public class EditorTabDragTests
 
         Assert.Single(editor.Area.Groups);
         Assert.Equal(["a", "b"], editor.Area.Groups[0].Tabs.Select(x => x.Id));
+        Assert.Equal(2, control.GetVisualDescendants().OfType<ForgeEditorTab>().Count());
         Assert.Equal(
             ["Alpha.cs", "Bravo.cs"],
             control.GetVisualDescendants().OfType<ForgeEditorTab>()

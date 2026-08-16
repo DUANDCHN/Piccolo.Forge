@@ -656,6 +656,7 @@ public class ForgeEditorArea : TemplatedControl
     private IPointer? _dragPointer;
     private EditorGroupViewModel? _dragGroup;
     private string? _dragId;
+    private string? _reorderTargetId;
     private Point _pressPoint;
     private Vector _holdDelta;
     private Rect _dragOriginalRec;
@@ -708,15 +709,16 @@ public class ForgeEditorArea : TemplatedControl
         _dragTab = control;
         _dragPointer = e.Pointer;
         _dragId = id;
+        _reorderTargetId = null;
         _pressPoint = e.GetPosition(strip);
         _dragStarted = false;
-        // 上游捕获 JBTabsImpl，因为它在拖动期间稳定存在；Forge 的分屏树同步会摘挂
-        // 具体 TabStrip，因此等价的稳定所有者是整个编辑区，而不是某一组标签条。
-        e.Pointer.Capture(this);
+        // Dock.Avalonia ItemDragHelper 在标签行内只保存按下状态，不主动捕获指针；
+        // 离开标签条、正式进入 dock drag 时才把捕获交给整个 DockControl。
+        // 这里保持同一边界，避免 TabStrip 的选中/容器生命周期从按下起就被编辑区劫持。
     }
 
     /// <summary>
-    /// 拖动中：算出该和谁换位，当场换。
+    /// 拖动中：算出该和谁换位，只做视觉预览；松手时一次提交。
     /// </summary>
     /// <remarks>
     /// 对应 <c>DragHelper.java:164-246 · processDrag</c>。
@@ -771,6 +773,7 @@ public class ForgeEditorArea : TemplatedControl
             strip.InvalidateArrange();
             ClearInlineDrag(releasePointer: false);
             _dockDrag = session;
+            session.Pointer.Capture(this);
             UpdateDockDrag(session, e);
             return;
         }
@@ -787,16 +790,10 @@ public class ForgeEditorArea : TemplatedControl
 
         if (target >= 0)
         {
-            var targetId = group.Tabs[target].Id;
-            if (_area.ReorderTab(_dragId, targetId))
-            {
-                // 换完位要**立刻**重排一次并把原位刷新成新格子
-                // （DragHelper.java:231-233：reallocate 之后马上重读 dragOriginalRec）。
-                // 不刷的话 freeSpace 会一直按最初那一格算，越拖越大，
-                // 于是一次拖动能连着穿过好几页 —— 那道防抖闸就白设了。
-                strip.UpdateLayout();
-                _dragOriginalRec = strip.SlotOf(control) ?? _dragOriginalRec;
-            }
+            // Dock.Avalonia ItemDragHelper 只在 Released() 里调用 Factory.MoveDockable；
+            // 拖动中仅做 RenderTransform 预览。这里同样延迟模型变更，保证 TabStrip
+            // 不会在手势尚未结束时回收/换父当前容器。
+            _reorderTargetId = group.Tabs[target].Id;
         }
 
         strip.DraggedChild = control;
@@ -936,6 +933,11 @@ public class ForgeEditorArea : TemplatedControl
             strip.InvalidateArrange();
         }
 
+        if (_dragId is { } sourceId && _reorderTargetId is { } targetId)
+        {
+            _area!.ReorderTab(sourceId, targetId);
+        }
+
         ClearInlineDrag(releasePointer: true);
     }
 
@@ -946,6 +948,7 @@ public class ForgeEditorArea : TemplatedControl
         _dragPointer = null;
         _dragGroup = null;
         _dragId = null;
+        _reorderTargetId = null;
         _dragStarted = false;
 
         if (releasePointer && pointer?.Captured == this)
