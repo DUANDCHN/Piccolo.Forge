@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Piccolo.Forge.Sample</RootNamespace>
+    <OutputType>WinExe</OutputType>
+    <IsPackable>false</IsPackable>
+    <!-- 不是对外 API，不强制 XML 注释 -->
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Piccolo.Forge.Model/Piccolo.Forge.Model.csproj" />
+    <ProjectReference Include="../Piccolo.Forge.Mvvm/Piccolo.Forge.Mvvm.csproj" />
+    <ProjectReference Include="../Piccolo.Forge.Mvvm.CommunityToolkit/Piccolo.Forge.Mvvm.CommunityToolkit.csproj" />
+    <ProjectReference Include="../Piccolo.Forge.Themes/Piccolo.Forge.Themes.csproj" />
+    <ProjectReference Include="../Piccolo.Forge.Avalonia/Piccolo.Forge.Avalonia.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Piccolo.Forge.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <!-- 不是对外 API，不强制 XML 注释 -->
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Avalonia.Headless" />
+    <PackageReference Include="Avalonia.Headless.XUnit" />
+    <PackageReference Include="Avalonia.Skia" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Piccolo.Forge.Model/Piccolo.Forge.Model.csproj" />
+    <ProjectReference Include="../Piccolo.Forge.Mvvm/Piccolo.Forge.Mvvm.csproj" />
+    <ProjectReference Include="../Piccolo.Forge.Mvvm.CommunityToolkit/Piccolo.Forge.Mvvm.CommunityToolkit.csproj" />
+    <ProjectReference Include="../Piccolo.Forge.Themes/Piccolo.Forge.Themes.csproj" />
+    <ProjectReference Include="../Piccolo.Forge.Avalonia/Piccolo.Forge.Avalonia.csproj" />
+  </ItemGroup>
+
+</Project>

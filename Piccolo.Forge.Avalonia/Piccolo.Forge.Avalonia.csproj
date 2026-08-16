@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Piccolo.Forge.Avalonia</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Piccolo.Forge.Model/Piccolo.Forge.Model.csproj" />
+    <ProjectReference Include="../Piccolo.Forge.Mvvm/Piccolo.Forge.Mvvm.csproj" />
+    <ProjectReference Include="../Piccolo.Forge.Themes/Piccolo.Forge.Themes.csproj" />
+  </ItemGroup>
+
+</Project>
