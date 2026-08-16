@@ -329,13 +329,26 @@ public class ForgeToolWindowFrame : TemplatedControl
     public Func<string, IReadOnlyList<Control>?>? HeaderButtonsExtension { get; set; }
 
     /// <summary>
-    /// 宿主往面板 ⋮ 菜单里追加自己的项（加在**最前**，后跟一条分隔线）。
+    /// 宿主往面板 ⋮ 菜单里追加自己的项。
     /// </summary>
     /// <remarks>
     /// 对应上游的 <c>additionalGearActions</c>（<c>ToolWindowImpl.kt:857-866</c>）。
-    /// 上游那份菜单里的「快速搜索 / 显示工具栏 / 标签页分组 / 关闭所有 / 帮助」
-    /// 都属于**面板内容**那一层——库不知道宿主往面板里放了什么，所以不猜，从这里塞。
-    /// 参数是（菜单, 面板 id）。
+    /// <para>
+    /// <b>库默认只放布局相关的三项</b>（视图模式 / 移至 / 从边栏中移除）——
+    /// 上游那份里的「快速搜索 / 显示工具栏 / 标签页分组 / 关闭所有 / 帮助」都属于
+    /// **面板内容**那一层，库不知道宿主往面板里放了什么，给了也用不上。要就从这里塞。
+    /// </para>
+    /// <para>参数是（菜单, 面板 id）；菜单原样交给宿主，<c>Add</c> 追加、<c>Insert(0, …)</c> 插到最前。</para>
+    /// <example>
+    /// <code>
+    /// frame.HeaderMenuExtension = (menu, id) =&gt;
+    /// {
+    ///     if (id != DockId.CAM_LIST.GetId()) return;
+    ///     menu.Items.Add(new Separator());
+    ///     menu.Items.Add(new MenuItem { Header = "刷新设备列表" });
+    /// };
+    /// </code>
+    /// </example>
     /// </remarks>
     public Action<ContextMenu, string>? HeaderMenuExtension { get; set; }
 

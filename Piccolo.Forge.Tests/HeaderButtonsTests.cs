@@ -188,20 +188,39 @@ public class HeaderButtonsTests
         window.Close();
     }
 
-    /// <summary>宿主的项加在最前，后跟一条分隔线（上游 additionalGearActions 的位置）。</summary>
+    /// <summary>菜单原样交给宿主：Add 就追加在后面，想插到最前自己 Insert(0)。</summary>
+    /// <remarks>
+    /// 与 <c>TabMenuExtension</c> / <c>TabActionsMenuExtension</c> 同形 ——
+    /// 三个扩展点行为一致，宿主不用记「哪个会把我的项搬走」。
+    /// </remarks>
     [AvaloniaFact]
-    public void 宿主的菜单项排在最前()
+    public void 宿主的菜单项按自己加的位置来()
     {
         var (window, _, shell) = Build();
 
-        var menu = ForgeMenuBuilder.ForHeaderOptions(
-            shell.Manager,
-            "相机列表",
-            (m, _) => m.Items.Add(new MenuItem { Header = "从编辑器自动滚动" }));
+        var appended = ForgeMenuBuilder.ForHeaderOptions(
+            shell.Manager, "相机列表", (m, _) => m.Items.Add(new MenuItem { Header = "刷新设备列表" }));
+        Assert.Equal("刷新设备列表", (appended.Items[^1] as MenuItem)?.Header);
 
-        Assert.Equal("从编辑器自动滚动", (menu.Items[0] as MenuItem)?.Header);
-        Assert.IsType<Separator>(menu.Items[1]);
+        var prepended = ForgeMenuBuilder.ForHeaderOptions(
+            shell.Manager, "相机列表", (m, _) => m.Items.Insert(0, new MenuItem { Header = "从编辑器自动滚动" }));
+        Assert.Equal("从编辑器自动滚动", (prepended.Items[0] as MenuItem)?.Header);
 
+        window.Close();
+    }
+
+    /// <summary>库自己只放布局相关的三项 —— 别的给了也用不上。</summary>
+    [AvaloniaFact]
+    public void 默认只有布局相关的项()
+    {
+        var (window, _, shell) = Build();
+
+        var headers = ForgeMenuBuilder.ForHeaderOptions(shell.Manager, "相机列表")
+            .Items.OfType<MenuItem>()
+            .Select(x => x.Header as string)
+            .ToList();
+
+        Assert.Equal(["视图模式", "移至", "从边栏中移除"], headers);
         window.Close();
     }
 

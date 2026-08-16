@@ -46,7 +46,12 @@ public static class ForgeMenuBuilder
     /// </remarks>
     /// <param name="manager">工具窗口管理器。</param>
     /// <param name="id">哪个工具窗口。</param>
-    /// <param name="extend">宿主往里追加自己的项（上游的 <c>additionalGearActions</c>，加在最前）。</param>
+    /// <param name="extend">
+    /// 宿主往里追加自己的项。**菜单原样交给你**：<c>Add</c> 追加在后面，
+    /// 想要上游那个位置（<c>additionalGearActions</c> 在最前 + 一条分隔线）就自己
+    /// <c>Insert(0, …)</c>。与 <c>TabMenuExtension</c> / <c>TabActionsMenuExtension</c> 同形 ——
+    /// 三个扩展点行为一致，宿主不用记「哪个会把我的项搬走」。
+    /// </param>
     /// <returns>菜单。</returns>
     public static ContextMenu ForHeaderOptions(
         ToolWindowManager manager, string id, Action<ContextMenu, string>? extend = null)
@@ -55,31 +60,7 @@ public static class ForgeMenuBuilder
         ArgumentNullException.ThrowIfNull(id);
 
         var menu = Build(ToolWindowContextMenu.ForHeaderOptions(), manager, id, static () => { }, showNames: false);
-
-        if (extend is null)
-        {
-            return menu;
-        }
-
-        // 宿主的项加在**最前**，后跟一条分隔线（ToolWindowImpl.kt:857-866 就是这个顺序）
-        var mine = new ContextMenu();
-        extend(mine, id);
-
-        if (mine.Items.Count == 0)
-        {
-            return menu;
-        }
-
-        var items = mine.Items.Cast<object>().ToList();
-        mine.Items.Clear();
-        items.Reverse();
-
-        menu.Items.Insert(0, new Separator());
-        foreach (var item in items)
-        {
-            menu.Items.Insert(0, item);
-        }
-
+        extend?.Invoke(menu, id);
         return menu;
     }
 
