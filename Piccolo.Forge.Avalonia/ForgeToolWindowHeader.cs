@@ -38,7 +38,7 @@ public class ForgeToolWindowHeader : TemplatedControl
     public static readonly StyledProperty<ToolWindowContentUiType> ContentUiTypeProperty =
         AvaloniaProperty.Register<ForgeToolWindowHeader, ToolWindowContentUiType>(nameof(ContentUiType));
 
-    private readonly HeaderTabsPanel _tabs = new();
+    private readonly ForgeContentTabStrip _tabs = new();
 
     /// <summary>建一个标题条。</summary>
     public ForgeToolWindowHeader()
@@ -99,7 +99,7 @@ public class ForgeToolWindowHeader : TemplatedControl
     /// 上游把 <c>contentUi.tabComponent</c> 放进标题条的 westPanel
     /// （<c>ToolWindowHeader.kt:99</c>、<c>:115</c>）—— 标题和 tab 是**同一行**。
     /// </remarks>
-    public HeaderTabsPanel Tabs => _tabs;
+    public ForgeContentTabStrip Tabs => _tabs;
 
     /// <summary>标题条高度：紧凑 31，否则 41。</summary>
     public double HeaderHeight => IsCompact ? ForgeCompactMetrics.HeaderHeight : ForgeMetrics.HeaderHeight;

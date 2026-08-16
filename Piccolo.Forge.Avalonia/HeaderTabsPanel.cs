@@ -1,5 +1,4 @@
 ﻿using Avalonia;
-using System.Linq;
 using Avalonia.Controls;
 using Piccolo.Forge.Themes;
 
@@ -21,23 +20,6 @@ public class HeaderTabsPanel : Panel
     /// </summary>
     /// <remarks>上游据此决定「更多」按钮显不显示（<c>TabContentLayout.java:155-168</c>）。</remarks>
     public int HiddenTabCount { get; private set; }
-
-    /// <summary>
-    /// 按什么次序排；<see langword="null"/> 就按 <see cref="Panel.Children"/> 的次序。
-    /// </summary>
-    /// <remarks>
-    /// ⚠ <b>次序与"谁是子控件"是两件事，别混。</b>原来重排是靠 <c>Children.Move</c>，
-    /// 而 Avalonia 的 Move 是摘下来再挂回去 —— 顺带把**指针捕获**丢掉，
-    /// 正在拖的标签页就此收不了尾。把次序单独拿出来，可视树在拖动全程纹丝不动。
-    /// <para>
-    /// 说到底这是<b>数据源该管的事</b>：换成 <c>TabStrip</c> + <c>ItemsSource</c> 之后
-    /// 这个属性连同 <c>Reconcile</c> 都该消失。现阶段先把捕获这条止住。
-    /// </para>
-    /// </remarks>
-    public IReadOnlyList<Control>? Order { get; set; }
-
-    private IEnumerable<Control> InOrder =>
-        Order is null ? Children : Order.Where(Children.Contains);
 
     /// <summary>正在被拖的那一个；<see langword="null"/> 表示没人在拖。</summary>
     /// <remarks>见 <see cref="DraggedX"/>。</remarks>
@@ -64,7 +46,7 @@ public class HeaderTabsPanel : Panel
         var width = 0.0;
         var height = 0.0;
 
-        foreach (var child in InOrder)
+        foreach (var child in Children)
         {
             if (!child.IsVisible)
             {
@@ -85,7 +67,7 @@ public class HeaderTabsPanel : Panel
         var x = 0.0;
         var hidden = 0;
 
-        foreach (var child in InOrder)
+        foreach (var child in Children)
         {
             if (!child.IsVisible)
             {

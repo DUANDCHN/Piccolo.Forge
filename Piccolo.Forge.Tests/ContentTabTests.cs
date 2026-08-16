@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Headless.XUnit;
 using Avalonia.VisualTree;
+using Avalonia.Threading;
 using Piccolo.Forge.Avalonia;
 using Piccolo.Forge.Model;
 using Piccolo.Forge.Mvvm;
@@ -126,9 +127,13 @@ public class ContentTabTests
         manager.Activate("Version Control");
 
         var header = frame.DockPane.GetVisualDescendants().OfType<ForgeToolWindowHeader>().Single();
-        Assert.Equal(2, header.Tabs.Children.Count);
-        Assert.Equal(["Local Changes", "Shelf"], header.Tabs.Children.OfType<ForgeContentTab>().Select(x => x.Title));
-        Assert.True(header.Tabs.Children.OfType<ForgeContentTab>().First().IsSelected);
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(2, header.Tabs.ItemCount);
+        Assert.Equal(
+            ["Local Changes", "Shelf"],
+            Assert.IsAssignableFrom<IEnumerable<ToolWindowContent>>(header.Tabs.ItemsSource)
+                .Select(x => x.DisplayName));
+        Assert.Equal(contents.SelectedContent, header.Tabs.SelectedItem);
     }
 
     [AvaloniaFact]
@@ -148,6 +153,6 @@ public class ContentTabTests
 
         var header = frame.DockPane.GetVisualDescendants().OfType<ForgeToolWindowHeader>().Single();
         Assert.Equal(ToolWindowContentUiType.Combo, header.ContentUiType);
-        Assert.Single(header.Tabs.Children);
+        Assert.Equal(1, header.Tabs.ItemCount);
     }
 }

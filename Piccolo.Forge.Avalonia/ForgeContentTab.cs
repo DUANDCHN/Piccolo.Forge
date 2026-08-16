@@ -14,8 +14,13 @@ namespace Piccolo.Forge.Avalonia;
 /// 与它的画法 <c>TabContentLayout.java:386-410</c> → <c>JBDefaultTabPainter.kt:62-96</c>。
 /// 度量见 <c>工具窗口模型.md</c> §13.1。
 /// </remarks>
-public class ForgeContentTab : TemplatedControl
+public class ForgeContentTab : TabStripItem
 {
+    /// <summary>Creates a self-rendered tab item independent of the host theme.</summary>
+    public ForgeContentTab()
+    {
+        Template = new global::Avalonia.Controls.Templates.FuncControlTemplate<ForgeContentTab>((_, _) => new Border());
+    }
     /// <summary><see cref="Palette"/> 的属性定义。</summary>
     public static readonly StyledProperty<ForgePalette> PaletteProperty =
         AvaloniaProperty.Register<ForgeContentTab, ForgePalette>(nameof(Palette), ForgePalette.ExpUiDark);
@@ -23,10 +28,6 @@ public class ForgeContentTab : TemplatedControl
     /// <summary><see cref="Title"/> 的属性定义。</summary>
     public static readonly StyledProperty<string?> TitleProperty =
         AvaloniaProperty.Register<ForgeContentTab, string?>(nameof(Title));
-
-    /// <summary><see cref="IsSelected"/> 的属性定义。</summary>
-    public static readonly StyledProperty<bool> IsSelectedProperty =
-        AvaloniaProperty.Register<ForgeContentTab, bool>(nameof(IsSelected));
 
     /// <summary><see cref="IsWindowActive"/> 的属性定义。</summary>
     public static readonly StyledProperty<bool> IsWindowActiveProperty =
@@ -64,13 +65,6 @@ public class ForgeContentTab : TemplatedControl
     {
         get => GetValue(TitleProperty);
         set => SetValue(TitleProperty, value);
-    }
-
-    /// <summary>是不是选中的那个。</summary>
-    public bool IsSelected
-    {
-        get => GetValue(IsSelectedProperty);
-        set => SetValue(IsSelectedProperty, value);
     }
 
     /// <summary>所属工具窗口是不是活跃的（决定下划线用哪个颜色）。</summary>

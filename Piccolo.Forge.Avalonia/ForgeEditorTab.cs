@@ -2,6 +2,7 @@
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 using Piccolo.Forge.Themes;
 
 namespace Piccolo.Forge.Avalonia;
@@ -13,8 +14,25 @@ namespace Piccolo.Forge.Avalonia;
 /// 度量见 <c>docs/upstream/编辑区.md</c> §5：高 28、左右内边距 8、
 /// 选中下划线高 3 且**圆角 0**（工具窗口标题条那边是 4，两处不一致是真的）。
 /// </remarks>
-public class ForgeEditorTab : TemplatedControl
+public class ForgeEditorTab : TabStripItem
 {
+    /// <summary>Creates a self-rendered tab item independent of the host theme.</summary>
+    public ForgeEditorTab()
+    {
+        Template = new global::Avalonia.Controls.Templates.FuncControlTemplate<ForgeEditorTab>((_, _) => new Border());
+    }
+
+    /// <inheritdoc />
+    protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
+    {
+        base.OnApplyTemplate(e);
+        // Applying a template rebuilds VisualChildren. A host-supplied Control
+        // icon is deliberately outside the empty container template, so restore it.
+        if (_iconControl is not null && _iconControl.GetVisualParent() is null)
+        {
+            VisualChildren.Add(_iconControl);
+        }
+    }
     /// <summary><see cref="Palette"/> 的属性定义。</summary>
     public static readonly StyledProperty<ForgePalette> PaletteProperty =
         AvaloniaProperty.Register<ForgeEditorTab, ForgePalette>(nameof(Palette), ForgePalette.ExpUiDark);
@@ -22,10 +40,6 @@ public class ForgeEditorTab : TemplatedControl
     /// <summary><see cref="Title"/> 的属性定义。</summary>
     public static readonly StyledProperty<string?> TitleProperty =
         AvaloniaProperty.Register<ForgeEditorTab, string?>(nameof(Title));
-
-    /// <summary><see cref="IsSelected"/> 的属性定义。</summary>
-    public static readonly StyledProperty<bool> IsSelectedProperty =
-        AvaloniaProperty.Register<ForgeEditorTab, bool>(nameof(IsSelected));
 
     /// <summary><see cref="IsGroupActive"/> 的属性定义。</summary>
     public static readonly StyledProperty<bool> IsGroupActiveProperty =
@@ -59,13 +73,6 @@ public class ForgeEditorTab : TemplatedControl
     {
         get => GetValue(TitleProperty);
         set => SetValue(TitleProperty, value);
-    }
-
-    /// <summary>是不是这一组里选中的那个。</summary>
-    public bool IsSelected
-    {
-        get => GetValue(IsSelectedProperty);
-        set => SetValue(IsSelectedProperty, value);
     }
 
     /// <summary>所在的组是不是当前组（决定下划线用哪个颜色）。</summary>

@@ -1164,60 +1164,26 @@ public class ForgeToolWindowFrame : TemplatedControl
     private void SyncTabs(ForgeToolWindowHeader header, ToolWindowViewModel vm, ToolWindowContentUiType uiType)
     {
         var contents = vm.Contents;
-        header.Tabs.Children.Clear();
+        header.Tabs.Palette = Palette;
+        header.Tabs.Manager = contents;
+        header.Tabs.IsWindowActive = vm.IsActive;
 
         if (contents.Contents.Count == 0)
         {
+            header.Tabs.ItemsSource = null;
             return;
         }
 
         if (uiType == ToolWindowContentUiType.Combo)
         {
-            if (contents.SelectedContent is { } selected)
-            {
-                header.Tabs.Children.Add(new ForgeContentTab
-                {
-                    Palette = Palette,
-                    Title = selected.DisplayName,
-                    IsSoleContent = true,
-                });
-            }
-
+            header.Tabs.ItemsSource = contents.SelectedContent is { } selected
+                ? new[] { selected }
+                : null;
             return;
         }
 
-        foreach (var content in contents.Contents)
-        {
-            var tab = new ForgeContentTab
-            {
-                Palette = Palette,
-                Title = content.DisplayName,
-                IsSelected = contents.SelectedContent?.Id == content.Id,
-                IsWindowActive = vm.IsActive,
-                IsSoleContent = contents.IsSoleContent,
-                CanBeClosed = contents.CanBeClosed(content),
-                IsPinned = content.IsPinned,
-            };
-
-            var contentId = content.Id;
-            tab.PointerPressed += (_, e) =>
-            {
-                var point = e.GetPosition(tab);
-
-                // 点在右边那个图标上就是关闭/解固定，否则是选中
-                if (tab.CanBeClosed && point.X >= tab.Bounds.Width - tab.IconAreaWidth)
-                {
-                    var alt = e.KeyModifiers.HasFlag(global::Avalonia.Input.KeyModifiers.Alt);
-                    contents.InvokeIconAction(contentId, alt);
-                    Sync();
-                    return;
-                }
-
-                contents.Select(contentId);
-            };
-
-            header.Tabs.Children.Add(tab);
-        }
+        header.Tabs.ItemsSource = contents.Contents.ToArray();
+        header.Tabs.SelectedItem = contents.SelectedContent;
     }
 
     /// <summary>

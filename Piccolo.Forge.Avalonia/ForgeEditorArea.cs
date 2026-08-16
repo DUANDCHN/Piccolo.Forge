@@ -2,7 +2,9 @@
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 using Piccolo.Forge.Model;
 using Piccolo.Forge.Mvvm;
 using Piccolo.Forge.Themes;
@@ -13,19 +15,16 @@ namespace Piccolo.Forge.Avalonia;
 /// 编辑区：一棵二叉分屏树，叶子是一组标签页。
 /// </summary>
 /// <remarks>
-/// 与 <see cref="ForgeToolWindowFrame"/> 同一做法：**同步不重建**。
-/// 标签页控件与内容宿主按 id 缓存复用，开合别的标签页不会把别人的内容重造。
+/// 标签页容器由 <see cref="TabStrip"/> 按 <c>ItemsSource</c> 管理；正文宿主按组与 id
+/// 复用，开合别的标签页不会重造宿主交进来的正文控件。
 /// </remarks>
 public class ForgeEditorArea : TemplatedControl
 {
-    // ★ 键是 (组, 标签页 id) 而不是单纯 id。
-    //   分屏之后**同一个标签页 id 会同时存在于两个组**（上游就是这样：
-    //   split 只是在新组里也打开这一个，原组不动，EditorWindow.kt:570-571），
-    //   一个控件不能同时挂在两个父容器下。
-    private readonly Dictionary<(EditorGroupViewModel Group, string Id), ForgeEditorTab> _tabs = [];
+    // 正文宿主的键是 (组, 标签页 id) 而不是单纯 id：分屏后同一个 id
+    // 可同时存在于两个组（EditorWindow.kt:570-571）。
     private readonly Dictionary<(EditorGroupViewModel Group, string Id), ContentControl> _contents = [];
     private readonly Dictionary<EditorGroupViewModel, Control> _groupHosts = [];
-    private readonly Dictionary<EditorGroupViewModel, HeaderTabsPanel> _groupStrips = [];
+    private readonly Dictionary<EditorGroupViewModel, ForgeEditorTabStrip> _groupStrips = [];
     private readonly Dictionary<EditorGroupViewModel, Border> _groupStripHosts = [];
     private readonly Dictionary<EditorGroupViewModel, ContentControl> _groupBodies = [];
     private readonly Decorator _root = new();
@@ -332,18 +331,6 @@ public class ForgeEditorArea : TemplatedControl
             _contents.Remove(key);
         }
 
-        foreach (var key in _tabs.Keys.Where(k => !liveTabs.Contains(k)).ToList())
-        {
-            // ⚠ 光 Detach 不够。Detach 解开的是「这个标签页控件挂在谁底下」，
-            //   而它自己**还攥着宿主给的图标控件**（ForgeEditorTab 把 Control 型的 Icon
-            //   收成了 VisualChildren）。不松开的话，标签页搬到另一组时新建的
-            //   ForgeEditorTab 去收养同一个图标，当场抛「已有父容器」——
-            //   异常打断 Sync，整块编辑区变空白。这正是"拖动分屏后中间空了"的真凶。
-            _tabs[key].Icon = null;
-            Detach(_tabs[key]);
-            _tabs.Remove(key);
-        }
-
         foreach (var group in _groupHosts.Keys.Where(g => !liveGroups.Contains(g)).ToList())
         {
             if (_groupBodies.TryGetValue(group, out var body))
@@ -391,9 +378,10 @@ public class ForgeEditorArea : TemplatedControl
 
             // 「活动」= 这一组是当前组，且编辑区握着键盘焦点（详见 SyncStrip 同处的注释）
             var active = vm.IsCurrent && IsKeyboardFocusWithin;
-            foreach (var tab in vm.Tabs)
+            for (var i = 0; i < vm.Tabs.Count; i++)
             {
-                if (_tabs.TryGetValue((vm, tab.Id), out var control))
+                if (_groupStrips.TryGetValue(vm, out var strip)
+                    && strip.ContainerFromIndex(i) is ForgeEditorTab control)
                 {
                     control.Palette = Palette;
                     control.IsGroupActive = active;
@@ -499,8 +487,14 @@ public class ForgeEditorArea : TemplatedControl
     {
         if (!_groupHosts.TryGetValue(vm, out var host))
         {
-            var strip = new HeaderTabsPanel();
+            var strip = new ForgeEditorTabStrip();
+            strip.ResolveIcon = ResolveIcon;
             _groupStrips[vm] = strip;
+            const RoutingStrategies pointerRoutes = RoutingStrategies.Tunnel | RoutingStrategies.Direct;
+            strip.AddHandler(PointerPressedEvent, OnStripPointerPressed, pointerRoutes, handledEventsToo: true);
+            strip.AddHandler(PointerMovedEvent, OnStripPointerMoved, pointerRoutes, handledEventsToo: true);
+            strip.AddHandler(PointerReleasedEvent, OnStripPointerReleased, pointerRoutes, handledEventsToo: true);
+            strip.AddHandler(PointerCaptureLostEvent, OnStripPointerCaptureLost, pointerRoutes, handledEventsToo: true);
 
             // 标签条底下那条 1px 分割线（EditorTabs.underTabsBorderColor）——
             // 它属于**标签条整体**，不属于某一个标签页，所以画在这里而不是 ForgeEditorTab 里。
@@ -534,93 +528,93 @@ public class ForgeEditorArea : TemplatedControl
         return host;
     }
 
-    private void SyncStrip(EditorGroupViewModel vm, HeaderTabsPanel strip)
+    private void SyncStrip(EditorGroupViewModel vm, ForgeEditorTabStrip strip)
     {
-        var wanted = new List<Control>();
+        strip.Palette = Palette;
+        strip.IsGroupActive = vm.IsCurrent && IsKeyboardFocusWithin;
+        strip.ItemsSource ??= vm.Tabs;
+        strip.SelectedItem = vm.Selected;
 
-        foreach (var tab in vm.Tabs)
+        for (var i = 0; i < vm.Tabs.Count; i++)
         {
-            var key = (vm, tab.Id);
-            if (!_tabs.TryGetValue(key, out var control))
+            if (strip.ContainerFromIndex(i) is not ForgeEditorTab control)
             {
-                control = new ForgeEditorTab();
-                var id = tab.Id;
-                var self = control;
-                var owner = vm;
-                control.PointerPressed += (_, e) =>
-                {
-                    var point = e.GetPosition(self);
-                    // 命中区问 ForgeEditorTab 要 —— 与它画悬停底用的是同一个矩形
-                    if (self.CanBeClosed && self.TabIconHitRect().Contains(point))
-                    {
-                        _area!.Close(id);
-                        return;
-                    }
-
-                    // 双击：预览页转正，否则撑满 / 收回
-                    // （EditorTabbedContainer.kt:339-387 · doProcessDoubleClick）
-                    if (e.ClickCount == 2)
-                    {
-                        _area!.DoubleClick(id);
-                        return;
-                    }
-
-                    _area!.Select(id);
-
-                    // 起拖记在选中**之后**：上游也是按下就先切过去
-                    // （拖动本身不改选中项，reallocate 只动次序）。
-                    // ⚠ 关闭按钮那一支已经 return 了 —— 上游同样不让从关闭按钮起拖
-                    //   （DragHelper.java:289 findLabel 遇到 InplaceButton 直接返回 null）。
-                    BeginPress(owner, self, id, e);
-                };
-
-                control.PointerMoved += (_, e) => DragTo(owner, self, e);
-                control.PointerReleased += (_, e) =>
-                {
-                    EndDrag(owner, self, commit: true);
-                    e.Pointer.Capture(null);
-                };
-
-                // 捕获被别人抢走（弹窗、Alt-Tab…）算**取消**：收摊但不落库，
-                // 否则标签会一直飘着，或者莫名其妙切出一刀分屏
-                control.PointerCaptureLost += (_, _) => EndDrag(owner, self, commit: false);
-
-                _tabs[key] = control;
+                continue;
             }
 
+            var tab = vm.Tabs[i];
             control.Palette = Palette;
-            // 每次同步都重建：菜单要反映**当前**的固定状态（勾选与文案都跟着它）
             control.ContextMenu = ForgeMenuBuilder.ForEditorTab(_area!, tab.Id, tab.IsPinned, TabMenuExtension);
             control.Title = tab.Title;
-            // 图标要是个控件，同一时刻只能挂在一个标签页控件下。
-            // 分屏「拆分」是把同一页**同时**开在两组里（EditorWindow.kt:570-571），
-            // 两个 ForgeEditorTab 会抢同一个图标实例 —— 先从别人那儿摘下来再给自己，
-            // 否则又是「已有父容器」。
-            // 宿主想让两边都有图标，Icon 传 Func<Control> 工厂即可，见 ResolveIcon。
-            if (tab.Icon is Control shared)
-            {
-                foreach (var other in _tabs.Values)
-                {
-                    if (!ReferenceEquals(other, control) && ReferenceEquals(other.Icon, shared))
-                    {
-                        other.Icon = null;
-                    }
-                }
-            }
-
             control.Icon = ResolveIcon(control, tab.Icon);
             control.IsSelected = tab.IsSelected;
-            // ⚠ 「活动」= **这一组是当前组，且编辑区握着键盘焦点**。
-            //    上游是 tabs.isActiveTabs(info)（IslandsTabPainterAdapter.kt:50），判的是焦点，
-            //    不是"哪一组是当前组"。只判后者的话单组场景恒为真 —— 焦点跑到工具窗口了，
-            //    标签页还亮着活动色（用户问「哪儿来的蓝色」就是这个）。
-            control.IsGroupActive = vm.IsCurrent && IsKeyboardFocusWithin;
+            control.IsGroupActive = strip.IsGroupActive;
             control.IsPinned = tab.IsPinned;
             control.CanBeClosed = tab.IsCloseable && !tab.IsPinned;
-            wanted.Add(control);
+            control.DataContext = tab;
+        }
+    }
+
+    private void OnStripPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (sender is not ForgeEditorTabStrip strip
+            || e.Source is not Visual source
+            || source.FindAncestorOfType<ForgeEditorTab>(includeSelf: true) is not
+                { DataContext: EditorTabViewModel tab } control)
+        {
+            return;
         }
 
-        Reconcile(strip, wanted);
+        var group = _groupStrips.First(x => ReferenceEquals(x.Value, strip)).Key;
+        var point = e.GetPosition(control);
+        if (control.CanBeClosed && control.TabIconHitRect().Contains(point))
+        {
+            _area!.Close(tab.Id);
+            e.Handled = true;
+            return;
+        }
+
+        if (e.ClickCount == 2)
+        {
+            _area!.DoubleClick(tab.Id);
+            e.Handled = true;
+            return;
+        }
+
+        _area!.Select(tab.Id);
+        BeginPress(group, control, tab.Id, e);
+    }
+
+    private void OnStripPointerMoved(object? sender, PointerEventArgs e)
+    {
+        if (_dragGroup is not null && _dragTab is not null)
+        {
+            DragTo(_dragGroup, _dragTab, e);
+        }
+    }
+
+    private void OnStripPointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        if (_dragGroup is not null && _dragTab is not null)
+        {
+            EndDrag(_dragGroup, _dragTab, commit: true);
+            e.Pointer.Capture(null);
+        }
+    }
+
+    private void OnStripPointerCaptureLost(object? sender, PointerCaptureLostEventArgs e)
+    {
+        // Reallocation updates ItemsSource synchronously. Avalonia may briefly
+        // rebuild the presenter during that update; this is not user cancellation.
+        if (_reordering)
+        {
+            return;
+        }
+
+        if (_dragGroup is not null && _dragTab is not null)
+        {
+            EndDrag(_dragGroup, _dragTab, commit: false);
+        }
     }
 
     private ForgeEditorTab? _dragTab;
@@ -631,6 +625,7 @@ public class ForgeEditorArea : TemplatedControl
     private Rect _dragOriginalRec;
     private bool _dragStarted;
     private bool _dragOut;
+    private bool _reordering;
     private EditorGroupViewModel? _dropGroup;
     private EditorDropSide _dropSide;
     private global::Avalonia.Media.Imaging.RenderTargetBitmap? _dragThumb;
@@ -646,7 +641,8 @@ public class ForgeEditorArea : TemplatedControl
     private void BeginPress(EditorGroupViewModel group, ForgeEditorTab control, string id, PointerPressedEventArgs e)
     {
         if (!e.GetCurrentPoint(control).Properties.IsLeftButtonPressed
-            || !_groupStrips.TryGetValue(group, out var strip))
+            || !_groupStrips.TryGetValue(group, out var stripControl)
+            || stripControl.ItemsPanelRoot is not HeaderTabsPanel strip)
         {
             return;
         }
@@ -656,7 +652,9 @@ public class ForgeEditorArea : TemplatedControl
         _dragId = id;
         _pressPoint = e.GetPosition(strip);
         _dragStarted = false;
-        e.Pointer.Capture(control);
+        // DragHelper extends MouseDragHelper<JBTabsImpl>: capture belongs to the
+        // whole tab container, so item recycling cannot strand the release.
+        e.Pointer.Capture(stripControl);
     }
 
     /// <summary>
@@ -669,7 +667,8 @@ public class ForgeEditorArea : TemplatedControl
     private void DragTo(EditorGroupViewModel group, ForgeEditorTab control, PointerEventArgs e)
     {
         if (!ReferenceEquals(_dragTab, control) || _dragId is null || _area is null
-            || !_groupStrips.TryGetValue(group, out var strip)
+            || !_groupStrips.TryGetValue(group, out var stripControl)
+            || stripControl.ItemsPanelRoot is not HeaderTabsPanel strip
             || strip.SlotOf(control) is not { } origin)
         {
             return;
@@ -699,7 +698,7 @@ public class ForgeEditorArea : TemplatedControl
         //  置上那一刻先 processDragFinish(e, true) 收掉行内那套，此后只走 processDragOut）。
         // 少了这个闩，人在标签行上下边缘来回蹭时会在"重排"与"分屏"之间反复横跳。
         if (!_dragOut
-            && ForgeEditorTabDragTarget.IsDragOut(origin, strip.Bounds.Width, moved.X, moved.Y))
+            && ForgeEditorTabDragTarget.IsDragOut(origin, stripControl.Bounds.Width, moved.X, moved.Y))
         {
             _dragOut = true;
             _dragThumb = ForgeDragOverlay.CaptureThumb(control);
@@ -719,15 +718,29 @@ public class ForgeEditorArea : TemplatedControl
             new Rect(point.X - _holdDelta.X, point.Y - _holdDelta.Y, origin.Width, origin.Height),
             new Rect(strip.Bounds.Size));
 
-        var order = group.Tabs.Select(t => _tabs.GetValueOrDefault((group, t.Id))).ToList();
+        var order = Enumerable.Range(0, group.Tabs.Count)
+            .Select(i => stripControl.ContainerFromIndex(i) as ForgeEditorTab)
+            .ToList();
         var rects = order.Select(c => c is not null ? strip.SlotOf(c) ?? default : default).ToList();
         var target = ForgeEditorTabDragTarget.ResolveTarget(dragRec, _dragOriginalRec, rects, order.IndexOf(control));
 
         if (target >= 0)
         {
             var targetId = group.Tabs[target].Id;
-            if (_area.ReorderTab(_dragId, targetId))
+            _reordering = true;
+            var reordered = false;
+            try
             {
+                reordered = _area.ReorderTab(_dragId, targetId);
+            }
+            finally
+            {
+                _reordering = false;
+            }
+
+            if (reordered)
+            {
+                e.Pointer.Capture(stripControl);
                 // 换完位要**立刻**重排一次并把原位刷新成新格子
                 // （DragHelper.java:231-233：reallocate 之后马上重读 dragOriginalRec）。
                 // 不刷的话 freeSpace 会一直按最初那一格算，越拖越大，
@@ -828,7 +841,8 @@ public class ForgeEditorArea : TemplatedControl
             return;
         }
 
-        if (_groupStrips.TryGetValue(group, out var strip))
+        if (_groupStrips.TryGetValue(group, out var stripControl)
+            && stripControl.ItemsPanelRoot is HeaderTabsPanel strip)
         {
             strip.DraggedChild = null;
             strip.InvalidateArrange();
@@ -878,36 +892,4 @@ public class ForgeEditorArea : TemplatedControl
         return host;
     }
 
-    private static void Reconcile(Panel panel, IReadOnlyList<Control> wanted)
-    {
-        for (var i = panel.Children.Count - 1; i >= 0; i--)
-        {
-            if (!wanted.Contains(panel.Children[i]))
-            {
-                panel.Children.RemoveAt(i);
-            }
-        }
-
-        foreach (var control in wanted)
-        {
-            if (!panel.Children.Contains(control))
-            {
-                panel.Children.Add(control);
-            }
-        }
-
-        // ★ 次序交给面板去排，**不动 Children 的顺序**。
-        //
-        //   原来这里用 Children.Move 把子控件挪到正确位置。Avalonia 的 Move 是
-        //   摘下来再挂回去，顺带把**指针捕获**也丢了 —— 正在拖的那个标签页一旦被挪，
-        //   后面的 PointerReleased 就不再送到它身上，拖动收不了尾，
-        //   标签停在松手处不归位、标签条里留一个缺口。
-        //
-        //   （这件事本不该由我们操心：次序本来就该由数据源决定、容器由控件自己管。
-        //     见 HeaderTabsPanel.Order 上的说明。）
-        if (panel is HeaderTabsPanel strip)
-        {
-            strip.Order = wanted;
-        }
-    }
 }

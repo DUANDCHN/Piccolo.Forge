@@ -139,12 +139,22 @@ public class EditorTabDragTests
         window.MouseDown(press, MouseButton.Left);
 
         // 挪过整个 b 的宽度再多一点：既过了起拖阈值，也过了那道防抖闸
-        window.MouseMove(press.WithX(press.X + b.Bounds.Width + 5));
+        var release = press.WithX(press.X + b.Bounds.Width + 5);
+        window.MouseMove(release);
         Dispatcher.UIThread.RunJobs();
 
         Assert.Equal(["b", "a", "c"], Order(editor));
 
-        window.MouseUp(press, MouseButton.Left);
+        window.MouseUp(release, MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+
+        var strip = window.GetVisualDescendants().OfType<HeaderTabsPanel>().First();
+        Assert.Null(strip.DraggedChild);
+        var visualOrder = strip.Children
+            .OfType<ForgeEditorTab>()
+            .OrderBy(tab => strip.SlotOf(tab)!.Value.X)
+            .Select(tab => tab.Title);
+        Assert.Equal(["Bravo.cs", "Alpha.cs", "Charlie.cs"], visualOrder);
     }
 
     [AvaloniaFact]
