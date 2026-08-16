@@ -460,6 +460,74 @@ public class EditorTabDragTests
     }
 
     [AvaloniaFact]
+    public void Merging_a_split_group_back_keeps_both_visual_tabs()
+    {
+        var editor = new EditorAreaViewModel();
+        editor.Open("a", "Alpha.cs");
+        editor.Open("b", "Bravo.cs");
+
+        var control = new ForgeEditorArea();
+        control.Attach(editor);
+        var window = new Window { Width = 800, Height = 500, Content = control };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        var left = editor.Area.Groups[0];
+        editor.Area.DropTab("b", left, EditorDropSide.Right);
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(2, editor.Area.Groups.Count);
+
+        editor.Area.DropTab("b", left, EditorDropSide.Center);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Single(editor.Area.Groups);
+        Assert.Equal(["a", "b"], editor.Area.Groups[0].Tabs.Select(x => x.Id));
+        Assert.Equal(
+            ["Alpha.cs", "Bravo.cs"],
+            control.GetVisualDescendants().OfType<ForgeEditorTab>()
+                .OrderBy(x => x.Bounds.X)
+                .Select(x => x.Title));
+    }
+
+    [AvaloniaFact]
+    public void Dragging_a_copied_split_tab_back_to_the_original_group_merges_it()
+    {
+        var editor = new EditorAreaViewModel();
+        editor.Open("a", "Alpha.cs");
+        editor.Open("b", "Bravo.cs");
+        var control = new ForgeEditorArea();
+        control.Attach(editor);
+        var window = new Window { Width = 800, Height = 500, Content = control };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        var original = editor.Area.Groups[0];
+        editor.Area.Split(original, isVertical: false, tabId: "b");
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(3, control.GetVisualDescendants().OfType<ForgeEditorTab>().Count());
+
+        var copied = control.GetVisualDescendants().OfType<ForgeEditorTab>()
+            .Where(x => x.Title == "Bravo.cs")
+            .OrderBy(x => x.TranslatePoint(default, control)!.Value.X)
+            .Last();
+        var press = GrabPoint(copied, window);
+        window.MouseDown(press, MouseButton.Left);
+        var drop = control.TranslatePoint(
+            new Point(control.Bounds.Width * 0.25, control.Bounds.Height * 0.6), window)!.Value;
+        window.MouseMove(drop);
+        Dispatcher.UIThread.RunJobs();
+        window.MouseUp(drop, MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Single(editor.Area.Groups);
+        Assert.Equal(
+            ["Alpha.cs", "Bravo.cs"],
+            control.GetVisualDescendants().OfType<ForgeEditorTab>()
+                .OrderBy(x => x.Bounds.X)
+                .Select(x => x.Title));
+    }
+
+    [AvaloniaFact]
     public void The_control_tree_keeps_matching_the_model_through_a_whole_sequence()
     {
         // 「中间空了」的**通用**判据：界面上的标签集合必须始终等于模型里的。

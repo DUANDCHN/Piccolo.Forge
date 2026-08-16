@@ -177,7 +177,8 @@ public sealed class EditorArea
     /// 对应 <c>JBTabsImpl.kt:3331 · reallocate</c>；换位规则见 <see cref="EditorGroup.Reorder"/>。
     /// <para>
     /// <b>只在组内重排</b> —— 上游的 <c>reallocate</c> 动的是 <c>visibleInfos</c>，
-    /// 那就是一个标签条 = 一组。跨组是另一条路（拖出去），走 <see cref="DropTab"/>。
+    /// 那就是一个标签条 = 一组。跨组是另一条路（拖出去），走
+    /// <see cref="DropTab(string, EditorGroup, EditorDropSide)"/>。
     /// 所以两页不在同一组时这里什么都不做，而不是"就近凑合一下"。
     /// </para>
     /// </remarks>
@@ -428,18 +429,40 @@ public sealed class EditorArea
     {
         ArgumentNullException.ThrowIfNull(target);
 
+        var source = Groups.FirstOrDefault(g => g.Tabs.Any(t => t.Id == tabId));
+        return source is not null && DropTab(tabId, source, target, side);
+    }
+
+    /// <summary>把指定源组中的一页拖到目标组。</summary>
+    /// <remarks>
+    /// <see cref="Split"/> 会让同一标签 id 同时存在于两组；拖拽层必须把源组身份传下来，
+    /// 不能再按 id 反查，否则总会误取树中靠前的副本。
+    /// </remarks>
+    /// <param name="tabId">被拖的标签 id。</param>
+    /// <param name="source">鼠标实际拖起标签的组。</param>
+    /// <param name="target">落点组。</param>
+    /// <param name="side">落点方向。</param>
+    /// <returns>落点生效则为 <see langword="true"/>。</returns>
+    public bool DropTab(string tabId, EditorGroup source, EditorGroup target, EditorDropSide side)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(target);
+
         if (side == EditorDropSide.None)
         {
             return false;
         }
 
-        var source = Groups.FirstOrDefault(g => g.Tabs.Any(t => t.Id == tabId));
-        if (source is null)
+        if (!Groups.Contains(source) || !Groups.Contains(target))
         {
             return false;
         }
 
-        var tab = source.Tabs.First(t => t.Id == tabId);
+        var tab = source.Tabs.FirstOrDefault(t => t.Id == tabId);
+        if (tab.Id is null)
+        {
+            return false;
+        }
 
         if (side == EditorDropSide.Center)
         {
@@ -449,7 +472,14 @@ public sealed class EditorArea
             }
 
             source.Close(tabId);
-            target.Add(tab);
+            if (!target.Tabs.Any(x => x.Id == tabId))
+            {
+                target.Add(tab);
+            }
+            else
+            {
+                target.Select(tabId);
+            }
 
             CurrentGroup = target;
             OnChanged();

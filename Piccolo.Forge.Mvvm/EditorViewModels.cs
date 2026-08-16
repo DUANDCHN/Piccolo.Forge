@@ -330,6 +330,10 @@ public sealed class EditorAreaViewModel : ForgeObservableObject
     /// <returns>落点生效则为 <see langword="true"/>。</returns>
     public bool DropTab(string tabId, EditorGroup target, EditorDropSide side) => Area.DropTab(tabId, target, side);
 
+    /// <summary>把鼠标实际拖起的组中的标签落到目标组。</summary>
+    public bool DropTab(string tabId, EditorGroup source, EditorGroup target, EditorDropSide side)
+        => Area.DropTab(tabId, source, target, side);
+
     /// <summary>
     /// 从存档里恢复整个编辑区。
     /// </summary>

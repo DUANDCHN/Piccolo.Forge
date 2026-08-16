@@ -853,7 +853,7 @@ public class ForgeEditorArea : TemplatedControl
         if (commit && _dragOut && _dragId is not null && _dropGroup is not null
             && _dropSide != EditorDropSide.None)
         {
-            _area!.DropTab(_dragId, _dropGroup.Group, _dropSide);
+            _area!.DropTab(_dragId, group.Group, _dropGroup.Group, _dropSide);
         }
 
         _overlay.Clear();
