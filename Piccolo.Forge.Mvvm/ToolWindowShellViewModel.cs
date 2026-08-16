@@ -290,7 +290,9 @@ public sealed class ToolWindowShellViewModel : ForgeObservableObject
     /// </remarks>
     private void Sync()
     {
-        var active = Manager.LastActiveToolWindowId;
+        // 用「此刻焦点在哪个」而不是「最后活跃过哪个」：后者只增不减，
+        // 焦点回到图像区之后条带按钮仍会亮着（见 ToolWindowManager.ActiveToolWindowId）。
+        var active = Manager.ActiveToolWindowId;
 
         foreach (var vm in _toolWindows)
         {

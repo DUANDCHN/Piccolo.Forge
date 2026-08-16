@@ -699,6 +699,44 @@ public class ViewModeTests
             new PointerPointProperties(RawInputModifiers.LeftMouseButton, PointerUpdateKind.Other),
             KeyModifiers.None));
 
+    /// <summary>
+    /// 点进面板，它的条带按钮就进入**选中**态；焦点回到图像区就灭。
+    /// </summary>
+    /// <remarks>
+    /// 选中态读的是「此刻焦点在哪个」（<c>ToolWindowManager.ActiveToolWindowId</c>），
+    /// 不是「最后活跃过哪个」—— 后者只增不减，点回图像区按钮还亮着。
+    /// <para>
+    /// 另外：激活**只刷外观、不重排**。全量同步会把面板宿主重新挂一遍，
+    /// 而点面板里的按钮正好触发激活 —— 容器一重挂按下就丢了，点击发不出来。
+    /// </para>
+    /// </remarks>
+    [AvaloniaFact]
+    public void 点进面板它的条带按钮就选中()
+    {
+        var (window, frame, shell, editor) = Build();
+
+        var button = frame.LeftToolbar.TopGroup.Children.OfType<ForgeStripeButton>().Single();
+        Assert.False(button.IsToolWindowActive, "还没点进去就亮着");
+
+        var panel = frame.DockPane.Children.OfType<Border>()
+            .First(x => x.GetVisualDescendants().OfType<ForgeToolWindowHeader>().Any());
+
+        Press(panel, panel);
+        Pump(window);
+
+        Assert.Equal("相机列表", shell.Manager.ActiveToolWindowId);
+        Assert.True(button.IsToolWindowActive, "点进面板了，条带按钮还没进选中态");
+
+        // 焦点回到图像区 → 灭
+        Press(editor, editor);
+        Pump(window);
+
+        Assert.Null(shell.Manager.ActiveToolWindowId);
+        Assert.False(button.IsToolWindowActive);
+
+        window.Close();
+    }
+
     /// <summary>独立出去之后，标题条上多一个「停靠回去」；点它就回到原来的内部形态。</summary>
     /// <remarks>上游那组动作的第一个就是 <c>DockToolWindowAction</c>（<c>ToolWindowHeader.kt:119</c>）。</remarks>
     [AvaloniaFact]

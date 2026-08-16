@@ -58,6 +58,16 @@ public sealed class ToolWindowManager
     /// <remarks>读的是 activeStack 的**持久栈**（<c>ToolWindowManagerImpl.kt:737-740</c>）。</remarks>
     public string? LastActiveToolWindowId => _activeStack.PersistentStack.FirstOrDefault();
 
+    /// <summary>
+    /// **此刻**焦点在哪个工具窗口里；焦点不在任何工具窗口时为 <see langword="null"/>。
+    /// </summary>
+    /// <remarks>
+    /// 与 <see cref="LastActiveToolWindowId"/> 不是一回事：那个是"最后活跃过的"，只增不减，
+    /// 用来决定关掉当前窗口后焦点回哪儿；这个是"现在是不是它"，焦点一走就清空 ——
+    /// 条带按钮的选中态读的是它。
+    /// </remarks>
+    public string? ActiveToolWindowId { get; private set; }
+
     /// <summary>状态变了。</summary>
     public event EventHandler<ToolWindowStateChangedEventArgs>? StateChanged;
 
@@ -125,6 +135,12 @@ public sealed class ToolWindowManager
             Deactivate(info);
         }
 
+        // 收起来的那个当然不再是"焦点所在"
+        if (string.Equals(ActiveToolWindowId, id, StringComparison.Ordinal))
+        {
+            ActiveToolWindowId = null;
+        }
+
         if (removeFromStripe)
         {
             var current = Layout.GetInfo(id)!;
@@ -185,6 +201,7 @@ public sealed class ToolWindowManager
         }
 
         _activeStack.Push(id);
+        ActiveToolWindowId = id;
 
         // 焦点到了这个面板 → 别的「失焦就收」的面板该收了
         // （上游是全局焦点监听触发，见 AutoHideOthers；这里以"激活"为焦点转移的时机）
@@ -213,8 +230,18 @@ public sealed class ToolWindowManager
     /// </remarks>
     public void OnEditorFocused()
     {
+        var wasActive = ActiveToolWindowId;
+
         _activeStack.Clear();
+        ActiveToolWindowId = null;
         AutoHideOthers(exceptId: null);
+
+        // 焦点离开了工具窗口 —— 得说一声，否则条带按钮的选中态没人去灭。
+        // 借 Activated 这个 kind 报刚才那个 id：视图收到后重读"谁是活动的"，读出来是"没有"。
+        if (wasActive is not null)
+        {
+            OnStateChanged(ToolWindowChangeKind.Activated, wasActive);
+        }
     }
 
     /// <summary>

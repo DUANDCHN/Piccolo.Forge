@@ -188,7 +188,13 @@ public class ForgeToolWindowFrame : TemplatedControl
             return;
         }
 
-        shell.Manager.AutoHideOthers(owner.Key);
+        // 点进面板 = 焦点到了它：**激活**它（条带按钮的选中态读的就是这个），
+        // 顺带把别的「失焦就收」的面板收起来（Activate 内部做）。
+        // 已经是活动的就别再激活一遍 —— 那会白白触发一次全量同步。
+        if (!string.Equals(shell.Manager.ActiveToolWindowId, owner.Key, StringComparison.Ordinal))
+        {
+            shell.Manager.Activate(owner.Key);
+        }
     }
 
     /// <inheritdoc />
@@ -518,9 +524,44 @@ public class ForgeToolWindowFrame : TemplatedControl
 
     private void OnShellStateChanged(object? sender, ToolWindowStateChangedEventArgs e)
     {
+        ArgumentNullException.ThrowIfNull(e);
+
+        // ★「激活」只改外观，**不重排**。
+        //   全量同步会把面板宿主重新挂进停靠区，而点面板里的按钮时正好会触发一次激活 ——
+        //   容器一重挂，按下就丢了、点击发不出来（与"标签右键菜单弹不出来"同一类坑）。
+        //   激活能改变的只有条带按钮的选中态和标题条的活动色，刷这两样就够。
+        if (e.Kind == ToolWindowChangeKind.Activated)
+        {
+            RefreshActiveAppearance();
+            return;
+        }
+
         // 读档走的也是这条（RestoreLayout → StateChanged），所以掰形态放在这儿
         NormalizeViewModes();
         Sync();
+    }
+
+    /// <summary>只把「谁是活动窗口」这件事刷到外观上：条带按钮的选中态、标题条的活动色。</summary>
+    private void RefreshActiveAppearance()
+    {
+        if (_shell is not { } shell)
+        {
+            return;
+        }
+
+        foreach (var vm in shell.ToolWindows)
+        {
+            if (_stripeButtons.TryGetValue(vm.Id, out var button))
+            {
+                button.IsToolWindowVisible = vm.IsOpen;
+                button.IsToolWindowActive = vm.IsActive;
+            }
+
+            if (_panelHeaders.TryGetValue(vm.Id, out var header))
+            {
+                header.IsActive = vm.IsActive;
+            }
+        }
     }
 
     /// <inheritdoc />
