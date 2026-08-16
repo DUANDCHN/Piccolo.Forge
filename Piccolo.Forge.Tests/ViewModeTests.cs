@@ -90,9 +90,9 @@ public class ViewModeTests
     /// FLOATING 是 JDialog 且 Windows 上 <c>setUndecorated(true)</c>（<c>FloatingDecorator.java:102-108</c>）。
     /// </remarks>
     [AvaloniaTheory]
-    [InlineData(ToolWindowType.Floating, true)]
-    [InlineData(ToolWindowType.Windowed, false)]
-    public void 只有浮动去掉系统标题栏(ToolWindowType type, bool selfDrawn)
+    [InlineData(ToolWindowType.Floating, WindowDecorations.BorderOnly)]
+    [InlineData(ToolWindowType.Windowed, WindowDecorations.Full)]
+    public void 只有浮动去掉标题栏(ToolWindowType type, WindowDecorations decorations)
     {
         var (window, frame, shell, _) = Build();
 
@@ -100,7 +100,38 @@ public class ViewModeTests
         Pump(window);
 
         var host = frame.ExternalWindows.Single().Window;
-        Assert.Equal(selfDrawn, host.ExtendClientAreaToDecorationsHint);
+
+        // BorderOnly = 有边框能改大小，但没有标题栏那条，也就没有最小/最大/关闭；
+        // Full = 完整装饰，独立窗口该有的三个按钮都在。
+        Assert.Equal(decorations, host.WindowDecorations);
+
+        window.Close();
+    }
+
+    /// <summary>
+    /// 独立窗口的窗体可以由宿主提供 —— 一个应用里所有窗体该是同一副长相，
+    /// 那副长相是宿主的事，库只往里塞标题和内容。
+    /// </summary>
+    [AvaloniaFact]
+    public void 宿主可以接管外部窗体()
+    {
+        var (window, frame, shell, _) = Build();
+
+        var mine = new Window();
+        frame.ExternalWindowFactory = type => type == ToolWindowType.Windowed ? mine : null;
+
+        shell.Manager.SetType("相机列表", ToolWindowType.Windowed);
+        Pump(window);
+
+        var external = frame.ExternalWindows.Single();
+        Assert.Same(mine, external.Window);
+        Assert.Contains("相机列表", mine.Title);
+        Assert.NotNull(mine.Content);
+
+        // 浮动那边工厂返回 null → 用库自带的窗口
+        shell.Manager.SetType("相机列表", ToolWindowType.Floating);
+        Pump(window);
+        Assert.NotSame(mine, frame.ExternalWindows.Single().Window);
 
         window.Close();
     }

@@ -24,12 +24,17 @@ public sealed class ForgeFloatingToolWindow
     /// <param name="toolWindowTitle">工具窗口的名字。</param>
     /// <param name="projectName">项目名，WINDOWED 的标题要带上它。</param>
     /// <param name="content">窗口里放什么。</param>
+    /// <param name="host">
+    /// 宿主自己的窗体（<see cref="ForgeToolWindowFrame.ExternalWindowFactory"/> 给的）；
+    /// 不给就用库自带的朴素窗口。
+    /// </param>
     /// <exception cref="ArgumentException">传了内部形态。</exception>
     public ForgeFloatingToolWindow(
         ToolWindowType type,
         string toolWindowTitle,
         string projectName,
-        Control content)
+        Control content,
+        Window? host = null)
     {
         if (ToolWindowManager.IsInternal(type))
         {
@@ -37,6 +42,16 @@ public sealed class ForgeFloatingToolWindow
         }
 
         Type = type;
+
+        if (host is not null)
+        {
+            // 宿主给了窗体（比如整套自绘 chrome 的那种）：只填标题和内容，
+            // chrome 长什么样、有哪几个系统按钮，全归宿主 —— 库不越界改它。
+            _window = host;
+            _window.Title = ComposeTitle(type, toolWindowTitle, projectName);
+            _window.Content = content;
+            return;
+        }
 
         _window = new Window
         {
@@ -53,10 +68,13 @@ public sealed class ForgeFloatingToolWindow
             //   · FLOATING = JDialog，且 Windows 上 setUndecorated(true)
             //     （FloatingDecorator.java:102-108）—— 没有那层标题栏，
             //     面板自己的标题条（ForgeToolWindowHeader）就是它的把手。
-            //   浮动这边用 ExtendClientArea 而不是 WindowDecorations.None：前者留着系统的
-            //   改大小、贴边、阴影，只把标题栏那条让出来自己画；后者连改大小都得自己写。
-            ExtendClientAreaToDecorationsHint = type == ToolWindowType.Floating,
-            ExtendClientAreaTitleBarHeightHint = type == ToolWindowType.Floating ? -1 : 0,
+            //   浮动取 BorderOnly（有边框、能改大小、贴边、投影，就是没有标题栏那条），
+            //   而不是 ExtendClientArea —— 后者只是把标题栏"让"给内容画，
+            //   最小/最大/关闭那排按钮仍然会叠在右上角，而浮动一个都不该有。
+            //   也不取 None：那连边框和改大小都没了。
+            WindowDecorations = type == ToolWindowType.Floating
+                ? WindowDecorations.BorderOnly
+                : WindowDecorations.Full,
         };
     }
 

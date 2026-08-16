@@ -1311,7 +1311,12 @@ public class ForgeToolWindowFrame : TemplatedControl
         var docked = host.Bounds.Size;
         Detach(host);
 
-        var external = new ForgeFloatingToolWindow(info.Type, vm.Title, ProjectName, host);
+        var external = new ForgeFloatingToolWindow(
+            info.Type,
+            vm.Title,
+            ProjectName,
+            host,
+            ExternalWindowFactory?.Invoke(info.Type));
         _externalWindows[vm.Id] = external;
 
         var id = vm.Id;
@@ -1386,6 +1391,21 @@ public class ForgeToolWindowFrame : TemplatedControl
     /// <summary>独立窗口标题里那个项目名（<c>"{面板名} - {项目名}"</c>）。</summary>
     /// <remarks>宿主没给就用空串 —— 库不知道"项目"是什么。</remarks>
     public string ProjectName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 切成外部形态时，用什么窗体装它。
+    /// </summary>
+    /// <remarks>
+    /// 独立窗口（WINDOWED）该带最小化 / 最大化 / 关闭，**但那排按钮长什么样是宿主的事**——
+    /// 一个应用里所有窗体应当是同一副长相，库不该自己画一套、更不该退回系统默认那副。
+    /// 所以这里只给口子：宿主返回自己的窗体（连同标题栏、按钮、圆角、材质），
+    /// 库只往里塞标题和面板内容。
+    /// <para>
+    /// 返回 <see langword="null"/>（或不设这个口子）就用库自带的朴素窗口：
+    /// 独立窗口用系统装饰，浮动无装饰。浮动一般不必接管——它本来就没有标题栏。
+    /// </para>
+    /// </remarks>
+    public Func<ToolWindowType, Window?>? ExternalWindowFactory { get; set; }
 
     /// <summary>取（必要时新建）一个工具窗口的面板宿主。</summary>
     private Border GetPanelHost(ToolWindowViewModel vm)
