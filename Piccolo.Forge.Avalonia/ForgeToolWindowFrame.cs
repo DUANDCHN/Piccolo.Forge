@@ -2,6 +2,7 @@
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Media;
 using Piccolo.Forge.Model;
 using Piccolo.Forge.Mvvm;
@@ -129,6 +130,22 @@ public class ForgeToolWindowFrame : TemplatedControl
         LogicalChildren.Add(_overlay);
 
         ActualThemeVariantChanged += (_, _) => ApplyThemeVariant();
+
+        // ★ 条带按钮的**手势归框架管，不归按钮管**。
+        //
+        //   同步（Sync）会重排、重挂条带按钮 —— 按钮一旦被摘下再挂上，
+        //   落在它身上的指针捕获就没了，松手事件再也到不了它，这一下点击整个被吞掉。
+        //   而同步的触发时机是随机的（焦点变化、状态广播），所以表现成
+        //   **「侧边栏按钮偶尔要点两下」**：第一下按下、中途来了次同步、松手丢了；
+        //   第二下没赶上同步，正常。
+        //
+        //   框架自己不参与那次重挂，所以捕获在它手上就稳。同一条规矩编辑区
+        //   已经为标签拖拽立过（见 ForgeEditorArea 构造函数处的注释）。
+        const RoutingStrategies gestureRoutes =
+            RoutingStrategies.Tunnel | RoutingStrategies.Bubble | RoutingStrategies.Direct;
+        AddHandler(PointerMovedEvent, OnStripePointerMoved, gestureRoutes, handledEventsToo: true);
+        AddHandler(PointerReleasedEvent, OnStripePointerReleased, gestureRoutes, handledEventsToo: true);
+        AddHandler(PointerCaptureLostEvent, OnStripePointerCaptureLost, gestureRoutes, handledEventsToo: true);
     }
 
     /// <inheritdoc />
@@ -679,66 +696,121 @@ public class ForgeToolWindowFrame : TemplatedControl
             // 抓在按钮的哪个位置——虚影要让同一个点始终待在光标下，不然一开拖就"跳"一下。
             // 对应 ToolWindowDragHelper.kt:250 · setInitialOffsetFromStripeButton。
             _dragGrab = e.GetPosition(button);
-            e.Pointer.Capture(button);
+            _dragButtonBounds = button.TranslatePoint(default, this) is { } origin
+                ? new Rect(origin, button.Bounds.Size)
+                : default;
+
+            // ⚠ 捕获给**框架**，不是按钮：按钮会被同步重挂，捕获跟着丢（见构造函数处的说明）。
+            e.Pointer.Capture(this);
         };
+    }
 
-        button.PointerMoved += (_, e) =>
+    private void OnStripePointerMoved(object? sender, PointerEventArgs e)
+    {
+        if (_dragId is null || DraggedButton is not { } button)
         {
-            if (_dragId is null)
-            {
-                return;
-            }
+            return;
+        }
 
-            var point = e.GetPosition(this);
-            var moved = Math.Sqrt(Math.Pow(point.X - _dragStart.X, 2) + Math.Pow(point.Y - _dragStart.Y, 2));
+        var point = e.GetPosition(this);
+        var moved = Math.Sqrt(Math.Pow(point.X - _dragStart.X, 2) + Math.Pow(point.Y - _dragStart.Y, 2));
 
-            // 条带按钮走基类的死区 7（MouseDragHelper.java:32）
-            if (moved >= ForgeMetrics.StripeButtonDragStartDeadzone)
-            {
-                // 快照只拍一次：拍在按钮**还排在原位**的时候（此后它被排成零尺寸就拍不到了）。
-                // 对应上游 createStripeButtonDragImage 在 dragStarted 时产出 BufferedImage。
-                _dragThumb ??= ForgeDragOverlay.CaptureThumb(button);
-                UpdateDragFeedback(point);
-            }
-        };
-
-        button.PointerReleased += (_, e) =>
+        // 条带按钮走基类的死区 7（MouseDragHelper.java:32）
+        if (moved >= ForgeMetrics.StripeButtonDragStartDeadzone)
         {
-            e.Pointer.Capture(null);
+            // 快照只拍一次：拍在按钮**还排在原位**的时候（此后它被排成零尺寸就拍不到了）。
+            // 对应上游 createStripeButtonDragImage 在 dragStarted 时产出 BufferedImage。
+            _dragThumb ??= ForgeDragOverlay.CaptureThumb(button);
+            UpdateDragFeedback(point);
+        }
+    }
+
+    private void OnStripePointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        if (_dragId is null)
+        {
+            return;
+        }
+
+        // ⚠ 顺序：**先收尾、后放捕获**。
+        //   Capture(null) 会**同步**触发 PointerCaptureLost，而那个处理器会把手势按
+        //   「取消」收掉；先放捕获的话，等这里再调 EndStripeGesture 时 _dragId 已经被
+        //   清空，点击当场丢掉 —— 与这次要修的 bug 一模一样，只是换了个触发源。
+        EndStripeGesture(e.GetPosition(this), commit: true);
+        e.Pointer.Capture(null);
+    }
+
+    /// <summary>
+    /// 捕获丢了怎么办 —— <b>看这一下是不是已经拖起来了</b>。
+    /// </summary>
+    /// <remarks>
+    /// <b>已经在拖</b>（虚影拍过了）：按取消收尾，把虚影和排布态清干净 ——
+    /// 捕获都没了，落点无从谈起。
+    /// <para>
+    /// <b>还只是按着没动</b>：**什么都不做，把这一下留给随后的松手**。
+    /// 捕获会在同步重排时被抖掉（这正是本次要修的那个 bug 的成因），
+    /// 而那时用户手指还按着、明明白白是要点这个按钮；在这儿一刀切成"取消"，
+    /// 症状就从「点了没反应」变成「点了还是没反应」，只是换了个地方丢。
+    /// 松手事件本来就会照常送到框架（指针还在它的子树上），不靠捕获也收得到。
+    /// </para>
+    /// </remarks>
+    private void OnStripePointerCaptureLost(object? sender, PointerCaptureLostEventArgs e)
+    {
+        if (_dragId is not null && _dragThumb is not null)
+        {
+            EndStripeGesture(_dragStart, commit: false);
+        }
+    }
+
+    private void EndStripeGesture(Point point, bool commit)
+    {
+        if (DraggedButton is { } button)
+        {
             button.Opacity = 1;
-            _overlay.Clear();
+        }
 
-            var dragged = _dragId;
-            if (dragged is null)
-            {
-                ClearDragLayout();
-                return;
-            }
+        _overlay.Clear();
 
-            var point = e.GetPosition(this);
-            var moved = Math.Sqrt(Math.Pow(point.X - _dragStart.X, 2) + Math.Pow(point.Y - _dragStart.Y, 2));
+        var dragged = _dragId;
+        var moved = Math.Sqrt(Math.Pow(point.X - _dragStart.X, 2) + Math.Pow(point.Y - _dragStart.Y, 2));
 
-            // ⚠ 顺序要紧：ResolveDropTarget 靠 DraggedButton（读 _dragId）把被拖项排除在外，
-            // 所以**先算落点，再清 _dragId 与排布态**。反过来的话被拖的那个又被算进序列，
-            // 落点当场偏一格 —— 正是「放在下面、框提示在上面」那个 bug 的另一半。
-            var target = moved < ForgeMetrics.StripeButtonDragStartDeadzone
-                ? null
-                : ResolveDropTarget(point);
+        // 「松手时还在原按钮上」= 点击。**与中间抖了多少像素无关** ——
+        //
+        // ⚠ 这里曾经只按死区判：抖过 7px（`MouseDragHelper.java:32`）就一律当拖拽，
+        //   而这一下又落不到任何有效槽位，于是什么都不做 —— 表现成
+        //   **「侧边栏按钮有时要点两下」**。真人按鼠标抖七八个像素再正常不过，
+        //   等于把「能点的地方」缩成了按下点周围 7px 的一个小圈。
+        //   上游没有这个问题：SquareStripeButton 继承 ActionButton，点击是 Swing 的
+        //   「释放在组件内即触发」，拖拽助手只在真正拖离按钮之后才接管。
+        // 判据用**按下那一刻**按钮所在的矩形：拖起来之后它会被排成零尺寸（好腾出落点槽），
+        // 那时再读 Bounds 恒为空，判据当场失效。
+        var onButton = _dragButtonBounds.Contains(point);
 
-            _dragId = null;
-            ClearDragLayout();
+        // ⚠ 顺序要紧：ResolveDropTarget 靠 DraggedButton（读 _dragId）把被拖项排除在外，
+        // 所以**先算落点，再清 _dragId 与排布态**。反过来的话被拖的那个又被算进序列，
+        // 落点当场偏一格 —— 正是「放在下面、框提示在上面」那个 bug 的另一半。
+        var target = !commit || onButton || moved < ForgeMetrics.StripeButtonDragStartDeadzone
+            ? null
+            : ResolveDropTarget(point);
 
-            if (moved < ForgeMetrics.StripeButtonDragStartDeadzone)
-            {
-                Toggle(dragged);
-                return;
-            }
+        _dragId = null;
+        ClearDragLayout();
 
-            if (target is { } t)
-            {
-                _shell!.Manager.MoveTo(dragged, t.Anchor, t.Order, t.IsSplit);
-            }
-        };
+        if (!commit || dragged is null)
+        {
+            return;
+        }
+
+        if (onButton || moved < ForgeMetrics.StripeButtonDragStartDeadzone)
+        {
+            Toggle(dragged);
+            return;
+        }
+
+        if (target is { } t)
+        {
+            _shell!.Manager.MoveTo(dragged, t.Anchor, t.Order, t.IsSplit);
+        }
     }
 
     private ForgeMoreButton GetMoreButton(StripeSide side)
@@ -768,6 +840,9 @@ public class ForgeToolWindowFrame : TemplatedControl
 
     /// <summary>拖拽中按钮的透明度（<c>ToolWindowDragHelper.kt:94 · THUMB_OPACITY</c>）。</summary>
     private const double ForgeDragOpacity = 0.85;
+
+    /// <summary>按下那一刻，被按的条带按钮在框架坐标系里的矩形（松手落在它里面就算点击）。</summary>
+    private Rect _dragButtonBounds;
 
     /// <summary>上一次算出来的空槽落点：哪一组、第几个之前。</summary>
     private (StripeItemsPanel Panel, int Index)? _lastDropSlot;
