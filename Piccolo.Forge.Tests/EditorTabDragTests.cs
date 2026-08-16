@@ -590,6 +590,52 @@ public class EditorTabDragTests
     }
 
     [AvaloniaFact]
+    public void Drag_session_is_finished_before_a_merge_changes_the_split_tree()
+    {
+        var (editor, window, control, _, _) = Shown();
+        var left = editor.Area.Groups[0];
+        editor.Area.DropTab("b", left, EditorDropSide.Right);
+        Dispatcher.UIThread.RunJobs();
+
+        var overlay = control.GetVisualDescendants().OfType<ForgeDragOverlay>().Single();
+        var rightTab = control.GetVisualDescendants().OfType<ForgeEditorTab>()
+            .Single(x => x.Title == "Bravo.cs");
+        var leftStrip = control.GetVisualDescendants().OfType<TabStrip>()
+            .OrderBy(x => x.TranslatePoint(default, control)!.Value.X)
+            .First();
+        var press = GrabPoint(rightTab, window);
+        var drop = leftStrip.TranslatePoint(
+            new Point(leftStrip.Bounds.Width / 2, leftStrip.Bounds.Height / 2), window)!.Value;
+
+        var observedMerge = false;
+        editor.Area.Changed += (_, _) =>
+        {
+            if (editor.Area.Groups.Count != 1)
+            {
+                return;
+            }
+
+            observedMerge = true;
+            Assert.Null(overlay.ThumbImage);
+            Assert.Null(overlay.ThumbRect);
+            Assert.Null(overlay.AreaRect);
+            Assert.All(
+                control.GetVisualDescendants().OfType<HeaderTabsPanel>(),
+                panel => Assert.Null(panel.DraggedChild));
+        };
+
+        window.MouseDown(press, MouseButton.Left);
+        window.MouseMove(drop);
+        Dispatcher.UIThread.RunJobs();
+        Assert.NotNull(overlay.ThumbImage);
+        window.MouseUp(drop, MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.True(observedMerge);
+        Assert.Single(editor.Area.Groups);
+    }
+
+    [AvaloniaFact]
     public void The_control_tree_keeps_matching_the_model_through_a_whole_sequence()
     {
         // 「中间空了」的**通用**判据：界面上的标签集合必须始终等于模型里的。

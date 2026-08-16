@@ -602,7 +602,6 @@ public class ForgeEditorArea : TemplatedControl
         if (_dragGroup is not null && _dragTab is not null)
         {
             EndDrag(_dragGroup, _dragTab, commit: true);
-            e.Pointer.Capture(null);
         }
     }
 
@@ -615,6 +614,7 @@ public class ForgeEditorArea : TemplatedControl
     }
 
     private ForgeEditorTab? _dragTab;
+    private IPointer? _dragPointer;
     private EditorGroupViewModel? _dragGroup;
     private string? _dragId;
     private Point _pressPoint;
@@ -645,6 +645,7 @@ public class ForgeEditorArea : TemplatedControl
 
         _dragGroup = group;
         _dragTab = control;
+        _dragPointer = e.Pointer;
         _dragId = id;
         _pressPoint = e.GetPosition(strip);
         _dragStarted = false;
@@ -840,23 +841,39 @@ public class ForgeEditorArea : TemplatedControl
             strip.InvalidateArrange();
         }
 
-        // ⚠ 落库要在清状态**之前**，而且只在真松手时做。
-        //   捕获被抢走（弹窗、Alt-Tab）走的是取消，不该顺手切一刀分屏。
-        if (commit && _dragOut && _dragId is not null && _dropGroup is not null
-            && _dropSide != EditorDropSide.None)
-        {
-            _area!.DropTab(_dragId, group.Group, _dropGroup.Group, _dropSide);
-        }
+        // 先把要提交的命令拍成稳定快照。DropTab 会同步广播 Changed，
+        // 视图随即会增删分屏节点和源标签容器，不能边读拖拽字段边改树。
+        var drop = commit && _dragOut && _dragId is not null && _dropGroup is not null
+                   && _dropSide != EditorDropSide.None
+            ? (Id: _dragId, Source: group.Group, Target: _dropGroup.Group, Side: _dropSide)
+            : default;
+        var pointer = _dragPointer;
 
+        // 拖拽会话和模型变更是两个事务：手势必须先完整结束，再修改分屏树。
+        // 旧顺序是 DropTab -> Changed -> Sync -> 摘挂 TabStrip -> 清状态，
+        // 它会让 Avalonia 在指针仍被捕获、DraggedChild 仍存在时改视觉树，
+        // 截图里的悬空标签就是这个中间态被留下。
         _overlay.Clear();
         _dragThumb = null;
         _dragOut = false;
         _dropGroup = null;
         _dropSide = EditorDropSide.None;
         _dragTab = null;
+        _dragPointer = null;
         _dragGroup = null;
         _dragId = null;
         _dragStarted = false;
+
+        // 稳定的会话所有者主动释放捕获；后续 CaptureLost 看到的已是空会话。
+        if (pointer?.Captured == this)
+        {
+            pointer.Capture(null);
+        }
+
+        if (drop != default)
+        {
+            _area!.DropTab(drop.Id, drop.Source, drop.Target, drop.Side);
+        }
     }
 
     /// <summary>
