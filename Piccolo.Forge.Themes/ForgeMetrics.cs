@@ -103,6 +103,23 @@ public static class ForgeMetrics
     /// <summary>标题条工具栏的右内边距 8（<c>JBUI.java:1186-1188</c>）。</summary>
     public const double HeaderToolbarInsetRight = 8;
 
+    /// <summary>
+    /// 标题条上那排按钮的边长 24。
+    /// </summary>
+    /// <remarks>
+    /// 上游标题条右侧是一条 <c>ActionToolbar</c>（<c>ToolWindowHeader.kt:119-202</c>：
+    /// <c>DefaultActionGroup(DockToolWindowAction(), ShowOptionsAction(), HideAction())</c>
+    /// 加在 <c>BorderLayout.EAST</c>），按钮取新 UI 的
+    /// <c>ActionToolbar.experimentalToolbarMinimumButtonSize()</c> = 24×24。
+    /// </remarks>
+    public const double HeaderButtonSize = 24;
+
+    /// <summary>标题条按钮里图标的边长 16（新 UI 的动作图标标准尺寸）。</summary>
+    public const double HeaderButtonIconSize = 16;
+
+    /// <summary>标题条按钮悬停底的圆角 4（<c>JBUI.CurrentTheme.ActionButton</c> 那一档，比条带按钮的 12 小）。</summary>
+    public const double HeaderButtonArc = 4;
+
     /// <summary>标题条标签页左右内边距 12（<c>JBUI.java:1133-1135</c>）。</summary>
     public const double HeaderTabInset = 12;
 

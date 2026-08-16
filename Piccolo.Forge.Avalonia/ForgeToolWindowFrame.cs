@@ -69,6 +69,10 @@ public class ForgeToolWindowFrame : TemplatedControl
     public static readonly StyledProperty<StripeSide> MoreButtonSideProperty =
         AvaloniaProperty.Register<ForgeToolWindowFrame, StripeSide>(nameof(MoreButtonSide));
 
+    /// <summary><see cref="ShowHeaderButtons"/> 的属性定义。</summary>
+    public static readonly StyledProperty<bool> ShowHeaderButtonsProperty =
+        AvaloniaProperty.Register<ForgeToolWindowFrame, bool>(nameof(ShowHeaderButtons), defaultValue: true);
+
     /// <summary><see cref="ShowToolWindowNames"/> 的属性定义。</summary>
     public static readonly StyledProperty<bool> ShowToolWindowNamesProperty =
         AvaloniaProperty.Register<ForgeToolWindowFrame, bool>(nameof(ShowToolWindowNames));
@@ -93,6 +97,7 @@ public class ForgeToolWindowFrame : TemplatedControl
         IslandMetricsProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Sync());
         StripeButtonArcProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Sync());
         EditorContentProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Sync());
+        ShowHeaderButtonsProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Sync());
         ShowToolWindowNamesProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) =>
         {
             // 菜单里的「显示工具窗口名称」改的是控件属性；写回 VM 才跟着布局一起存下去。
@@ -294,6 +299,34 @@ public class ForgeToolWindowFrame : TemplatedControl
         get => GetValue(ShowToolWindowNamesProperty);
         set => SetValue(ShowToolWindowNamesProperty, value);
     }
+
+    /// <summary>
+    /// 面板标题条右侧那两个按钮（⋮ 选项 / — 隐藏）显不显示。默认开。
+    /// </summary>
+    /// <remarks>上游恒显示（<c>ToolWindowHeader.kt:119</c>）；这里给宿主留一个关掉的余地。</remarks>
+    public bool ShowHeaderButtons
+    {
+        get => GetValue(ShowHeaderButtonsProperty);
+        set => SetValue(ShowHeaderButtonsProperty, value);
+    }
+
+    /// <summary>
+    /// 宿主往某个面板的标题条上追加自己的按钮（排在内置那两个左边）。
+    /// </summary>
+    /// <remarks>
+    /// 参数是面板 id，返回这个面板要加的按钮；返回 <see langword="null"/> 或空就不加。
+    /// 对应上游的 <c>ToolWindow.setTitleActions(...)</c>。
+    /// <example>
+    /// <code>
+    /// frame.HeaderButtonsExtension = id =&gt; id == "CamList"
+    ///     ? [new ForgeHeaderButton { Icon = ForgeIcons.Find }]
+    ///     : null;
+    /// </code>
+    /// </example>
+    /// ⚠ 每次同步都会问一次，**同一个面板请返回同一批控件实例**（或按 id 缓存），
+    /// 否则每次重画都在造新控件。
+    /// </remarks>
+    public Func<string, IReadOnlyList<Control>?>? HeaderButtonsExtension { get; set; }
 
     /// <summary>中间编辑区放什么。</summary>
     public Control? EditorContent
@@ -1160,6 +1193,14 @@ public class ForgeToolWindowFrame : TemplatedControl
         DockPanel.SetDock(header, Dock.Top);
         _panelHeaders[vm.Id] = header;
 
+        // ⋮ 选项：与条带按钮右键菜单同一份（隐藏 / 移到某边 / 显示名字）——
+        //   同一个工具窗口在两处给出两套动作会让人以为是两个东西。
+        // — 隐藏：收起面板但**留着条带按钮**（点一下就回来）。菜单里的「隐藏」是另一码事，
+        //   它 removeFromStripe=true、连按钮一起摘掉，得从「视图」菜单找回来。
+        var id = vm.Id;
+        header.OptionsRequested += (_, _) => ShowHeaderOptions(id);
+        header.HideRequested += (_, _) => _shell?.Manager.Hide(id);
+
         // 内容用 ContentControl 承载 object —— 视图由**宿主**的 ViewLocator / DataTemplate 解析
         var content = new ContentControl();
         _panelContents[vm.Id] = content;
@@ -1184,9 +1225,28 @@ public class ForgeToolWindowFrame : TemplatedControl
         header.Title = vm.Title;
         header.IsActive = vm.IsActive;
         header.ContentUiType = info.ContentUiType;
+        header.ShowButtons = ShowHeaderButtons;
+        header.SetExtraButtons(HeaderButtonsExtension?.Invoke(vm.Id));
         SyncTabs(header, vm, info.ContentUiType);
 
         _panelContents[vm.Id].Content = vm.Content;
+    }
+
+    /// <summary>标题条上 ⋮ 的菜单：与条带按钮右键菜单同一份。</summary>
+    private void ShowHeaderOptions(string id)
+    {
+        if (_shell is not { } shell || !_panelHeaders.TryGetValue(id, out var header))
+        {
+            return;
+        }
+
+        var menu = ForgeMenuBuilder.ForStripeButton(
+            shell.Manager, id, () => ShowToolWindowNames = !ShowToolWindowNames, ShowToolWindowNames);
+
+        // 挂在 ⋮ 那个按钮上弹，位置才对得上（挂在整条标题条上会从鼠标处弹）
+        menu.PlacementTarget = header.OptionsButton;
+        menu.Placement = PlacementMode.BottomEdgeAlignedRight;
+        menu.Open(header.OptionsButton);
     }
 
     /// <summary>

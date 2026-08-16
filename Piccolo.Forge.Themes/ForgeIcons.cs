@@ -1,4 +1,4 @@
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Media;
 
 namespace Piccolo.Forge.Themes;
@@ -32,6 +32,26 @@ public static class ForgeIcons
     /// <summary>三个点：「更多」。</summary>
     public static Geometry More { get; } = Parse(
         "M 3,7 L 5,7 L 5,9 L 3,9 Z M 7,7 L 9,7 L 9,9 L 7,9 Z M 11,7 L 13,7 L 13,9 L 11,9 Z");
+
+    /// <summary>
+    /// 竖着的三个点：「更多 / 选项」。
+    /// </summary>
+    /// <remarks>
+    /// 标题条与标签条右端那个按钮用它（新 UI 里是**竖**的 ⋮；条带末尾那个"还有几个工具窗口"
+    /// 用的是横的 <see cref="More"/>，两处不是一回事，别混用）。
+    /// </remarks>
+    public static Geometry MoreVertical { get; } = Parse(
+        "M 7,3 L 9,3 L 9,5 L 7,5 Z M 7,7 L 9,7 L 9,9 L 7,9 Z M 7,11 L 9,11 L 9,13 L 7,13 Z");
+
+    /// <summary>
+    /// 隐藏（收起面板）：一条横线。
+    /// </summary>
+    /// <remarks>
+    /// 对应上游标题条的 <c>HideAction</c>（<c>ToolWindowHeader.kt:119</c>）。
+    /// 上游用的是 <c>AllIcons.General.HideToolWindow</c>（JetBrains 的美术资产，Forge 不带），
+    /// 新 UI 里它就是一条短横 —— 与"最小化"同义，一眼认得出。
+    /// </remarks>
+    public static Geometry Hide { get; } = Parse("M 3.5,8 L 12.5,8");
 
     /// <summary>竖着切一刀（上下两块）。</summary>
     public static Geometry SplitVertical { get; } = Parse("M 2,2 L 14,2 L 14,14 L 2,14 Z M 2,8 L 14,8");

@@ -27,6 +27,7 @@ public class ForgeEditorArea : TemplatedControl
     private readonly Dictionary<EditorGroupViewModel, ForgeEditorTabStrip> _groupStrips = [];
     private readonly Dictionary<EditorGroupViewModel, Border> _groupStripHosts = [];
     private readonly Dictionary<EditorGroupViewModel, ContentControl> _groupBodies = [];
+    private readonly Dictionary<EditorGroupViewModel, StackPanel> _groupActions = [];
     // IntelliJ/Rider 的整个文档区是一座连续的 editor island；分屏叶子只是
     // 这座岛内部的 EditorWindow，不能各自再套 Margin/圆角，否则拆分后会
     // 变成两座互不相干的岛，也会在中间制造一条错误的“海”。
@@ -43,6 +44,7 @@ public class ForgeEditorArea : TemplatedControl
         // ⚠ 这些都是**纯外观**，不要走 Sync（那会重建整棵树，见 RefreshAppearance 的说明）
         PaletteProperty.Changed.AddClassHandler<ForgeEditorArea>((x, _) => x.RefreshAppearance());
         IslandMetricsProperty.Changed.AddClassHandler<ForgeEditorArea>((x, _) => x.RefreshAppearance());
+        ShowTabActionsProperty.Changed.AddClassHandler<ForgeEditorArea>((x, _) => x.Sync());
 
         // 换族要重跑取色。⚠ 别把 _variantApplied 归零，理由见 ForgeToolWindowFrame 同处的注释
         // （会把「宿主自己管配色」那道探测重新武装，换族与跟随明暗一起坏掉）。
@@ -75,6 +77,39 @@ public class ForgeEditorArea : TemplatedControl
     /// </example>
     /// </remarks>
     public Action<ContextMenu, string>? TabMenuExtension { get; set; }
+
+    /// <summary>
+    /// 每组标签条右端那个 ⋮ 按钮显不显示。默认开。
+    /// </summary>
+    /// <remarks>
+    /// 上游标签条右端也是一条工具栏（<c>EditorTabbedContainer</c> 的 <c>TabList</c> 等动作）。
+    /// 它在**标签排不下时尤其要紧** —— 那是找回看不见那几页的唯一入口。
+    /// </remarks>
+    public bool ShowTabActions
+    {
+        get => GetValue(ShowTabActionsProperty);
+        set => SetValue(ShowTabActionsProperty, value);
+    }
+
+    /// <summary>
+    /// 宿主往标签条右端追加自己的按钮（排在 ⋮ 左边）。
+    /// </summary>
+    /// <remarks>
+    /// 与 <c>ForgeToolWindowFrame.HeaderButtonsExtension</c> 同形，只是编辑区一组一条标签行，
+    /// 所以参数是那一组的第一页 id（没有页时为 <see langword="null"/>）。
+    /// ⚠ 同一组请返回同一批控件实例，别每次同步都造新的。
+    /// </remarks>
+    public Func<string?, IReadOnlyList<Control>?>? TabActionsExtension { get; set; }
+
+    /// <summary>
+    /// ⋮ 的菜单：宿主可以往里追加自己的项。
+    /// </summary>
+    /// <remarks>参数是（菜单, 那一组的第一页 id）。库自己放的是「标签页列表 + 关闭系列」。</remarks>
+    public Action<ContextMenu, string?>? TabActionsMenuExtension { get; set; }
+
+    /// <summary><see cref="ShowTabActions"/> 的属性定义。</summary>
+    public static readonly StyledProperty<bool> ShowTabActionsProperty =
+        AvaloniaProperty.Register<ForgeEditorArea, bool>(nameof(ShowTabActions), defaultValue: true);
 
     /// <summary><see cref="IslandMetrics"/> 的属性定义。</summary>
     public static readonly StyledProperty<ForgeIslandMetrics?> IslandMetricsProperty =
@@ -356,6 +391,7 @@ public class ForgeEditorArea : TemplatedControl
             _groupStrips.Remove(group);
             _groupStripHosts.Remove(group);
             _groupBodies.Remove(group);
+            _groupActions.Remove(group);
         }
     }
 
@@ -542,7 +578,17 @@ public class ForgeEditorArea : TemplatedControl
             // 标签条底下那条 1px 分割线（EditorTabs.underTabsBorderColor）——
             // 它属于**标签条整体**，不属于某一个标签页，所以画在这里而不是 ForgeEditorTab 里。
             // 漏了它，标签条与正文之间没有分界，看着是糊在一起的。
-            var stripHost = new Border { Child = strip, BorderThickness = new Thickness(0, 0, 0, 1) };
+            // 标签行 = [标签条 | 右端动作按钮]。按钮先加、靠右停靠，标签条吃剩下的宽度 ——
+            // 反过来的话标签条会先吃满整行，按钮被挤出去。
+            var actions = new StackPanel { Orientation = global::Avalonia.Layout.Orientation.Horizontal };
+            DockPanel.SetDock(actions, Dock.Right);
+            _groupActions[vm] = actions;
+
+            var stripRow = new DockPanel();
+            stripRow.Children.Add(actions);
+            stripRow.Children.Add(strip);
+
+            var stripHost = new Border { Child = stripRow, BorderThickness = new Thickness(0, 0, 0, 1) };
             _groupStripHosts[vm] = stripHost;
             DockPanel.SetDock(stripHost, Dock.Top);
 
@@ -562,6 +608,7 @@ public class ForgeEditorArea : TemplatedControl
 
         ApplyEditorWindowDecor((Border)host);
         SyncStrip(vm, _groupStrips[vm]);
+        SyncTabActions(vm);
 
         _groupStripHosts[vm].BorderBrush = new SolidColorBrush(Palette.EditorTabsBorder);
 
@@ -615,6 +662,131 @@ public class ForgeEditorArea : TemplatedControl
             control.DataContext = tab;
         }
     }
+
+    /// <summary>
+    /// 标签条右端那排按钮：宿主的（如果有）+ 一个 ⋮。
+    /// </summary>
+    /// <remarks>
+    /// 按钮实例按组缓存 —— 每次同步重造的话，鼠标正悬在上面时会闪，宿主给的控件也会被反复丢弃。
+    /// </remarks>
+    private void SyncTabActions(EditorGroupViewModel vm)
+    {
+        var actions = _groupActions[vm];
+        var wanted = new List<Control>();
+
+        if (ShowTabActions)
+        {
+            var anchor = vm.Tabs.FirstOrDefault()?.Id;
+            if (TabActionsExtension?.Invoke(anchor) is { } extra)
+            {
+                wanted.AddRange(extra);
+            }
+
+            wanted.Add(TabActionsButton(vm));
+        }
+
+        for (var i = actions.Children.Count - 1; i >= 0; i--)
+        {
+            if (!wanted.Contains(actions.Children[i]))
+            {
+                actions.Children.RemoveAt(i);
+            }
+        }
+
+        for (var i = 0; i < wanted.Count; i++)
+        {
+            if (!actions.Children.Contains(wanted[i]))
+            {
+                actions.Children.Insert(i, wanted[i]);
+            }
+        }
+
+        foreach (var button in actions.Children.OfType<ForgeHeaderButton>())
+        {
+            button.Palette = Palette;
+        }
+    }
+
+    private readonly Dictionary<EditorGroupViewModel, ForgeHeaderButton> _groupMoreButtons = [];
+
+    private ForgeHeaderButton TabActionsButton(EditorGroupViewModel vm)
+    {
+        if (_groupMoreButtons.TryGetValue(vm, out var button))
+        {
+            return button;
+        }
+
+        button = new ForgeHeaderButton { Icon = ForgeIcons.MoreVertical };
+        button.Click += (_, _) => ShowTabActionsMenu(vm);
+        _groupMoreButtons[vm] = button;
+        return button;
+    }
+
+    /// <summary>
+    /// ⋮ 的菜单：这一组的标签页列表 + 关闭系列。
+    /// </summary>
+    /// <remarks>
+    /// 标签页列表是这个按钮的**主要价值** —— 标签多到一屏看不全时，这里是唯一一处
+    /// 能一眼看到全部并跳过去的地方。上游那个菜单里还有「最近的文件 / 转到文件 / 书签」等
+    /// IDE 专属项，本仓没有对应物，需要就由宿主从 <see cref="TabActionsMenuExtension"/> 塞。
+    /// <para>
+    /// <b>建菜单与弹菜单分开</b>：宿主想从别处（自己的按钮、快捷键）弹同一份菜单时能直接拿；
+    /// 也让内容测得到 —— 弹出层在 headless 下建不出来，混在一起就只能靠点开看。
+    /// </para>
+    /// </remarks>
+    /// <param name="group">哪一组。</param>
+    /// <returns>菜单。</returns>
+    public ContextMenu BuildTabActionsMenu(EditorGroupViewModel group)
+    {
+        ArgumentNullException.ThrowIfNull(group);
+
+        var menu = new ContextMenu();
+
+        foreach (var tab in group.Tabs)
+        {
+            var id = tab.Id;
+            var item = new MenuItem { Header = tab.Title, Icon = ResolveMenuIcon(tab) };
+            item.Click += (_, _) => _area?.Select(id);
+            menu.Items.Add(item);
+        }
+
+        if (group.Tabs.Count > 0)
+        {
+            menu.Items.Add(new Separator());
+
+            var anchorId = group.Tabs[0].Id;
+
+            var closeOthers = new MenuItem { Header = "关闭其他标签页" };
+            closeOthers.Click += (_, _) => _area?.Area.CloseOthers(group.Selected?.Id ?? anchorId);
+            menu.Items.Add(closeOthers);
+
+            var closeAll = new MenuItem { Header = "关闭所有标签页" };
+            closeAll.Click += (_, _) => _area?.Area.CloseAll(anchorId);
+            menu.Items.Add(closeAll);
+        }
+
+        TabActionsMenuExtension?.Invoke(menu, group.Tabs.FirstOrDefault()?.Id);
+        return menu;
+    }
+
+    private void ShowTabActionsMenu(EditorGroupViewModel vm)
+    {
+        if (_area is null || !_groupMoreButtons.TryGetValue(vm, out var button))
+        {
+            return;
+        }
+
+        // 先挂到按钮上再开：ContextMenu 得先有宿主控件。每次重建一份，内容随标签页变。
+        var menu = BuildTabActionsMenu(vm);
+        menu.PlacementTarget = button;
+        menu.Placement = PlacementMode.BottomEdgeAlignedRight;
+        button.ContextMenu = menu;
+        menu.Open(button);
+    }
+
+    /// <summary>菜单项左边那个图标：宿主给的是工厂就造一份，给的是实例就不用（同一实例不能两处挂）。</summary>
+    private static object? ResolveMenuIcon(EditorTabViewModel tab)
+        => tab.Icon is Func<Control> factory ? factory() : null;
 
     private void OnStripPointerPressed(object? sender, PointerPressedEventArgs e)
     {

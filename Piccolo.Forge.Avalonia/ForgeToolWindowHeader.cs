@@ -1,6 +1,7 @@
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Input;
 using Avalonia.Media;
 using Piccolo.Forge.Model;
 using Piccolo.Forge.Themes;
@@ -38,19 +39,93 @@ public class ForgeToolWindowHeader : TemplatedControl
     public static readonly StyledProperty<ToolWindowContentUiType> ContentUiTypeProperty =
         AvaloniaProperty.Register<ForgeToolWindowHeader, ToolWindowContentUiType>(nameof(ContentUiType));
 
+    /// <summary><see cref="ShowButtons"/> 的属性定义。</summary>
+    public static readonly StyledProperty<bool> ShowButtonsProperty =
+        AvaloniaProperty.Register<ForgeToolWindowHeader, bool>(nameof(ShowButtons), defaultValue: true);
+
     private readonly ForgeContentTabStrip _tabs = new();
+    private readonly ForgeHeaderButton _options = new() { Icon = ForgeIcons.MoreVertical };
+    private readonly ForgeHeaderButton _hide = new() { Icon = ForgeIcons.Hide, IsFilledIcon = false };
+    private readonly List<Control> _extra = [];
 
     /// <summary>建一个标题条。</summary>
     public ForgeToolWindowHeader()
     {
         VisualChildren.Add(_tabs);
         LogicalChildren.Add(_tabs);
+
+        _options.Click += (_, e) => OptionsRequested?.Invoke(this, e);
+        _hide.Click += (_, e) => HideRequested?.Invoke(this, e);
+
+        foreach (var button in Buttons)
+        {
+            VisualChildren.Add(button);
+            LogicalChildren.Add(button);
+        }
     }
+
+    /// <summary>
+    /// 标题条右侧那两个按钮显不显示。
+    /// </summary>
+    /// <remarks>
+    /// 上游恒显示（<c>ToolWindowHeader.kt:119</c> 的 <c>ShowOptionsAction</c> + <c>HideAction</c>），
+    /// 这里给一个开关：嵌在别处的宿主可能自己管这两件事。默认开。
+    /// </remarks>
+    public bool ShowButtons
+    {
+        get => GetValue(ShowButtonsProperty);
+        set => SetValue(ShowButtonsProperty, value);
+    }
+
+    /// <summary>⋮ 被点了 —— 宿主在这里弹「选项」菜单。</summary>
+    public event EventHandler<PointerReleasedEventArgs>? OptionsRequested;
+
+    /// <summary>— 被点了 —— 宿主在这里收起这个面板。</summary>
+    public event EventHandler<PointerReleasedEventArgs>? HideRequested;
+
+    /// <summary>⋮ 那个按钮（宿主要挂菜单时用得着它的位置）。</summary>
+    public ForgeHeaderButton OptionsButton => _options;
+
+    /// <summary>
+    /// 宿主自己的按钮，排在内置那两个的**左边**。
+    /// </summary>
+    /// <remarks>
+    /// 对应上游的 <c>ToolWindow.setTitleActions(...)</c>：标题条右侧那条工具栏本来就允许
+    /// 每个工具窗口追加自己的动作（刷新、设置、清空…）。库不规定它们长什么样，
+    /// 给 <see cref="ForgeHeaderButton"/> 也行、给任意 <see cref="Control"/> 也行。
+    /// </remarks>
+    /// <param name="buttons">要追加的按钮，按从左到右。</param>
+    public void SetExtraButtons(IEnumerable<Control>? buttons)
+    {
+        foreach (var old in _extra)
+        {
+            VisualChildren.Remove(old);
+            LogicalChildren.Remove(old);
+        }
+
+        _extra.Clear();
+
+        if (buttons is not null)
+        {
+            _extra.AddRange(buttons);
+        }
+
+        foreach (var button in _extra)
+        {
+            VisualChildren.Add(button);
+            LogicalChildren.Add(button);
+        }
+
+        InvalidateMeasure();
+    }
+
+    /// <summary>右侧那排按钮，从左到右：宿主的 → ⋮ → —。</summary>
+    private IEnumerable<Control> Buttons => [.. _extra, _options, _hide];
 
     static ForgeToolWindowHeader()
     {
         AffectsRender<ForgeToolWindowHeader>(PaletteProperty, TitleProperty, IsActiveProperty);
-        AffectsMeasure<ForgeToolWindowHeader>(IsCompactProperty);
+        AffectsMeasure<ForgeToolWindowHeader>(IsCompactProperty, ShowButtonsProperty);
         ContentUiTypeProperty.Changed.AddClassHandler<ForgeToolWindowHeader>((h, _) => h.InvalidateMeasure());
     }
 
@@ -121,9 +196,38 @@ public class ForgeToolWindowHeader : TemplatedControl
                + (title is null ? 0 : ForgeMetrics.HeaderLabelInsetRight);
     }
 
+    /// <summary>右侧那排按钮一共占多宽（含左右内边距）；不显示时为 0。</summary>
+    /// <remarks>
+    /// 内边距取上游标题条工具栏那两个键（<c>HeaderToolbarInsetLeft/Right</c>，
+    /// <c>JBUI.java:1186-1188</c>）。
+    /// </remarks>
+    public double ButtonsWidth
+    {
+        get
+        {
+            if (!ShowButtons)
+            {
+                return 0;
+            }
+
+            var count = Buttons.Count();
+            return count == 0
+                ? 0
+                : ForgeMetrics.HeaderToolbarInsetLeft
+                  + (count * ForgeMetrics.HeaderButtonSize)
+                  + ForgeMetrics.HeaderToolbarInsetRight;
+        }
+    }
+
     /// <inheritdoc />
     protected override Size MeasureOverride(Size availableSize)
     {
+        foreach (var button in Buttons)
+        {
+            button.IsVisible = ShowButtons;
+            button.Measure(new Size(ForgeMetrics.HeaderButtonSize, ForgeMetrics.HeaderButtonSize));
+        }
+
         _tabs.Measure(availableSize);
         return new Size(double.IsInfinity(availableSize.Width) ? 0 : availableSize.Width, HeaderHeight);
     }
@@ -131,9 +235,42 @@ public class ForgeToolWindowHeader : TemplatedControl
     /// <inheritdoc />
     protected override Size ArrangeOverride(Size finalSize)
     {
-        var x = ComputeTabsStart();
-        _tabs.Arrange(new Rect(x, 0, Math.Max(0, finalSize.Width - x), finalSize.Height));
+        // 按钮靠右（上游是 BorderLayout.EAST，ToolWindowHeader.kt:202），标签页排在标题与按钮之间
+        var x = finalSize.Width - ForgeMetrics.HeaderToolbarInsetRight;
+        foreach (var button in Buttons.Reverse())
+        {
+            if (!ShowButtons)
+            {
+                button.Arrange(default);
+                continue;
+            }
+
+            x -= ForgeMetrics.HeaderButtonSize;
+            button.Arrange(new Rect(
+                x,
+                (finalSize.Height - ForgeMetrics.HeaderButtonSize) / 2,
+                ForgeMetrics.HeaderButtonSize,
+                ForgeMetrics.HeaderButtonSize));
+        }
+
+        var start = ComputeTabsStart();
+        var width = Math.Max(0, finalSize.Width - start - ButtonsWidth);
+        _tabs.Arrange(new Rect(start, 0, width, finalSize.Height));
         return finalSize;
+    }
+
+    /// <inheritdoc />
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+
+        if (change.Property == PaletteProperty)
+        {
+            foreach (var button in Buttons.OfType<ForgeHeaderButton>())
+            {
+                button.Palette = Palette;
+            }
+        }
     }
 
     private FormattedText? MeasureTitle()
