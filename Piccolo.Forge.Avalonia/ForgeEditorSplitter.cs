@@ -10,9 +10,17 @@ namespace Piccolo.Forge.Avalonia;
 /// 编辑区两格之间那条可拖的分割线 —— 看得见 1px，抓得住 6px。
 /// </summary>
 /// <remarks>
-/// 对应上游的 <c>OnePixelSplitter</c>：**可见宽度 1px**（<c>ToolWindowPane.kt:617</c>），
-/// 鼠标热区 6px（Registry <c>ide.splitter.mouseZone</c>）。两者不是一个数：
-/// 线细才好看，热区细就抓不住。
+/// 对应上游的 <c>OnePixelSplitter</c>：**可见宽度 1px**（<c>OnePixelSplitter.java:73 · init</c>
+/// 的 <c>setDividerWidth(1)</c>），鼠标热区 6px（Registry <c>ide.splitter.mouseZone</c>）。
+/// 两者不是一个数：线细才好看，热区细就抓不住。
+/// <para>
+/// 颜色是 <c>EditorPane.splitBorder</c>（<c>EditorsSplitters.kt:1863-1876 · createSplitter</c>：
+/// <c>divider.background = JBColor.namedColor("EditorPane.splitBorder", JBColor.border())</c>）——
+/// expUI Dark 定义为 Gray3、Islands 定义为 <c>editor-border</c>、expUI Light 未定义故回落
+/// <c>Borders.color</c>，四套算下来正好都等于 <see cref="ForgePalette.EditorTabsBorder"/>
+/// （标签条下面那条线同源）。<b>不是 <c>WindowBorder</c></b>：那是窗口/工具区的边框，
+/// 在 expUI Dark 恰好等于编辑区底色，画上去等于没画。
+/// </para>
 /// <para>
 /// <b>为什么不用 Avalonia 自带的 <c>GridSplitter</c>（原实现用的就是它）</b>：
 /// <list type="number">
@@ -68,7 +76,7 @@ public sealed class ForgeEditorSplitter : Control
     public override void Render(DrawingContext context)
     {
         context.FillRectangle(Brushes.Transparent, new Rect(Bounds.Size));
-        context.FillRectangle(new SolidColorBrush(Palette.WindowBorder), LineRect(Bounds.Size, IsVertical));
+        context.FillRectangle(new SolidColorBrush(Palette.EditorTabsBorder), LineRect(Bounds.Size, IsVertical));
     }
 
     /// <summary>热区里那条真正画出来的 1px 线（居中）。</summary>

@@ -244,7 +244,7 @@ public class ForgeEditorArea : TemplatedControl
             return;
         }
 
-        ForgeIslandDecor.Apply(_root, Palette, anchor: null, IslandMetrics);
+        ForgeIslandDecor.Apply(_root, Palette, anchor: null, IslandMetrics, Palette.EditorBackground);
 
         // ★ 重建过程中**不接受重入**。
         //
@@ -377,7 +377,7 @@ public class ForgeEditorArea : TemplatedControl
             return;
         }
 
-        ForgeIslandDecor.Apply(_root, Palette, anchor: null, IslandMetrics);
+        ForgeIslandDecor.Apply(_root, Palette, anchor: null, IslandMetrics, Palette.EditorBackground);
 
         foreach (var vm in _area.Groups)
         {
@@ -574,9 +574,14 @@ public class ForgeEditorArea : TemplatedControl
     }
 
     /// <summary>分屏叶子是连续文档岛内部的 EditorWindow，不是独立岛。</summary>
+    /// <remarks>
+    /// 底色取 <see cref="ForgePalette.EditorBackground"/> 而不是 <c>Background</c>——
+    /// 后者是**工具窗口**那档灰。取错的后果见那个属性的说明（选中标签成白补丁、
+    /// 分屏之间的线看不见）。
+    /// </remarks>
     private void ApplyEditorWindowDecor(Border host)
     {
-        host.Background = new SolidColorBrush(Palette.Background);
+        host.Background = new SolidColorBrush(Palette.EditorBackground);
         host.Margin = default;
         host.CornerRadius = default;
         host.BorderBrush = null;

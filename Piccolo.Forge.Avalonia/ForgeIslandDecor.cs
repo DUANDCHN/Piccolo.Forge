@@ -1,4 +1,4 @@
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Piccolo.Forge.Model;
@@ -43,13 +43,22 @@ public static class ForgeIslandDecor
     /// 宿主指定的岛几何；<see langword="null"/> 表示用 <paramref name="palette"/> 自带的（上游取值）。
     /// **配色不是岛形态时它不生效**——形态由族决定，这个参数只调几何。
     /// </param>
+    /// <param name="background">
+    /// 底色；<see langword="null"/> 用 <see cref="ForgePalette.Background"/>（工具窗口那档）。
+    /// 编辑区要传 <see cref="ForgePalette.EditorBackground"/>。
+    /// </param>
     public static void Apply(
-        Border host, ForgePalette palette, ToolWindowAnchor? anchor, ForgeIslandMetrics? metricsOverride = null)
+        Border host,
+        ForgePalette palette,
+        ToolWindowAnchor? anchor,
+        ForgeIslandMetrics? metricsOverride = null,
+        Color? background = null)
     {
         ArgumentNullException.ThrowIfNull(host);
         ArgumentNullException.ThrowIfNull(palette);
 
-        host.Background = new SolidColorBrush(palette.Background);
+        // 底色默认是工具窗口那档；编辑区传 EditorBackground（它比工具窗口更白/更深）。
+        host.Background = new SolidColorBrush(background ?? palette.Background);
 
         if ((metricsOverride ?? palette.Island) is not { } island || palette.Island is null)
         {

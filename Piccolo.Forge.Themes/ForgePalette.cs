@@ -196,6 +196,23 @@ public sealed record ForgePalette
     public required Color EditorTabsBorder { get; init; }
 
     /// <summary>
+    /// 编辑区正文的底色。
+    /// </summary>
+    /// <remarks>
+    /// **不是 <see cref="Background"/>**：那个是工具窗口的底色（expUI 里 Gray13 / Gray2），
+    /// 编辑区比它更「白」（Light）/ 更「深」（Dark）—— 上游的编辑区底色来自配色方案，
+    /// Islands 里则是显式的 <c>editor-bg</c>。
+    /// <para>
+    /// 两者混用的后果不只是差一档灰：选中的标签页恰好是编辑区底色
+    /// （<see cref="EditorTabSelectedBackground"/>，expUI 的选中态只有下划线），
+    /// 底色若取成工具窗口那档，选中标签就成了贴在灰底上的一块白补丁；
+    /// 而分屏之间那条 1px 的线（<see cref="EditorTabsBorder"/>）也会因为
+    /// 与底色只差一档而**看不见**。
+    /// </para>
+    /// </remarks>
+    public required Color EditorBackground { get; init; }
+
+    /// <summary>
     /// 按宿主当前的明暗变体挑一套 **expUI** 配色。
     /// </summary>
     /// <remarks>
@@ -263,6 +280,7 @@ public sealed record ForgePalette
         EditorTabSelectedBackground = ForgeColor.Parse("#FFFFFF"),   // Gray14 —— 与编辑区底色相同，expUI 的选中态只有下划线
         EditorTabSelectedBorder = ForgeColor.Parse("#00000000"),       // expUI 未定义
         EditorTabHoverBackground = ForgeColor.Parse("#FFFFFF00"),      // 末两位 alpha=00：expUI 没有悬停底
+        EditorBackground = ForgeColor.Parse("#FFFFFF"),   // Gray14 —— 编辑区底色（同 EditorTabSelectedBackground）
         EditorTabsBorder = ForgeColor.Parse("#EBECF0"),   // 未定义，回落 Borders.color
         EditorTabInactiveSelectedBackground = ForgeColor.Parse("#FFFFFF"),  // expUI 未定义，取编辑区底色 / 不描边
         EditorTabInactiveSelectedBorder = ForgeColor.Parse("#00000000"),
@@ -296,6 +314,7 @@ public sealed record ForgePalette
         EditorTabSelectedBackground = ForgeColor.Parse("#1E1F22"),   // Gray1 —— 同上
         EditorTabSelectedBorder = ForgeColor.Parse("#00000000"),       // expUI 未定义
         EditorTabHoverBackground = ForgeColor.Parse("#1E1F2200"),      // 同上
+        EditorBackground = ForgeColor.Parse("#1E1F22"),   // Gray1 —— 编辑区底色（同 EditorTabSelectedBackground）
         EditorTabsBorder = ForgeColor.Parse("#393B40"),   // Gray3
         EditorTabInactiveSelectedBackground = ForgeColor.Parse("#1E1F22"),  // expUI 未定义，取编辑区底色 / 不描边
         EditorTabInactiveSelectedBorder = ForgeColor.Parse("#00000000"),
@@ -341,6 +360,7 @@ public sealed record ForgePalette
         EditorTabSelectedBackground = ForgeColor.Parse("#E3EBFE"),   // tab-selected-bg-active ← blue-150
         EditorTabSelectedBorder = ForgeColor.Parse("#A7C5FF"),       // tab-selected-border-active ← blue-120
         EditorTabHoverBackground = ForgeColor.Parse("#00000012"),      // tab-bg-hovered ← transparent-black-20
+        EditorBackground = ForgeColor.Parse("#FFFFFF"),   // editor-bg ← layer-2-bg ← white
         EditorTabsBorder = ForgeColor.Parse("#E9EAEE"),   // editor-border ← layer-2-border ← gray-150
         EditorTabInactiveSelectedBackground = ForgeColor.Parse("#E9EAEE"),  // tab-selected-bg-inactive / tab-selected-border-inactive
         EditorTabInactiveSelectedBorder = ForgeColor.Parse("#D1D3D9"),
@@ -382,6 +402,7 @@ public sealed record ForgePalette
         EditorTabSelectedBackground = ForgeColor.Parse("#233558"),   // tab-selected-bg-active ← blue-40
         EditorTabSelectedBorder = ForgeColor.Parse("#2E4D89"),       // tab-selected-border-active ← blue-60
         EditorTabHoverBackground = ForgeColor.Parse("#FFFFFF17"),      // tab-bg-hovered ← transparent-white-20
+        EditorBackground = ForgeColor.Parse("#191A1C"),   // editor-bg ← layer-0-bg ← gray-10
         EditorTabsBorder = ForgeColor.Parse("#26282C"),   // editor-border ← layer-0-border ← gray-30
         EditorTabInactiveSelectedBackground = ForgeColor.Parse("#26282C"),  // tab-selected-bg-inactive / tab-selected-border-inactive
         EditorTabInactiveSelectedBorder = ForgeColor.Parse("#40434A"),
