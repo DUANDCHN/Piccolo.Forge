@@ -206,6 +206,105 @@ public class ForgeEditorArea : TemplatedControl
     /// </remarks>
     public Func<Window>? ExternalWindowFactory { get; set; }
 
+    /// <summary>
+    /// 指针跑出本编辑区之后的反馈：示意窗口跟着走，停靠提示交给光标底下那个编辑区。
+    /// </summary>
+    /// <remarks>
+    /// 覆盖层只画得到自己这个窗口里，所以出了窗口必须换成一个真窗口当拖影
+    /// （<see cref="ForgeDragGhost"/>）；而"松手会落到哪儿"的提示，得由**目标那边**画 ——
+    /// 它才知道自己的组和边界在哪。
+    /// </remarks>
+    private void UpdateCrossWindowFeedback(EditorDockDragSession session, Point here)
+    {
+        var inside = new Rect(Bounds.Size).Contains(here);
+        var screen = ToScreen(here);
+        session.LastScreenPoint = screen;
+
+        // 指向别的编辑区（比如从浮窗拖回主窗口）：让那边画停靠提示
+        var external = inside
+            ? null
+            : Family().FirstOrDefault(x => !ReferenceEquals(x, this) && x.HitTestScreen(screen));
+
+        if (!ReferenceEquals(session.ExternalTarget, external))
+        {
+            session.ExternalTarget?.ClearDropHint();
+            session.ExternalTarget = external;
+        }
+
+        external?.ShowDropHint(screen);
+
+        if (inside)
+        {
+            session.Ghost?.Close();
+            session.Ghost = null;
+            return;
+        }
+
+        session.Ghost ??= Open(new ForgeDragGhost(session.Thumb, Palette));
+        session.Ghost.MoveTo(screen, session.HoldDelta);
+
+        static ForgeDragGhost Open(ForgeDragGhost ghost)
+        {
+            ghost.Show();
+            return ghost;
+        }
+    }
+
+    /// <summary>别人拖到我头上了：画出"松手就落在这儿"的提示。</summary>
+    private void ShowDropHint(PixelPoint screen)
+    {
+        if (TopLevel.GetTopLevel(this) is not Window window)
+        {
+            return;
+        }
+
+        var here = window.PointToClient(screen) - Bounds.Position;
+        var candidate = FindGroupAt(here);
+
+        _overlay.IsVisible = true;
+        _overlay.Palette = Palette;
+        _overlay.ThumbImage = null;
+        _overlay.ThumbRect = default;
+
+        _overlay.AreaRect = candidate is not null && _groupHosts.TryGetValue(candidate, out var host)
+            ? BoundsIn(host)
+            : new Rect(Bounds.Size);
+
+        _overlay.InvalidateVisual();
+    }
+
+    /// <summary>拖走了，把提示收掉。</summary>
+    private void ClearDropHint()
+    {
+        _overlay.Clear();
+        _overlay.IsVisible = false;
+        _overlay.InvalidateVisual();
+    }
+
+    /// <summary>浮出去的窗口，而且里面就一份文档 —— 那时不摆标签条，文档名写在窗口标题上。</summary>
+    private bool IsSingleDocumentWindow
+        => _floatingOwner is not null
+           && _area is { } area
+           && area.Groups.Count == 1
+           && area.Groups[0].Tabs.Count <= 1;
+
+    /// <summary>把浮窗的标题跟到当前文档上。</summary>
+    private void SyncFloatingTitle()
+    {
+        if (_floatingOwner is null || TopLevel.GetTopLevel(this) is not Window window || _area is not { } area)
+        {
+            return;
+        }
+
+        var title = area.ActiveTab?.Title
+                    ?? area.Groups.SelectMany(g => g.Tabs).FirstOrDefault()?.Title;
+
+        if (!string.IsNullOrEmpty(title))
+        {
+            window.Title = title;
+        }
+    }
+
     /// <summary>这一家：主编辑区，加上它浮出去的那些。</summary>
     private IEnumerable<ForgeEditorArea> Family()
     {
@@ -271,6 +370,8 @@ public class ForgeEditorArea : TemplatedControl
         area.Attach(tab);
 
         var window = owner.ExternalWindowFactory?.Invoke() ?? new Window();
+
+        // 单文档窗口不摆标签条，文档名写在窗口标题上（见 IsSingleDocumentWindow）
         window.Title = tab.Title;
         window.Content = control;
         window.Width = Math.Max(480, Bounds.Width / 2);
@@ -471,6 +572,8 @@ public class ForgeEditorArea : TemplatedControl
         {
             _rebuilding = false;
         }
+
+        SyncFloatingTitle();
     }
 
     private bool _rebuilding;
@@ -747,6 +850,11 @@ public class ForgeEditorArea : TemplatedControl
         SyncStrip(vm, _groupStrips[vm]);
         SyncTabActions(vm);
 
+        // 浮出去的窗口里只剩一页时不摆标签条：文档名写在**窗口标题**上，
+        // 与 Rider 一致 —— 一个窗口一份文档，还挂个标签条是重复的。
+        // 再开第二页或者分了屏，标签条自然回来。
+        _groupStripHosts[vm].IsVisible = !IsSingleDocumentWindow;
+
         _groupStripHosts[vm].BorderBrush = new SolidColorBrush(Palette.EditorTabsBorder);
 
         // 选中的那一页的内容挂到组的正文槽上
@@ -810,8 +918,27 @@ public class ForgeEditorArea : TemplatedControl
     private void ApplyTabContainer(EditorTabViewModel tab, ForgeEditorTab control, ForgeEditorTabStrip strip)
     {
         control.Palette = Palette;
-        control.ContextMenu = ForgeMenuBuilder.ForEditorTab(
-            _area!, tab.Id, tab.IsPinned, TabMenuExtension, MoveToNewWindow);
+
+        // 菜单**实例建一次**，内容在每次打开前刷 —— 每次同步都换个新实例的话，
+        // 右键按下与松手之间实例就被换掉了，系统那套弹出流程落空，表现是右键没反应。
+        if (control.ContextMenu is null)
+        {
+            var menu = new ContextMenu();
+            var owner = control;
+            menu.Opening += (_, _) =>
+            {
+                if (owner.DataContext is EditorTabViewModel current && _area is not null)
+                {
+                    ForgeMenuBuilder.FillEditorTab(
+                        menu, _area, current.Id, current.IsPinned, TabMenuExtension, MoveToNewWindow);
+                }
+            };
+
+            ForgeMenuBuilder.FillEditorTab(
+                menu, _area!, tab.Id, tab.IsPinned, TabMenuExtension, MoveToNewWindow);
+            control.ContextMenu = menu;
+        }
+
         control.Title = tab.Title;
         control.Icon = ResolveIcon(control, tab.Icon);
         control.IsSelected = tab.IsSelected;
@@ -956,6 +1083,13 @@ public class ForgeEditorArea : TemplatedControl
             return;
         }
 
+        // 右键交给菜单：不选中、不起拖 —— 选中会触发同步、把容器和菜单重造一遍，
+        // 松手时按下的那个元素已经不在了，菜单自然弹不出来。
+        if (e.GetCurrentPoint(control).Properties.IsRightButtonPressed)
+        {
+            return;
+        }
+
         var group = _groupStrips.First(x => ReferenceEquals(x.Value, strip)).Key;
         var point = e.GetPosition(control);
         if (control.CanBeClosed && control.TabIconHitRect().Contains(point))
@@ -1056,6 +1190,12 @@ public class ForgeEditorArea : TemplatedControl
 
         /// <summary>最后一次指针位置（屏幕坐标）—— 松手落在别的窗口上时要靠它找落点。</summary>
         public PixelPoint LastScreenPoint { get; set; }
+
+        /// <summary>拖出窗口之后跟着光标走的示意窗口。</summary>
+        public ForgeDragGhost? Ghost { get; set; }
+
+        /// <summary>光标此刻指着的**别的**编辑区（拖回主窗口时就是它）。</summary>
+        public ForgeEditorArea? ExternalTarget { get; set; }
     }
 
     /// <summary>
@@ -1215,6 +1355,8 @@ public class ForgeEditorArea : TemplatedControl
             _overlay.AreaRect = ForgeEditorTabDragTarget.HighlightFor(area, side);
         }
 
+        UpdateCrossWindowFeedback(session, here);
+
         _overlay.Palette = Palette;
         _overlay.ThumbImage = session.Thumb;
         _overlay.ThumbRect = new Rect(
@@ -1347,6 +1489,11 @@ public class ForgeEditorArea : TemplatedControl
             commit && session.Target is not null && session.Side != EditorDropSide.None
                 ? (session.Source.Group, session.Target.Group, session.TabId, session.Side)
                 : null;
+
+        session.Ghost?.Close();
+        session.Ghost = null;
+        session.ExternalTarget?.ClearDropHint();
+        session.ExternalTarget = null;
 
         _dockDrag = null;
         _overlay.Clear();

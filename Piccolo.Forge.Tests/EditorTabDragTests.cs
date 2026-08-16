@@ -811,6 +811,34 @@ public class EditorTabDragTests
         window.Close();
     }
 
+    /// <summary>
+    /// 浮窗里只有一份文档时不摆标签条，文档名写在窗口标题上。
+    /// </summary>
+    /// <remarks>一个窗口一份文档，还挂个标签条是重复的（与 Rider 一致）。再开一页标签条自然回来。</remarks>
+    [AvaloniaFact]
+    public void 单文档的浮窗不摆标签条而是写在标题上()
+    {
+        var (_, window, control, a, _) = Shown();
+
+        var press = GrabPoint(a, window);
+        window.MouseDown(press, MouseButton.Left);
+        window.MouseMove(press.WithY(press.Y + 40));
+        Dispatcher.UIThread.RunJobs();
+        window.MouseMove(new Point(press.X, window.Height + 200));
+        Dispatcher.UIThread.RunJobs();
+        window.MouseUp(new Point(press.X, window.Height + 200), MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+
+        var floating = Assert.Single(control.FloatingWindows);
+        Assert.Equal("Alpha.cs", floating.Title);
+
+        // 标签条整条（含底下那条分割线的宿主）被收起来了
+        Assert.Empty(floating.GetVisualDescendants().OfType<ForgeEditorTab>());
+
+        floating.Close();
+        window.Close();
+    }
+
     /// <summary>关掉浮窗，里面还开着的文档回到主编辑区 —— 别把宿主的内容跟着窗口一起扔了。</summary>
     [AvaloniaFact]
     public void 关掉浮窗文档回到主编辑区()

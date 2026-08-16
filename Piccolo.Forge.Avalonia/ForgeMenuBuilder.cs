@@ -190,6 +190,36 @@ public static class ForgeMenuBuilder
         ArgumentNullException.ThrowIfNull(tabId);
 
         var menu = new ContextMenu();
+        FillEditorTab(menu, area, tabId, isPinned, extend, moveToNewWindow);
+        return menu;
+    }
+
+    /// <summary>
+    /// 把标签页菜单的内容填进一个**已有**的 <see cref="ContextMenu"/>。
+    /// </summary>
+    /// <remarks>
+    /// 给"菜单实例建一次、每次打开前刷内容"用：每次同步都换一个新菜单实例的话，
+    /// 右键按下与松手之间实例就被换掉了，系统那套弹出流程会落空 —— 表现就是右键没反应。
+    /// </remarks>
+    /// <param name="menu">要填的菜单，会先清空。</param>
+    /// <param name="area">编辑区 VM。</param>
+    /// <param name="tabId">这一页的 id。</param>
+    /// <param name="isPinned">这一页当前是否固定。</param>
+    /// <param name="extend">宿主的追加项。</param>
+    /// <param name="moveToNewWindow">「在新窗口中打开」怎么做；<see langword="null"/> 表示不摆这一项。</param>
+    public static void FillEditorTab(
+        ContextMenu menu,
+        EditorAreaViewModel area,
+        string tabId,
+        bool isPinned,
+        Action<ContextMenu, string>? extend = null,
+        Action<string>? moveToNewWindow = null)
+    {
+        ArgumentNullException.ThrowIfNull(menu);
+        ArgumentNullException.ThrowIfNull(area);
+        ArgumentNullException.ThrowIfNull(tabId);
+
+        menu.Items.Clear();
         var model = area.Area;
 
         foreach (var item in EditorTabContextMenu.Standard())
@@ -254,7 +284,6 @@ public static class ForgeMenuBuilder
         }
 
         extend?.Invoke(menu, tabId);
-        return menu;
     }
 
     /// <summary>拆分，并按需要把原组那份收掉。</summary>
