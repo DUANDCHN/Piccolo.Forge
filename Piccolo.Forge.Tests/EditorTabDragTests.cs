@@ -511,10 +511,14 @@ public class EditorTabDragTests
             .Where(x => x.Title == "Bravo.cs")
             .OrderBy(x => x.TranslatePoint(default, control)!.Value.X)
             .Last();
+        var originalStrip = control.GetVisualDescendants().OfType<TabStrip>()
+            .OrderBy(x => x.TranslatePoint(default, control)!.Value.X)
+            .First();
         var press = GrabPoint(copied, window);
+        var originalX = originalStrip.TranslatePoint(
+            new Point(originalStrip.Bounds.Width / 2, originalStrip.Bounds.Height / 2), window)!.Value.X;
+        var drop = new Point(originalX, press.Y);
         window.MouseDown(press, MouseButton.Left);
-        var drop = control.TranslatePoint(
-            new Point(control.Bounds.Width * 0.25, control.Bounds.Height * 0.6), window)!.Value;
         window.MouseMove(drop);
         Dispatcher.UIThread.RunJobs();
         window.MouseUp(drop, MouseButton.Left);
@@ -542,8 +546,11 @@ public class EditorTabDragTests
             .OrderBy(x => x.TranslatePoint(default, control)!.Value.X)
             .First();
         var press = GrabPoint(rightTab, window);
-        var drop = leftStrip.TranslatePoint(
-            new Point(leftStrip.Bounds.Width / 2, leftStrip.Bounds.Height / 2), window)!.Value;
+        var leftX = leftStrip.TranslatePoint(
+            new Point(leftStrip.Bounds.Width / 2, leftStrip.Bounds.Height / 2), window)!.Value.X;
+        // 严格保持同一 Y：用户最自然的动作是沿标签行横着拖回去。
+        // 若只靠 SingleRowLayoutStrategy 的纵向拖出判据，这次不会进入跨组拖放。
+        var drop = new Point(leftX, press.Y);
 
         window.MouseDown(press, MouseButton.Left);
         window.MouseMove(drop);
@@ -554,6 +561,32 @@ public class EditorTabDragTests
         Assert.Single(editor.Area.Groups);
         Assert.Equal(["a", "c", "b"], editor.Area.Groups[0].Tabs.Select(x => x.Id));
         Assert.Equal(3, control.GetVisualDescendants().OfType<ForgeEditorTab>().Count());
+    }
+
+    [AvaloniaFact]
+    public void Releasing_over_the_editor_body_always_clears_the_drag_session()
+    {
+        var (_, window, control, a, _) = Shown();
+        var overlay = control.GetVisualDescendants().OfType<ForgeDragOverlay>().Single();
+        var press = GrabPoint(a, window);
+        var release = control.TranslatePoint(
+            new Point(control.Bounds.Width * 0.55, control.Bounds.Height * 0.45), window)!.Value;
+
+        window.MouseDown(press, MouseButton.Left);
+        window.MouseMove(release);
+        Dispatcher.UIThread.RunJobs();
+        Assert.NotNull(overlay.ThumbImage);
+
+        // 松手位置不在源 TabStrip 的事件路由上；拖拽若归标签条所有，这里就收不了尾。
+        window.MouseUp(release, MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Null(overlay.ThumbImage);
+        Assert.Null(overlay.ThumbRect);
+        Assert.Null(overlay.AreaRect);
+        Assert.All(
+            control.GetVisualDescendants().OfType<HeaderTabsPanel>(),
+            strip => Assert.Null(strip.DraggedChild));
     }
 
     [AvaloniaFact]

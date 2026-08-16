@@ -112,6 +112,13 @@ public class ForgeEditorArea : TemplatedControl
 
         ActualThemeVariantChanged += (_, _) => ApplyThemeVariant();
 
+        // 分屏树同步会临时摘挂组宿主，组内 TabStrip 不是稳定的拖拽所有者。
+        // 编辑区本身不参与那次摘挂，由它统一接收移动、松手与捕获丢失，保证会话必能收尾。
+        const RoutingStrategies dragRoutes = RoutingStrategies.Tunnel | RoutingStrategies.Bubble | RoutingStrategies.Direct;
+        AddHandler(PointerMovedEvent, OnDragPointerMoved, dragRoutes, handledEventsToo: true);
+        AddHandler(PointerReleasedEvent, OnDragPointerReleased, dragRoutes, handledEventsToo: true);
+        AddHandler(PointerCaptureLostEvent, OnDragPointerCaptureLost, dragRoutes, handledEventsToo: true);
+
         // 焦点进出要重画：活动/失焦是两套配色
     }
 
@@ -492,9 +499,6 @@ public class ForgeEditorArea : TemplatedControl
             _groupStrips[vm] = strip;
             const RoutingStrategies pointerRoutes = RoutingStrategies.Tunnel | RoutingStrategies.Direct;
             strip.AddHandler(PointerPressedEvent, OnStripPointerPressed, pointerRoutes, handledEventsToo: true);
-            strip.AddHandler(PointerMovedEvent, OnStripPointerMoved, pointerRoutes, handledEventsToo: true);
-            strip.AddHandler(PointerReleasedEvent, OnStripPointerReleased, pointerRoutes, handledEventsToo: true);
-            strip.AddHandler(PointerCaptureLostEvent, OnStripPointerCaptureLost, pointerRoutes, handledEventsToo: true);
 
             // 标签条底下那条 1px 分割线（EditorTabs.underTabsBorderColor）——
             // 它属于**标签条整体**，不属于某一个标签页，所以画在这里而不是 ForgeEditorTab 里。
@@ -585,7 +589,7 @@ public class ForgeEditorArea : TemplatedControl
         BeginPress(group, control, tab.Id, e);
     }
 
-    private void OnStripPointerMoved(object? sender, PointerEventArgs e)
+    private void OnDragPointerMoved(object? sender, PointerEventArgs e)
     {
         if (_dragGroup is not null && _dragTab is not null)
         {
@@ -593,7 +597,7 @@ public class ForgeEditorArea : TemplatedControl
         }
     }
 
-    private void OnStripPointerReleased(object? sender, PointerReleasedEventArgs e)
+    private void OnDragPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
         if (_dragGroup is not null && _dragTab is not null)
         {
@@ -602,15 +606,8 @@ public class ForgeEditorArea : TemplatedControl
         }
     }
 
-    private void OnStripPointerCaptureLost(object? sender, PointerCaptureLostEventArgs e)
+    private void OnDragPointerCaptureLost(object? sender, PointerCaptureLostEventArgs e)
     {
-        // Reallocation updates ItemsSource synchronously. Avalonia may briefly
-        // rebuild the presenter during that update; this is not user cancellation.
-        if (_reordering)
-        {
-            return;
-        }
-
         if (_dragGroup is not null && _dragTab is not null)
         {
             EndDrag(_dragGroup, _dragTab, commit: false);
@@ -625,7 +622,6 @@ public class ForgeEditorArea : TemplatedControl
     private Rect _dragOriginalRec;
     private bool _dragStarted;
     private bool _dragOut;
-    private bool _reordering;
     private EditorGroupViewModel? _dropGroup;
     private EditorDropSide _dropSide;
     private global::Avalonia.Media.Imaging.RenderTargetBitmap? _dragThumb;
@@ -652,9 +648,9 @@ public class ForgeEditorArea : TemplatedControl
         _dragId = id;
         _pressPoint = e.GetPosition(strip);
         _dragStarted = false;
-        // DragHelper extends MouseDragHelper<JBTabsImpl>: capture belongs to the
-        // whole tab container, so item recycling cannot strand the release.
-        e.Pointer.Capture(stripControl);
+        // 上游捕获 JBTabsImpl，因为它在拖动期间稳定存在；Forge 的分屏树同步会摘挂
+        // 具体 TabStrip，因此等价的稳定所有者是整个编辑区，而不是某一组标签条。
+        e.Pointer.Capture(this);
     }
 
     /// <summary>
@@ -727,20 +723,8 @@ public class ForgeEditorArea : TemplatedControl
         if (target >= 0)
         {
             var targetId = group.Tabs[target].Id;
-            _reordering = true;
-            var reordered = false;
-            try
+            if (_area.ReorderTab(_dragId, targetId))
             {
-                reordered = _area.ReorderTab(_dragId, targetId);
-            }
-            finally
-            {
-                _reordering = false;
-            }
-
-            if (reordered)
-            {
-                e.Pointer.Capture(stripControl);
                 // 换完位要**立刻**重排一次并把原位刷新成新格子
                 // （DragHelper.java:231-233：reallocate 之后马上重读 dragOriginalRec）。
                 // 不刷的话 freeSpace 会一直按最初那一格算，越拖越大，
