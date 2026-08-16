@@ -152,6 +152,18 @@ public sealed class EditorArea
     /// <para>
     /// 顺带把所在组设为当前组：点另一组的标签页，焦点本来就该跟过去。
     /// </para>
+    /// <para>
+    /// ⚠ **判据是「这一组里有没有这一页」，不是 <see cref="EditorGroup.Select"/> 的返回值。**
+    /// 那个方法在「本来就选中着」时返回 <see langword="false"/>（它答的是"选中项变了没有"），
+    /// 拿它当"找到没有"用，就会在**这一页已经是所在组的选中项**时整个方法空转：
+    /// <see cref="CurrentGroup"/> 不跟过去、<see cref="Changed"/> 也不广播。
+    /// <para>
+    /// 后果不是抽象的：分屏时点另一格里那张已选中的图，焦点不过去（跟随活动文档的
+    /// 分析面板于是跟错相机）；宿主程序化排完宫格调一句 <c>Select(第一路)</c> 想把
+    /// 焦点放回第一格，也会**静默失败**，当前组停留在最后切出去的那一格 ——
+    /// 再点「单栏」时就以那一格为幸存组收拢，标签顺序跟着乱掉。
+    /// </para>
+    /// </para>
     /// </remarks>
     /// <param name="id">标签页 id。</param>
     /// <returns>找到并选中了则为 <see langword="true"/>。</returns>
@@ -159,12 +171,15 @@ public sealed class EditorArea
     {
         foreach (var group in Groups)
         {
-            if (group.Select(id))
+            if (group.Tabs.All(x => x.Id != id))
             {
-                CurrentGroup = group;
-                OnChanged();
-                return true;
+                continue;
             }
+
+            group.Select(id);
+            CurrentGroup = group;
+            OnChanged();
+            return true;
         }
 
         return false;
@@ -484,6 +499,217 @@ public sealed class EditorArea
         {
             // 直到它不在任何分屏里
         }
+    }
+
+    /// <summary>
+    /// 收成一组 —— 页序 = 屏幕次序（左→右 / 上→下），幸存组恒为第一组。
+    /// </summary>
+    /// <remarks>
+    /// 与 <see cref="UnsplitAll"/> 的分工：那一条照抄上游（合并到**调用方指定**的那一组、
+    /// 兄弟的页一律**追加**在后面），是用户点「取消分屏」时的手势语义；
+    /// 这一条是**程序化归位**用的（宫格 → 单栏），要的是两条上游给不了的保证：
+    /// <list type="number">
+    /// <item><b>幸存组确定</b>：不看 <see cref="CurrentGroup"/>（它随焦点飘），恒取第一组，
+    /// 所以同一个宫格收几次都收成同一个样子；</item>
+    /// <item><b>页序确定</b>：按屏幕次序重排。走上游那条时，收进右下角那一格的话，
+    /// 页序会变成「右下那一格的页在最前」——用户看到的是标签顺序凭空乱掉。</item>
+    /// </list>
+    /// </remarks>
+    /// <returns>幸存下来的那一组。</returns>
+    public EditorGroup CollapseToSingleGroup()
+    {
+        var group = CollapseCore();
+        OnChanged();
+        return group;
+    }
+
+    /// <summary>
+    /// 把若干页排成 <paramref name="rows"/>×<paramref name="cols"/> 的**均匀**宫格。
+    /// </summary>
+    /// <remarks>
+    /// 实际形状由 <see cref="EditorGridPolicy.Resolve"/> 定（格数按页数封顶，
+    /// 多出来的页塞最后一格）。<paramref name="tabIds"/> 之外的页（宿主另开的静态文档等）
+    /// 留在第一格。
+    /// <para>
+    /// <b>为什么这件事必须在模型层做，而不是宿主拿 <see cref="DropTab(string, EditorGroup, EditorDropSide)"/> 敲。</b>
+    /// 敲得出格子，敲不出**比例**：每切一刀都是新建一个 0.5 的二叉分屏节点，
+    /// 三格于是成了 50% / 25% / 25%，四格才碰巧均匀。而 <see cref="EditorSplit.Proportion"/>
+    /// 挂在树的内部节点上，宿主根本够不着（<see cref="Root"/> 只读，
+    /// 要改就得自己在树上找刚切出来的那个节点 —— 那是把分屏树的知识搬进 UI 宿主）。
+    /// 树形与比例本来就是编辑区自己的账，同 <see cref="UnsplitAll"/> /
+    /// <see cref="MaximizeOrNormalize"/>。
+    /// </para>
+    /// <para>
+    /// 均匀是这么来的：一行 k 格切出来是**右嵌套**的
+    /// <c>(g0, (g1, (g2 …)))</c>，所以从外往里第 i 刀取 <c>1/(k-i)</c> ——
+    /// 外层 1/k 给第一格，剩下的 (k-1)/k 再按 1/(k-1) 切，逐格恰好 1/k。行方向同理。
+    /// </para>
+    /// </remarks>
+    /// <param name="tabIds">要进格子的页，**按格子的行主序**。</param>
+    /// <param name="rows">行数，<c>&lt;= 0</c> 表示按页数自动。</param>
+    /// <param name="cols">列数，<c>&lt;= 0</c> 表示按页数自动。</param>
+    /// <returns>确实排成了宫格则为 <see langword="true"/>；不足两页排不成宫格时收回单组并返回 <see langword="false"/>。</returns>
+    public bool ArrangeGrid(IReadOnlyList<string> tabIds, int rows, int cols)
+    {
+        ArgumentNullException.ThrowIfNull(tabIds);
+
+        var known = _root.Groups.SelectMany(g => g.Tabs).Select(x => x.Id).ToHashSet(StringComparer.Ordinal);
+        var ids = tabIds.Where(known.Contains).Distinct(StringComparer.Ordinal).ToList();
+
+        // 先收成一组：从「当前是什么形状」出发去改是算不清的，收平了再切才有确定的起点。
+        var survivor = CollapseCore();
+
+        if (ids.Count < 2)
+        {
+            OnChanged();
+            return false;
+        }
+
+        var shape = EditorGridPolicy.Resolve(ids.Count, rows, cols);
+        survivor.Select(ids[0]);
+
+        // 行：每一行从上一行切出去 → 右嵌套的竖直分屏
+        var rowGroups = new List<EditorGroup> { survivor };
+        var rowSplits = new List<EditorSplit>();
+        for (var r = 1; r < shape.Rows; r++)
+        {
+            var index = r * shape.Cols;
+            if (index >= shape.CellCount || Carve(rowGroups[r - 1], ids[index], vertical: true) is not { } carved)
+            {
+                break;
+            }
+
+            rowSplits.Add(carved.Split);
+            rowGroups.Add(carved.Created);
+        }
+
+        // 列：每一行内部再右嵌套地切出各格
+        for (var r = 0; r < rowGroups.Count; r++)
+        {
+            var previous = rowGroups[r];
+            var colSplits = new List<EditorSplit>();
+            for (var c = 1; c < shape.Cols; c++)
+            {
+                var index = (r * shape.Cols) + c;
+                if (index >= shape.CellCount || Carve(previous, ids[index], vertical: false) is not { } carved)
+                {
+                    break;
+                }
+
+                colSplits.Add(carved.Split);
+                previous = carved.Created;
+            }
+
+            Distribute(colSplits);
+        }
+
+        Distribute(rowSplits);
+
+        // 多于格数的那些：留在最后一格当标签页（预设的语义是「最大形状」，见 EditorGridPolicy）
+        if (GroupOf(ids[shape.CellCount - 1]) is { } last)
+        {
+            for (var i = shape.CellCount; i < ids.Count; i++)
+            {
+                MoveInto(last, ids[i]);
+            }
+        }
+
+        CurrentGroup = survivor;
+        OnChanged();
+        return true;
+    }
+
+    /// <summary>把一条右嵌套分屏链的比例摊匀：从外往里第 i 刀取 <c>1/(n+1-i)</c>。</summary>
+    private static void Distribute(IReadOnlyList<EditorSplit> chain)
+    {
+        for (var i = 0; i < chain.Count; i++)
+        {
+            chain[i].Proportion = 1f / (chain.Count + 1 - i);
+        }
+    }
+
+    /// <summary>
+    /// 从树上任意位置取一页，切成 <paramref name="target"/> 旁边的新一格。
+    /// </summary>
+    /// <remarks>
+    /// 与 <see cref="Split"/> 的差别：那个只能带走**本组**选中的那一页；
+    /// 这里要的是「把第 k 路挪到第 k 格」，源在哪一组由 id 决定，不受 target 限制。
+    /// </remarks>
+    private (EditorSplit Split, EditorGroup Created)? Carve(EditorGroup target, string tabId, bool vertical)
+    {
+        if (GroupOf(tabId) is not { } source)
+        {
+            return null;
+        }
+
+        var tab = source.Tabs.First(x => x.Id == tabId);
+        var created = new EditorGroup();
+        created.Add(tab);
+
+        var split = new EditorSplit(target, created, vertical);
+        Replace(target, split);
+        source.Close(tabId);
+        return (split, created);
+    }
+
+    /// <summary>把一页并进某一组（不分屏）。</summary>
+    private void MoveInto(EditorGroup target, string tabId)
+    {
+        if (GroupOf(tabId) is not { } source || ReferenceEquals(source, target))
+        {
+            return;
+        }
+
+        var tab = source.Tabs.First(x => x.Id == tabId);
+        source.Close(tabId);
+        target.Add(tab, select: false);
+    }
+
+    /// <summary>这一页在哪一组（树里靠前的那份）。</summary>
+    private EditorGroup? GroupOf(string tabId) => _root.Groups.FirstOrDefault(g => g.Tabs.Any(x => x.Id == tabId));
+
+    /// <summary>收成一组，但**不广播** —— 给「收完还要接着改树」的调用方用。</summary>
+    private EditorGroup CollapseCore()
+    {
+        var groups = _root.Groups.ToList();
+        var survivor = groups[0];
+        if (groups.Count == 1)
+        {
+            return survivor;
+        }
+
+        // 屏幕次序（Groups 就是左→右 / 上→下）。同一 id 可能同时开在两组，去重。
+        var order = new List<EditorTab>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var tab in groups.SelectMany(g => g.Tabs))
+        {
+            if (seen.Add(tab.Id))
+            {
+                order.Add(tab);
+            }
+        }
+
+        var selected = CurrentGroup.SelectedId;
+
+        foreach (var tab in survivor.Tabs.ToList())
+        {
+            survivor.Close(tab.Id);
+        }
+
+        foreach (var tab in order)
+        {
+            survivor.Add(tab, select: false);
+        }
+
+        _root = survivor;
+        CurrentGroup = survivor;
+
+        if (selected is not null)
+        {
+            survivor.Select(selected);
+        }
+
+        return survivor;
     }
 
     /// <summary>

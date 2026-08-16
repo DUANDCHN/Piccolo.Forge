@@ -306,10 +306,24 @@ public class ForgeEditorTab : TabStripItem
             return;
         }
 
-        if (_iconControl is not null)
+        ReleaseIcon();
+
+        // ★ 宿主给的若是**控件实例**，它可能还挂在上一个标签容器上 —— 先摘再收养。
+        //
+        //   一个 Avalonia 控件只能有一个父，第二个容器收养它时当场抛
+        //   「already has a visual parent」。而这一次收养发生在标签集合变化的**同步回调**里
+        //   （TabStrip 的 PrepareContainerForItem），异常会顺着 EditorArea.Changed 一路炸穿
+        //   编辑区 VM 的同步 —— 表现不是「图标没了」，而是**整块编辑区停在上一版、点什么都没反应**，
+        //   再点一次才在半同步的状态上凑合建出来（于是少一个标签页）。
+        //   触发它的日常动作就是「宫格收回单栏」：旧那一格的标签条被整条丢弃，
+        //   它的容器不走 ClearContainerForItem，图标就一直攥在死容器手里。
+        //
+        //   同一页真的同时开在两个分屏时，实例只能跟着最后同步的那个走 ——
+        //   这是「传实例」本身的代价（宿主传 Func<Control> 工厂即可两边都有，
+        //   见 ForgeEditorArea.ResolveIcon）。但**无论如何不能让它打断同步**。
+        if (control?.GetVisualParent() is ForgeEditorTab previous)
         {
-            VisualChildren.Remove(_iconControl);
-            LogicalChildren.Remove(_iconControl);
+            previous.ReleaseIcon();
         }
 
         _iconControl = control;
@@ -320,6 +334,20 @@ public class ForgeEditorTab : TabStripItem
             LogicalChildren.Add(_iconControl);
         }
 
+        InvalidateMeasure();
+    }
+
+    /// <summary>松开攥着的图标控件，好让别的标签容器收养它。</summary>
+    private void ReleaseIcon()
+    {
+        if (_iconControl is null)
+        {
+            return;
+        }
+
+        VisualChildren.Remove(_iconControl);
+        LogicalChildren.Remove(_iconControl);
+        _iconControl = null;
         InvalidateMeasure();
     }
 
