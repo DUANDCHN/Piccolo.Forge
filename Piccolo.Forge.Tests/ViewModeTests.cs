@@ -90,7 +90,7 @@ public class ViewModeTests
     /// FLOATING 是 JDialog 且 Windows 上 <c>setUndecorated(true)</c>（<c>FloatingDecorator.java:102-108</c>）。
     /// </remarks>
     [AvaloniaTheory]
-    [InlineData(ToolWindowType.Floating, WindowDecorations.None)]
+    [InlineData(ToolWindowType.Floating, WindowDecorations.BorderOnly)]
     [InlineData(ToolWindowType.Windowed, WindowDecorations.Full)]
     public void 只有浮动去掉标题栏(ToolWindowType type, WindowDecorations decorations)
     {
@@ -101,14 +101,10 @@ public class ViewModeTests
 
         var host = frame.ExternalWindows.Single().Window;
 
-        // None = 一点装饰都不留（连四周那圈边框也不要，暗色下顶上那条会顶掉标题条的样子）；
+        // BorderOnly = 留边框、圆角、拖边改大小，只去掉标题栏那条（也就没有最小/最大/关闭）；
         // Full = 完整装饰，独立窗口该有的三个按钮都在。
         Assert.Equal(decorations, host.WindowDecorations);
-
-        // 浮动的改大小靠自己那圈 3px 边条（同上游 BorderItem）
-        Assert.Equal(
-            type == ToolWindowType.Floating,
-            host.GetVisualDescendants().OfType<ForgeWindowResizeFrame>().Any());
+        Assert.True(host.CanResize, "两种形态都得能改大小");
 
         window.Close();
     }
