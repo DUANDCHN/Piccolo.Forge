@@ -309,9 +309,9 @@ public class ForgeDockPane : Panel
             }
         }
 
-        var clip = remaining == new Rect(paneSize) ? null : new RectangleGeometry(remaining);
+        var whole = new Rect(paneSize);
 
-        foreach (var (child, _) in placed)
+        foreach (var (child, rect) in placed)
         {
             // **所有被压着的都要让开**，不只是编辑区：滑出的面板贴边铺满整条边长，
             // 一块底部的滑出面板会同时压住左右停靠的面板 —— 它们不让开，
@@ -323,7 +323,12 @@ public class ForgeDockPane : Panel
                 continue;
             }
 
-            child.Clip = clip;
+            // ⚠ Clip 用的是**子控件自己的坐标系**，remaining 算在停靠区的坐标里 —— 要换算过去。
+            //   不换算的话，左边有滑出面板时 remaining.X 是几百，套进右面板（自身才两百来宽）
+            //   的坐标就成了空矩形，整块面板被裁没。
+            child.Clip = remaining == whole
+                ? null
+                : new RectangleGeometry(remaining.Translate(-(Vector)rect.Position));
         }
     }
 

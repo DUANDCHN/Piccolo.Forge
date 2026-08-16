@@ -432,6 +432,47 @@ public class ViewModeTests
         window.Close();
     }
 
+    /// <summary>
+    /// 让开归让开，别把人家整块裁没了。
+    /// </summary>
+    /// <remarks>
+    /// 回归：<c>Clip</c> 用的是**子控件自己的坐标系**，而"让开多少"算在停靠区的坐标里。
+    /// 不换算的话，左边有滑出面板时那个矩形的 X 是几百，套进右面板（自身才两百来宽）
+    /// 的坐标就成了空矩形 —— 右面板整块消失，收起滑出面板后又回来。
+    /// </remarks>
+    [AvaloniaFact]
+    public void 让开的裁剪要换算到各自的坐标系()
+    {
+        var infos = new List<WindowInfo>
+        {
+            new() { Id = "左", Anchor = ToolWindowAnchor.Left, Order = 0, IsVisible = true, Weight = 0.25f },
+            new() { Id = "右", Anchor = ToolWindowAnchor.Right, Order = 0, IsVisible = true, Weight = 0.25f },
+        };
+
+        var shell = new ToolWindowShellViewModel(new ToolWindowManager(new DesktopLayout(infos)));
+        var editor = new Border();
+        var frame = new ForgeToolWindowFrame { EditorContent = editor };
+        frame.Attach(shell);
+
+        var window = new Window { Width = 900, Height = 500, WindowDecorations = WindowDecorations.None, Content = frame };
+        window.Show();
+        Pump(window);
+
+        shell.Manager.SetType("左", ToolWindowType.Sliding);
+        Pump(window);
+
+        var right = frame.DockPane.Children.OfType<Border>()
+            .First(x => ForgeDockPane.GetAnchor(x) == ToolWindowAnchor.Right);
+        var clip = Assert.IsType<RectangleGeometry>(right.Clip);
+
+        // 右面板离滑出的那块十万八千里，它整块都该照画
+        Assert.True(
+            clip.Rect.Contains(new Rect(right.Bounds.Size)),
+            $"右面板被裁没了：裁剪 {clip.Rect}，而它自身是 {right.Bounds.Size}");
+
+        window.Close();
+    }
+
     /// <summary>独立出去之后，标题条上多一个「停靠回去」；点它就回到原来的内部形态。</summary>
     /// <remarks>上游那组动作的第一个就是 <c>DockToolWindowAction</c>（<c>ToolWindowHeader.kt:119</c>）。</remarks>
     [AvaloniaFact]
