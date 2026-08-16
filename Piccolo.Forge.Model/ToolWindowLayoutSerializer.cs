@@ -21,16 +21,6 @@ public static class ToolWindowLayoutSerializer
     /// <summary>根标签（<c>DesktopLayout.kt:25</c>）。</summary>
     public const string LayoutTag = "layout";
 
-    /// <summary>
-    /// 「条带上显示工具窗口名字」写在 <see cref="LayoutTag"/> 上的属性名。
-    /// </summary>
-    /// <remarks>
-    /// <b>有意与上游不同</b>：IntelliJ 把它放在全局的 <c>UISettings.showToolWindowsNames</c>，
-    /// 而 Forge 不做全局设置存档 —— 它是「界面摆成什么样」的一部分，就跟布局一起存。
-    /// 好处很实在：宿主的两条存档路径（自动存的「上次退出时的样子」与用户自己存的布局文件）
-    /// **都写同一份 XML**，因此两条路自动都带上它，不必各自再开一个开关去记。
-    /// </remarks>
-    public const string ShowNamesAttribute = "show-names";
 
     /// <summary>单个窗口的标签（<c>WindowInfoImpl.kt:34</c>）。</summary>
     public const string WindowInfoTag = "window_info";
@@ -44,13 +34,11 @@ public static class ToolWindowLayoutSerializer
     /// <remarks>条目按 <see cref="DesktopLayout.Comparer"/> 排序（<c>DesktopLayout.kt:153</c>）。</remarks>
     /// <param name="layout">布局。</param>
     /// <returns>根元素。</returns>
-    /// <param name="showNames">条带上是否显示工具窗口名字（见 <see cref="ShowNamesAttribute"/>）。</param>
-    public static XElement Write(DesktopLayout layout, bool showNames = false)
+    public static XElement Write(DesktopLayout layout)
     {
         ArgumentNullException.ThrowIfNull(layout);
 
         var root = new XElement(LayoutTag);
-        root.SetAttributeValue(ShowNamesAttribute, showNames);
 
         foreach (var info in layout.GetSortedList())
         {
@@ -199,16 +187,6 @@ public static class ToolWindowLayoutSerializer
         => Enum.TryParse<ToolWindowType>((string?)element.Attribute(name), ignoreCase: true, out var value)
             ? value
             : ToolWindowType.Docked;
-
-    /// <summary>读回「条带上显示工具窗口名字」。</summary>
-    /// <param name="root">存档根元素。</param>
-    /// <param name="fallback">存档里没写时用什么。</param>
-    /// <returns>存档里的值。</returns>
-    public static bool ReadShowNames(XElement root, bool fallback = false)
-    {
-        ArgumentNullException.ThrowIfNull(root);
-        return Bool(root, ShowNamesAttribute, fallback);
-    }
 
     private static bool Bool(XElement element, string name, bool fallback)
         => bool.TryParse((string?)element.Attribute(name), out var value) ? value : fallback;

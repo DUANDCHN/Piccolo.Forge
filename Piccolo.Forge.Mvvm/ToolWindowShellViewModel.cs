@@ -57,10 +57,14 @@ public sealed class ToolWindowShellViewModel : ForgeObservableObject
 
     /// <summary>条带上是否在图标下面显示名字。</summary>
     /// <remarks>
-    /// <b>这里是真相</b>，控件（<c>ForgeToolWindowFrame.ShowToolWindowNames</c>）跟着它走。
-    /// 放在 VM 上而不是控件上，是因为它要**跟布局一起存**
-    /// （<see cref="SaveLayout"/> / <see cref="RestoreLayout"/>）——
-    /// 存在控件上的话，宿主每条存档路径都得单独记一次这个开关。
+    /// <b>这里是运行期的真相</b>，控件（<c>ForgeToolWindowFrame.ShowToolWindowNames</c>）跟着它走：
+    /// 菜单里切换会落到这里，宿主也从这里读写。
+    /// <para>
+    /// <b>库不负责持久化它。</b>上游把它放在应用级的 <c>UISettings.showToolWindowsNames</c>
+    /// （<c>UISettings.kt:40-45</c> 存 <c>ui.lnf.xml</c>，跨项目全局），而**布局**是项目级的
+    /// （<c>ToolWindowManagerState.kt:38</c> 存 <c>workspace.xml</c>）—— 两条线，不是一回事。
+    /// 宿主想存哪就存哪，订阅 <see cref="ForgeObservableObject.PropertyChanged"/> 即可。
+    /// </para>
     /// </remarks>
     public bool ShowToolWindowNames
     {
@@ -263,15 +267,12 @@ public sealed class ToolWindowShellViewModel : ForgeObservableObject
     public IReadOnlyList<string> RestoreLayout(XElement xml)
     {
         ArgumentNullException.ThrowIfNull(xml);
-
-        // 存档里没写这条就保持当前值（老存档、或别处写出来的片段）
-        ShowToolWindowNames = ToolWindowLayoutSerializer.ReadShowNames(xml, ShowToolWindowNames);
         return Manager.SetLayout(ToolWindowLayoutSerializer.Read(xml));
     }
 
     /// <summary>把当前摆放写成存档。</summary>
     /// <returns>存档根元素。</returns>
-    public XElement SaveLayout() => ToolWindowLayoutSerializer.Write(Manager.Layout, ShowToolWindowNames);
+    public XElement SaveLayout() => ToolWindowLayoutSerializer.Write(Manager.Layout);
 
     private void Track(ToolWindowViewModel vm)
     {
