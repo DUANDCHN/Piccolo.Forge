@@ -1,6 +1,7 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Piccolo.Forge.Model;
@@ -43,7 +44,12 @@ public class ForgeToolWindowHeader : TemplatedControl
     public static readonly StyledProperty<bool> ShowButtonsProperty =
         AvaloniaProperty.Register<ForgeToolWindowHeader, bool>(nameof(ShowButtons), defaultValue: true);
 
+    /// <summary><see cref="ShowDockButton"/> 的属性定义。</summary>
+    public static readonly StyledProperty<bool> ShowDockButtonProperty =
+        AvaloniaProperty.Register<ForgeToolWindowHeader, bool>(nameof(ShowDockButton));
+
     private readonly ForgeContentTabStrip _tabs = new();
+    private readonly ForgeHeaderButton _dock = new() { Icon = ForgeIcons.Dock, IsFilledIcon = false };
     private readonly ForgeHeaderButton _options = new() { Icon = ForgeIcons.MoreVertical };
     private readonly ForgeHeaderButton _hide = new() { Icon = ForgeIcons.Hide, IsFilledIcon = false };
     private readonly List<Control> _extra = [];
@@ -54,10 +60,11 @@ public class ForgeToolWindowHeader : TemplatedControl
         VisualChildren.Add(_tabs);
         LogicalChildren.Add(_tabs);
 
+        _dock.Click += (_, e) => DockRequested?.Invoke(this, e);
         _options.Click += (_, e) => OptionsRequested?.Invoke(this, e);
         _hide.Click += (_, e) => HideRequested?.Invoke(this, e);
 
-        foreach (var button in Buttons)
+        foreach (var button in new Control[] { _dock, _options, _hide })
         {
             VisualChildren.Add(button);
             LogicalChildren.Add(button);
@@ -76,6 +83,22 @@ public class ForgeToolWindowHeader : TemplatedControl
         get => GetValue(ShowButtonsProperty);
         set => SetValue(ShowButtonsProperty, value);
     }
+
+    /// <summary>
+    /// 显不显示「停靠回去」那个按钮。
+    /// </summary>
+    /// <remarks>
+    /// 上游那组动作的第一个就是 <c>DockToolWindowAction</c>（<c>ToolWindowHeader.kt:119</c>），
+    /// **只在面板处于外部形态（浮动 / 独立窗口）时出现** —— 已经停靠着的面板没有"停回去"这回事。
+    /// </remarks>
+    public bool ShowDockButton
+    {
+        get => GetValue(ShowDockButtonProperty);
+        set => SetValue(ShowDockButtonProperty, value);
+    }
+
+    /// <summary>「停靠回去」被点了。</summary>
+    public event EventHandler<RoutedEventArgs>? DockRequested;
 
     /// <summary>⋮ 被点了 —— 宿主在这里弹「选项」菜单。</summary>
     public event EventHandler<RoutedEventArgs>? OptionsRequested;
@@ -119,13 +142,15 @@ public class ForgeToolWindowHeader : TemplatedControl
         InvalidateMeasure();
     }
 
-    /// <summary>右侧那排按钮，从左到右：宿主的 → ⋮ → —。</summary>
-    private IEnumerable<Control> Buttons => [.. _extra, _options, _hide];
+    /// <summary>右侧那排按钮，从左到右：宿主的 → ⿴ 停靠 → ⋮ → —。</summary>
+    /// <remarks>次序照上游 <c>DefaultActionGroup(DockToolWindowAction(), ShowOptionsAction(), HideAction())</c>。</remarks>
+    private IEnumerable<Control> Buttons =>
+        ShowDockButton ? [.. _extra, _dock, _options, _hide] : [.. _extra, _options, _hide];
 
     static ForgeToolWindowHeader()
     {
         AffectsRender<ForgeToolWindowHeader>(PaletteProperty, TitleProperty, IsActiveProperty);
-        AffectsMeasure<ForgeToolWindowHeader>(IsCompactProperty, ShowButtonsProperty);
+        AffectsMeasure<ForgeToolWindowHeader>(IsCompactProperty, ShowButtonsProperty, ShowDockButtonProperty);
         ContentUiTypeProperty.Changed.AddClassHandler<ForgeToolWindowHeader>((h, _) => h.InvalidateMeasure());
     }
 
@@ -222,6 +247,8 @@ public class ForgeToolWindowHeader : TemplatedControl
     /// <inheritdoc />
     protected override Size MeasureOverride(Size availableSize)
     {
+        _dock.IsVisible = ShowButtons && ShowDockButton;
+
         foreach (var button in Buttons)
         {
             button.IsVisible = ShowButtons;
@@ -257,6 +284,23 @@ public class ForgeToolWindowHeader : TemplatedControl
         var width = Math.Max(0, finalSize.Width - start - ButtonsWidth);
         _tabs.Arrange(new Rect(start, 0, width, finalSize.Height));
         return finalSize;
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// 外部形态（浮动 / 独立窗口）用的是**自绘 chrome**（没有系统标题栏），
+    /// 所以标题条自己得担起「按住拖动整个窗口」——同主窗口的做法。
+    /// 判据是这个窗口有没有系统装饰（WindowDecorations）：有就说明不是自绘 chrome 的那种窗口，不该抢它的手势。
+    /// </remarks>
+    protected override void OnPointerPressed(PointerPressedEventArgs e)
+    {
+        base.OnPointerPressed(e);
+
+        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed
+            && TopLevel.GetTopLevel(this) is Window { WindowDecorations: not WindowDecorations.Full } window)
+        {
+            window.BeginMoveDrag(e);
+        }
     }
 
     /// <inheritdoc />

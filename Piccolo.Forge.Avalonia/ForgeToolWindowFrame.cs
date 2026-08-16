@@ -1365,6 +1365,16 @@ public class ForgeToolWindowFrame : TemplatedControl
         header.OptionsRequested += (_, _) => ShowHeaderOptions(id);
         header.HideRequested += (_, _) => _shell?.Manager.Hide(id);
 
+        // 停靠回去：回到它上次的**内部**形态（停靠固定 / 停靠不固定），
+        // 模型记着这个（WindowInfo.InternalType，SetType 切到外部形态时不动它）。
+        header.DockRequested += (_, _) =>
+        {
+            if (_shell is { } shell)
+            {
+                shell.Manager.SetType(id, shell.Manager.ResolveInternalType(id));
+            }
+        };
+
         // 内容用 ContentControl 承载 object —— 视图由**宿主**的 ViewLocator / DataTemplate 解析
         var content = new ContentControl();
         _panelContents[vm.Id] = content;
@@ -1390,6 +1400,9 @@ public class ForgeToolWindowFrame : TemplatedControl
         header.IsActive = vm.IsActive;
         header.ContentUiType = info.ContentUiType;
         header.ShowButtons = ShowHeaderButtons;
+
+        // 「停靠回去」只在独立出去之后才有意义
+        header.ShowDockButton = ToolWindowManager.IsExternal(info.Type);
         header.SetExtraButtons(HeaderButtonsExtension?.Invoke(vm.Id));
         SyncTabs(header, vm, info.ContentUiType);
 

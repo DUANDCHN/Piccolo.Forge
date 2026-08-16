@@ -1,4 +1,4 @@
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Controls;
 using Piccolo.Forge.Model;
 using Piccolo.Forge.Themes;
@@ -46,6 +46,16 @@ public sealed class ForgeFloatingToolWindow
             // （FloatingDecorator.java:63 是 JDialog，WindowedDecorator 是 JFrame）
             ShowInTaskbar = type == ToolWindowType.Windowed,
             CanResize = true,
+
+            // ★ 自绘 chrome：不要系统标题栏 —— 面板自己的标题条（ForgeToolWindowHeader）
+            //   就是它的标题栏，上面有「停靠回去 / ⋮ / 收起」。上游同理：
+            //   FloatingDecorator / WindowedDecorator 里装的就是带 ToolWindowHeader 的那个装饰器，
+            //   不是把面板塞进一个系统外框里。
+            //   ⚠ 用 ExtendClientArea 而不是 WindowDecorations.None：前者留着系统的
+            //     改大小、贴边、阴影，只是把标题栏那条让出来自己画；后者连改大小都得自己写。
+            //   与宿主自绘窗口（LDVision 的 ToolWindow / NoticeWindow）同一套写法。
+            ExtendClientAreaToDecorationsHint = true,
+            ExtendClientAreaTitleBarHeightHint = -1,
         };
     }
 

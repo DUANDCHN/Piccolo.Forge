@@ -1,8 +1,10 @@
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
+using Piccolo.Forge.Themes;
 using Piccolo.Forge.Avalonia;
 using Piccolo.Forge.Model;
 using Piccolo.Forge.Mvvm;
@@ -76,6 +78,51 @@ public class ViewModeTests
 
         Assert.Empty(frame.ExternalWindows);
         Assert.True(editor.Bounds.X > 0);
+
+        window.Close();
+    }
+
+    /// <summary>浮动 / 独立窗口都用**自绘 chrome**：没有系统标题栏，面板自己的标题条就是它的标题栏。</summary>
+    /// <remarks>对位上游：FloatingDecorator / WindowedDecorator 里装的就是带 ToolWindowHeader 的装饰器。</remarks>
+    [AvaloniaTheory]
+    [InlineData(ToolWindowType.Floating)]
+    [InlineData(ToolWindowType.Windowed)]
+    public void 外部窗口没有系统标题栏(ToolWindowType type)
+    {
+        var (window, frame, shell, _) = Build();
+
+        shell.Manager.SetType("相机列表", type);
+        Pump(window);
+
+        var host = frame.ExternalWindows.Single().Window;
+        Assert.True(host.ExtendClientAreaToDecorationsHint, "客户区没延伸到装饰区，系统标题栏还在");
+        Assert.Equal(-1, host.ExtendClientAreaTitleBarHeightHint);
+
+        window.Close();
+    }
+
+    /// <summary>独立出去之后，标题条上多一个「停靠回去」；点它就回到原来的内部形态。</summary>
+    /// <remarks>上游那组动作的第一个就是 <c>DockToolWindowAction</c>（<c>ToolWindowHeader.kt:119</c>）。</remarks>
+    [AvaloniaFact]
+    public void 停靠回去的按钮只在独立出去时出现()
+    {
+        var (window, frame, shell, _) = Build();
+        var header = frame.GetVisualDescendants().OfType<ForgeToolWindowHeader>().Single();
+
+        Assert.False(header.ShowDockButton, "停靠着的面板不该有「停靠回去」");
+
+        shell.Manager.SetType("相机列表", ToolWindowType.Floating);
+        Pump(window);
+        Assert.True(header.ShowDockButton);
+
+        // 点它 → 回到内部形态（模型记着上一次是哪种）
+        header.GetVisualDescendants().OfType<ForgeHeaderButton>()
+            .First(x => x.IsVisible && ReferenceEquals(x.Icon, ForgeIcons.Dock))
+            .RaiseEvent(new global::Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        Pump(window);
+
+        Assert.Equal(ToolWindowType.Docked, shell.Manager.Layout.GetInfo("相机列表")!.Type);
+        Assert.Empty(frame.ExternalWindows);
 
         window.Close();
     }

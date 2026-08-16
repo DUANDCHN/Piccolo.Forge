@@ -231,9 +231,15 @@ public class HeaderButtonsTests
         window.Close();
     }
 
+    /// <summary>标题条上**看得见**的那几个按钮。</summary>
+    /// <remarks>
+    /// 「停靠回去」那个恒在树上、只在外部形态时可见（同上游：DockToolWindowAction 只有
+    /// 浮动 / 独立窗口时才出现），所以这里按可见性过滤。
+    /// </remarks>
     private static List<ForgeHeaderButton> Buttons(ForgeToolWindowFrame frame) =>
         [.. frame.GetVisualDescendants().OfType<ForgeToolWindowHeader>()
-            .SelectMany(h => h.GetVisualDescendants().OfType<ForgeHeaderButton>())];
+            .SelectMany(h => h.GetVisualDescendants().OfType<ForgeHeaderButton>())
+            .Where(x => x.IsVisible)];
 
     private static (Window Window, ForgeToolWindowFrame Frame, ToolWindowShellViewModel Shell) Build(
         Action<ForgeToolWindowFrame>? configure = null)

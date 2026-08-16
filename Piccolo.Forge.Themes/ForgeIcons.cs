@@ -44,6 +44,16 @@ public static class ForgeIcons
         "M 7,3 L 9,3 L 9,5 L 7,5 Z M 7,7 L 9,7 L 9,9 L 7,9 Z M 7,11 L 9,11 L 9,13 L 7,13 Z");
 
     /// <summary>
+    /// 停靠回去：一个方框 + 指进左下角的箭头。
+    /// </summary>
+    /// <remarks>
+    /// 对应上游标题条那组动作里的第一个 <c>DockToolWindowAction</c>
+    /// （<c>ToolWindowHeader.kt:119</c>）—— 只有面板在独立窗口里时才显示。
+    /// </remarks>
+    public static Geometry Dock { get; } = Parse(
+        "M 2.5,2.5 L 13.5,2.5 L 13.5,13.5 L 2.5,13.5 Z M 10,6 L 6,10 M 6,6.5 L 6,10 L 9.5,10");
+
+    /// <summary>
     /// 隐藏（收起面板）：一条横线。
     /// </summary>
     /// <remarks>
