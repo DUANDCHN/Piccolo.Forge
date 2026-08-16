@@ -1724,6 +1724,12 @@ public class ForgeToolWindowFrame : TemplatedControl
         header.Palette = Palette;
         header.Title = vm.Title;
         header.TitleFontWeight = HeaderTitleFontWeight;
+
+        // 标题条坐在岛顶上：跟着岛磨圆上面两个角，否则它会把那两段弧盖掉（见 TopCornerRadius）。
+        // 减掉描边自己占的 1px —— 内圆角比外圆角小这一圈。
+        header.TopCornerRadius = (IslandMetrics ?? Palette.Island) is { } island && Palette.Island is not null
+            ? Math.Max(0, island.CornerRadius - 1)
+            : 0;
         header.IsActive = vm.IsActive;
         header.ContentUiType = info.ContentUiType;
         header.ShowButtons = ShowHeaderButtons;

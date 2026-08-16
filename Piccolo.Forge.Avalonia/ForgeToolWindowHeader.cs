@@ -168,7 +168,8 @@ public class ForgeToolWindowHeader : TemplatedControl
 
     static ForgeToolWindowHeader()
     {
-        AffectsRender<ForgeToolWindowHeader>(PaletteProperty, TitleProperty, IsActiveProperty);
+        AffectsRender<ForgeToolWindowHeader>(
+            PaletteProperty, TitleProperty, IsActiveProperty, TopCornerRadiusProperty);
         AffectsMeasure<ForgeToolWindowHeader>(TitleFontWeightProperty);
         AffectsMeasure<ForgeToolWindowHeader>(
             IsCompactProperty,
@@ -297,6 +298,23 @@ public class ForgeToolWindowHeader : TemplatedControl
     /// </para>
     /// </remarks>
     public bool IsWindowTitleBar => !double.IsNaN(TitleBarHeight);
+
+    /// <summary>
+    /// 上面两个角的圆角半径 —— 标题条坐在岛的顶上时，得跟着岛一起磨圆。
+    /// </summary>
+    /// <remarks>
+    /// 标题条是不透明的：它要是方角，就会把岛顶上那两段圆角**盖掉**，
+    /// 表现成"下面的圆角好好的，上面的断了"。岛的描边画在标题条之下，压不住。
+    /// </remarks>
+    public static readonly StyledProperty<double> TopCornerRadiusProperty =
+        AvaloniaProperty.Register<ForgeToolWindowHeader, double>(nameof(TopCornerRadius));
+
+    /// <summary>上面两个角的圆角半径。</summary>
+    public double TopCornerRadius
+    {
+        get => GetValue(TopCornerRadiusProperty);
+        set => SetValue(TopCornerRadiusProperty, value);
+    }
 
     /// <summary>标题条高度：兼任窗口标题栏时按 <see cref="TitleBarHeight"/>，否则紧凑 31 / 常规 41。</summary>
     public double HeaderHeight => double.IsNaN(TitleBarHeight)
@@ -474,7 +492,13 @@ public class ForgeToolWindowHeader : TemplatedControl
         // 活动与非活动**同色**：ToolWindowHeader.kt:312 是 `val active = !isNewUi && isActive`，
         // 新 UI 下恒为 false，drawHeader 永远走 headerBackground()。
         // 「活动标题条」那条高亮是老 UI 的东西，照它画一眼就不像。
-        context.FillRectangle(new SolidColorBrush(Palette.HeaderBackground), new Rect(Bounds.Size));
+        // 上面两个角跟着岛磨圆（见 TopCornerRadius）；下面两个角照旧是方的 —— 它接着正文
+        context.DrawRectangle(
+            new SolidColorBrush(Palette.HeaderBackground),
+            null,
+            new RoundedRect(
+                new Rect(Bounds.Size),
+                new CornerRadius(TopCornerRadius, TopCornerRadius, 0, 0)));
 
         // 下边一条 1px 分隔线
         context.FillRectangle(

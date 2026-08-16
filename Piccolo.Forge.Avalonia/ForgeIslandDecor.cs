@@ -80,10 +80,12 @@ public static class ForgeIslandDecor
         // 不裁的结果是四个角被内容重新填成方的 —— 岛白做了。
         host.ClipToBounds = true;
 
-        // 描边与岛同色（Island.borderColor ← tool-window-bg）：它不是看得见的框线，
-        // 是把抗锯齿后的圆角边缘补实。别改成对比色。
+        // 描边取 Island.borderColor。上游那个键与岛同色 —— 那圈只是把抗锯齿后的圆角边缘补实，
+        // 不是给人看的框线；宿主要一圈看得见的轮廓，在配色里把这个键调成与岛有差的色即可
+        // （底板是云母那种"明度随壁纸变"的场合，靠缝分隔就不够稳，描边才稳）。
         host.BorderBrush = new SolidColorBrush(palette.IslandBorder);
         host.BorderThickness = new Thickness(1);
+
 
 
     }

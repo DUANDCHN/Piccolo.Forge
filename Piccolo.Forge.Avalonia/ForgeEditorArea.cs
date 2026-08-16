@@ -34,6 +34,19 @@ public class ForgeEditorArea : TemplatedControl
     // 变成两座互不相干的岛，也会在中间制造一条错误的“海”。
     private readonly Border _root = new();
 
+    /// <summary>
+    /// 岛的那圈边 —— 画在**内容之上**的一层，只有描边没有底。
+    /// </summary>
+    /// <remarks>
+    /// 岛自己（<see cref="_root"/>）的描边画在子控件之下，而分屏叶子各自铺着不透明的底，
+    /// 会把四角那几段弧盖掉 —— 就是"面板的圆角好了、文档区的还断着"。
+    /// 面板那边靠标题条自己磨圆解决（只有它压在顶上）；文档区不行：分屏之后
+    /// 四个角可能分属不同叶子，逐个磨圆既繁琐又会随分屏结构变。所以把边补画在最上层。
+    /// <para>不吃鼠标：它铺满整个编辑区，参与命中测试的话点哪儿都是它。</para>
+    /// </remarks>
+    private readonly Border _islandRing = new() { IsHitTestVisible = false };
+
+
     private EditorAreaViewModel? _area;
 
     /// <summary><see cref="Palette"/> 的属性定义。</summary>
@@ -143,6 +156,10 @@ public class ForgeEditorArea : TemplatedControl
     {
         VisualChildren.Add(_root);
         LogicalChildren.Add(_root);
+
+        // 岛的那圈边：加在 _root **之后**，于是画在内容之上（见 _islandRing）
+        VisualChildren.Add(_islandRing);
+        LogicalChildren.Add(_islandRing);
 
         // 覆盖层加在 _root **之后** —— 父控件的 Render 在子控件之下，
         // 落点高亮必须盖在分屏与正文之上才看得见（同 ForgeToolWindowFrame）。
@@ -547,6 +564,12 @@ public class ForgeEditorArea : TemplatedControl
     protected override Size ArrangeOverride(Size finalSize)
     {
         _root.Arrange(new Rect(finalSize));
+
+        // 与 _root **同一块矩形** —— 取它排完之后的实际 Bounds，而不是自己拿外边距算：
+        // 排布会把尺寸对齐到整像素，自己算会差半个到一个像素，两条边就错开成"双线"。
+        // 正好盖在根自己那条边上，外半边混的才是窗口底板而不是编辑区底色。
+        _islandRing.Arrange(_root.Bounds);
+
         _overlay.Arrange(new Rect(finalSize));
         return finalSize;
     }
@@ -559,6 +582,12 @@ public class ForgeEditorArea : TemplatedControl
         }
 
         ForgeIslandDecor.Apply(_root, Palette, anchor: null, IslandMetrics, Palette.EditorBackground);
+
+        // 那圈边与根同参；根自己那条画在内容之下、会被分屏叶子的不透明底盖住四角，
+        // 所以这一层补在最上面（见 _islandRing）。
+        _islandRing.CornerRadius = _root.CornerRadius;
+        _islandRing.BorderThickness = _root.BorderThickness;
+        _islandRing.BorderBrush = _root.BorderBrush;
 
         // ★ 重建过程中**不接受重入**。
         //
@@ -599,7 +628,11 @@ public class ForgeEditorArea : TemplatedControl
                 try
                 {
                     PruneCaches();
-                    _root.Child = BuildNode(_area.Area.Root);
+
+                    // 内容 + 最上层补一圈岛的边（见 _islandRing）
+                    var content = BuildNode(_area.Area.Root);
+
+                    _root.Child = content;
                 }
                 catch
                 {
@@ -695,6 +728,12 @@ public class ForgeEditorArea : TemplatedControl
         }
 
         ForgeIslandDecor.Apply(_root, Palette, anchor: null, IslandMetrics, Palette.EditorBackground);
+
+        // 那圈边与根同参；根自己那条画在内容之下、会被分屏叶子的不透明底盖住四角，
+        // 所以这一层补在最上面（见 _islandRing）。
+        _islandRing.CornerRadius = _root.CornerRadius;
+        _islandRing.BorderThickness = _root.BorderThickness;
+        _islandRing.BorderBrush = _root.BorderBrush;
 
         foreach (var vm in _area.Groups)
         {
