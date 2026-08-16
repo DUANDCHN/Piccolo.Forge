@@ -4,6 +4,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using Avalonia.Styling;
 using Avalonia.VisualTree;
 using Piccolo.Forge.Model;
 using Piccolo.Forge.Mvvm;
@@ -212,6 +213,17 @@ public class ForgeToolWindowFrame : TemplatedControl
     /// 靠通知判断会漏掉这种情况（正是这么漏的）。
     /// </para>
     /// </remarks>
+    /// <summary>
+    /// 跟随明暗时用哪套配色 —— 不给就用库内置的那套（照上游主题抄的）。
+    /// </summary>
+    /// <remarks>
+    /// 内置那两套是**上游主题的移植**，不该为某个项目改掉。项目要微调
+    /// （比如岛与自家窗口底板对比不够），在这里拿内置那套 <c>with</c> 出一套自己的：
+    /// <code>PaletteResolver = (family, variant) =>
+    ///     ForgePalette.ForTheme(family, variant) with { Background = ... };</code>
+    /// </remarks>
+    public Func<ForgeThemeFamily, ThemeVariant, ForgePalette>? PaletteResolver { get; set; }
+
     private void ApplyThemeVariant()
     {
         if (!FollowThemeVariant)
@@ -230,7 +242,8 @@ public class ForgeToolWindowFrame : TemplatedControl
             return;
         }
 
-        var wanted = ForgePalette.ForTheme(ThemeFamily, ActualThemeVariant);
+        var wanted = PaletteResolver?.Invoke(ThemeFamily, ActualThemeVariant)
+                     ?? ForgePalette.ForTheme(ThemeFamily, ActualThemeVariant);
         if (!ReferenceEquals(Palette, wanted))
         {
             Palette = wanted;

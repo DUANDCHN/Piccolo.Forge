@@ -4,6 +4,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using Avalonia.Styling;
 using Avalonia.VisualTree;
 using Piccolo.Forge.Model;
 using Piccolo.Forge.Mvvm;
@@ -469,6 +470,17 @@ public class ForgeEditorArea : TemplatedControl
     /// 而不是「值变了没有」：属性的默认值本身就是一套配色，宿主赋成同一套时不会有变更通知。
     /// 我们自己写过之后 <c>IsSet</c> 也为真，所以只在第一次之前认它。
     /// </remarks>
+    /// <summary>
+    /// 跟随明暗时用哪套配色 —— 不给就用库内置的那套（照上游主题抄的）。
+    /// </summary>
+    /// <remarks>
+    /// 内置那两套是**上游主题的移植**，不该为某个项目改掉。项目要微调
+    /// （比如岛与自家窗口底板对比不够），在这里拿内置那套 <c>with</c> 出一套自己的：
+    /// <code>PaletteResolver = (family, variant) =>
+    ///     ForgePalette.ForTheme(family, variant) with { Background = ... };</code>
+    /// </remarks>
+    public Func<ForgeThemeFamily, ThemeVariant, ForgePalette>? PaletteResolver { get; set; }
+
     private void ApplyThemeVariant()
     {
         if (!FollowThemeVariant)
@@ -486,7 +498,8 @@ public class ForgeEditorArea : TemplatedControl
             return;
         }
 
-        var wanted = ForgePalette.ForTheme(ThemeFamily, ActualThemeVariant);
+        var wanted = PaletteResolver?.Invoke(ThemeFamily, ActualThemeVariant)
+                     ?? ForgePalette.ForTheme(ThemeFamily, ActualThemeVariant);
         if (!ReferenceEquals(Palette, wanted))
         {
             Palette = wanted;
