@@ -337,16 +337,19 @@ public class ForgeStripeButton : ForgeSquareButtonBase
     /// 模板还没套上（控件没进可视树）时才退回估计值。
     /// </para>
     /// </remarks>
-    /// <param name="lines">名字折成了几行。</param>
+    /// <param name="lines">名字折成了几行（模板还没套上时的兜底用）。</param>
+    /// <param name="width">按钮的宽度 —— 名字按它折行。</param>
     /// <returns>名字那一截的高度。</returns>
-    private double MeasureNameHeight(int lines)
+    private double MeasureNameHeight(int lines, double width)
     {
         // 测量期间模板可能还没套上；这一句是幂等的
         ApplyTemplate();
 
         if (_nameBlock is { } block)
         {
-            block.Measure(Size.Infinity);
+            // ⚠ **必须按按钮的宽度量**：名字开了按宽度折行，用无限宽会量成一行、
+            //   高度少算，实机表现就是"字被剪掉下半截"。
+            block.Measure(new Size(width, double.PositiveInfinity));
             return Math.Max(0, block.DesiredSize.Height - block.Margin.Top - block.Margin.Bottom);
         }
 
@@ -397,10 +400,11 @@ public class ForgeStripeButton : ForgeSquareButtonBase
             return new Size(ButtonWidth, ButtonHeight);
         }
 
-        // 高度 = 基础高 + 间距 + 名字那一截（SquareStripeButton.kt:320-327）
+        // 高度 = 基础高 + 间距 + 名字那一截（SquareStripeButton.kt:320-327）；
+        // **名字折几行就有多高** —— 长名字折成三行，按钮就跟着高一截。
         var lines = SplitTitle(Title).Count;
-        var height = ButtonHeight + (lines > 0 ? ForgeMetrics.StripeIconLabelGap + MeasureNameHeight(lines) : 0);
         var width = StripeWidth > 0 ? StripeWidth : ButtonWidth;
+        var height = ButtonHeight + (lines > 0 ? ForgeMetrics.StripeIconLabelGap + MeasureNameHeight(lines, width) : 0);
 
         return new Size(width, height);
     }

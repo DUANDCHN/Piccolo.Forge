@@ -47,14 +47,14 @@ public abstract class ForgeSquareButtonBase : Button
         // 换族会改按钮宽（40 ↔ 37），所以 Palette 也要触发重新测量，不只是重画
         AffectsMeasure<ForgeSquareButtonBase>(
             IsCompactProperty, PaletteProperty, IsLeftStripeProperty,
-            IconSizeOverrideProperty, IconInsetProperty);
+            HighlightSizeProperty, HighlightInsetProperty);
 
         // 几何（内缩 / 圆角）跟着这三样走 —— 它们是模板里 Border 的 Margin 与 CornerRadius 的来源
         PaletteProperty.Changed.AddClassHandler<ForgeSquareButtonBase>((b, _) => b.OnFamilyOrDensityChanged());
         IsCompactProperty.Changed.AddClassHandler<ForgeSquareButtonBase>((b, _) => b.OnFamilyOrDensityChanged());
         IsLeftStripeProperty.Changed.AddClassHandler<ForgeSquareButtonBase>((b, _) => b.UpdateGeometry());
-        IconSizeOverrideProperty.Changed.AddClassHandler<ForgeSquareButtonBase>((b, _) => b.UpdateGeometry());
-        IconInsetProperty.Changed.AddClassHandler<ForgeSquareButtonBase>((b, _) => b.UpdateGeometry());
+        HighlightSizeProperty.Changed.AddClassHandler<ForgeSquareButtonBase>((b, _) => b.UpdateGeometry());
+        HighlightInsetProperty.Changed.AddClassHandler<ForgeSquareButtonBase>((b, _) => b.UpdateGeometry());
     }
 
     /// <summary>族或密度变了：几何要重算，族还要写进伪类（模板按 <c>:islands</c> 选另一套颜色键）。</summary>
@@ -118,14 +118,8 @@ public abstract class ForgeSquareButtonBase : Button
                 rect.Height);
         }
 
-        var side = Math.Min(rect.Width, rect.Height);
-
-        // ⚠ 边长与格子的**奇偶要一致**，否则居中会落在半像素上（Islands 是 27 对 34，
-        //   两边各 3.5 → 布局取整成 4，看着就偏了半格）。差一像素换一个整齐的居中，划算。
-        if ((cell.Width - side) % 2 != 0)
-        {
-            side -= 1;
-        }
+        // 宿主给了边长就用它（居中由 边距 + 方底 + 边距 这条算式保证是整数）
+        var side = HighlightSize;
 
         return new Rect(
             cell.X + ((cell.Width - side) / 2),
@@ -307,7 +301,7 @@ public abstract class ForgeSquareButtonBase : Button
         BackgroundInsets = square
             ? default
             : new Thickness(horizontal.Item1, padding.Top, horizontal.Item2, padding.Bottom);
-        BackgroundSize = square ? Math.Min(background.Width, background.Height) : double.NaN;
+        BackgroundSize = square ? HighlightSize : double.NaN;
 
         // 模板据此换对齐：方底那一档居中，其余照旧铺满
         PseudoClasses.Set(":square-background", square);
@@ -355,13 +349,13 @@ public abstract class ForgeSquareButtonBase : Button
         => ForgeStripeButtonMetrics.ForTheme(Palette.Family, IsCompact);
 
     /// <summary>按钮宽：expUI 40（紧凑 32），Islands 常规档 37。</summary>
-    public double ButtonWidth => IsHostSized ? (IconInset * 2) + IconSizeOverride : StripeMetrics.Width;
+    public double ButtonWidth => IsHostSized ? (HighlightInset * 2) + HighlightSize : StripeMetrics.Width;
 
     /// <summary>按钮高：40（紧凑 32）。</summary>
     public double ButtonHeight => StripeMetrics.Height;
 
     /// <summary>图标边长：紧凑 16，否则 20。</summary>
-    public double IconSize => double.IsNaN(IconSizeOverride) ? StripeMetrics.IconSize : IconSizeOverride;
+    public double IconSize => StripeMetrics.IconSize;
 
     /// <summary>图标四周 padding，按左右条带与是否显名取。</summary>
     public ForgeInsets IconPadding => StripeMetrics.IconPadding(IsLeftStripe, ShowsName);
@@ -386,44 +380,45 @@ public abstract class ForgeSquareButtonBase : Button
     /// <summary>宿主指定的圆角**直径**；<see langword="null"/> 表示按主题的默认值。</summary>
     public double? ArcOverride { get; set; }
 
-    /// <summary><see cref="IconSizeOverride"/> 的属性定义。</summary>
-    public static readonly StyledProperty<double> IconSizeOverrideProperty =
-        AvaloniaProperty.Register<ForgeSquareButtonBase, double>(nameof(IconSizeOverride), double.NaN);
+    /// <summary><see cref="HighlightSize"/> 的属性定义。</summary>
+    public static readonly StyledProperty<double> HighlightSizeProperty =
+        AvaloniaProperty.Register<ForgeSquareButtonBase, double>(nameof(HighlightSize), double.NaN);
 
-    /// <summary><see cref="IconInset"/> 的属性定义。</summary>
-    public static readonly StyledProperty<double> IconInsetProperty =
-        AvaloniaProperty.Register<ForgeSquareButtonBase, double>(nameof(IconInset), double.NaN);
+    /// <summary><see cref="HighlightInset"/> 的属性定义。</summary>
+    public static readonly StyledProperty<double> HighlightInsetProperty =
+        AvaloniaProperty.Register<ForgeSquareButtonBase, double>(nameof(HighlightInset), double.NaN);
 
     /// <summary>
-    /// 宿主指定的图标边长；<see cref="double.NaN"/> = 按主题的默认值（上游 20 / 紧凑 16）。
+    /// 宿主指定的**高亮底**边长（那块方底）；<see cref="double.NaN"/> = 按主题算（按钮 − 图标内边距）。
     /// </summary>
-    public double IconSizeOverride
+    /// <remarks>与 <see cref="HighlightInset"/> **成对给**，见那里。图标不受它影响，仍是主题里的尺寸。</remarks>
+    public double HighlightSize
     {
-        get => GetValue(IconSizeOverrideProperty);
-        set => SetValue(IconSizeOverrideProperty, value);
+        get => GetValue(HighlightSizeProperty);
+        set => SetValue(HighlightSizeProperty, value);
     }
 
     /// <summary>
-    /// 宿主指定的图标**左右边距**；<see cref="double.NaN"/> = 不指定（宽度走主题的按钮宽）。
+    /// 宿主指定的**高亮底左右边距**；<see cref="double.NaN"/> = 不指定（宽度走主题的按钮宽）。
     /// </summary>
     /// <remarks>
     /// ★ 这是"侧边栏该多宽"的**正确问法**（用户定的做法）：
-    /// 别去钉条带宽度，而是钉<b>图标多大、两侧留多少</b>，宽度让图标自己撑开
-    /// —— <c>宽 = 边距 + 图标 + 边距</c>。
+    /// 别去钉条带宽度，而是钉<b>那块方底多大、两侧留多少</b>，宽度让它撑开
+    /// —— <c>宽 = 边距 + 方底 + 边距</c>。图标仍按主题的尺寸，在方底里居中。
     /// <para>
     /// 这么定之后<b>居中是构造上成立的</b>：两侧同一个数，不存在"差 1px 该给谁"的问题。
     /// 先前直接钉宽度（35 / 57）就踩了这个：宽度减图标是奇数，居中落在半像素上，
     /// 取整后左右差 1px，实机看着就是图标偏一边。
     /// </para>
     /// </remarks>
-    public double IconInset
+    public double HighlightInset
     {
-        get => GetValue(IconInsetProperty);
-        set => SetValue(IconInsetProperty, value);
+        get => GetValue(HighlightInsetProperty);
+        set => SetValue(HighlightInsetProperty, value);
     }
 
     /// <summary>宿主是不是自己定了图标尺寸与边距（那时宽度由它们算出来）。</summary>
-    protected bool IsHostSized => !double.IsNaN(IconInset) && !double.IsNaN(IconSizeOverride);
+    protected bool IsHostSized => !double.IsNaN(HighlightInset) && !double.IsNaN(HighlightSize);
 
     /// <summary><see cref="HoverBackgroundBrush"/> 的属性定义。</summary>
     public static readonly StyledProperty<IBrush?> HoverBackgroundBrushProperty =

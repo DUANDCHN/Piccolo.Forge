@@ -35,9 +35,11 @@
                     <!--  图标：宿主给的控件、或画 Geometry 的子元素，位置都由槽按 IconRect 安排  -->
                     <forge:ForgeIconHost Name="PART_Icon" />
 
-                    <!--  名字：⚠ **不能开 TextWrapping** —— 折行已经按上游规则
-                          （第一个空格拆两段）在 NameText 里拼好了，
-                          再让它按宽度自动换行会多切一刀，行数与量出来的高度就对不上。  -->
+                    <!--  名字：**按宽度折行**，行数不限 —— 条带窄、中文名字里又没有空格，
+                          上游那条「按第一个空格拆两段」的规则单独用不够（"相机参数配置"会被截断）。
+                          ⚠ 从前这里**不许**开 TextWrapping，理由是"行数与量出来的高度对不上" ——
+                            那个理由已经不成立：按钮的高度现在是**问这个 TextBlock 本人量的**
+                            （见 ForgeStripeButton.MeasureNameHeight），折几行就有多高。  -->
                     <!--  ⚠ **不设 LineHeight**：它是行盒的高度，小于字体的自然行高时
                           Avalonia 会把字剪掉 —— 实机就是"名字只剩上半截"。
                           行距因此走字体的自然行高，而按钮的高度由 MeasureOverride
@@ -50,6 +52,7 @@
                         Name="PART_Name"
                         Text="{TemplateBinding NameText}"
                         TextAlignment="Center"
+                        TextWrapping="Wrap"
                         VerticalAlignment="Top" />
                 </Panel>
             </ControlTemplate>

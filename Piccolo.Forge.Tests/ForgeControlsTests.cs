@@ -434,24 +434,26 @@ public class ForgeControlsTests
     /// </para>
     /// </remarks>
     [AvaloniaFact]
-    public void 图标撑开的按钮里方底与图标都居中()
+    public void 方底撑开的按钮里方底与图标都居中()
     {
-        var button = new ForgeStripeButton { IconSizeOverride = 24, IconInset = 5, Icon = ForgeIcons.Camera };
+        var button = new ForgeStripeButton { HighlightSize = 24, HighlightInset = 5, Icon = ForgeIcons.Camera };
         var window = HostButton(button);
 
         var background = button.GetVisualDescendants().OfType<Border>().Single(x => x.Name == "PART_Background");
         var icon = button.GetVisualDescendants().OfType<ForgeGeometryIcon>().Single();
 
-        // 图标 24 + 两侧 5 → 按钮 34×40；底仍是"扣掉图标内边距后收成的居中正方形"
-        Assert.Equal(background.Bounds.Width, background.Bounds.Height);
-        Assert.Equal(button.Bounds.Center.X, background.Bounds.Center.X);
+        // 方底 24 + 两侧 5 → 按钮 34×40
+        Assert.Equal(24, background.Bounds.Width);
+        Assert.Equal(24, background.Bounds.Height);
+        Assert.Equal(5, background.Bounds.X);
+        Assert.Equal(34 - 5, background.Bounds.Right);
         Assert.Equal(20, background.Bounds.Center.Y);
 
-        // ★ 图标两侧的留白**逐像素相等**，且正好是宿主给的那个边距
-        //   —— 这才是"居中"，不是"差不多在中间"。宽度由图标撑开，所以它构造上成立。
-        Assert.Equal(5, icon.Bounds.X);
-        Assert.Equal(34 - 5, icon.Bounds.Right);
-        Assert.Equal(24, icon.Bounds.Width);
+        // ★ 方底与图标两侧的留白都**逐像素相等** —— 这才是"居中"，不是"差不多在中间"。
+        //   宽度由方底撑开（5 + 24 + 5），所以两者构造上都落在整数：图标 20 → 两侧各 7。
+        Assert.Equal(7, icon.Bounds.X);
+        Assert.Equal(34 - 7, icon.Bounds.Right);
+        Assert.Equal(background.Bounds.Center.X, icon.Bounds.Center.X);
 
         // 图标（20）在那块方底里上下左右都居中
         Assert.Equal(background.Bounds.Center.X, icon.Bounds.Center.X, 3);
@@ -466,8 +468,8 @@ public class ForgeControlsTests
         // 那一档的底要盖住图标 + 名字整块，收成方的会把名字露在底外面
         var button = new ForgeStripeButton
         {
-            IconSizeOverride = 24,
-            IconInset = 5,
+            HighlightSize = 24,
+            HighlightInset = 5,
             Icon = ForgeIcons.Camera,
             Title = "相机列表",
             ShowName = true,

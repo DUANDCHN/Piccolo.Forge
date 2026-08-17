@@ -630,7 +630,7 @@ public class ForgeControl : TemplatedControl
 
         // 宿主自己定了条带宽（StripeButtonWidth）时，内侧那条线压在内容上、不再占宽 ——
         // 否则总宽 = 给的宽 + 1，图标在总宽里落半像素，取整后看着偏一边。
-        var hostSized = !double.IsNaN(Appearance.StripeIconInset) && !double.IsNaN(Appearance.StripeIconSize);
+        var hostSized = !double.IsNaN(Appearance.StripeHighlightInset) && !double.IsNaN(Appearance.StripeHighlightSize);
         _left.BorderOverlaysContent = hostSized;
         _right.BorderOverlaysContent = hostSized;
 
@@ -792,8 +792,8 @@ public class ForgeControl : TemplatedControl
         // 按钮实例是**复用**的，拖到另一条带时这里要跟着改，不能只在新建时设。
         button.IsLeftStripe = side == StripeSide.Left;
         button.ArcOverride = StripeButtonArc;
-        button.IconSizeOverride = Appearance.StripeIconSize;
-        button.IconInset = Appearance.StripeIconInset;
+        button.HighlightSize = Appearance.StripeHighlightSize;
+        button.HighlightInset = Appearance.StripeHighlightInset;
         button.Icon = vm.Icon;
         button.Text = vm.Icon is null ? vm.Title[..1] : null;
         button.Title = vm.Title;
