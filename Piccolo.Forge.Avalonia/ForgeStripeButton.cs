@@ -216,9 +216,86 @@ public class ForgeStripeButton : ForgeSquareButtonBase
         return space < 0 ? [text] : [text[..space], text[(space + 1)..]];
     }
 
+    /// <summary><see cref="NameFontSize"/> 的属性定义。</summary>
+    public static readonly StyledProperty<double> NameFontSizeProperty =
+        AvaloniaProperty.Register<ForgeStripeButton, double>(nameof(NameFontSize));
+
     /// <summary>「显示名字」时字号：比正文小一号。</summary>
-    /// <remarks>上游是 <c>RelativeFont.TINY.derive(button.font)</c>（<c>SquareStripeButton.kt:329</c>）。</remarks>
-    private double NameFontSize => Math.Max(8, IconSize * 0.5);
+    /// <remarks>
+    /// 上游是 <c>RelativeFont.TINY.derive(button.font)</c>（<c>SquareStripeButton.kt:329</c>）。
+    /// 做成 Avalonia 属性是因为模板要 <c>TemplateBinding</c> 它（普通 C# 属性绑不了）；
+    /// 值由 <see cref="SyncName"/> 跟着密度一起刷。
+    /// </remarks>
+    public double NameFontSize
+    {
+        get => GetValue(NameFontSizeProperty);
+        private set => SetValue(NameFontSizeProperty, value);
+    }
+
+    /// <summary>按当前密度算出的字号（<see cref="NameFontSize"/> 的来源）。</summary>
+    private double ComputeNameFontSize() => Math.Max(8, IconSize * 0.5);
+
+    /// <summary><see cref="NameText"/> 的属性定义。</summary>
+    public static readonly StyledProperty<string?> NameTextProperty =
+        AvaloniaProperty.Register<ForgeStripeButton, string?>(nameof(NameText));
+
+    /// <summary><see cref="NameMargin"/> 的属性定义。</summary>
+    public static readonly StyledProperty<Thickness> NameMarginProperty =
+        AvaloniaProperty.Register<ForgeStripeButton, Thickness>(nameof(NameMargin));
+
+    /// <summary><see cref="NameLineHeight"/> 的属性定义。</summary>
+    public static readonly StyledProperty<double> NameLineHeightProperty =
+        AvaloniaProperty.Register<ForgeStripeButton, double>(nameof(NameLineHeight), double.NaN);
+
+    /// <summary>
+    /// 模板里那个 <c>TextBlock</c> 要显示的字 —— 已经按上游规则折成最多两行。
+    /// </summary>
+    /// <remarks>
+    /// 折行规则是<b>按第一个空格拆成两段</b>（<see cref="SplitTitle"/>，
+    /// 对应 <c>SquareStripeButton.kt:331-334 · getStripeSplitText</c>），
+    /// 不是按宽度自动换行 —— 所以这里用 <c>\n</c> 硬拼，模板那边不能开 <c>TextWrapping</c>，
+    /// 否则长单词会被再切一刀、行数与量出来的高度对不上。
+    /// </remarks>
+    public string? NameText
+    {
+        get => GetValue(NameTextProperty);
+        private set => SetValue(NameTextProperty, value);
+    }
+
+    /// <summary>名字那块相对按钮的位置。</summary>
+    /// <remarks>
+    /// ⚠ 名字贴着**图标的下沿**起，不是贴着按钮那一格的下沿
+    /// （<c>SquareStripeButton.kt:247-257</c>：<c>iconPosition.y += iconHeight; y = 那个 + iconLabelGap</c>）。
+    /// 图标在 40 的格子里居中（10..30），所以文字从 33 起；按钮总高 40+3+行高，
+    /// 多出来的一截留在**下面**。
+    /// 本仓原来从 <c>ButtonHeight(40)+3=43</c> 起画，图标与名字之间凭空多 10px，
+    /// 看着就是"图标和文字离得太远"，而按钮底下反倒一点余地都没有。
+    /// </remarks>
+    public Thickness NameMargin
+    {
+        get => GetValue(NameMarginProperty);
+        private set => SetValue(NameMarginProperty, value);
+    }
+
+    /// <summary>名字的行高（字号 × 1.4，与原先自绘时逐行推进的步长一致）。</summary>
+    public double NameLineHeight
+    {
+        get => GetValue(NameLineHeightProperty);
+        private set => SetValue(NameLineHeightProperty, value);
+    }
+
+    /// <summary>把名字的文本、位置、行高刷进那三个供模板绑定的属性。</summary>
+    private void SyncName()
+    {
+        var lines = SplitTitle(Title);
+        NameText = ShowName && lines.Count > 0 ? string.Join('\n', lines) : null;
+        NameFontSize = ComputeNameFontSize();
+        NameLineHeight = NameFontSize * 1.4;
+
+        // 竖直起点与自绘时同一条算式；左右留 TextPadding，文字在其中居中
+        var top = IconRect(new Size(ButtonWidth, ButtonHeight)).Bottom + ForgeMetrics.StripeIconLabelGap;
+        NameMargin = new Thickness(TextPadding, top, TextPadding, 0);
+    }
 
     /// <inheritdoc />
     /// <remarks>
@@ -237,7 +314,11 @@ public class ForgeStripeButton : ForgeSquareButtonBase
 
         // 高度 = 基础高 + 间距 + 行数 × 行高（SquareStripeButton.kt:320-327）
         var lines = SplitTitle(Title).Count;
-        var height = ButtonHeight + (lines > 0 ? ForgeMetrics.StripeIconLabelGap + (lines * NameFontSize * 1.4) : 0);
+        // ⚠ 这里用**算出来的**字号，不用 NameFontSize 那个属性：属性靠 SyncName 刷，
+        //   而测量可能发生在它之前（控件刚建好、还没收到任何属性变更）—— 那时属性是 0，
+        //   高度会少掉名字那一截。
+        var fontSize = ComputeNameFontSize();
+        var height = ButtonHeight + (lines > 0 ? ForgeMetrics.StripeIconLabelGap + (lines * fontSize * 1.4) : 0);
         var width = StripeWidth > 0 ? StripeWidth : ButtonWidth;
 
         return new Size(width, height);
@@ -260,6 +341,25 @@ public class ForgeStripeButton : ForgeSquareButtonBase
             || change.Property == PaletteProperty)
         {
             SyncGeometryIcon();
+        }
+
+        // 两个"面板开着 / 激活"的状态一变，底色跟着换
+        if (change.Property == IsToolWindowVisibleProperty
+            || change.Property == IsToolWindowActiveProperty
+            || change.Property == SelectedBackgroundBrushProperty
+            || change.Property == PressedBackgroundBrushProperty)
+        {
+            UpdateBackgroundBrush();
+        }
+
+        // 名字的文本 / 位置 / 行高跟着这些走
+        if (change.Property == TitleProperty
+            || change.Property == ShowNameProperty
+            || change.Property == IsCompactProperty
+            || change.Property == IsLeftStripeProperty
+            || change.Property == PaletteProperty)
+        {
+            SyncName();
         }
     }
 
@@ -343,25 +443,10 @@ public class ForgeStripeButton : ForgeSquareButtonBase
         // 整块都能点，不然只有画了东西的地方收得到鼠标
         ForgeHitArea.Fill(context, Bounds.Size);
 
-        // 底色：颜色来自主题（ResolveBackgroundBrush），但**必须在这里画** ——
-        // 放进模板会盖住下面自绘的名字，理由见 ResolveBackgroundBrush 的注释。
-        // 矩形是「按钮矩形 − 图标内边距」（SquareStripeButtonLook.kt:64-70：
-        // Rectangle(component.size) 减 insets 再减 iconPadding）。
+        // 底色归模板里那层 Border（绑 BackgroundBrush）。矩形仍是「按钮矩形 − 图标内边距」，
+        // 由 BackgroundInsets 表达（SquareStripeButtonLook.kt:64-70）；
         // ⚠ 显名时也是整块按钮、含名字那一截（SquareStripeButton.kt:196-198），别跟着图标一起砍。
-        if (ResolveBackgroundBrush() is { } background)
-        {
-            context.DrawRectangle(
-                background,
-                null,
-                new RoundedRect(BackgroundRect(new Rect(Bounds.Size)), ArcRadius));
-        }
-
         var iconRect = IconRect(Bounds.Size);
-
-        if (ShowName)
-        {
-            RenderName(context);
-        }
 
         // 图标一律由模板里那个槽画（宿主的控件图标，或画 Geometry 的子元素），
         // 位置都走 IconRect —— 见 ForgeSquareButtonBase.SetGeometryIcon。
@@ -391,39 +476,6 @@ public class ForgeStripeButton : ForgeSquareButtonBase
                 iconRect.Y + ((iconRect.Height - text.Height) / 2)));
     }
 
-    private void RenderName(DrawingContext context)
-    {
-        var lines = SplitTitle(Title);
-        if (lines.Count == 0)
-        {
-            return;
-        }
-
-        var totalWidth = Math.Max(0, Bounds.Width - (TextPadding * 2));
-
-        // ⚠ 名字贴着**图标的下沿**起，不是贴着按钮那一格的下沿。
-        //   上游（SquareStripeButton.kt:247-257）是
-        //     iconPosition.y += renderedIcon.iconHeight;  var y = iconPosition.y + iconLabelGap
-        //   —— 图标在 40 的格子里居中（10..30），所以文字从 33 起；按钮总高 40+3+行高，
-        //   多出来的一截留在**下面**。
-        //   本仓原来从 ButtonHeight(40)+3=43 起画，图标与名字之间凭空多了 10px，
-        //   看着就是"图标和文字离得太远"，而按钮底下反倒一点余地都没有。
-        var y = IconRect(Bounds.Size).Bottom + ForgeMetrics.StripeIconLabelGap;
-
-        foreach (var line in lines)
-        {
-            var text = new FormattedText(
-                line,
-                System.Globalization.CultureInfo.CurrentCulture,
-                FlowDirection.LeftToRight,
-                ResolveTypeface(),
-                NameFontSize,
-                ForegroundBrush);
-
-            context.DrawText(text, new Point(TextPadding + ((totalWidth - text.Width) / 2), y));
-            y += NameFontSize * 1.4;
-        }
-    }
 
     /// <summary>
     /// 画文字用的字形 —— **走控件自己继承下来的字体**，不是 <see cref="Typeface.Default"/>。

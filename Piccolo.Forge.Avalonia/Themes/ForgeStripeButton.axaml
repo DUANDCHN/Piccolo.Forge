@@ -33,9 +33,32 @@
         <Setter Property="SelectedBackgroundBrush" Value="{DynamicResource Forge.ExpUi.ButtonSelectedBackground}" />
         <Setter Property="Template">
             <ControlTemplate TargetType="forge:ForgeStripeButton">
-                <!--  只放宿主图标控件的槽；底色由 Render 画（见文件头）  -->
+                <!--  ★ 这个按钮的 Render 已经不画任何内容了（图标进了槽、名字是下面这个
+                      TextBlock），所以底色可以回到模板里 —— 结构因此**真的可换**：
+                      宿主重写这份模板就能改底色的形状、层次，甚至重排图标与文字。  -->
                 <Panel Background="Transparent">
+                    <Border
+                        Background="{TemplateBinding BackgroundBrush}"
+                        CornerRadius="{TemplateBinding ArcCornerRadius}"
+                        Margin="{TemplateBinding BackgroundInsets}"
+                        Name="PART_Background" />
+
+                    <!--  图标：宿主给的控件、或画 Geometry 的子元素，位置都由槽按 IconRect 安排  -->
                     <forge:ForgeIconHost Name="PART_Icon" />
+
+                    <!--  名字：⚠ **不能开 TextWrapping** —— 折行已经按上游规则
+                          （第一个空格拆两段）在 NameText 里拼好了，
+                          再让它按宽度自动换行会多切一刀，行数与量出来的高度就对不上。  -->
+                    <TextBlock
+                        FontSize="{TemplateBinding NameFontSize}"
+                        Foreground="{TemplateBinding Foreground}"
+                        HorizontalAlignment="Stretch"
+                        LineHeight="{TemplateBinding NameLineHeight}"
+                        Margin="{TemplateBinding NameMargin}"
+                        Name="PART_Name"
+                        Text="{TemplateBinding NameText}"
+                        TextAlignment="Center"
+                        VerticalAlignment="Top" />
                 </Panel>
             </ControlTemplate>
         </Setter>
@@ -139,6 +162,11 @@
         <Setter Property="Template">
             <ControlTemplate TargetType="forge:ForgeMoreButton">
                 <Panel Background="Transparent">
+                    <Border
+                        Background="{TemplateBinding BackgroundBrush}"
+                        CornerRadius="{TemplateBinding ArcCornerRadius}"
+                        Margin="{TemplateBinding BackgroundInsets}"
+                        Name="PART_Background" />
                     <forge:ForgeIconHost Name="PART_Icon" />
                 </Panel>
             </ControlTemplate>

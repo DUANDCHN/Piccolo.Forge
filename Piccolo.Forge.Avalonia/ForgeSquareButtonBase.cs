@@ -336,6 +336,45 @@ public abstract class ForgeSquareButtonBase : Button
     /// <returns>画刷。</returns>
     protected static IBrush Fallback(Color color) => new SolidColorBrush(color);
 
+    /// <summary><see cref="BackgroundBrush"/> 的属性定义。</summary>
+    public static readonly StyledProperty<IBrush?> BackgroundBrushProperty =
+        AvaloniaProperty.Register<ForgeSquareButtonBase, IBrush?>(nameof(BackgroundBrush));
+
+    /// <summary>
+    /// 当前状态该用的底色 —— <b>模板里那层 <c>Border</c> 绑的就是它</b>。
+    /// </summary>
+    /// <remarks>
+    /// 它是 <see cref="ResolveBackgroundBrush"/> 的结果，由 <see cref="UpdateBackgroundBrush"/>
+    /// 在状态变化时刷新。做成属性而不是让模板去调方法，是因为 <c>TemplateBinding</c> 只认属性。
+    /// <para>
+    /// 之所以能把底色放回模板：这个按钮的 <c>Render</c> 已经不画任何内容了
+    /// （图标进了槽、名字是模板里的 <c>TextBlock</c>），不再存在"模板盖住自绘内容"的问题。
+    /// </para>
+    /// </remarks>
+    public IBrush? BackgroundBrush
+    {
+        get => GetValue(BackgroundBrushProperty);
+        private set => SetValue(BackgroundBrushProperty, value);
+    }
+
+    /// <summary>状态变了：重算该用哪个底色。</summary>
+    protected void UpdateBackgroundBrush() => BackgroundBrush = ResolveBackgroundBrush();
+
+    /// <inheritdoc />
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+
+        // 悬停 / 按下归框架管，两个状态属性一变就重算底色
+        if (change.Property == IsPointerOverProperty
+            || change.Property == IsPressedProperty
+            || change.Property == HoverBackgroundBrushProperty
+            || change.Property == PaletteProperty)
+        {
+            UpdateBackgroundBrush();
+        }
+    }
+
     /// <summary>当前该用哪个前景。</summary>
     /// <returns>前景色。</returns>
     public virtual Color ResolveForeground() => Palette.ButtonForeground;
