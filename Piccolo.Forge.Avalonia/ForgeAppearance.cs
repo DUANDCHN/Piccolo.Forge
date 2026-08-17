@@ -141,6 +141,15 @@ public sealed record ForgeAppearance
     public double StripeHighlightInset { get; init; } = double.NaN;
 
     /// <summary>
+    /// 条带按钮多高；<see cref="double.NaN"/> = 走上游（常规 40 / 紧凑 32）。
+    /// </summary>
+    /// <remarks>
+    /// ★ **上下相邻图标之间的空白 = 这个值 − 图标边长**（按钮之间没有间隙，
+    /// 上游是 <c>VerticalFlowLayout(0, 0)</c>）。图标 20、想留 6px，就给 26。
+    /// </remarks>
+    public double StripeButtonHeight { get; init; } = double.NaN;
+
+    /// <summary>
     /// 「显示名字」时那块高亮底多宽；<see cref="double.NaN"/> = 走上游
     /// （<see cref="ForgeMetrics.StripeNamedDefaultWidth"/> = 59，那时它是**条带宽**）。
     /// </summary>

@@ -799,6 +799,7 @@ public class ForgeControl : TemplatedControl
         button.NameFontSizeOverride = Appearance.StripeNameFontSize;
         button.NameFontWeightOverride = Appearance.StripeNameFontWeight;
         button.HighlightInset = Appearance.StripeHighlightInset;
+        button.ButtonHeightOverride = Appearance.StripeButtonHeight;
         button.Icon = vm.Icon;
         button.Text = vm.Icon is null ? vm.Title[..1] : null;
         button.Title = vm.Title;

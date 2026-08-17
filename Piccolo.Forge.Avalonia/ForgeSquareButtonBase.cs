@@ -47,7 +47,7 @@ public abstract class ForgeSquareButtonBase : Button
         // 换族会改按钮宽（40 ↔ 37），所以 Palette 也要触发重新测量，不只是重画
         AffectsMeasure<ForgeSquareButtonBase>(
             IsCompactProperty, PaletteProperty, IsLeftStripeProperty,
-            HighlightSizeProperty, HighlightInsetProperty);
+            HighlightSizeProperty, HighlightInsetProperty, ButtonHeightOverrideProperty);
 
         // 几何（内缩 / 圆角）跟着这三样走 —— 它们是模板里 Border 的 Margin 与 CornerRadius 的来源
         PaletteProperty.Changed.AddClassHandler<ForgeSquareButtonBase>((b, _) => b.OnFamilyOrDensityChanged());
@@ -55,6 +55,7 @@ public abstract class ForgeSquareButtonBase : Button
         IsLeftStripeProperty.Changed.AddClassHandler<ForgeSquareButtonBase>((b, _) => b.UpdateGeometry());
         HighlightSizeProperty.Changed.AddClassHandler<ForgeSquareButtonBase>((b, _) => b.UpdateGeometry());
         HighlightInsetProperty.Changed.AddClassHandler<ForgeSquareButtonBase>((b, _) => b.UpdateGeometry());
+        ButtonHeightOverrideProperty.Changed.AddClassHandler<ForgeSquareButtonBase>((b, _) => b.UpdateGeometry());
     }
 
     /// <summary>族或密度变了：几何要重算，族还要写进伪类（模板按 <c>:islands</c> 选另一套颜色键）。</summary>
@@ -352,7 +353,7 @@ public abstract class ForgeSquareButtonBase : Button
     public double ButtonWidth => IsHostSized ? (HighlightInset * 2) + HighlightSize : StripeMetrics.Width;
 
     /// <summary>按钮高：40（紧凑 32）。</summary>
-    public double ButtonHeight => StripeMetrics.Height;
+    public double ButtonHeight => double.IsNaN(ButtonHeightOverride) ? StripeMetrics.Height : ButtonHeightOverride;
 
     /// <summary>图标边长：紧凑 16，否则 20。</summary>
     public double IconSize => StripeMetrics.IconSize;
@@ -415,6 +416,24 @@ public abstract class ForgeSquareButtonBase : Button
     {
         get => GetValue(HighlightInsetProperty);
         set => SetValue(HighlightInsetProperty, value);
+    }
+
+    /// <summary><see cref="ButtonHeightOverride"/> 的属性定义。</summary>
+    public static readonly StyledProperty<double> ButtonHeightOverrideProperty =
+        AvaloniaProperty.Register<ForgeSquareButtonBase, double>(nameof(ButtonHeightOverride), double.NaN);
+
+    /// <summary>
+    /// 宿主指定的按钮高度；<see cref="double.NaN"/> = 按主题（上游 40 / 紧凑 32）。
+    /// </summary>
+    /// <remarks>
+    /// ★ <b>条带上下相邻图标之间的空白 = 这个高度 − 图标边长</b>（按钮之间的间隙是 0，
+    /// 上游 <c>VerticalFlowLayout(0, 0)</c>）。所以"图标之间留多少"这件事就是在定它：
+    /// 图标 20、要留 6，就给 26。
+    /// </remarks>
+    public double ButtonHeightOverride
+    {
+        get => GetValue(ButtonHeightOverrideProperty);
+        set => SetValue(ButtonHeightOverrideProperty, value);
     }
 
     /// <summary>宿主是不是自己定了图标尺寸与边距（那时宽度由它们算出来）。</summary>
