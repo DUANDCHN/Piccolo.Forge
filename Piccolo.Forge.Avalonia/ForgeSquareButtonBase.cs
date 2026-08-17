@@ -82,11 +82,30 @@ public abstract class ForgeSquareButtonBase : Button
     public Rect BackgroundRect(Rect cell)
     {
         var padding = IconPadding;
-        return new Rect(
+        var rect = new Rect(
             cell.X + padding.Left,
             cell.Y + padding.Top,
             Math.Max(0, cell.Width - padding.Horizontal),
             Math.Max(0, cell.Height - padding.Vertical));
+
+        // ★ **收进一个居中的正方形**（不显名时）。
+        //   上游那两套主题里按钮本来就是方的（40×40 / 37×37），扣掉内边距仍是方的，
+        //   所以这一步在上游是恒等变换 —— 一个像素都不动。
+        //   宿主把宽度单独收窄之后（ForgeAppearance.StripeButtonWidth）才有分别：
+        //   不收成正方形的话，高亮会变成一块长方形板，图标浮在里面像没放正。
+        //   ⚠ 显名时**不收**：那一档的底本来就要盖住图标 + 名字整块
+        //     （SquareStripeButton.kt:196-198），收成方的会把名字露在底外面。
+        if (ShowsName)
+        {
+            return rect;
+        }
+
+        var side = Math.Min(rect.Width, rect.Height);
+        return new Rect(
+            rect.X + ((rect.Width - side) / 2),
+            rect.Y + ((rect.Height - side) / 2),
+            side,
+            side);
     }
 
     /// <summary>建一个方形按钮。</summary>
@@ -215,10 +234,26 @@ public abstract class ForgeSquareButtonBase : Button
     }
 
     /// <summary>把算出来的几何刷进那两个供模板绑定的属性。</summary>
+    /// <remarks>
+    /// ⚠ 这里的内边距必须与 <see cref="BackgroundRect"/> **算出同一块地**：
+    /// 模板里那层底是靠 <see cref="BackgroundInsets"/> 摆的，而图标的位置走
+    /// <see cref="BackgroundRect"/> —— 两处对不上，图标就浮在底里没放正。
+    /// 所以"收成居中正方形"那一步两边都要做。
+    /// </remarks>
     protected void UpdateGeometry()
     {
         var padding = IconPadding;
-        BackgroundInsets = new Thickness(padding.Left, padding.Top, padding.Right, padding.Bottom);
+        var cell = new Rect(0, 0, ButtonWidth, ButtonHeight);
+        var background = BackgroundRect(cell);
+
+        BackgroundInsets = ShowsName
+            ? new Thickness(padding.Left, padding.Top, padding.Right, padding.Bottom)
+            : new Thickness(
+                background.X,
+                background.Y,
+                Math.Max(0, cell.Width - background.Right),
+                Math.Max(0, cell.Height - background.Bottom));
+
         ArcCornerRadius = new CornerRadius(ArcRadius);
     }
 

@@ -419,6 +419,68 @@ public class ForgeControlsTests
     /// </remarks>
     /// <param name="button">要摆进去的按钮。</param>
     /// <returns>承载它的窗口（用完 Close）。</returns>
+
+    /// <summary>
+    /// 宿主把条带按钮收窄之后，高亮底仍是**居中的正方形**，图标在它里面上下左右都居中。
+    /// </summary>
+    /// <remarks>
+    /// ★ 实机 bug（REQ-067）：宿主给了 <c>StripeButtonWidth</c>（40→34）之后，
+    /// 底是「按钮矩形去掉图标内边距」算出来的 24×30 —— **一块竖长方形**，
+    /// 图标浮在里面像没放正。上游两套主题的按钮本来就是方的（40×40 / 37×37），
+    /// 扣完内边距仍是方的，所以这个问题在上游不存在，是"单独收窄宽度"这个口子带出来的。
+    /// <para>
+    /// ⚠ 显名那一档**不收成正方形**：那时底本来就要盖住图标 + 名字整块
+    /// （<c>SquareStripeButton.kt:196-198</c>）。
+    /// </para>
+    /// </remarks>
+    [AvaloniaFact]
+    public void 收窄之后高亮底仍是居中的正方形()
+    {
+        var button = new ForgeStripeButton { WidthOverride = 34, Icon = ForgeIcons.Camera };
+        var window = HostButton(button);
+
+        var background = button.GetVisualDescendants().OfType<Border>().Single(x => x.Name == "PART_Background");
+        var icon = button.GetVisualDescendants().OfType<ForgeGeometryIcon>().Single();
+
+        // 按钮 34×40、内边距 5 → 可用 24×30 → 收成 24×24，竖直居中（上下各 8）
+        Assert.Equal(24, background.Bounds.Width);
+        Assert.Equal(24, background.Bounds.Height);
+        Assert.Equal(background.Bounds.Width, background.Bounds.Height);
+        Assert.Equal(17, background.Bounds.Center.X);
+        Assert.Equal(20, background.Bounds.Center.Y);
+
+        // 图标（20）在那块方底里上下左右都居中
+        Assert.Equal(background.Bounds.Center.X, icon.Bounds.Center.X, 3);
+        Assert.Equal(background.Bounds.Center.Y, icon.Bounds.Center.Y, 3);
+
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void 显名时的底不收成正方形()
+    {
+        // 那一档的底要盖住图标 + 名字整块，收成方的会把名字露在底外面
+        var button = new ForgeStripeButton
+        {
+            WidthOverride = 34,
+            Icon = ForgeIcons.Camera,
+            Title = "相机列表",
+            ShowName = true,
+            StripeWidth = 57,
+        };
+        var window = HostButton(button);
+
+        var background = button.GetVisualDescendants().OfType<Border>().Single(x => x.Name == "PART_Background");
+        var name = button.GetVisualDescendants().OfType<TextBlock>().Single(x => x.Name == "PART_Name");
+
+        // 判据不是"长方形"（一行名字时它恰好也接近正方），而是**底盖住了名字那一截**
+        Assert.True(
+            background.Bounds.Bottom >= name.Bounds.Bottom,
+            $"显名时底要盖住名字：底 {background.Bounds}、名字 {name.Bounds}");
+
+        window.Close();
+    }
+
     private static Window HostButton(ForgeStripeButton button, ThemeVariant? variant = null)
     {
         // ⚠ 靠左上摆，别让 Window 把它拉满：原先那些用例是 Arrange(DesiredSize)，
