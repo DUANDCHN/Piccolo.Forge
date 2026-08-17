@@ -794,7 +794,10 @@ public class ForgeControl : TemplatedControl
         // 内边距按左右取不同的键；Islands 下两侧镜像不对称，设错边图标会朝窗口里侧挤。
         // 按钮实例是**复用**的，拖到另一条带时这里要跟着改，不能只在新建时设。
         button.IsLeftStripe = side == StripeSide.Left;
-        button.ArcOverride = StripeButtonArc;
+        // 外观里给的是**半径**，ArcOverride 收的是**直径** —— 在这一处换算，别让两边都换
+        button.ArcOverride = Appearance.StripeButtonCornerRadius is { } radius
+            ? radius * 2
+            : StripeButtonArc;
         button.HighlightSize = Appearance.StripeHighlightSize;
         button.IconSizeOverride = Appearance.StripeIconSize;
         button.NameFontSizeOverride = Appearance.StripeNameFontSize;

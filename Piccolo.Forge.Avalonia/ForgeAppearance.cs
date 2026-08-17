@@ -160,6 +160,17 @@ public sealed record ForgeAppearance
     public double StripeIconSize { get; init; } = double.NaN;
 
     /// <summary>
+    /// 条带按钮那块背板的圆角**半径**；<see langword="null"/> = 走上游
+    /// （<see cref="ForgeMetrics.StripeButtonArc"/> = 12 是**直径**，即半径 6）。
+    /// </summary>
+    /// <remarks>
+    /// ⚠ 这里收的是**半径**（Avalonia 的 <c>CornerRadius</c> 就是半径），
+    /// 而上游那些 <c>arc</c> 是**直径**（IntelliJ 的 <c>RoundRectangle2D</c> 收 arcw/arch）。
+    /// 库内部会折半，宿主这一层不必再换算 —— 免得"12 到底是 12 还是 6"每次都要想一遍。
+    /// </remarks>
+    public double? StripeButtonCornerRadius { get; init; }
+
+    /// <summary>
     /// 「显示名字」时那块高亮底多宽；<see cref="double.NaN"/> = 走上游
     /// （<see cref="ForgeMetrics.StripeNamedDefaultWidth"/> = 59，那时它是**条带宽**）。
     /// </summary>
