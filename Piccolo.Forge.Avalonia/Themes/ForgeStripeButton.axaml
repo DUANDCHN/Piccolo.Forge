@@ -192,4 +192,66 @@
             <Setter Property="Background" Value="{DynamicResource Forge.Islands.ButtonHoverBackground}" />
         </Style>
     </ControlTheme>
+
+    <!--  拖拽反馈层：落点方框与目标区高亮的位置每帧都变，模板表达不了 → 同样只给画笔  -->
+    <ControlTheme TargetType="forge:ForgeDragOverlay" x:Key="{x:Type forge:ForgeDragOverlay}">
+        <Setter Property="DropBackgroundBrush" Value="{DynamicResource Forge.ExpUi.ButtonDropBackground}" />
+        <Setter Property="DropBorderBrush" Value="{DynamicResource Forge.ExpUi.ButtonDropBorder}" />
+        <Setter Property="DropAreaBrush" Value="{DynamicResource Forge.ExpUi.DragAreaBackground}" />
+
+        <Style Selector="^:islands">
+            <Setter Property="DropBackgroundBrush" Value="{DynamicResource Forge.Islands.ButtonDropBackground}" />
+            <Setter Property="DropBorderBrush" Value="{DynamicResource Forge.Islands.ButtonDropBorder}" />
+            <Setter Property="DropAreaBrush" Value="{DynamicResource Forge.Islands.DragAreaBackground}" />
+        </Style>
+    </ControlTheme>
+
+    <!--  ── 面板标题条上的内容标签（工具窗口模型.md §13.1）──
+          悬停底铺满整块；选中时底边一条下划线，高 3、圆角直径 4（折半给 Avalonia）。
+          窗口失焦时下划线换成 inactive 那档（ToolWindowTabPainter）。
+          位置由 UnderlineMargin 给 —— 值仍出自 ComputeUnderlineRect，那里记着
+          「工具窗口这一版整体下移 1 并减高」的出处。  -->
+    <ControlTheme TargetType="forge:ForgeContentTab" x:Key="{x:Type forge:ForgeContentTab}">
+        <Setter Property="Foreground" Value="{DynamicResource Forge.ExpUi.ButtonForeground}" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="forge:ForgeContentTab">
+                <Panel>
+                    <Border Name="PART_Hover" />
+                    <Border
+                        CornerRadius="2"
+                        Height="3"
+                        HorizontalAlignment="Stretch"
+                        IsVisible="False"
+                        Margin="{TemplateBinding UnderlineMargin}"
+                        Name="PART_Underline"
+                        VerticalAlignment="Top" />
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+
+        <!--  选中的不再画悬停底（原实现就是 IsPointerOver && !IsSelected）  -->
+        <Style Selector="^:pointerover:not(:selected) /template/ Border#PART_Hover">
+            <Setter Property="Background" Value="{DynamicResource Forge.ExpUi.HeaderTabHoverBackground}" />
+        </Style>
+        <Style Selector="^:selected /template/ Border#PART_Underline">
+            <Setter Property="IsVisible" Value="True" />
+            <Setter Property="Background" Value="{DynamicResource Forge.ExpUi.HeaderTabInactiveUnderline}" />
+        </Style>
+        <Style Selector="^:selected:window-active /template/ Border#PART_Underline">
+            <Setter Property="Background" Value="{DynamicResource Forge.ExpUi.HeaderTabUnderline}" />
+        </Style>
+
+        <Style Selector="^:islands">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Islands.ButtonForeground}" />
+        </Style>
+        <Style Selector="^:islands:pointerover:not(:selected) /template/ Border#PART_Hover">
+            <Setter Property="Background" Value="{DynamicResource Forge.Islands.HeaderTabHoverBackground}" />
+        </Style>
+        <Style Selector="^:islands:selected /template/ Border#PART_Underline">
+            <Setter Property="Background" Value="{DynamicResource Forge.Islands.HeaderTabInactiveUnderline}" />
+        </Style>
+        <Style Selector="^:islands:selected:window-active /template/ Border#PART_Underline">
+            <Setter Property="Background" Value="{DynamicResource Forge.Islands.HeaderTabUnderline}" />
+        </Style>
+    </ControlTheme>
 </ResourceDictionary>

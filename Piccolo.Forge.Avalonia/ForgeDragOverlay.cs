@@ -1,4 +1,4 @@
-﻿using Avalonia;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Piccolo.Forge.Themes;
@@ -61,7 +61,14 @@ public class ForgeDragOverlay : Control
             SplitBoxRectProperty,
             IsCompactProperty,
             ThumbImageProperty,
-            ThumbRectProperty);
+            ThumbRectProperty,
+            DropBackgroundBrushProperty,
+            DropBorderBrushProperty,
+            DropAreaBrushProperty);
+
+        // 族写进伪类，ControlTheme 据此换一套颜色键（REQ-067）
+        PaletteProperty.Changed.AddClassHandler<ForgeDragOverlay>(
+            (x, _) => x.PseudoClasses.Set(":islands", x.Palette.Island is not null));
     }
 
     /// <summary>
@@ -179,12 +186,51 @@ public class ForgeDragOverlay : Control
         ThumbRect = null;
     }
 
+    /// <summary><see cref="DropBackgroundBrush"/> 的属性定义。</summary>
+    public static readonly StyledProperty<IBrush?> DropBackgroundBrushProperty =
+        AvaloniaProperty.Register<ForgeDragOverlay, IBrush?>(nameof(DropBackgroundBrush));
+
+    /// <summary><see cref="DropBorderBrush"/> 的属性定义。</summary>
+    public static readonly StyledProperty<IBrush?> DropBorderBrushProperty =
+        AvaloniaProperty.Register<ForgeDragOverlay, IBrush?>(nameof(DropBorderBrush));
+
+    /// <summary><see cref="DropAreaBrush"/> 的属性定义。</summary>
+    public static readonly StyledProperty<IBrush?> DropAreaBrushProperty =
+        AvaloniaProperty.Register<ForgeDragOverlay, IBrush?>(nameof(DropAreaBrush));
+
+    /// <summary>落点方框的底色，由 <c>ControlTheme</c> 从资源键给（REQ-067）。</summary>
+    /// <remarks>
+    /// <b>这个控件不套模板</b>：它画的是拖拽过程中**实时算出来的**落点方框与高亮区，
+    /// 位置每帧都变，模板里的静态元素表达不了。对宿主而言用法一样（重定义同名键、
+    /// 明暗照常跟随），只是库内部仍由 <c>Render</c> 拿着画刷画。
+    /// <para>兜底回配色 —— 控件没进树时拿不到主题。</para>
+    /// </remarks>
+    public IBrush? DropBackgroundBrush
+    {
+        get => GetValue(DropBackgroundBrushProperty);
+        set => SetValue(DropBackgroundBrushProperty, value);
+    }
+
+    /// <summary>落点方框的描边，来源同 <see cref="DropBackgroundBrush"/>。</summary>
+    public IBrush? DropBorderBrush
+    {
+        get => GetValue(DropBorderBrushProperty);
+        set => SetValue(DropBorderBrushProperty, value);
+    }
+
+    /// <summary>目标停靠区高亮的底色，来源同 <see cref="DropBackgroundBrush"/>。</summary>
+    public IBrush? DropAreaBrush
+    {
+        get => GetValue(DropAreaBrushProperty);
+        set => SetValue(DropAreaBrushProperty, value);
+    }
+
     /// <inheritdoc />
     public override void Render(DrawingContext context)
     {
         if (AreaRect is { } area)
         {
-            context.FillRectangle(new SolidColorBrush(Palette.DragAreaBackground), area);
+            context.FillRectangle(DropAreaBrush ?? new SolidColorBrush(Palette.DragAreaBackground), area);
         }
 
         if (DropRect is { } drop)
@@ -193,14 +239,14 @@ public class ForgeDragOverlay : Control
             // ⚠ 那是**直径**，画的时候要折半 —— 见 ForgeMetrics.StripeButtonArc 的说明。
             var arc = IsCompact ? ForgeCompactMetrics.StripeButtonArc : ForgeMetrics.StripeButtonArc;
             context.DrawRectangle(
-                new SolidColorBrush(Palette.ButtonDropBackground), null, new RoundedRect(drop, arc / 2));
+                DropBackgroundBrush ?? new SolidColorBrush(Palette.ButtonDropBackground), null, new RoundedRect(drop, arc / 2));
         }
 
         if (SplitBoxRect is { } box)
         {
             // BasicStroke(1f, CAP_SQUARE, JOIN_MITER, 10f, dash = [4, 4], 0f)
             var pen = new Pen(
-                new SolidColorBrush(Palette.ButtonDropBorder),
+                DropBorderBrush ?? new SolidColorBrush(Palette.ButtonDropBorder),
                 thickness: 1,
                 dashStyle: new DashStyle([4, 4], 0),
                 lineCap: PenLineCap.Square,

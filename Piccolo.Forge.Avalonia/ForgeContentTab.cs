@@ -1,4 +1,4 @@
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Media;
@@ -16,11 +16,9 @@ namespace Piccolo.Forge.Avalonia;
 /// </remarks>
 public class ForgeContentTab : TabStripItem
 {
-    /// <summary>Creates a self-rendered tab item independent of the host theme.</summary>
-    public ForgeContentTab()
-    {
-        Template = new global::Avalonia.Controls.Templates.FuncControlTemplate<ForgeContentTab>((_, _) => new Border());
-    }
+    // ⚠ 这里曾经在构造里赋 Template（一个空 Border，只为盖掉 TabStripItem 自带的模板）。
+    //   那是 local value，**会盖过 ControlTheme 里的模板**，症状是"主题写了一点不生效"且不报错。
+    //   模板现在写在 Themes/ForgeStripeButton.axaml 的 ControlTheme 里（REQ-067）。
     /// <summary><see cref="Palette"/> 的属性定义。</summary>
     public static readonly StyledProperty<ForgePalette> PaletteProperty =
         AvaloniaProperty.Register<ForgeContentTab, ForgePalette>(nameof(Palette), ForgePalette.ExpUiDark);
@@ -51,6 +49,12 @@ public class ForgeContentTab : TabStripItem
             PaletteProperty, TitleProperty, IsSelectedProperty, IsWindowActiveProperty, IsSoleContentProperty);
         AffectsMeasure<ForgeContentTab>(TitleProperty, CanBeClosedProperty);
         AffectsRender<ForgeContentTab>(CanBeClosedProperty, IsPinnedProperty);
+
+        // 状态与族写进伪类，模板据此选色（REQ-067）
+        IsWindowActiveProperty.Changed.AddClassHandler<ForgeContentTab>(
+            (x, e) => x.PseudoClasses.Set(":window-active", e.GetNewValue<bool>()));
+        PaletteProperty.Changed.AddClassHandler<ForgeContentTab>(
+            (x, _) => x.PseudoClasses.Set(":islands", x.Palette.Island is not null));
     }
 
     /// <summary>配色。</summary>
@@ -134,15 +138,8 @@ public class ForgeContentTab : TabStripItem
         // 整块都能点，不然只有画了东西的地方收得到鼠标
         ForgeHitArea.Fill(context, Bounds.Size);
 
-        if (IsPointerOver && !IsSelected)
-        {
-            context.FillRectangle(new SolidColorBrush(Palette.HeaderTabHoverBackground), new Rect(Bounds.Size));
-        }
-
-        if (IsSelected)
-        {
-            RenderUnderline(context);
-        }
+        // 悬停底与选中下划线归模板（REQ-067）：颜色走 {DynamicResource}，
+        // 几何由 UnderlineMargin / UnderlineHeight 两个绑定属性给（值仍出自 ComputeUnderlineRect）。
 
         if (MeasureText() is { } text)
         {
@@ -161,7 +158,8 @@ public class ForgeContentTab : TabStripItem
     /// <remarks>位置对应 <c>ContentLabel.java:252-257</c>：起点是 <c>宽度 - 4 - 图标宽</c>。</remarks>
     private void RenderTabIcon(DrawingContext context)
     {
-        var brush = new SolidColorBrush(Palette.ButtonForeground);
+        // 图标色由模板给（Foreground），兜底回配色 —— 控件没进树时拿不到主题
+        var brush = Foreground ?? new SolidColorBrush(Palette.ButtonForeground);
         var x = Bounds.Width - ForgeMetrics.TabRightIconInset - IconSize;
         var rect = new Rect(x, (Bounds.Height - IconSize) / 2, IconSize, IconSize);
 
@@ -189,17 +187,24 @@ public class ForgeContentTab : TabStripItem
         return new Rect(bounds.X, bounds.Y + border + height - thickness, bounds.Width, thickness);
     }
 
-    private void RenderUnderline(DrawingContext context)
-    {
-        var color = IsWindowActive ? Palette.HeaderTabUnderline : Palette.HeaderTabInactiveUnderline;
-        var rect = ComputeUnderlineRect(new Rect(Bounds.Size));
+    /// <summary><see cref="UnderlineMargin"/> 的属性定义。</summary>
+    public static readonly StyledProperty<Thickness> UnderlineMarginProperty =
+        AvaloniaProperty.Register<ForgeContentTab, Thickness>(nameof(UnderlineMargin));
 
-        // arc > 0 就画圆角矩形（JBDefaultTabPainter.kt:81-85）。
-        // ⚠ 主题里的 arc 是**直径**，画的时候折半 —— 见 ForgeMetrics.StripeButtonArc 的说明。
-        context.DrawRectangle(
-            new SolidColorBrush(color),
-            null,
-            new RoundedRect(rect, ForgeMetrics.HeaderTabUnderlineArc / 2));
+    /// <summary>选中下划线的位置，模板里那层 <c>Border</c> 拿它当 <c>Margin</c>。</summary>
+    /// <remarks>值仍由 <see cref="ComputeUnderlineRect"/> 算（出处见那个方法）。</remarks>
+    public Thickness UnderlineMargin
+    {
+        get => GetValue(UnderlineMarginProperty);
+        private set => SetValue(UnderlineMarginProperty, value);
+    }
+
+    /// <inheritdoc />
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        var rect = ComputeUnderlineRect(new Rect(finalSize));
+        UnderlineMargin = new Thickness(rect.X, rect.Y, 0, 0);
+        return base.ArrangeOverride(finalSize);
     }
 
     private FormattedText? MeasureText()
