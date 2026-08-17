@@ -359,12 +359,13 @@ public class ForgeControlsTests
         var button = new ForgeStripeButton { Icon = ForgeIcons.Terminal };
         var window = HostButton(button);
 
-        // ⚠ 判据从"树里没有 Border"改成"图标槽里没有子控件"：
-        //   模板化之后树里**本来就有**一个 Border（底色那层 PART_Background），
-        //   照旧断言的话这条用例会因为"脱树 → 没模板 → 一个 Border 都没有"而假绿 ——
-        //   绿着，但它想测的「Geometry 图标不托管控件」根本没被测到。
+        // ⚠ 判据两次改过，两次都是因为实现真的变了：
+        //   ① 模板化之后树里本来就有 Border（底色那层），原来的"树里没有 Border"成了假绿；
+        //   ② Geometry 图标现在也放进图标槽了（ForgeGeometryIcon，为了不被模板盖住），
+        //      所以槽里**有**东西 —— 该断言的是"槽里放的不是宿主的控件"。
         var slot = button.GetVisualDescendants().OfType<ForgeIconHost>().Single();
-        Assert.Empty(slot.GetVisualChildren());
+        var hosted = slot.GetVisualChildren().OfType<Control>().ToList();
+        Assert.All(hosted, x => Assert.IsType<ForgeGeometryIcon>(x));
         window.Close();
     }
 

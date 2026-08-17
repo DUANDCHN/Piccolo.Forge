@@ -100,7 +100,8 @@ public abstract class ForgeSquareButtonBase : Button
         _iconHost = e.NameScope.Find<ForgeIconHost>("PART_Icon");
         if (_iconHost is not null)
         {
-            _iconHost.Icon = _iconControl;
+            // 宿主的控件图标优先；没有就放画 Geometry 的那个子元素
+            _iconHost.Icon = _iconControl ?? (GeometryIcon.Icon is null ? null : GeometryIcon);
         }
 
         UpdateGeometry();
@@ -127,7 +128,7 @@ public abstract class ForgeSquareButtonBase : Button
 
         if (_iconHost is not null)
         {
-            _iconHost.Icon = control;
+            _iconHost.Icon = control ?? (GeometryIcon.Icon is null ? null : GeometryIcon);
         }
 
         InvalidateMeasure();
@@ -135,6 +136,36 @@ public abstract class ForgeSquareButtonBase : Button
 
     /// <summary>当前挂着的图标控件。</summary>
     protected Control? IconControl => _iconControl;
+
+    /// <summary>
+    /// 画 <see cref="Geometry"/> 图标的那个子元素 —— 宿主没给控件图标时用它。
+    /// </summary>
+    /// <remarks>
+    /// 它和宿主给的图标控件**共用同一个槽**（<see cref="ForgeIconHost"/>），
+    /// 所以位置、缩放、居中全都走同一条路（<see cref="IconRect"/>），不会两套算法漂开。
+    /// <para>
+    /// 搬成子元素的理由见 <see cref="ForgeGeometryIcon"/>：留在 <c>Render</c> 里的话，
+    /// 模板里就不能放任何不透明的东西。
+    /// </para>
+    /// </remarks>
+    protected ForgeGeometryIcon GeometryIcon { get; } = new();
+
+    /// <summary>把该画的 Geometry 图标与画刷交给那个子元素；<paramref name="icon"/> 为空则不画。</summary>
+    /// <param name="icon">要画的图形。</param>
+    /// <param name="brush">用什么画。</param>
+    /// <param name="filled">实心还是描边。</param>
+    protected void SetGeometryIcon(Geometry? icon, IBrush? brush, bool filled)
+    {
+        GeometryIcon.Icon = icon;
+        GeometryIcon.Brush = brush;
+        GeometryIcon.IsFilled = filled;
+
+        // 宿主给了控件图标就以它为准（槽里只放得下一个）
+        if (_iconHost is not null && _iconControl is null)
+        {
+            _iconHost.Icon = icon is null ? null : GeometryIcon;
+        }
+    }
 
     /// <summary>
     /// 图标占的那块地（按钮自己的坐标系）。

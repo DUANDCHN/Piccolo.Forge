@@ -253,6 +253,30 @@ public class ForgeStripeButton : ForgeSquareButtonBase
             SetIconControl(change.GetNewValue<object?>() as Control);
         }
 
+        // 图标 / 前景 / 激活态 / 族任一变化都要重喂那个画 Geometry 的子元素
+        if (change.Property == IconProperty
+            || change.Property == ForegroundProperty
+            || change.Property == IsToolWindowActiveProperty
+            || change.Property == PaletteProperty)
+        {
+            SyncGeometryIcon();
+        }
+    }
+
+    /// <summary>把该画的 Geometry 图标喂给模板里那个槽。</summary>
+    /// <remarks>
+    /// 三种情况：宿主给了 Geometry → 画它；什么都没给 → 画默认图形
+    /// （<c>ForgeIcons.DefaultToolWindow</c>，那个空框）；给了控件或纯文字 → 不画。
+    /// </remarks>
+    private void SyncGeometryIcon()
+    {
+        var geometry = Icon as Geometry;
+        if (geometry is null && Icon is null && string.IsNullOrEmpty(Text))
+        {
+            geometry = ForgeIcons.DefaultToolWindow;
+        }
+
+        SetGeometryIcon(geometry, ForegroundBrush, filled: false);
     }
 
     /// <summary>
@@ -339,28 +363,16 @@ public class ForgeStripeButton : ForgeSquareButtonBase
             RenderName(context);
         }
 
-        // 宿主给的是控件（MaterialIcon、Image、任何 Control）——它自己会画，这里什么都不做。
-        // 位置由模板里那个槽（ForgeIconHost）按 IconRect 安排。
-        if (IconControl is not null)
+        // 图标一律由模板里那个槽画（宿主的控件图标，或画 Geometry 的子元素），
+        // 位置都走 IconRect —— 见 ForgeSquareButtonBase.SetGeometryIcon。
+        if (IconControl is not null || Icon is Geometry)
         {
-            return;
-        }
-
-        // 图标优先：宿主给了 Geometry 就画它，什么都没给就画默认图形
-        if (Icon is Geometry geometry)
-        {
-            ForgeIcons.Draw(context, geometry, iconRect, ForegroundBrush);
             return;
         }
 
         if (string.IsNullOrEmpty(Text))
         {
-            if (Icon is null)
-            {
-                ForgeIcons.Draw(
-                    context, ForgeIcons.DefaultToolWindow, iconRect, ForegroundBrush);
-            }
-
+            // 什么都没给时的默认图形也走那个槽（见 SyncGeometryIcon）
             return;
         }
 
