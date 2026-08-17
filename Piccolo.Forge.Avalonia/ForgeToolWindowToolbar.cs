@@ -62,7 +62,7 @@ public class ForgeToolWindowToolbar : TemplatedControl
         // 族写进伪类，ControlTheme 据此换一套颜色键（REQ-067）
         PaletteProperty.Changed.AddClassHandler<ForgeToolWindowToolbar>(
             (x, _) => x.PseudoClasses.Set(":islands", x.Palette.Island is not null));
-        AffectsMeasure<ForgeToolWindowToolbar>(CustomWidthProperty);
+        AffectsMeasure<ForgeToolWindowToolbar>(CustomWidthProperty, BorderOverlaysContentProperty);
     }
 
     /// <summary>建一根条带。</summary>
@@ -101,6 +101,29 @@ public class ForgeToolWindowToolbar : TemplatedControl
         {
             slot.Child = _root;
         }
+    }
+
+    /// <summary><see cref="BorderOverlaysContent"/> 的属性定义。</summary>
+    public static readonly StyledProperty<bool> BorderOverlaysContentProperty =
+        AvaloniaProperty.Register<ForgeToolWindowToolbar, bool>(nameof(BorderOverlaysContent));
+
+    /// <summary>
+    /// 内侧那条 1px 线**压在内容上**，不再单独占宽。
+    /// </summary>
+    /// <remarks>
+    /// 默认 <see langword="false"/>（照上游：线占 1px，条带 = 按钮 + 1）。
+    /// <para>
+    /// ★ 宿主自己定了条带宽度时要打开它，否则两件事对不上：
+    /// 总宽会变成"给的宽 + 1"，而且**图标在总宽里落在半像素上** ——
+    /// 按钮在内容区里居中是整数，可总宽比内容多 1，取整后左右就差 1px（实机看出来的"偏左"）。
+    /// 线压在内容上之后，按钮就是整条条带宽，图标居中即整数。
+    /// 线本身画在条带边缘，而图标离边缘还有七八个像素，压不到任何东西。
+    /// </para>
+    /// </remarks>
+    public bool BorderOverlaysContent
+    {
+        get => GetValue(BorderOverlaysContentProperty);
+        set => SetValue(BorderOverlaysContentProperty, value);
     }
 
     /// <summary>配色。</summary>
@@ -215,6 +238,11 @@ public class ForgeToolWindowToolbar : TemplatedControl
         if (change.Property == TransparentBackdropProperty)
         {
             PseudoClasses.Set(":transparent-backdrop", change.GetNewValue<bool>());
+        }
+
+        if (change.Property == BorderOverlaysContentProperty)
+        {
+            PseudoClasses.Set(":border-overlay", change.GetNewValue<bool>());
         }
 
         if (change.Property == SideProperty)

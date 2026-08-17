@@ -120,13 +120,25 @@ public sealed record ForgeAppearance
     public double HeaderTitleInsetLeft { get; init; } = double.NaN;
 
     /// <summary>
-    /// 条带按钮多宽；<see cref="double.NaN"/> = 走上游（常规 40 / 紧凑 32）。
+    /// 条带上图标的边长；<see cref="double.NaN"/> = 走上游（常规 20 / 紧凑 16）。
+    /// </summary>
+    /// <remarks>与 <see cref="StripeIconInset"/> **成对给**，见那里。</remarks>
+    public double StripeIconSize { get; init; } = double.NaN;
+
+    /// <summary>
+    /// 条带上图标的**左右边距**；<see cref="double.NaN"/> = 不指定（宽度走上游的按钮宽）。
     /// </summary>
     /// <remarks>
-    /// 只改宽度：高度与图标尺寸不跟着变，图标仍在扣掉内边距后的区域里居中。
-    /// 收起状态下的**条带宽 = 这个值 + 内侧那条 1px 线**。
+    /// ★ 这是"侧边栏该多宽"的正确问法：**别钉宽度，钉图标大小与两侧边距**，
+    /// 宽度让图标撑开 —— <c>条带宽 = 边距 + 图标 + 边距</c>。
+    /// 这么定之后<b>图标居中是构造上成立的</b>，不会出现"宽度减图标是奇数、
+    /// 居中落半像素、取整后偏一边"那种事。
+    /// <para>
+    /// 给了这一对之后，内侧那条 1px 线改成**压在内容上**、不再占宽
+    /// （<c>ForgeToolWindowToolbar.BorderOverlaysContent</c>），否则总宽又会多出 1。
+    /// </para>
     /// </remarks>
-    public double StripeButtonWidth { get; init; } = double.NaN;
+    public double StripeIconInset { get; init; } = double.NaN;
 
     /// <summary>
     /// 「显示名字」时条带多宽；<see cref="double.NaN"/> = 走上游

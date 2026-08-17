@@ -46,12 +46,15 @@ public abstract class ForgeSquareButtonBase : Button
             PaletteProperty, IsCompactProperty, IsLeftStripeProperty, IsPointerOverProperty, IsPressedProperty);
         // 换族会改按钮宽（40 ↔ 37），所以 Palette 也要触发重新测量，不只是重画
         AffectsMeasure<ForgeSquareButtonBase>(
-            IsCompactProperty, PaletteProperty, IsLeftStripeProperty, WidthOverrideProperty);
+            IsCompactProperty, PaletteProperty, IsLeftStripeProperty,
+            IconSizeOverrideProperty, IconInsetProperty);
 
         // 几何（内缩 / 圆角）跟着这三样走 —— 它们是模板里 Border 的 Margin 与 CornerRadius 的来源
         PaletteProperty.Changed.AddClassHandler<ForgeSquareButtonBase>((b, _) => b.OnFamilyOrDensityChanged());
         IsCompactProperty.Changed.AddClassHandler<ForgeSquareButtonBase>((b, _) => b.OnFamilyOrDensityChanged());
         IsLeftStripeProperty.Changed.AddClassHandler<ForgeSquareButtonBase>((b, _) => b.UpdateGeometry());
+        IconSizeOverrideProperty.Changed.AddClassHandler<ForgeSquareButtonBase>((b, _) => b.UpdateGeometry());
+        IconInsetProperty.Changed.AddClassHandler<ForgeSquareButtonBase>((b, _) => b.UpdateGeometry());
     }
 
     /// <summary>族或密度变了：几何要重算，族还要写进伪类（模板按 <c>:islands</c> 选另一套颜色键）。</summary>
@@ -97,7 +100,7 @@ public abstract class ForgeSquareButtonBase : Button
         //   所以：**宿主没收窄 → 一个像素都不动（照上游）；收窄了 → 收成居中的正方形。**
         //   ⚠ 显名时**不收**：那一档的底本来就要盖住图标 + 名字整块
         //     （SquareStripeButton.kt:196-198），收成方的会把名字露在底外面。
-        if (double.IsNaN(WidthOverride))
+        if (!IsHostSized)
         {
             return rect;
         }
@@ -293,11 +296,11 @@ public abstract class ForgeSquareButtonBase : Button
         //   所以方底那一档改成：**给显式边长 + 居中 + 不留边距**。
         //   边距一旦还在，居中就是"在扣掉不对称内边距之后的那块地里居中"——
         //   Islands 的 5/2 会把它推偏 1.5px，正是实机看到的"图标偏一边"。
-        var square = !ShowsName && !double.IsNaN(WidthOverride);
+        var square = !ShowsName && IsHostSized;
 
         // 宿主收窄了按钮时，左右一律**对称**：Islands 那份 5/2（显名档 6/2）是为了
         // 把窄按钮在宽条带里推向外缘，按钮与条带一样宽之后它只会让人看着偏一边。
-        var horizontal = double.IsNaN(WidthOverride)
+        var horizontal = !IsHostSized
             ? (padding.Left, padding.Right)
             : ((cell.Width - background.Width) / 2, (cell.Width - background.Width) / 2);
 
@@ -352,13 +355,13 @@ public abstract class ForgeSquareButtonBase : Button
         => ForgeStripeButtonMetrics.ForTheme(Palette.Family, IsCompact);
 
     /// <summary>按钮宽：expUI 40（紧凑 32），Islands 常规档 37。</summary>
-    public double ButtonWidth => double.IsNaN(WidthOverride) ? StripeMetrics.Width : WidthOverride;
+    public double ButtonWidth => IsHostSized ? (IconInset * 2) + IconSizeOverride : StripeMetrics.Width;
 
     /// <summary>按钮高：40（紧凑 32）。</summary>
     public double ButtonHeight => StripeMetrics.Height;
 
     /// <summary>图标边长：紧凑 16，否则 20。</summary>
-    public double IconSize => StripeMetrics.IconSize;
+    public double IconSize => double.IsNaN(IconSizeOverride) ? StripeMetrics.IconSize : IconSizeOverride;
 
     /// <summary>图标四周 padding，按左右条带与是否显名取。</summary>
     public ForgeInsets IconPadding => StripeMetrics.IconPadding(IsLeftStripe, ShowsName);
@@ -383,24 +386,44 @@ public abstract class ForgeSquareButtonBase : Button
     /// <summary>宿主指定的圆角**直径**；<see langword="null"/> 表示按主题的默认值。</summary>
     public double? ArcOverride { get; set; }
 
-    /// <summary><see cref="WidthOverride"/> 的属性定义。</summary>
-    public static readonly StyledProperty<double> WidthOverrideProperty =
-        AvaloniaProperty.Register<ForgeSquareButtonBase, double>(nameof(WidthOverride), double.NaN);
+    /// <summary><see cref="IconSizeOverride"/> 的属性定义。</summary>
+    public static readonly StyledProperty<double> IconSizeOverrideProperty =
+        AvaloniaProperty.Register<ForgeSquareButtonBase, double>(nameof(IconSizeOverride), double.NaN);
+
+    /// <summary><see cref="IconInset"/> 的属性定义。</summary>
+    public static readonly StyledProperty<double> IconInsetProperty =
+        AvaloniaProperty.Register<ForgeSquareButtonBase, double>(nameof(IconInset), double.NaN);
 
     /// <summary>
-    /// 宿主指定的按钮**宽度**；<see cref="double.NaN"/> = 按主题的默认值（上游 40 / 紧凑 32）。
+    /// 宿主指定的图标边长；<see cref="double.NaN"/> = 按主题的默认值（上游 20 / 紧凑 16）。
+    /// </summary>
+    public double IconSizeOverride
+    {
+        get => GetValue(IconSizeOverrideProperty);
+        set => SetValue(IconSizeOverrideProperty, value);
+    }
+
+    /// <summary>
+    /// 宿主指定的图标**左右边距**；<see cref="double.NaN"/> = 不指定（宽度走主题的按钮宽）。
     /// </summary>
     /// <remarks>
-    /// 给的是**版面取舍**的口子，不是紧凑档开关：紧凑是一整档密度（图标、字号、圆角一起变小），
-    /// 而"侧边栏该多宽"常常只想单收这一项。高度与图标尺寸都不跟着变 ——
-    /// 图标仍在扣掉内边距后的区域里居中（见 <see cref="ForgeStripeButton.IconRect"/>），
-    /// 所以收窄之后图标照样正。
+    /// ★ 这是"侧边栏该多宽"的**正确问法**（用户定的做法）：
+    /// 别去钉条带宽度，而是钉<b>图标多大、两侧留多少</b>，宽度让图标自己撑开
+    /// —— <c>宽 = 边距 + 图标 + 边距</c>。
+    /// <para>
+    /// 这么定之后<b>居中是构造上成立的</b>：两侧同一个数，不存在"差 1px 该给谁"的问题。
+    /// 先前直接钉宽度（35 / 57）就踩了这个：宽度减图标是奇数，居中落在半像素上，
+    /// 取整后左右差 1px，实机看着就是图标偏一边。
+    /// </para>
     /// </remarks>
-    public double WidthOverride
+    public double IconInset
     {
-        get => GetValue(WidthOverrideProperty);
-        set => SetValue(WidthOverrideProperty, value);
+        get => GetValue(IconInsetProperty);
+        set => SetValue(IconInsetProperty, value);
     }
+
+    /// <summary>宿主是不是自己定了图标尺寸与边距（那时宽度由它们算出来）。</summary>
+    protected bool IsHostSized => !double.IsNaN(IconInset) && !double.IsNaN(IconSizeOverride);
 
     /// <summary><see cref="HoverBackgroundBrush"/> 的属性定义。</summary>
     public static readonly StyledProperty<IBrush?> HoverBackgroundBrushProperty =

@@ -49,6 +49,11 @@
             <Setter Property="Margin" Value="1,0,0,0" />
         </Style>
 
+        <!--  线压在内容上：槽不再让出那 1px（宿主自己定宽度时用，见 BorderOverlaysContent）  -->
+        <Style Selector="^:border-overlay /template/ Decorator#PART_Groups">
+            <Setter Property="Margin" Value="0" />
+        </Style>
+
         <Style Selector="^:islands">
             <Setter Property="StripeBackgroundBrush" Value="{DynamicResource Forge.Islands.StripeBackground}" />
             <Setter Property="StripeBorderBrush" Value="{DynamicResource Forge.Islands.StripeBorder}" />

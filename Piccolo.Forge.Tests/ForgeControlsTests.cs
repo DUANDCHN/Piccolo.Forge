@@ -434,20 +434,24 @@ public class ForgeControlsTests
     /// </para>
     /// </remarks>
     [AvaloniaFact]
-    public void 收窄之后高亮底仍是居中的正方形()
+    public void 图标撑开的按钮里方底与图标都居中()
     {
-        var button = new ForgeStripeButton { WidthOverride = 34, Icon = ForgeIcons.Camera };
+        var button = new ForgeStripeButton { IconSizeOverride = 20, IconInset = 8, Icon = ForgeIcons.Camera };
         var window = HostButton(button);
 
         var background = button.GetVisualDescendants().OfType<Border>().Single(x => x.Name == "PART_Background");
         var icon = button.GetVisualDescendants().OfType<ForgeGeometryIcon>().Single();
 
-        // 按钮 34×40、内边距 5 → 可用 24×30 → 收成 24×24，竖直居中（上下各 8）
-        Assert.Equal(24, background.Bounds.Width);
-        Assert.Equal(24, background.Bounds.Height);
+        // 图标 20 + 两侧 8 → 按钮 36×40；内边距 5 → 可用 26×30 → 收成 26×26 居中
+        Assert.Equal(26, background.Bounds.Width);
+        Assert.Equal(26, background.Bounds.Height);
         Assert.Equal(background.Bounds.Width, background.Bounds.Height);
-        Assert.Equal(17, background.Bounds.Center.X);
+        Assert.Equal(18, background.Bounds.Center.X);
         Assert.Equal(20, background.Bounds.Center.Y);
+
+        // ★ 图标两侧的留白**逐像素相等** —— 这才是"居中"，不是"差不多在中间"
+        Assert.Equal(8, icon.Bounds.X);
+        Assert.Equal(36 - 8, icon.Bounds.Right);
 
         // 图标（20）在那块方底里上下左右都居中
         Assert.Equal(background.Bounds.Center.X, icon.Bounds.Center.X, 3);
@@ -462,7 +466,8 @@ public class ForgeControlsTests
         // 那一档的底要盖住图标 + 名字整块，收成方的会把名字露在底外面
         var button = new ForgeStripeButton
         {
-            WidthOverride = 34,
+            IconSizeOverride = 20,
+            IconInset = 8,
             Icon = ForgeIcons.Camera,
             Title = "相机列表",
             ShowName = true,

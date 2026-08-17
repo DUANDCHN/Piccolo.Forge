@@ -356,10 +356,17 @@ public class ForgeStripeButton : ForgeSquareButtonBase
     private TextBlock? _nameBlock;
 
     /// <inheritdoc />
+    /// <remarks>
+    /// ⚠ <b>套上模板之后必须重新测量。</b>名字那一截的高度是**问模板里那个 TextBlock 要**的
+    /// （见 <see cref="MeasureNameHeight"/>），而控件还没进可视树时拿不到 <c>ControlTheme</c>
+    /// —— 那一轮测量只能退回估计值。模板随后套上了，却没人再叫一次测量，
+    /// 按钮就一直按估计值那么高：**估小了字就被剪掉半截**，正是实机看到的那样。
+    /// </remarks>
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
     {
         base.OnApplyTemplate(e);
         _nameBlock = e.NameScope.Find<TextBlock>("PART_Name");
+        InvalidateMeasure();
     }
 
     /// <summary>把名字的文本、位置、行高刷进那三个供模板绑定的属性。</summary>
