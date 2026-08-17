@@ -179,6 +179,11 @@ public class ForgeToolWindowHeader : TemplatedControl
             HeightOverrideProperty,
             CaptionButtonsWidthProperty);
         ContentUiTypeProperty.Changed.AddClassHandler<ForgeToolWindowHeader>((h, _) => h.InvalidateMeasure());
+        AffectsRender<ForgeToolWindowHeader>(HeaderBackgroundBrushProperty, HeaderBorderBrushProperty);
+
+        // 族写进伪类，ControlTheme 据此换一套颜色键（REQ-067）
+        PaletteProperty.Changed.AddClassHandler<ForgeToolWindowHeader>(
+            (h, _) => h.PseudoClasses.Set(":islands", h.Palette.Island is not null));
     }
 
     /// <summary>配色。</summary>
@@ -523,7 +528,37 @@ public class ForgeToolWindowHeader : TemplatedControl
                 FlowDirection.LeftToRight,
                 ResolveTypeface(TitleFontWeight),
                 12,
-                new SolidColorBrush(Palette.Foreground));
+                // 标题文字色由模板给（ControlTheme 的 Foreground），兜底回配色
+                Foreground ?? new SolidColorBrush(Palette.Foreground));
+
+    /// <inheritdoc />
+    /// <summary><see cref="HeaderBackgroundBrush"/> 的属性定义。</summary>
+    public static readonly StyledProperty<IBrush?> HeaderBackgroundBrushProperty =
+        AvaloniaProperty.Register<ForgeToolWindowHeader, IBrush?>(nameof(HeaderBackgroundBrush));
+
+    /// <summary><see cref="HeaderBorderBrush"/> 的属性定义。</summary>
+    public static readonly StyledProperty<IBrush?> HeaderBorderBrushProperty =
+        AvaloniaProperty.Register<ForgeToolWindowHeader, IBrush?>(nameof(HeaderBorderBrush));
+
+    /// <summary>标题条底色，由 <c>ControlTheme</c> 从资源键给（REQ-067）。</summary>
+    /// <remarks>
+    /// <b>这个控件不套模板</b>：它自己往 <c>VisualChildren</c> 里挂标签条与三个按钮，
+    /// 而 <c>ApplyTemplate</c> 会把 <c>VisualChildren</c> 清空 —— 给它模板等于把那些子控件扫掉。
+    /// 走"画笔属性由主题给、绘制仍自己来"这条；对宿主而言用法一样。
+    /// <para>兜底回配色 —— 控件没进树时拿不到主题。</para>
+    /// </remarks>
+    public IBrush? HeaderBackgroundBrush
+    {
+        get => GetValue(HeaderBackgroundBrushProperty);
+        set => SetValue(HeaderBackgroundBrushProperty, value);
+    }
+
+    /// <summary>标题条底下那条 1px 分隔线的颜色，来源同 <see cref="HeaderBackgroundBrush"/>。</summary>
+    public IBrush? HeaderBorderBrush
+    {
+        get => GetValue(HeaderBorderBrushProperty);
+        set => SetValue(HeaderBorderBrushProperty, value);
+    }
 
     /// <inheritdoc />
     public override void Render(DrawingContext context)
@@ -533,7 +568,7 @@ public class ForgeToolWindowHeader : TemplatedControl
         // 「活动标题条」那条高亮是老 UI 的东西，照它画一眼就不像。
         // 上面两个角跟着岛磨圆（见 TopCornerRadius）；下面两个角照旧是方的 —— 它接着正文
         context.DrawRectangle(
-            new SolidColorBrush(Palette.HeaderBackground),
+            HeaderBackgroundBrush ?? new SolidColorBrush(Palette.HeaderBackground),
             null,
             new RoundedRect(
                 new Rect(Bounds.Size),
@@ -541,7 +576,7 @@ public class ForgeToolWindowHeader : TemplatedControl
 
         // 下边一条 1px 分隔线
         context.FillRectangle(
-            new SolidColorBrush(Palette.HeaderBorder),
+            HeaderBorderBrush ?? new SolidColorBrush(Palette.HeaderBorder),
             new Rect(0, Bounds.Height - 1, Bounds.Width, 1));
 
         if (MeasureTitle() is { } text)

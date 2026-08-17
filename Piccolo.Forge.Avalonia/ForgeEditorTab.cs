@@ -16,11 +16,9 @@ namespace Piccolo.Forge.Avalonia;
 /// </remarks>
 public class ForgeEditorTab : TabStripItem
 {
-    /// <summary>Creates a self-rendered tab item independent of the host theme.</summary>
-    public ForgeEditorTab()
-    {
-        Template = new global::Avalonia.Controls.Templates.FuncControlTemplate<ForgeEditorTab>((_, _) => new Border());
-    }
+    // 这里曾经在构造里赋 Template（一个空 Border，只为盖掉 TabStripItem 自带的模板）。
+    // 那是 local value，会盖过 ControlTheme 里的模板与 Setter，
+    // 症状是「主题写了一点不生效」且不报错（REQ-067）。
 
     /// <inheritdoc />
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
@@ -90,8 +88,102 @@ public class ForgeEditorTab : TabStripItem
         set => SetValue(RowHeightOverrideProperty, value);
     }
 
+    /// <summary>五个状态各自的底与描边，由 ControlTheme 从资源键给（REQ-067）。</summary>
+    /// <remarks>
+    /// <b>这个控件不套模板</b>，理由是判定本身：底与描边有 <b>5 个状态 × 2 个族</b>，
+    /// 两族还是**两个 painter**（expUI 整条贴边 + 下划线；Islands 改画内缩圆角块、完全不画下划线），
+    /// 另有若干状态的填充或描边是**空**（不画）。用样式选择器表达要写 20 条上下，
+    /// 而这套判定现在集中在 <see cref="ResolveColors"/> 里、每一档都带着上游出处
+    /// （<c>IslandsTabPainter.kt:254-268</c>）。拆进选择器出错概率高于收益 ——
+    /// 真要拆该等「宿主想换标签形状」这个需求出现。
+    /// <para>颜色仍然全部可主题化：宿主重定义同名键即可，明暗照常跟随。</para>
+    /// </remarks>
+    public static readonly StyledProperty<IBrush?> SelectedBackgroundBrushProperty =
+        AvaloniaProperty.Register<ForgeEditorTab, IBrush?>(nameof(SelectedBackgroundBrush));
+
+    /// <summary>选中且所在组活动时的描边。</summary>
+    public static readonly StyledProperty<IBrush?> SelectedBorderBrushProperty =
+        AvaloniaProperty.Register<ForgeEditorTab, IBrush?>(nameof(SelectedBorderBrush));
+
+    /// <summary>悬停底。</summary>
+    public static readonly StyledProperty<IBrush?> HoverBackgroundBrushProperty =
+        AvaloniaProperty.Register<ForgeEditorTab, IBrush?>(nameof(HoverBackgroundBrush));
+
+    /// <summary>选中但失焦时的底。</summary>
+    public static readonly StyledProperty<IBrush?> InactiveSelectedBackgroundBrushProperty =
+        AvaloniaProperty.Register<ForgeEditorTab, IBrush?>(nameof(InactiveSelectedBackgroundBrush));
+
+    /// <summary>选中但失焦时的描边。</summary>
+    public static readonly StyledProperty<IBrush?> InactiveSelectedBorderBrushProperty =
+        AvaloniaProperty.Register<ForgeEditorTab, IBrush?>(nameof(InactiveSelectedBorderBrush));
+
+    /// <summary>下划线（活动组）。</summary>
+    public static readonly StyledProperty<IBrush?> UnderlineBrushProperty =
+        AvaloniaProperty.Register<ForgeEditorTab, IBrush?>(nameof(UnderlineBrush));
+
+    /// <summary>下划线（失焦组）。</summary>
+    public static readonly StyledProperty<IBrush?> InactiveUnderlineBrushProperty =
+        AvaloniaProperty.Register<ForgeEditorTab, IBrush?>(nameof(InactiveUnderlineBrush));
+
+    /// <summary>选中且活动时的底。</summary>
+    public IBrush? SelectedBackgroundBrush
+    {
+        get => GetValue(SelectedBackgroundBrushProperty);
+        set => SetValue(SelectedBackgroundBrushProperty, value);
+    }
+
+    /// <summary>选中且活动时的描边。</summary>
+    public IBrush? SelectedBorderBrush
+    {
+        get => GetValue(SelectedBorderBrushProperty);
+        set => SetValue(SelectedBorderBrushProperty, value);
+    }
+
+    /// <summary>悬停底。</summary>
+    public IBrush? HoverBackgroundBrush
+    {
+        get => GetValue(HoverBackgroundBrushProperty);
+        set => SetValue(HoverBackgroundBrushProperty, value);
+    }
+
+    /// <summary>选中但失焦时的底。</summary>
+    public IBrush? InactiveSelectedBackgroundBrush
+    {
+        get => GetValue(InactiveSelectedBackgroundBrushProperty);
+        set => SetValue(InactiveSelectedBackgroundBrushProperty, value);
+    }
+
+    /// <summary>选中但失焦时的描边。</summary>
+    public IBrush? InactiveSelectedBorderBrush
+    {
+        get => GetValue(InactiveSelectedBorderBrushProperty);
+        set => SetValue(InactiveSelectedBorderBrushProperty, value);
+    }
+
+    /// <summary>下划线（活动组）。</summary>
+    public IBrush? UnderlineBrush
+    {
+        get => GetValue(UnderlineBrushProperty);
+        set => SetValue(UnderlineBrushProperty, value);
+    }
+
+    /// <summary>下划线（失焦组）。</summary>
+    public IBrush? InactiveUnderlineBrush
+    {
+        get => GetValue(InactiveUnderlineBrushProperty);
+        set => SetValue(InactiveUnderlineBrushProperty, value);
+    }
+
     static ForgeEditorTab()
     {
+        AffectsRender<ForgeEditorTab>(
+            SelectedBackgroundBrushProperty, SelectedBorderBrushProperty, HoverBackgroundBrushProperty,
+            InactiveSelectedBackgroundBrushProperty, InactiveSelectedBorderBrushProperty,
+            UnderlineBrushProperty, InactiveUnderlineBrushProperty);
+
+        PaletteProperty.Changed.AddClassHandler<ForgeEditorTab>(
+            (x, _) => x.PseudoClasses.Set(":islands", x.Palette.Island is not null));
+
         AffectsRender<ForgeEditorTab>(
             PaletteProperty, TitleProperty, IsSelectedProperty, IsGroupActiveProperty,
             IsPinnedProperty, CanBeClosedProperty, IconProperty, IsCompactProperty);
@@ -201,23 +293,32 @@ public class ForgeEditorTab : TabStripItem
     /// <item>常规 → <c>regularBackground</c> / <c>regularBorderColor</c>（两族都没定义 → 什么都不画）</item>
     /// </list>
     /// </remarks>
-    private (Color? Fill, Color? Border) ResolveColors()
+    private (IBrush? Fill, IBrush? Border) ResolveColors()
     {
+        // 每一档先取主题给的画刷，取不到（控件还没进树）再兜底回配色 —— 两者同源
         if (IsSelected)
         {
             if (IsGroupActive)
             {
-                return (Palette.EditorTabSelectedBackground, Palette.EditorTabSelectedBorder);
+                return (
+                    SelectedBackgroundBrush ?? Solid(Palette.EditorTabSelectedBackground),
+                    SelectedBorderBrush ?? Solid(Palette.EditorTabSelectedBorder));
             }
 
             return IsPointerOver
-                ? (Palette.EditorTabHoverBackground, Palette.EditorTabInactiveSelectedBorder)
-                : (Palette.EditorTabInactiveSelectedBackground, Palette.EditorTabInactiveSelectedBorder);
+                ? (HoverBackgroundBrush ?? Solid(Palette.EditorTabHoverBackground),
+                   InactiveSelectedBorderBrush ?? Solid(Palette.EditorTabInactiveSelectedBorder))
+                : (InactiveSelectedBackgroundBrush ?? Solid(Palette.EditorTabInactiveSelectedBackground),
+                   InactiveSelectedBorderBrush ?? Solid(Palette.EditorTabInactiveSelectedBorder));
         }
 
         // 非选中：只有悬停时有底，常规态两族都没定义（regularBackground/BorderColor 为空）
-        return IsPointerOver ? (Palette.EditorTabHoverBackground, (Color?)null) : (null, null);
+        return IsPointerOver
+            ? (HoverBackgroundBrush ?? Solid(Palette.EditorTabHoverBackground), null)
+            : (null, null);
     }
+
+    private static IBrush Solid(Color color) => new SolidColorBrush(color);
 
     /// <summary>
     /// Islands 下那个内缩圆角块的矩形。
@@ -267,14 +368,13 @@ public class ForgeEditorTab : TabStripItem
     /// </remarks>
     private void RenderDecoration(DrawingContext context)
     {
-        var (fill, border) = ResolveColors();
-        if (fill is null && border is null)
+        var (brush, border) = ResolveColors();
+        if (brush is null && border is null)
         {
             return;
         }
 
-        var brush = fill is { } f ? new SolidColorBrush(f) : null;
-        var pen = border is { } b ? new Pen(new SolidColorBrush(b), 1) : null;
+        var pen = border is { } b ? new Pen(b, 1) : null;
 
         if (Palette.Island is null)
         {
@@ -282,10 +382,12 @@ public class ForgeEditorTab : TabStripItem
 
             if (IsSelected)
             {
-                var color = IsGroupActive ? Palette.HeaderTabUnderline : Palette.HeaderTabInactiveUnderline;
+                var underline = IsGroupActive
+                    ? UnderlineBrush ?? Solid(Palette.HeaderTabUnderline)
+                    : InactiveUnderlineBrush ?? Solid(Palette.HeaderTabInactiveUnderline);
                 var thickness = ForgeMetrics.EditorTabUnderlineHeight;
                 context.DrawRectangle(
-                    new SolidColorBrush(color),
+                    underline,
                     null,
                     new RoundedRect(
                         new Rect(0, Bounds.Height - thickness, Bounds.Width, thickness),
@@ -321,7 +423,7 @@ public class ForgeEditorTab : TabStripItem
 
         if (Icon is Geometry geometry)
         {
-            ForgeIcons.Draw(context, geometry, LeadingIconRect(Bounds.Size), new SolidColorBrush(Palette.Foreground));
+            ForgeIcons.Draw(context, geometry, LeadingIconRect(Bounds.Size), Foreground ?? Solid(Palette.Foreground));
         }
 
         if (CanBeClosed || IsPinned)
@@ -428,7 +530,7 @@ public class ForgeEditorTab : TabStripItem
     /// </remarks>
     private void RenderTabIcon(DrawingContext context)
     {
-        var brush = new SolidColorBrush(Palette.ButtonForeground);
+        var brush = Foreground ?? Solid(Palette.ButtonForeground);
         var x = Bounds.Width - ForgeMetrics.EditorTabInsetRight(Palette.Island is not null) - IconSize;
         var rect = new Rect(x, (Bounds.Height - IconSize) / 2, IconSize, IconSize);
 
@@ -437,7 +539,7 @@ public class ForgeEditorTab : TabStripItem
             // 底比图标大一圈，四周各留 3，圆角取条带按钮那套的一半（同为小方按钮）
             var pad = 3;
             context.DrawRectangle(
-                new SolidColorBrush(Palette.ButtonHoverBackground),
+                HoverBackgroundBrush ?? Solid(Palette.ButtonHoverBackground),
                 null,
                 new RoundedRect(rect.Inflate(pad), ForgeMetrics.StripeButtonArcCompact / 2));
         }
@@ -499,7 +601,7 @@ public class ForgeEditorTab : TabStripItem
                 12,
                 // 选中态**不**换强调色：上游只有 underlinedTabForeground 一项，
                 // 而两个族的主题都没定义它 —— 也就是与常规文字同色。
-                new SolidColorBrush(Palette.Foreground));
+                Foreground ?? Solid(Palette.Foreground));
 
     /// <inheritdoc />
     protected override void OnPointerEntered(global::Avalonia.Input.PointerEventArgs e)

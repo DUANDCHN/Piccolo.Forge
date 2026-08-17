@@ -254,4 +254,45 @@
             <Setter Property="Background" Value="{DynamicResource Forge.Islands.HeaderTabUnderline}" />
         </Style>
     </ControlTheme>
+
+    <!--  面板标题条：同样自己管着子控件（标签条 + 三个按钮），不套模板，只给画笔。
+          文字色走 Foreground（标题自绘时取它）。  -->
+    <ControlTheme TargetType="forge:ForgeToolWindowHeader" x:Key="{x:Type forge:ForgeToolWindowHeader}">
+        <Setter Property="Foreground" Value="{DynamicResource Forge.ExpUi.Foreground}" />
+        <Setter Property="HeaderBackgroundBrush" Value="{DynamicResource Forge.ExpUi.HeaderBackground}" />
+        <Setter Property="HeaderBorderBrush" Value="{DynamicResource Forge.ExpUi.HeaderBorder}" />
+
+        <Style Selector="^:islands">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Islands.Foreground}" />
+            <Setter Property="HeaderBackgroundBrush" Value="{DynamicResource Forge.Islands.HeaderBackground}" />
+            <Setter Property="HeaderBorderBrush" Value="{DynamicResource Forge.Islands.HeaderBorder}" />
+        </Style>
+    </ControlTheme>
+
+    <!--  ── 编辑区的文档标签 ──
+          与内容标签不同，它**不套模板**：底与描边是 5 态 × 2 族，两族还是两个 painter
+          （expUI 整条贴边 + 下划线；Islands 改画内缩圆角块、完全不画下划线），
+          且若干状态的填充或描边是空。判定留在 C# 的 ResolveColors 里（每档带上游出处），
+          这里只把颜色喂进去。宿主的用法不受影响：重定义同名键即可。  -->
+    <ControlTheme TargetType="forge:ForgeEditorTab" x:Key="{x:Type forge:ForgeEditorTab}">
+        <Setter Property="Foreground" Value="{DynamicResource Forge.ExpUi.Foreground}" />
+        <Setter Property="SelectedBackgroundBrush" Value="{DynamicResource Forge.ExpUi.EditorTabSelectedBackground}" />
+        <Setter Property="SelectedBorderBrush" Value="{DynamicResource Forge.ExpUi.EditorTabSelectedBorder}" />
+        <Setter Property="HoverBackgroundBrush" Value="{DynamicResource Forge.ExpUi.EditorTabHoverBackground}" />
+        <Setter Property="InactiveSelectedBackgroundBrush" Value="{DynamicResource Forge.ExpUi.EditorTabInactiveSelectedBackground}" />
+        <Setter Property="InactiveSelectedBorderBrush" Value="{DynamicResource Forge.ExpUi.EditorTabInactiveSelectedBorder}" />
+        <Setter Property="UnderlineBrush" Value="{DynamicResource Forge.ExpUi.HeaderTabUnderline}" />
+        <Setter Property="InactiveUnderlineBrush" Value="{DynamicResource Forge.ExpUi.HeaderTabInactiveUnderline}" />
+
+        <Style Selector="^:islands">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Islands.Foreground}" />
+            <Setter Property="SelectedBackgroundBrush" Value="{DynamicResource Forge.Islands.EditorTabSelectedBackground}" />
+            <Setter Property="SelectedBorderBrush" Value="{DynamicResource Forge.Islands.EditorTabSelectedBorder}" />
+            <Setter Property="HoverBackgroundBrush" Value="{DynamicResource Forge.Islands.EditorTabHoverBackground}" />
+            <Setter Property="InactiveSelectedBackgroundBrush" Value="{DynamicResource Forge.Islands.EditorTabInactiveSelectedBackground}" />
+            <Setter Property="InactiveSelectedBorderBrush" Value="{DynamicResource Forge.Islands.EditorTabInactiveSelectedBorder}" />
+            <Setter Property="UnderlineBrush" Value="{DynamicResource Forge.Islands.HeaderTabUnderline}" />
+            <Setter Property="InactiveUnderlineBrush" Value="{DynamicResource Forge.Islands.HeaderTabInactiveUnderline}" />
+        </Style>
+    </ControlTheme>
 </ResourceDictionary>
