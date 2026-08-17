@@ -1,0 +1,22 @@
+<!--  ★ 面板标题条。★ **不套模板**：只由主题给画笔。
+      与条带同一个结构性原因：它自己管着子控件（标签条 + 三个按钮），
+      而 ApplyTemplate 会把 VisualChildren 清空。文字色走 Foreground（标题自绘时取它）。
+
+      共同的规矩见同目录 ForgeTheme.axaml 的开头。  -->
+<ResourceDictionary
+    xmlns="https://github.com/avaloniaui"
+    xmlns:forge="clr-namespace:Piccolo.Forge.Avalonia"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ControlTheme TargetType="forge:ForgeToolWindowHeader" x:Key="{x:Type forge:ForgeToolWindowHeader}">
+        <Setter Property="Foreground" Value="{DynamicResource Forge.ExpUi.Foreground}" />
+        <Setter Property="HeaderBackgroundBrush" Value="{DynamicResource Forge.ExpUi.HeaderBackground}" />
+        <Setter Property="HeaderBorderBrush" Value="{DynamicResource Forge.ExpUi.HeaderBorder}" />
+
+        <Style Selector="^:islands">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Islands.Foreground}" />
+            <Setter Property="HeaderBackgroundBrush" Value="{DynamicResource Forge.Islands.HeaderBackground}" />
+            <Setter Property="HeaderBorderBrush" Value="{DynamicResource Forge.Islands.HeaderBorder}" />
+        </Style>
+    </ControlTheme>
+</ResourceDictionary>

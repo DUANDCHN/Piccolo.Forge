@@ -52,7 +52,7 @@ public class ForgeHeaderButton : Button
     /// ⚠ <b>这里曾经在构造里赋 <c>Template</c></b>（一个空 <c>Panel</c>，只为盖掉 Button 自带的模板）。
     /// 那是 local value，**会盖过 <c>ControlTheme</c> 里的模板** —— REQ-067 把底色搬进模板之后，
     /// 症状是"主题写了但一点不生效"，而且不报错。模板现在一律写在
-    /// <c>Themes/ForgeStripeButton.axaml</c> 的 <c>ControlTheme</c> 里。
+    /// <c>Themes/ForgeHeaderButton.axaml</c> 的 <c>ControlTheme</c> 里。
     /// </remarks>
     public ForgeHeaderButton() => Focusable = false;
 

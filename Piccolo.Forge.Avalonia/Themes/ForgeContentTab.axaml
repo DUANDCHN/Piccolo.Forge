@@ -1,0 +1,112 @@
+<!--  ★ 面板标题条上的内容标签（工具窗口模型.md §13.1）。★ **真模板**
+      悬停底铺满整块；选中时底边一条下划线，高 3、圆角直径 4（折半给 Avalonia）。
+      窗口失焦时下划线换成 inactive 那档（ToolWindowTabPainter）。
+      位置由 UnderlineMargin 给 —— 值仍出自 ComputeUnderlineRect，那里记着
+      「工具窗口这一版整体下移 1 并减高」的出处。
+
+      ⚠ 两个前景是**两回事**：标题走 Foreground（TextBlock 天然继承），
+        右边那个关闭 / 图钉图标走 IconBrush（ToolWindow.Button.foreground）。
+        模板化之前 Foreground 喂的是图标，标题的颜色**根本没经过主题**。
+
+      共同的规矩见同目录 ForgeTheme.axaml 的开头。  -->
+<ResourceDictionary
+    xmlns="https://github.com/avaloniaui"
+    xmlns:forge="clr-namespace:Piccolo.Forge.Avalonia"
+    xmlns:themes="clr-namespace:Piccolo.Forge.Themes;assembly=Piccolo.Forge.Themes"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ControlTheme TargetType="forge:ForgeContentTab" x:Key="{x:Type forge:ForgeContentTab}">
+        <Setter Property="Foreground" Value="{DynamicResource Forge.ExpUi.Foreground}" />
+        <Setter Property="IconBrush" Value="{DynamicResource Forge.ExpUi.ButtonForeground}" />
+        <Setter Property="HoverBackgroundBrush" Value="{DynamicResource Forge.ExpUi.HeaderTabHoverBackground}" />
+        <Setter Property="UnderlineBrush" Value="{DynamicResource Forge.ExpUi.HeaderTabUnderline}" />
+        <Setter Property="InactiveUnderlineBrush" Value="{DynamicResource Forge.ExpUi.HeaderTabInactiveUnderline}" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="forge:ForgeContentTab">
+                <!--  Render 只剩铺命中区，所以这里放什么都不会盖住东西 —— 结构可换。
+                      次序 = 原先 Render 里的画序：悬停底 → 下划线 → 标题 → 图标。  -->
+                <Panel Background="Transparent">
+                    <Border Background="{TemplateBinding HoverBackgroundBrush}" IsVisible="False" Name="PART_Background" />
+
+                    <Border
+                        Background="{TemplateBinding UnderlineBrush}"
+                        CornerRadius="{TemplateBinding UnderlineCornerRadius}"
+                        Height="{TemplateBinding UnderlineHeight}"
+                        HorizontalAlignment="Stretch"
+                        IsVisible="False"
+                        Margin="{TemplateBinding UnderlineMargin}"
+                        Name="PART_Underline"
+                        VerticalAlignment="Top" />
+
+                    <!--  标题：⚠ 宽度是**测出来的**（MeasureTitle），字号必须与那里同源，
+                          否则量出来的 tab 宽与画出来的字对不上。
+                          ⚠ UseLayoutRounding="False"：原先是
+                            DrawText(text, (Inset, (高 − 字高) / 2))，41 高里落在 **12.5**；
+                            布局取整会把它按到 12，整行字上移半像素。这是"搬家不许顺手改长相"，
+                            与分隔线那半个像素同一类（见 ForgeStripeSeparator.LineMargin）。  -->
+                    <TextBlock
+                        FontSize="{TemplateBinding TitleFontSize}"
+                        Foreground="{TemplateBinding Foreground}"
+                        HorizontalAlignment="Left"
+                        Margin="{TemplateBinding TitleMargin}"
+                        Name="PART_Title"
+                        Text="{TemplateBinding Title}"
+                        UseLayoutRounding="False"
+                        VerticalAlignment="Center" />
+
+                    <!--  右边那个图标：默认是叉，固定住时换成图钉且改为填充
+                          （ContentTabLabel.java:157-159）。不可关就整个不画。
+                          UseLayoutRounding 同标题：原先竖直居中落在 14.5，取整会按到 14。  -->
+                    <forge:ForgeGeometryIcon
+                        Brush="{TemplateBinding IconBrush}"
+                        Height="{TemplateBinding IconSize}"
+                        HorizontalAlignment="Right"
+                        Icon="{x:Static themes:ForgeIcons.Close}"
+                        IsVisible="False"
+                        Margin="{TemplateBinding IconMargin}"
+                        Name="PART_Icon"
+                        UseLayoutRounding="False"
+                        VerticalAlignment="Center"
+                        Width="{TemplateBinding IconSize}" />
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+
+        <!--  悬停底只在**没选中**时出（原实现就是 IsPointerOver && !IsSelected）  -->
+        <Style Selector="^:pointerover:not(:selected) /template/ Border#PART_Background">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+
+        <Style Selector="^:selected /template/ Border#PART_Underline">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+        <Style Selector="^:not(:window-active) /template/ Border#PART_Underline">
+            <Setter Property="Background" Value="{TemplateBinding InactiveUnderlineBrush}" />
+        </Style>
+
+        <Style Selector="^:closeable /template/ forge|ForgeGeometryIcon#PART_Icon">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+        <Style Selector="^:pinned /template/ forge|ForgeGeometryIcon#PART_Icon">
+            <Setter Property="Icon" Value="{x:Static themes:ForgeIcons.Pin}" />
+            <Setter Property="IsFilled" Value="True" />
+        </Style>
+
+        <!--  选中且**不止一块内容**时标题换成下划线那档（ContentTabLabel.java:199-203）  -->
+        <Style Selector="^:selected:not(:sole-content)">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.ExpUi.HeaderTabUnderline}" />
+        </Style>
+
+        <!--  ── Islands 族：同样几档，换另一套键。⚠ 次序弱→强，后面的赢 ──  -->
+        <Style Selector="^:islands">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Islands.Foreground}" />
+            <Setter Property="IconBrush" Value="{DynamicResource Forge.Islands.ButtonForeground}" />
+            <Setter Property="HoverBackgroundBrush" Value="{DynamicResource Forge.Islands.HeaderTabHoverBackground}" />
+            <Setter Property="UnderlineBrush" Value="{DynamicResource Forge.Islands.HeaderTabUnderline}" />
+            <Setter Property="InactiveUnderlineBrush" Value="{DynamicResource Forge.Islands.HeaderTabInactiveUnderline}" />
+        </Style>
+        <Style Selector="^:islands:selected:not(:sole-content)">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Islands.HeaderTabUnderline}" />
+        </Style>
+    </ControlTheme>
+</ResourceDictionary>

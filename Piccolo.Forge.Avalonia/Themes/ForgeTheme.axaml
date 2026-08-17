@@ -1,4 +1,4 @@
-﻿<!--  ★ Forge 的主题入口（REQ-067）。宿主加这一句就够：★
+<!--  ★ Forge 的主题入口（REQ-067）。宿主加这一句就够：★
 
         <StyleInclude Source="avares://Piccolo.Forge.Avalonia/Themes/ForgeTheme.axaml" />
 
@@ -9,7 +9,25 @@
         宿主主题（Fluent / Semi…）里那份是给 Button 的，落不到 ForgeStripeButton 这些子类头上。
         不加这一句，控件就没有模板 —— 不报错，只是什么都不画。
 
-      迁移期间这里只列已经模板化的控件（REQ-067 逐个搬），其余仍是自绘。  -->
+      ── 下面这几条对**每个**控件主题都成立，各文件里不再重复 ──
+
+      1. **取色一律走 {DynamicResource}**，键名见 Piccolo.Forge.Themes/Themes/ForgeColors.axaml。
+         宿主在自己的 ThemeDictionaries 里重定义同名键即可覆盖，且明暗各盖各的。
+      2. **族（expUI / Islands）进键名 + :islands 伪类，明暗进 ThemeDictionaries**
+         —— Avalonia 的变体机制只认明暗，族只能由键名或伪类表达。
+      3. **控件不能在构造里赋 Template**：那是 local value，会盖过这里的模板与 Setter，
+         而且不报错（症状是"主题写了一点不生效"）。
+      4. **控件自身的 Render 画在模板子元素之下。** 所以"搬进模板"必须**一次搬干净** ——
+         只要还有东西留在 Render 里画，模板里就不能放任何不透明的元素（放了就盖住它）。
+         这条是实机撞出来的：底色先做成模板里的 Border，而名字还在 Render 里，
+         选中的条带按钮当场只剩图标、底下的字没了。
+      5. 于是十个控件分成两类，**对宿主没有区别**（同一套键、重定义即覆盖、明暗照常跟随），
+         区别只在库内部是"模板里的 Border"还是"Render 拿着画刷画"：
+
+         · 真模板（结构可换）：StripeButton、MoreButton、HeaderButton、StripeSeparator、ContentTab
+         · 只由主题给画笔：ToolWindowToolbar、ToolWindowHeader、EditorSplitter、DragOverlay、EditorTab
+
+         后一类各自"拦路的是什么"，写在各自文件的开头。  -->
 <Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Styles.Resources>
         <ResourceDictionary>
@@ -18,8 +36,19 @@
                       由 ForgeThemeDictionaryTests 逐键守护（那里说明了为什么必须守护）。  -->
                 <ResourceInclude Source="avares://Piccolo.Forge.Themes/Themes/ForgeColors.axaml" />
 
-                <!--  控件模板  -->
+                <!--  控件模板：**一个控件一份**，文件名即控件名。
+                      次序不影响解析（ControlTheme 按类型作键，互不覆盖），这里按部位排：
+                      条带 → 标题条 → 标签 → 编辑区 → 拖拽。  -->
                 <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/ForgeStripeButton.axaml" />
+                <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/ForgeStripeSeparator.axaml" />
+                <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/ForgeMoreButton.axaml" />
+                <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/ForgeToolWindowToolbar.axaml" />
+                <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/ForgeToolWindowHeader.axaml" />
+                <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/ForgeHeaderButton.axaml" />
+                <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/ForgeContentTab.axaml" />
+                <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/ForgeEditorTab.axaml" />
+                <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/ForgeEditorSplitter.axaml" />
+                <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/ForgeDragOverlay.axaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Styles.Resources>

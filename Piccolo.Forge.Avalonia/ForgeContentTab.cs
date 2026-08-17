@@ -18,7 +18,7 @@ public class ForgeContentTab : TabStripItem
 {
     // ⚠ 这里曾经在构造里赋 Template（一个空 Border，只为盖掉 TabStripItem 自带的模板）。
     //   那是 local value，**会盖过 ControlTheme 里的模板**，症状是"主题写了一点不生效"且不报错。
-    //   模板现在写在 Themes/ForgeStripeButton.axaml 的 ControlTheme 里（REQ-067）。
+    //   模板现在写在 Themes/ForgeContentTab.axaml 的 ControlTheme 里（REQ-067）。
     /// <summary><see cref="Palette"/> 的属性定义。</summary>
     public static readonly StyledProperty<ForgePalette> PaletteProperty =
         AvaloniaProperty.Register<ForgeContentTab, ForgePalette>(nameof(Palette), ForgePalette.ExpUiDark);
@@ -260,7 +260,7 @@ public class ForgeContentTab : TabStripItem
     /// <inheritdoc />
     /// <remarks>
     /// ★ 只剩铺命中区（REQ-067）：悬停底、下划线、标题、图标全部搬进了模板
-    /// （<c>Themes/ForgeStripeButton.axaml</c> 里的 <c>ControlTheme</c>）。
+    /// （<c>Themes/ForgeContentTab.axaml</c> 里的 <c>ControlTheme</c>）。
     /// <para>
     /// <b>必须一次搬干净</b>：控件自身的 <c>Render</c> 画在**模板子元素之下**，
     /// 只要还有一样东西留在这里画，模板里就不能放任何不透明的元素（放了就盖住它）

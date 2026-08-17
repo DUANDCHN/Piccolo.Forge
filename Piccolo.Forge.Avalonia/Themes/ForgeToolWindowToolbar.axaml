@@ -1,0 +1,20 @@
+<!--  ★ 条带（工具窗口按钮那一条）。★ **不套模板**：只由主题给画笔。
+      拦路的是结构性的：它自己往 VisualChildren 里挂两组按钮，
+      而 ApplyTemplate 会把 VisualChildren 清空 —— 给它模板等于把子控件全扫掉。
+
+      共同的规矩见同目录 ForgeTheme.axaml 的开头。  -->
+<ResourceDictionary
+    xmlns="https://github.com/avaloniaui"
+    xmlns:forge="clr-namespace:Piccolo.Forge.Avalonia"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ControlTheme TargetType="forge:ForgeToolWindowToolbar" x:Key="{x:Type forge:ForgeToolWindowToolbar}">
+        <Setter Property="StripeBackgroundBrush" Value="{DynamicResource Forge.ExpUi.StripeBackground}" />
+        <Setter Property="StripeBorderBrush" Value="{DynamicResource Forge.ExpUi.StripeBorder}" />
+
+        <Style Selector="^:islands">
+            <Setter Property="StripeBackgroundBrush" Value="{DynamicResource Forge.Islands.StripeBackground}" />
+            <Setter Property="StripeBorderBrush" Value="{DynamicResource Forge.Islands.StripeBorder}" />
+        </Style>
+    </ControlTheme>
+</ResourceDictionary>
