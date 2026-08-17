@@ -1,4 +1,4 @@
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Media;
 using Piccolo.Forge.Model;
 using Piccolo.Forge.Themes;
@@ -98,15 +98,8 @@ public class ForgeMoreButton : ForgeSquareButtonBase
         // 可用时整块都能点
         ForgeHitArea.Fill(context, Bounds.Size);
 
-        if (ResolveBackground() is { } color)
-        {
-            // 与工具窗口按钮同一条规则：高亮是「按钮矩形 − 图标内边距」
-            // （SquareStripeButtonLook 是两者共用的 look，见 SquareStripeButton.kt:62-80 的兄弟关系）
-            context.DrawRectangle(
-                new SolidColorBrush(color),
-                null,
-                new RoundedRect(BackgroundRect(new Rect(Bounds.Size)), ArcRadius));
-        }
+        // 底色归模板（REQ-067）：与工具窗口按钮同一条规则，高亮是「按钮矩形 − 图标内边距」
+        // （SquareStripeButtonLook 是两者共用的 look，见 SquareStripeButton.kt:62-80 的兄弟关系）。
 
         // 三个点，对应上游的 AllIcons.Actions.MoreHorizontal（MoreSquareStripeButton.kt:91-96）
         var iconRect = new Rect(
@@ -115,6 +108,12 @@ public class ForgeMoreButton : ForgeSquareButtonBase
             IconSize,
             IconSize);
 
-        ForgeIcons.Draw(context, ForgeIcons.More, iconRect, new SolidColorBrush(ResolveForeground()), filled: true);
+        // 前景同样由模板给，兜底回配色（控件没进树时拿不到主题）
+        ForgeIcons.Draw(
+            context,
+            ForgeIcons.More,
+            iconRect,
+            Foreground ?? new SolidColorBrush(ResolveForeground()),
+            filled: true);
     }
 }

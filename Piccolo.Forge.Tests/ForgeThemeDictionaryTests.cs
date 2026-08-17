@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
@@ -40,6 +40,23 @@ public class ForgeThemeDictionaryTests
         ("ButtonHoverBackground", p => p.ButtonHoverBackground),
         ("StripeSeparator", p => p.StripeSeparator),
         ("StripeSeparatorDragAndDrop", p => p.StripeSeparatorDragAndDrop),
+        ("StripeBackground", p => p.StripeBackground),
+        ("StripeBorder", p => p.StripeBorder),
+        ("ButtonDropBackground", p => p.ButtonDropBackground),
+        ("ButtonDropBorder", p => p.ButtonDropBorder),
+        ("DragAreaBackground", p => p.DragAreaBackground),
+        ("Foreground", p => p.Foreground),
+        ("HeaderBackground", p => p.HeaderBackground),
+        ("HeaderBorder", p => p.HeaderBorder),
+        ("HeaderTabHoverBackground", p => p.HeaderTabHoverBackground),
+        ("HeaderTabUnderline", p => p.HeaderTabUnderline),
+        ("HeaderTabInactiveUnderline", p => p.HeaderTabInactiveUnderline),
+        ("EditorTabsBorder", p => p.EditorTabsBorder),
+        ("EditorTabHoverBackground", p => p.EditorTabHoverBackground),
+        ("EditorTabSelectedBackground", p => p.EditorTabSelectedBackground),
+        ("EditorTabSelectedBorder", p => p.EditorTabSelectedBorder),
+        ("EditorTabInactiveSelectedBackground", p => p.EditorTabInactiveSelectedBackground),
+        ("EditorTabInactiveSelectedBorder", p => p.EditorTabInactiveSelectedBorder),
     ];
 
     [AvaloniaTheory]

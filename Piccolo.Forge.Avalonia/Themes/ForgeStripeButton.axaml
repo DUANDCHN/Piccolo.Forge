@@ -142,4 +142,54 @@
             <Setter Property="Background" Value="{DynamicResource Forge.Islands.ButtonHoverBackground}" />
         </Style>
     </ControlTheme>
+
+    <!--  ── 不套模板、只由主题给画笔的两个（REQ-067）──
+          它们要么自己管着 VisualChildren（条带挂着两组按钮，ApplyTemplate 会把子元素清空），
+          要么画的是"热区里居中的一条线"（分割线的抓取区 6px、线 1px），模板表达不了。
+          对宿主而言用法完全一样：重定义同名键即可，明暗照常跟随 ——
+          区别只在库内部是 Render 拿着画刷画，而不是模板里的 Border。  -->
+    <ControlTheme TargetType="forge:ForgeToolWindowToolbar" x:Key="{x:Type forge:ForgeToolWindowToolbar}">
+        <Setter Property="StripeBackgroundBrush" Value="{DynamicResource Forge.ExpUi.StripeBackground}" />
+        <Setter Property="StripeBorderBrush" Value="{DynamicResource Forge.ExpUi.StripeBorder}" />
+
+        <Style Selector="^:islands">
+            <Setter Property="StripeBackgroundBrush" Value="{DynamicResource Forge.Islands.StripeBackground}" />
+            <Setter Property="StripeBorderBrush" Value="{DynamicResource Forge.Islands.StripeBorder}" />
+        </Style>
+    </ControlTheme>
+
+    <ControlTheme TargetType="forge:ForgeEditorSplitter" x:Key="{x:Type forge:ForgeEditorSplitter}">
+        <Setter Property="LineBrush" Value="{DynamicResource Forge.ExpUi.EditorTabsBorder}" />
+
+        <Style Selector="^:islands">
+            <Setter Property="LineBrush" Value="{DynamicResource Forge.Islands.EditorTabsBorder}" />
+        </Style>
+    </ControlTheme>
+
+    <!--  ── 「更多」按钮：与条带按钮同族（SquareStripeButton.kt:62-80 是兄弟），
+          底色规则也一样（按钮矩形 − 图标内边距）。不可用时整块不画、也不吃鼠标。  -->
+    <ControlTheme TargetType="forge:ForgeMoreButton" x:Key="{x:Type forge:ForgeMoreButton}">
+        <Setter Property="Foreground" Value="{DynamicResource Forge.ExpUi.ButtonForeground}" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="forge:ForgeMoreButton">
+                <Panel Background="Transparent">
+                    <Border
+                        CornerRadius="{TemplateBinding ArcCornerRadius}"
+                        Margin="{TemplateBinding BackgroundInsets}"
+                        Name="PART_Background" />
+                    <forge:ForgeIconHost Name="PART_Icon" />
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+
+        <Style Selector="^:pointerover /template/ Border#PART_Background">
+            <Setter Property="Background" Value="{DynamicResource Forge.ExpUi.ButtonHoverBackground}" />
+        </Style>
+        <Style Selector="^:islands">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Islands.ButtonForeground}" />
+        </Style>
+        <Style Selector="^:islands:pointerover /template/ Border#PART_Background">
+            <Setter Property="Background" Value="{DynamicResource Forge.Islands.ButtonHoverBackground}" />
+        </Style>
+    </ControlTheme>
 </ResourceDictionary>
