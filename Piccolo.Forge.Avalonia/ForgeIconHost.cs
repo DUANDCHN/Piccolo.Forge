@@ -25,7 +25,11 @@ namespace Piccolo.Forge.Avalonia;
 /// 不必自己实现"按下-松开算一次点击"（自己实现的那版做出过「侧边栏按钮有时要点两下」）。
 /// </para>
 /// </remarks>
-internal sealed class ForgeIconHost : Control
+/// <remarks>
+/// <b>公开的</b>：它出现在 <c>ControlTheme</c> 的模板里（XAML 只认得到公开类型），
+/// 用例也要靠它判断「图标槽里有没有东西」。宿主不该直接 new 它。
+/// </remarks>
+public sealed class ForgeIconHost : Control
 {
     private Control? _icon;
 

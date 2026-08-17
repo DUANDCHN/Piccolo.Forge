@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 using Avalonia;
 using Avalonia.Input;
+using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Avalonia.Media;
@@ -356,12 +357,15 @@ public class ForgeControlsTests
     public void A_geometry_icon_hosts_no_control()
     {
         var button = new ForgeStripeButton { Icon = ForgeIcons.Terminal };
+        var window = HostButton(button);
 
-        button.Measure(Size.Infinity);
-        button.Arrange(new Rect(button.DesiredSize));
-
-        // 模板里那个槽恒在（Button 必须有模板），槽里没有图标控件才是「不托管控件」
-        Assert.DoesNotContain(button.GetVisualDescendants(), x => x is Border);
+        // ⚠ 判据从"树里没有 Border"改成"图标槽里没有子控件"：
+        //   模板化之后树里**本来就有**一个 Border（底色那层 PART_Background），
+        //   照旧断言的话这条用例会因为"脱树 → 没模板 → 一个 Border 都没有"而假绿 ——
+        //   绿着，但它想测的「Geometry 图标不托管控件」根本没被测到。
+        var slot = button.GetVisualDescendants().OfType<ForgeIconHost>().Single();
+        Assert.Empty(slot.GetVisualChildren());
+        window.Close();
     }
 
     [AvaloniaFact]
@@ -369,16 +373,20 @@ public class ForgeControlsTests
     {
         // 不跟着走的话，浅色主题下是一排看不见的白图标 —— 而库自绘那套是好的，
         // 很难猜到原因在这里。
-        var button = new ForgeStripeButton
-        {
-            Icon = new Border(),
-            Palette = ForgePalette.ExpUiLight,
-        };
+        // ⚠ 明暗现在由**窗口的 ThemeVariant** 决定（前景已归 ControlTheme，从资源键取），
+        //   不再由 Palette 那个对象决定 —— 所以这里要挂进一个亮色窗口，而不是设 Palette=ExpUiLight。
+        //   真实运行时两者本来就一致（Palette 自己就是跟着 ActualThemeVariant 算出来的）。
+        var button = new ForgeStripeButton { Icon = new Border() };
+        var window = HostButton(button, ThemeVariant.Light);
 
-        Assert.Equal(ForgePalette.ExpUiLight.ButtonForeground, ((SolidColorBrush)button.Foreground!).Color);
+        // ⚠ 取色改从资源来之后，画刷是**冻结**的 ImmutableSolidColorBrush，不是 SolidColorBrush，
+        //   所以按接口 ISolidColorBrush 取值（断言的颜色一字未改）。
+        Assert.Equal(ForgePalette.ExpUiLight.ButtonForeground, ((ISolidColorBrush)button.Foreground!).Color);
 
         button.IsToolWindowActive = true;
-        Assert.Equal(ForgePalette.ExpUiLight.ButtonSelectedForeground, ((SolidColorBrush)button.Foreground!).Color);
+        Relayout(window);
+        Assert.Equal(ForgePalette.ExpUiLight.ButtonSelectedForeground, ((ISolidColorBrush)button.Foreground!).Color);
+        window.Close();
     }
 
     /// <summary>
@@ -391,14 +399,21 @@ public class ForgeControlsTests
     /// </remarks>
     /// <param name="button">要摆进去的按钮。</param>
     /// <returns>承载它的窗口（用完 Close）。</returns>
-    private static Window HostButton(ForgeStripeButton button)
+    private static Window HostButton(ForgeStripeButton button, ThemeVariant? variant = null)
     {
         // ⚠ 靠左上摆，别让 Window 把它拉满：原先那些用例是 Arrange(DesiredSize)，
         //   按钮就是 40×40；被拉成 200×200 的话图标会按 200 居中，断言的坐标全变。
         button.HorizontalAlignment = global::Avalonia.Layout.HorizontalAlignment.Left;
         button.VerticalAlignment = global::Avalonia.Layout.VerticalAlignment.Top;
 
-        var window = new Window { Width = 200, Height = 200, Content = button };
+        var window = new Window
+        {
+            Width = 200,
+            Height = 200,
+            Content = button,
+            RequestedThemeVariant = variant ?? ThemeVariant.Dark,
+        };
+
         window.Show();
         Relayout(window);
         return window;

@@ -215,31 +215,25 @@ public class ForgeStripeButton : ForgeSquareButtonBase
             SetIconControl(change.GetNewValue<object?>() as Control);
         }
 
-        if (change.Property == IconProperty
-            || change.Property == IsToolWindowActiveProperty
-            || change.Property == PaletteProperty)
-        {
-            UpdateIconForeground();
-        }
     }
 
     /// <summary>
-    /// 把当前前景色写到 <see cref="TemplatedControl.Foreground"/> 上。
+    /// 自绘部分（Geometry 图标、名字）该用的画刷。
     /// </summary>
     /// <remarks>
-    /// 宿主塞进来的图标控件（Material.Icons 那类）默认<b>继承</b> Foreground，
-    /// 写在这里它就跟着主题明暗与激活态一起变 —— 否则浅色主题下会出现一排
-    /// 看不见的白图标，而库自绘的那套图标是好的，很难猜到是这个原因。
+    /// ★ 前景**由模板给**（REQ-067）：<c>ControlTheme</c> 按 <c>:toolwindow-active</c> / <c>:islands</c>
+    /// 从资源键选色，写在 <see cref="TemplatedControl.Foreground"/> 上。这里只是拿来用。
+    /// <para>
+    /// 宿主塞进来的图标控件（Material.Icons 那类）默认**继承** <c>Foreground</c>，
+    /// 所以同一条设置把三者一起管住了：自绘图标、名字文字、宿主的图标控件。
+    /// </para>
+    /// <para>
+    /// 兜底成 <see cref="ResolveForeground"/>：控件还没进可视树时拿不到 <c>ControlTheme</c>
+    /// （见 <c>ThemeResourceSpikeTests</c>），那时 <c>Foreground</c> 是 null。
+    /// 兜底值与主题里的默认值同源（都出自 <see cref="ForgePalette"/>），所以看不出差别。
+    /// </para>
     /// </remarks>
-    private void UpdateIconForeground()
-    {
-        if (IconControl is null)
-        {
-            return;
-        }
-
-        SetCurrentValue(ForegroundProperty, new SolidColorBrush(ResolveForeground()));
-    }
+    private IBrush ForegroundBrush => Foreground ?? new SolidColorBrush(ResolveForeground());
 
     /// <summary>
     /// 图标占的那块地：<see cref="ForgeSquareButtonBase.IconSize"/> 见方，居中。
@@ -308,7 +302,7 @@ public class ForgeStripeButton : ForgeSquareButtonBase
         // 图标优先：宿主给了 Geometry 就画它，什么都没给就画默认图形
         if (Icon is Geometry geometry)
         {
-            ForgeIcons.Draw(context, geometry, iconRect, new SolidColorBrush(ResolveForeground()));
+            ForgeIcons.Draw(context, geometry, iconRect, ForegroundBrush);
             return;
         }
 
@@ -317,7 +311,7 @@ public class ForgeStripeButton : ForgeSquareButtonBase
             if (Icon is null)
             {
                 ForgeIcons.Draw(
-                    context, ForgeIcons.DefaultToolWindow, iconRect, new SolidColorBrush(ResolveForeground()));
+                    context, ForgeIcons.DefaultToolWindow, iconRect, ForegroundBrush);
             }
 
             return;
@@ -329,7 +323,7 @@ public class ForgeStripeButton : ForgeSquareButtonBase
             FlowDirection.LeftToRight,
             ResolveTypeface(),
             IconSize * 0.7,
-            new SolidColorBrush(ResolveForeground()));
+            ForegroundBrush);
 
         context.DrawText(
             text,
@@ -365,7 +359,7 @@ public class ForgeStripeButton : ForgeSquareButtonBase
                 FlowDirection.LeftToRight,
                 ResolveTypeface(),
                 NameFontSize,
-                new SolidColorBrush(ResolveForeground()));
+                ForegroundBrush);
 
             context.DrawText(text, new Point(TextPadding + ((totalWidth - text.Width) / 2), y));
             y += NameFontSize * 1.4;

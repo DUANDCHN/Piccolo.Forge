@@ -22,6 +22,11 @@
 
     <ControlTheme TargetType="forge:ForgeStripeButton" x:Key="{x:Type forge:ForgeStripeButton}">
         <Setter Property="Background" Value="Transparent" />
+
+        <!--  前景：图标与名字都用它。宿主塞进来的图标控件（Material.Icons 那类）默认**继承**
+              Foreground，所以这一条同时管住了自绘图标、名字文字、和宿主的图标控件三者。
+              漏了它的表现很难猜：浅色主题下一排看不见的白图标，而库自绘那套却是好的。  -->
+        <Setter Property="Foreground" Value="{DynamicResource Forge.ExpUi.ButtonForeground}" />
         <Setter Property="Template">
             <ControlTemplate TargetType="forge:ForgeStripeButton">
                 <Panel Background="Transparent">
@@ -52,7 +57,18 @@
             <Setter Property="Background" Value="{DynamicResource Forge.ExpUi.ButtonSelectedBackground}" />
         </Style>
 
-        <!--  ── Islands 族：同样三档，换另一套键 ──  -->
+        <!--  激活时前景换一档（ToolWindow.Button.selectedForeground）  -->
+        <Style Selector="^:toolwindow-active">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.ExpUi.ButtonSelectedForeground}" />
+        </Style>
+
+        <!--  ── Islands 族：同样几档，换另一套键 ──  -->
+        <Style Selector="^:islands">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Islands.ButtonForeground}" />
+        </Style>
+        <Style Selector="^:islands:toolwindow-active">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Islands.ButtonSelectedForeground}" />
+        </Style>
         <Style Selector="^:islands:pointerover /template/ Border#PART_Background">
             <Setter Property="Background" Value="{DynamicResource Forge.Islands.ButtonHoverBackground}" />
         </Style>
