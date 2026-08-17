@@ -491,10 +491,23 @@ public class ForgeControlsTests
         var background = button.GetVisualDescendants().OfType<Border>().Single(x => x.Name == "PART_Background");
         var name = button.GetVisualDescendants().OfType<TextBlock>().Single(x => x.Name == "PART_Name");
 
-        // 判据不是"长方形"（一行名字时它恰好也接近正方），而是**底盖住了名字那一截**
+        // 判据不是"长方形"（一行名字时它恰好也接近正方），而是**底盖住了名字那一截**。
+        // ⚠ **改的是判据，不是实现**：名字那个 TextBlock 现在是 VerticalAlignment=Stretch
+        //   （为的是不依赖自己可能过期的 DesiredSize，见「从窄条带切到显名之后名字要显示出来」），
+        //   所以它的**框**会一直伸到按钮底边、比字本身高。拿框去比就会假红 ——
+        //   要比的是**字**：底必须盖住 name.Y + 这行字真正的高度。
+        var glyphs = new TextBlock
+        {
+            Text = button.NameText,
+            FontFamily = name.FontFamily,
+            FontSize = name.FontSize,
+            FontWeight = name.FontWeight,
+        };
+        glyphs.Measure(Size.Infinity);
+
         Assert.True(
-            background.Bounds.Bottom >= name.Bounds.Bottom,
-            $"显名时底要盖住名字：底 {background.Bounds}、名字 {name.Bounds}");
+            background.Bounds.Bottom >= name.Bounds.Y + glyphs.DesiredSize.Height,
+            $"显名时底要盖住名字：底 {background.Bounds}、字从 {name.Bounds.Y} 起高 {glyphs.DesiredSize.Height}");
 
         window.Close();
     }

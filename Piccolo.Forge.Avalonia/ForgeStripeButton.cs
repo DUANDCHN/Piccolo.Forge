@@ -402,8 +402,15 @@ public class ForgeStripeButton : ForgeSquareButtonBase
 
         if (_nameBlock is { } block)
         {
+            // ⚠ **先作废再量**：Layoutable.Measure 按 availableSize 缓存 ——
+            //   "名字从空变成有字"（窄条带切到显名）这一步，若上一次是用同一个宽度量的，
+            //   它会**直接返回旧的 DesiredSize**（空文本那 2px），于是名字排出来只有 2px 高、
+            //   一个字都看不见。实机症状：启动时是窄条带，切到显名就没有字；
+            //   而启动就是宽条带的反倒正常（那次量的就是有字的）。
+            block.InvalidateMeasure();
+
             // ⚠ **必须按按钮的宽度量**：名字开了按宽度折行，用无限宽会量成一行、
-            //   高度少算，实机表现就是"字被剪掉下半截"。
+            //   高度少算，那是另一个症状（字被剪掉下半截）。
             block.Measure(new Size(width, double.PositiveInfinity));
             return Math.Max(0, block.DesiredSize.Height - block.Margin.Top - block.Margin.Bottom);
         }

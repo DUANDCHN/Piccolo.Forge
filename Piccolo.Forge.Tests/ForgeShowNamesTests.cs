@@ -1,4 +1,7 @@
-﻿using Avalonia;
+﻿using System.Linq;
+using Avalonia;
+using Avalonia.Styling;
+using Avalonia.VisualTree;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
@@ -210,6 +213,87 @@ public class ForgeShowNamesTests
         Assert.All(
             frame.LeftToolbar.TopGroup.Children.OfType<ForgeStripeButton>(),
             x => Assert.False(x.ShowName));
+    }
+
+
+    /// <summary>
+    /// **先窄后切宽**：名字必须显示出来（不是高度 2px 的一条）。
+    /// </summary>
+    /// <remarks>
+    /// ★ 实机 bug（REQ-067）：软件默认启动是窄条带，切到"显示名字"就一个字都没有；
+    /// 而启动就是宽条带的反倒正常。
+    /// <para>
+    /// 根因是 <c>Layoutable.Measure</c> **按 availableSize 缓存**：窄条带那一轮，
+    /// 名字是空的、量出来内容高 2px；切到显名之后名字有了字，但若用同一个宽度去量，
+    /// 它会直接返回那个旧的 <c>DesiredSize</c> —— 而模板里的名字原先是 <c>Top</c> 对齐、
+    /// 高度取自 <c>DesiredSize</c>，于是排出来只有 2px。
+    /// </para>
+    /// <para>
+    /// 两道修法都钉在这条用例上：量之前 <c>InvalidateMeasure()</c>；
+    /// 名字改成 <c>VerticalAlignment=Stretch</c>，高度由"按钮高 − 上边距"决定、
+    /// 不再依赖它自己的 <c>DesiredSize</c>。
+    /// </para>
+    /// </remarks>
+    [AvaloniaFact]
+    public void 从窄条带切到显名之后名字要显示出来()
+    {
+        var button = new ForgeStripeButton
+        {
+            HighlightSize = 24,
+            HighlightInsetHorizontal = 5,
+            HighlightInsetVertical = 3,
+            Title = "相机列表",
+            ShowName = false,
+            HorizontalAlignment = global::Avalonia.Layout.HorizontalAlignment.Left,
+            VerticalAlignment = global::Avalonia.Layout.VerticalAlignment.Top,
+        };
+
+        var window = new Window
+        {
+            Width = 200,
+            Height = 200,
+            Content = button,
+            RequestedThemeVariant = ThemeVariant.Dark,
+        };
+
+        window.Show();
+        Pump(window);
+
+        // 先窄：名字是空的
+        var name = button.GetVisualDescendants().OfType<TextBlock>().Single(x => x.Name == "PART_Name");
+        Assert.Null(button.NameText);
+
+        // 切到显名
+        button.ShowName = true;
+        button.StripeWidth = 62;
+        Pump(window);
+
+        Assert.Equal("相机列表", button.NameText);
+
+        // ★ 判据：名字那块排出来的高度，装得下它自己要的高度
+        var probe = new TextBlock
+        {
+            Text = button.NameText,
+            FontFamily = button.FontFamily,
+            FontSize = button.NameFontSize,
+            FontWeight = button.NameFontWeight,
+            TextWrapping = global::Avalonia.Media.TextWrapping.Wrap,
+            Width = 62 - (button.TextPadding * 2),
+        };
+        probe.Measure(Size.Infinity);
+
+        Assert.True(
+            name.Bounds.Height >= probe.DesiredSize.Height,
+            $"名字排出来只有 {name.Bounds.Height} 高，装不下 {probe.DesiredSize.Height} —— 切换后又看不见字了");
+
+        window.Close();
+    }
+
+    private static void Pump(Window window)
+    {
+        Dispatcher.UIThread.RunJobs();
+        window.CaptureRenderedFrame();
+        Dispatcher.UIThread.RunJobs();
     }
 
     private static ForgeStripeButton Named(string title)
