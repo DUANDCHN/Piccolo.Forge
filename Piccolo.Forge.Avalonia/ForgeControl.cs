@@ -55,6 +55,24 @@ public class ForgeControl : TemplatedControl
     public static readonly StyledProperty<ForgePalette> PaletteProperty =
         AvaloniaProperty.Register<ForgeControl, ForgePalette>(nameof(Palette), ForgePalette.ExpUiDark);
 
+    /// <summary><see cref="IslandBorderBrush"/> 的属性定义。</summary>
+    public static readonly StyledProperty<IBrush?> IslandBorderBrushProperty =
+        AvaloniaProperty.Register<ForgeControl, IBrush?>(nameof(IslandBorderBrush));
+
+    /// <summary>
+    /// 岛那圈描边的画刷，由 <c>ControlTheme</c> 从资源键给（REQ-067 收尾项）。
+    /// </summary>
+    /// <remarks>
+    /// 它交给 <see cref="ForgeIslandDecor.Apply"/> 去画。这是全仓最后一处从 C# 取色的地方 ——
+    /// 归了资源键之后，宿主重定义 <c>Forge.Islands.IslandBorder</c> 即可，
+    /// 不必再给 <c>PaletteResolver</c> 回调。
+    /// </remarks>
+    public IBrush? IslandBorderBrush
+    {
+        get => GetValue(IslandBorderBrushProperty);
+        set => SetValue(IslandBorderBrushProperty, value);
+    }
+
     /// <summary>
     /// <see cref="Shell"/> 的属性定义。
     /// </summary>
@@ -94,6 +112,11 @@ public class ForgeControl : TemplatedControl
     static ForgeControl()
     {
         PaletteProperty.Changed.AddClassHandler<ForgeControl>((f, _) => f.Sync());
+
+        // 族写进伪类，ControlTheme 据此给岛描边选哪一套键（REQ-067）
+        PaletteProperty.Changed.AddClassHandler<ForgeControl>(
+            (f, _) => f.PseudoClasses.Set(":islands", f.Palette.Island is not null));
+        IslandBorderBrushProperty.Changed.AddClassHandler<ForgeControl>((f, _) => f.Sync());
 
         // 外观换了一份：重跑取色（可能换了族或取色回调），再同步一遍（岛几何、字重、行高都在里面）。
         // ⚠ **不要在这里把 _variantApplied 归零**（曾经这么写过，是个双重 bug）：
@@ -1699,7 +1722,7 @@ public class ForgeControl : TemplatedControl
     {
         var info = _shell!.Manager.Layout.GetInfo(vm.Id)!;
 
-        ForgeIslandDecor.Apply(host, Palette, info.Anchor, Appearance.IslandMetrics);
+        ForgeIslandDecor.Apply(host, Palette, info.Anchor, Appearance.IslandMetrics, borderBrush: IslandBorderBrush);
 
         var header = _panelHeaders[vm.Id];
         header.Palette = Palette;

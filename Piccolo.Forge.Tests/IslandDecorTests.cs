@@ -5,6 +5,7 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using Avalonia.Styling;
 using Avalonia.Threading;
 using Piccolo.Forge.Avalonia;
 using Piccolo.Forge.Model;
@@ -96,6 +97,64 @@ public class IslandDecorTests
         {
             Assert.Equal(ForgePalette.IslandsLight.MainBackground, sea);
         }
+    }
+
+    /// <summary>
+    /// 岛那圈描边的颜色来自**主题键**，宿主重定义即生效、明暗各盖各的。
+    /// </summary>
+    /// <remarks>
+    /// ★ REQ-067 的收尾项：这圈边原先只能由宿主给一个 <c>PaletteResolver</c> 回调来改
+    /// —— 它由静态帮手 <see cref="ForgeIslandDecor"/> 画、吃一整份 <see cref="ForgePalette"/>，
+    /// 是全仓最后一处"颜色只能用 C# 表达"的地方。改成收画刷之后，
+    /// 宿主重定义 <c>Forge.Islands.IslandBorder</c> 即可，与其余控件一样。
+    /// </remarks>
+    [AvaloniaFact]
+    public void 岛的描边来自主题键且宿主能覆盖()
+    {
+        var editor = new ForgeEditorControl { Palette = ForgePalette.IslandsDark };
+        var window = new Window
+        {
+            Width = 300,
+            Height = 200,
+            Content = editor,
+            RequestedThemeVariant = ThemeVariant.Dark,
+        };
+
+        window.Show();
+        Pump(window);
+
+        // 库自带的默认值
+        Assert.Equal(ForgePalette.IslandsDark.IslandBorder, ColorOf(editor.IslandBorderBrush));
+
+        // 宿主重定义那个键 —— 明暗各写各的
+        var inDark = Color.Parse("#FF00FF00");
+        var inLight = Color.Parse("#FFFF0000");
+        window.Resources.ThemeDictionaries[ThemeVariant.Dark] = new ResourceDictionary
+        {
+            ["Forge.Islands.IslandBorder"] = inDark,
+        };
+        window.Resources.ThemeDictionaries[ThemeVariant.Light] = new ResourceDictionary
+        {
+            ["Forge.Islands.IslandBorder"] = inLight,
+        };
+
+        Pump(window);
+        Assert.Equal(inDark, ColorOf(editor.IslandBorderBrush));
+
+        window.RequestedThemeVariant = ThemeVariant.Light;
+        Pump(window);
+        Assert.Equal(inLight, ColorOf(editor.IslandBorderBrush));
+
+        window.Close();
+    }
+
+    private static Color? ColorOf(IBrush? brush) => (brush as ISolidColorBrush)?.Color;
+
+    private static void Pump(Window window)
+    {
+        Dispatcher.UIThread.RunJobs();
+        window.CaptureRenderedFrame();
+        Dispatcher.UIThread.RunJobs();
     }
 
     /// <summary>渲一个装了不透明内容的岛，窗口底是 <see cref="Sea"/>。</summary>

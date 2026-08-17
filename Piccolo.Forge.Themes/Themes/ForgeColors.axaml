@@ -38,6 +38,9 @@
             <Color x:Key="Forge.ExpUi.HeaderTabUnderline">#3574F0</Color>
             <Color x:Key="Forge.ExpUi.HeaderTabInactiveUnderline">#A8ADBD</Color>
 
+            <!--  岛（Islands 那层外框；expUI 不参与绘制）  -->
+            <Color x:Key="Forge.ExpUi.IslandBorder">#F7F8FA</Color>
+
             <!--  编辑区  -->
             <Color x:Key="Forge.ExpUi.EditorTabsBorder">#EBECF0</Color>
             <Color x:Key="Forge.ExpUi.EditorTabHoverBackground">#00FFFFFF</Color>  <!-- 上游 #FFFFFF00 -->
@@ -71,6 +74,9 @@
             <Color x:Key="Forge.Islands.HeaderTabHoverBackground">#12000000</Color>  <!-- 上游 #00000012 -->
             <Color x:Key="Forge.Islands.HeaderTabUnderline">#3871E1</Color>
             <Color x:Key="Forge.Islands.HeaderTabInactiveUnderline">#D1D3D9</Color>
+
+            <!--  岛（Islands 那层外框；expUI 不参与绘制）  -->
+            <Color x:Key="Forge.Islands.IslandBorder">#FFFFFF</Color>
 
             <!--  编辑区  -->
             <Color x:Key="Forge.Islands.EditorTabsBorder">#E9EAEE</Color>
@@ -107,6 +113,9 @@
             <Color x:Key="Forge.ExpUi.HeaderTabUnderline">#3574F0</Color>
             <Color x:Key="Forge.ExpUi.HeaderTabInactiveUnderline">#5A5D63</Color>
 
+            <!--  岛（Islands 那层外框；expUI 不参与绘制）  -->
+            <Color x:Key="Forge.ExpUi.IslandBorder">#2B2D30</Color>
+
             <!--  编辑区  -->
             <Color x:Key="Forge.ExpUi.EditorTabsBorder">#393B40</Color>
             <Color x:Key="Forge.ExpUi.EditorTabHoverBackground">#001E1F22</Color>  <!-- 上游 #1E1F2200 -->
@@ -140,6 +149,9 @@
             <Color x:Key="Forge.Islands.HeaderTabHoverBackground">#17FFFFFF</Color>  <!-- 上游 #FFFFFF17 -->
             <Color x:Key="Forge.Islands.HeaderTabUnderline">#3871E1</Color>
             <Color x:Key="Forge.Islands.HeaderTabInactiveUnderline">#5A5D63</Color>
+
+            <!--  岛（Islands 那层外框；expUI 不参与绘制）  -->
+            <Color x:Key="Forge.Islands.IslandBorder">#191A1C</Color>
 
             <!--  编辑区  -->
             <Color x:Key="Forge.Islands.EditorTabsBorder">#26282C</Color>

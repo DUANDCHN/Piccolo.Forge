@@ -29,7 +29,7 @@ namespace Piccolo.Forge.Tests;
 /// </remarks>
 public class ForgeThemeEntryTests
 {
-    /// <summary>十个控件，与需求里那张现状表一一对应。</summary>
+    /// <summary>十个控件（与需求里那张现状表一一对应），外加两个"岛的宿主"。</summary>
     private static readonly Type[] Themed =
     [
         typeof(ForgeStripeButton),
@@ -42,10 +42,15 @@ public class ForgeThemeEntryTests
         typeof(ForgeToolWindowHeader),
         typeof(ForgeEditorSplitter),
         typeof(ForgeDragOverlay),
+
+        // 两个"岛的宿主"：不是那 10 个控件之一，但同样有一份只喂画刷的 ControlTheme
+        // —— 漏挂它们的症状是岛那圈描边回落到配色里的默认值（REQ-067 收尾项）
+        typeof(ForgeControl),
+        typeof(ForgeEditorControl),
     ];
 
     [AvaloniaFact]
-    public void 十个控件的主题都挂进了入口()
+    public void 每个控件的主题都挂进了入口()
     {
         var missing = new List<string>();
 

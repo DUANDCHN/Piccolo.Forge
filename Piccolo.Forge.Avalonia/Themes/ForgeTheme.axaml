@@ -49,6 +49,9 @@
                 <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/ForgeEditorTab.axaml" />
                 <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/ForgeEditorSplitter.axaml" />
                 <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/ForgeDragOverlay.axaml" />
+
+                <!--  两个"岛的宿主"（外框与编辑区）：不是那 10 个控件之一，只喂岛描边那一个键  -->
+                <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/ForgeIslandHosts.axaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Styles.Resources>

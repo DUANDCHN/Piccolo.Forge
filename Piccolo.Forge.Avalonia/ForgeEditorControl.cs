@@ -68,10 +68,33 @@ public class ForgeEditorControl : TemplatedControl
     public static readonly StyledProperty<ForgePalette> PaletteProperty =
         AvaloniaProperty.Register<ForgeEditorControl, ForgePalette>(nameof(Palette), ForgePalette.ExpUiDark);
 
+    /// <summary><see cref="IslandBorderBrush"/> 的属性定义。</summary>
+    public static readonly StyledProperty<IBrush?> IslandBorderBrushProperty =
+        AvaloniaProperty.Register<ForgeEditorControl, IBrush?>(nameof(IslandBorderBrush));
+
+    /// <summary>
+    /// 岛那圈描边的画刷，由 <c>ControlTheme</c> 从资源键给（REQ-067 收尾项）。
+    /// </summary>
+    /// <remarks>
+    /// 它交给 <see cref="ForgeIslandDecor.Apply"/> 去画。这是全仓最后一处从 C# 取色的地方 ——
+    /// 归了资源键之后，宿主重定义 <c>Forge.Islands.IslandBorder</c> 即可，
+    /// 不必再给 <c>PaletteResolver</c> 回调。
+    /// </remarks>
+    public IBrush? IslandBorderBrush
+    {
+        get => GetValue(IslandBorderBrushProperty);
+        set => SetValue(IslandBorderBrushProperty, value);
+    }
+
     static ForgeEditorControl()
     {
         // ⚠ 这些都是**纯外观**，不要走 Sync（那会重建整棵树，见 RefreshAppearance 的说明）
         PaletteProperty.Changed.AddClassHandler<ForgeEditorControl>((x, _) => x.RefreshAppearance());
+
+        // 族写进伪类，ControlTheme 据此给岛描边选哪一套键（REQ-067）
+        PaletteProperty.Changed.AddClassHandler<ForgeEditorControl>(
+            (x, _) => x.PseudoClasses.Set(":islands", x.Palette.Island is not null));
+        IslandBorderBrushProperty.Changed.AddClassHandler<ForgeEditorControl>((x, _) => x.RefreshAppearance());
         ShowTabActionsProperty.Changed.AddClassHandler<ForgeEditorControl>((x, _) => x.Sync());
         EditorProperty.Changed.AddClassHandler<ForgeEditorControl, EditorAreaViewModel?>(
             (x, e) => x.OnEditorChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
@@ -582,7 +605,8 @@ public class ForgeEditorControl : TemplatedControl
             return;
         }
 
-        ForgeIslandDecor.Apply(_root, Palette, anchor: null, Appearance.IslandMetrics, Palette.EditorBackground);
+        ForgeIslandDecor.Apply(
+            _root, Palette, anchor: null, Appearance.IslandMetrics, Palette.EditorBackground, IslandBorderBrush);
 
         // 那圈边与根同参；根自己那条画在内容之下、会被分屏叶子的不透明底盖住四角，
         // 所以这一层补在最上面（见 _islandRing）。
@@ -728,7 +752,8 @@ public class ForgeEditorControl : TemplatedControl
             return;
         }
 
-        ForgeIslandDecor.Apply(_root, Palette, anchor: null, Appearance.IslandMetrics, Palette.EditorBackground);
+        ForgeIslandDecor.Apply(
+            _root, Palette, anchor: null, Appearance.IslandMetrics, Palette.EditorBackground, IslandBorderBrush);
 
         // 那圈边与根同参；根自己那条画在内容之下、会被分屏叶子的不透明底盖住四角，
         // 所以这一层补在最上面（见 _islandRing）。

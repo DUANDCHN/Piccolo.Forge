@@ -33,6 +33,7 @@ public class ForgeThemeDictionaryTests
     /// <summary>键名后缀 → 从一份配色里取哪个字段。</summary>
     private static readonly (string Suffix, Func<ForgePalette, Color> Field)[] Entries =
     [
+        ("IslandBorder", p => p.IslandBorder),
         ("ButtonForeground", p => p.ButtonForeground),
         ("ButtonSelectedForeground", p => p.ButtonSelectedForeground),
         ("ButtonSelectedBackground", p => p.ButtonSelectedBackground),

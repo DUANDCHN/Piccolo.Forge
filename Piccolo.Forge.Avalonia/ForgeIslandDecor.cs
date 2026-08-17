@@ -47,12 +47,24 @@ public static class ForgeIslandDecor
     /// 底色；<see langword="null"/> 用 <see cref="ForgePalette.Background"/>（工具窗口那档）。
     /// 编辑区要传 <see cref="ForgePalette.EditorBackground"/>。
     /// </param>
+    /// <param name="borderBrush">
+    /// 岛那圈描边的画刷 —— <b>由调用方从主题取</b>（REQ-067 的收尾项）。
+    /// <see langword="null"/> 兜底回 <see cref="ForgePalette.IslandBorder"/>：
+    /// 调用方还没进可视树时拿不到 <c>ControlTheme</c>，那时只能用配色里的值。
+    /// <para>
+    /// ★ <b>为什么要多这个参数</b>：这个帮手是<b>静态</b>的、吃一整份 <see cref="ForgePalette"/>，
+    /// 于是它画的那圈边成了全仓最后一处"颜色只能用 C# 表达"的地方 ——
+    /// 宿主想改它，就只能给 <c>PaletteResolver</c> 回调，而那正是 REQ-067 要废掉的东西。
+    /// 改成收画刷之后，宿主重定义 <c>Forge.*.IslandBorder</c> 这个键即可，与其余控件一样。
+    /// </para>
+    /// </param>
     public static void Apply(
         Border host,
         ForgePalette palette,
         ToolWindowAnchor? anchor,
         ForgeIslandMetrics? metricsOverride = null,
-        Color? background = null)
+        Color? background = null,
+        IBrush? borderBrush = null)
     {
         ArgumentNullException.ThrowIfNull(host);
         ArgumentNullException.ThrowIfNull(palette);
@@ -83,7 +95,7 @@ public static class ForgeIslandDecor
         // 描边取 Island.borderColor。上游那个键与岛同色 —— 那圈只是把抗锯齿后的圆角边缘补实，
         // 不是给人看的框线；宿主要一圈看得见的轮廓，在配色里把这个键调成与岛有差的色即可
         // （底板是云母那种"明度随壁纸变"的场合，靠缝分隔就不够稳，描边才稳）。
-        host.BorderBrush = new SolidColorBrush(palette.IslandBorder);
+        host.BorderBrush = borderBrush ?? new SolidColorBrush(palette.IslandBorder);
         host.BorderThickness = new Thickness(1);
 
 
