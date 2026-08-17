@@ -124,6 +124,37 @@
     <ControlTheme TargetType="forge:ForgeHeaderButton" x:Key="{x:Type forge:ForgeHeaderButton}">
         <Setter Property="Foreground" Value="{DynamicResource Forge.ExpUi.ButtonForeground}" />
         <Setter Property="HoverBackgroundBrush" Value="{DynamicResource Forge.ExpUi.ButtonHoverBackground}" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="forge:ForgeHeaderButton">
+                <!--  Render 只剩铺命中区，所以底色与图标都能放这里 —— 结构可换。
+                      ⚠ 圆角 4 是直接当**半径**用的（ForgeMetrics.HeaderButtonArc），
+                        与条带按钮那边"Arc 是直径、要折半"的规矩不一致 ——
+                        照抄原实现，不在本需求里顺手修正。  -->
+                <Panel Background="Transparent">
+                    <Border
+                        Background="{TemplateBinding HoverBackgroundBrush}"
+                        CornerRadius="4"
+                        IsVisible="False"
+                        Name="PART_Background" />
+
+                    <!--  图标位：16×16 居中（ForgeMetrics.HeaderButtonIconSize）  -->
+                    <ContentPresenter
+                        Height="16"
+                        HorizontalAlignment="Center"
+                        Name="PART_Icon"
+                        VerticalAlignment="Center"
+                        Width="16" />
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+
+        <!--  悬停与按下同一个底色（原实现就是 IsPointerOver || IsPressed）  -->
+        <Style Selector="^:pointerover /template/ Border#PART_Background">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+        <Style Selector="^:pressed /template/ Border#PART_Background">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
 
         <Style Selector="^:islands">
             <Setter Property="Foreground" Value="{DynamicResource Forge.Islands.ButtonForeground}" />

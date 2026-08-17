@@ -100,20 +100,33 @@ public class ForgeMoreButton : ForgeSquareButtonBase
 
         // 底色归模板里那层 Border（绑 BackgroundBrush）；规则与工具窗口按钮同一条
         // （SquareStripeButtonLook 是两者共用的 look，见 SquareStripeButton.kt:62-80 的兄弟关系）。
+        // 三个点也在模板里（ForgeGeometryIcon，见 SyncIcon）—— 这里只剩铺命中区。
+    }
 
-        // 三个点，对应上游的 AllIcons.Actions.MoreHorizontal（MoreSquareStripeButton.kt:91-96）
-        var iconRect = new Rect(
-            (Bounds.Width - IconSize) / 2,
-            (Bounds.Height - IconSize) / 2,
-            IconSize,
-            IconSize);
-
-        // 前景同样由模板给，兜底回配色（控件没进树时拿不到主题）
-        ForgeIcons.Draw(
-            context,
-            ForgeIcons.More,
-            iconRect,
+    /// <summary>把三个点交给模板里那个图标槽。</summary>
+    /// <remarks>
+    /// 对应上游的 <c>AllIcons.Actions.MoreHorizontal</c>（<c>MoreSquareStripeButton.kt:91-96</c>）。
+    /// 实心：圆点类图标描边画出来会变成三个小方框。
+    /// </remarks>
+    private void SyncIcon()
+        => SetGeometryIcon(
+            IsAvailable ? ForgeIcons.More : null,
             Foreground ?? new SolidColorBrush(ResolveForeground()),
             filled: true);
+
+    /// <inheritdoc />
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+
+        if (change.Property == SideProperty
+            || change.Property == ActiveSideProperty
+            || change.Property == HasHiddenToolWindowsProperty
+            || change.Property == ForegroundProperty
+            || change.Property == PaletteProperty)
+        {
+            SyncIcon();
+        }
     }
+
 }

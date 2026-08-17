@@ -1,5 +1,7 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Presenters;
+using Avalonia.Controls.Primitives;
 using Avalonia.Media;
 using Piccolo.Forge.Themes;
 
@@ -97,35 +99,52 @@ public class ForgeHeaderButton : Button
     {
         ForgeHitArea.Fill(context, Bounds.Size);
 
-        // 悬停 / 按下的底色：颜色来自主题（HoverBackgroundBrush），但**必须在这里画** ——
-        // 控件自身的 Render 在模板子元素之下，放模板里会盖住下面自绘的图标。
-        if (IsPointerOver || IsPressed)
+        // 底色与图标都在模板里（Border#PART_Background / ForgeGeometryIcon），
+        // 这里只剩铺命中区 —— 不铺的话没画东西的地方收不到鼠标。
+    }
+
+    /// <summary>把图标交给模板里那个画 Geometry 的子元素。</summary>
+    /// <remarks>
+    /// 圆点类图标是实心的（三个小方块），描边画出来会变成三个小方框；
+    /// 线条类（隐藏那条横线）填充与描边一致，所以那类统一走填充。
+    /// <para>
+    /// 前景由模板给（<c>ControlTheme</c> 从资源键取）；控件还没进树时兜底回配色，
+    /// 两者同源所以看不出差别（见 <c>ThemeResourceSpikeTests</c> 里"树外取不到"那条）。
+    /// </para>
+    /// </remarks>
+    private void SyncIcon()
+    {
+        _geometryIcon.Icon = Icon;
+        _geometryIcon.Brush = Foreground ?? new SolidColorBrush(Palette.ButtonForeground);
+        _geometryIcon.IsFilled = IsFilledIcon;
+    }
+
+    private readonly ForgeGeometryIcon _geometryIcon = new();
+
+    /// <inheritdoc />
+    protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
+    {
+        base.OnApplyTemplate(e);
+
+        // 模板里那个图标位：16×16 居中（HeaderButtonIconSize），由模板自己摆
+        if (e.NameScope.Find<ContentPresenter>("PART_Icon") is { } slot)
         {
-            context.DrawRectangle(
-                HoverBackgroundBrush ?? new SolidColorBrush(Palette.ButtonHoverBackground),
-                null,
-                new RoundedRect(new Rect(Bounds.Size), ForgeMetrics.HeaderButtonArc));
+            slot.Content = _geometryIcon;
         }
 
-        if (Icon is { } icon)
-        {
-            var size = ForgeMetrics.HeaderButtonIconSize;
-            var rect = new Rect(
-                (Bounds.Width - size) / 2,
-                (Bounds.Height - size) / 2,
-                size,
-                size);
+        SyncIcon();
+    }
 
-            // 圆点类图标是实心的（三个小方块），描边画出来会变成三个小方框；
-            // 线条类（隐藏那条横线）填充与描边一致，所以统一走填充。
-            // 前景由模板给（ControlTheme 从资源键取）；控件还没进树时兜底回配色，
-            // 两者同源所以看不出差别（见 ThemeResourceSpikeTests 里"树外取不到"那条）。
-            ForgeIcons.Draw(
-                context,
-                icon,
-                rect,
-                Foreground ?? new SolidColorBrush(Palette.ButtonForeground),
-                filled: IsFilledIcon);
+    /// <inheritdoc />
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+
+        if (change.Property == IconProperty
+            || change.Property == ForegroundProperty
+            || change.Property == PaletteProperty)
+        {
+            SyncIcon();
         }
     }
 
