@@ -45,14 +45,23 @@ public class ForgeContentTab : TabStripItem
 
     static ForgeContentTab()
     {
-        AffectsRender<ForgeContentTab>(
-            PaletteProperty, TitleProperty, IsSelectedProperty, IsWindowActiveProperty, IsSoleContentProperty);
-        AffectsMeasure<ForgeContentTab>(TitleProperty, CanBeClosedProperty);
-        AffectsRender<ForgeContentTab>(CanBeClosedProperty, IsPinnedProperty);
+        AffectsMeasure<ForgeContentTab>(TitleProperty, CanBeClosedProperty, TitleFontSizeProperty, IconSizeProperty);
 
-        // 状态与族写进伪类，模板据此选色（REQ-067）
+        // ⚠ 这里原来还有一串 AffectsRender（Palette / Title / IsSelected / …）。
+        //   现在 Render 只剩铺命中区，画面全由模板子元素出，重画由**伪类变化触发样式重算**驱动，
+        //   那串已经不起作用（REQ-067）。
+        //
+        // 状态与族写进伪类，模板据此选色 / 决定显不显示。
+        // 用伪类而不是样式类：它们是控件自己的状态，不该让宿主用 Classes 去改。
+        // （`:selected` / `:pointerover` 由 TabStripItem 与 InputElement 自带，不必在这里设。）
         IsWindowActiveProperty.Changed.AddClassHandler<ForgeContentTab>(
             (x, e) => x.PseudoClasses.Set(":window-active", e.GetNewValue<bool>()));
+        IsSoleContentProperty.Changed.AddClassHandler<ForgeContentTab>(
+            (x, e) => x.PseudoClasses.Set(":sole-content", e.GetNewValue<bool>()));
+        CanBeClosedProperty.Changed.AddClassHandler<ForgeContentTab>(
+            (x, e) => x.PseudoClasses.Set(":closeable", e.GetNewValue<bool>()));
+        IsPinnedProperty.Changed.AddClassHandler<ForgeContentTab>(
+            (x, e) => x.PseudoClasses.Set(":pinned", e.GetNewValue<bool>()));
         PaletteProperty.Changed.AddClassHandler<ForgeContentTab>(
             (x, _) => x.PseudoClasses.Set(":islands", x.Palette.Island is not null));
     }
@@ -115,16 +124,119 @@ public class ForgeContentTab : TabStripItem
     public double IconAreaWidth
         => CanBeClosed ? IconSize + ForgeMetrics.TabIconsGap + ForgeMetrics.TabRightIconInset : 0;
 
-    /// <summary>右边那个小图标的边长。</summary>
-    private static double IconSize => 12;
-
     /// <summary>左右内边距 12（<c>ToolWindow.HeaderTab.leftRightInsets</c>）。</summary>
     public static double Inset => ForgeMetrics.HeaderTabInset;
+
+    // ── 模板要用的派生值（REQ-067）──
+    // 全部做成 Avalonia 属性：TemplateBinding **只认 Avalonia 属性**，普通 C# 计算属性
+    // 绑不了（编译期 AVLN3000）。默认值就是原先写死在 Render 里的那些度量，
+    // 所以「一个键都不覆盖时长相不变」由默认值本身保证，不依赖任何同步方法先跑过。
+
+    /// <summary><see cref="TitleFontSize"/> 的属性定义。</summary>
+    public static readonly StyledProperty<double> TitleFontSizeProperty =
+        AvaloniaProperty.Register<ForgeContentTab, double>(nameof(TitleFontSize), 12);
+
+    /// <summary><see cref="TitleMargin"/> 的属性定义。</summary>
+    public static readonly StyledProperty<Thickness> TitleMarginProperty =
+        AvaloniaProperty.Register<ForgeContentTab, Thickness>(
+            nameof(TitleMargin), new Thickness(ForgeMetrics.HeaderTabInset, 0, 0, 0));
+
+    /// <summary><see cref="IconSize"/> 的属性定义。</summary>
+    public static readonly StyledProperty<double> IconSizeProperty =
+        AvaloniaProperty.Register<ForgeContentTab, double>(nameof(IconSize), 12);
+
+    /// <summary><see cref="IconMargin"/> 的属性定义。</summary>
+    public static readonly StyledProperty<Thickness> IconMarginProperty =
+        AvaloniaProperty.Register<ForgeContentTab, Thickness>(
+            nameof(IconMargin), new Thickness(0, 0, ForgeMetrics.TabRightIconInset, 0));
+
+    /// <summary><see cref="UnderlineMargin"/> 的属性定义。</summary>
+    public static readonly StyledProperty<Thickness> UnderlineMarginProperty =
+        AvaloniaProperty.Register<ForgeContentTab, Thickness>(nameof(UnderlineMargin));
+
+    /// <summary><see cref="UnderlineHeight"/> 的属性定义。</summary>
+    public static readonly StyledProperty<double> UnderlineHeightProperty =
+        AvaloniaProperty.Register<ForgeContentTab, double>(
+            nameof(UnderlineHeight), ForgeMetrics.HeaderTabUnderlineHeight);
+
+    /// <summary><see cref="UnderlineCornerRadius"/> 的属性定义。</summary>
+    public static readonly StyledProperty<CornerRadius> UnderlineCornerRadiusProperty =
+        AvaloniaProperty.Register<ForgeContentTab, CornerRadius>(
+            nameof(UnderlineCornerRadius), new CornerRadius(ForgeMetrics.HeaderTabUnderlineArc / 2));
+
+    /// <summary>标题字号。</summary>
+    /// <remarks>
+    /// 12 是原先自绘时写死的值。它同时喂给模板里那个 <c>TextBlock</c> 和
+    /// <see cref="MeasureTitle"/> —— 两处必须是同一个来源，否则量出来的宽度与画出来的字不一致。
+    /// </remarks>
+    public double TitleFontSize
+    {
+        get => GetValue(TitleFontSizeProperty);
+        set => SetValue(TitleFontSizeProperty, value);
+    }
+
+    /// <summary>标题相对 tab 的位置：左边留 <see cref="Inset"/>，竖直居中。</summary>
+    /// <remarks>
+    /// 只给左内边距、<b>右边不设界</b> —— 照抄原先 <c>DrawText(text, new Point(Inset, …))</c>：
+    /// 那时文字也没有右边界，长标题是直接压过图标区的（宽度上限由
+    /// <see cref="ForgeMetrics.TabMaxWidth"/> 在测量时兜着）。
+    /// </remarks>
+    public Thickness TitleMargin
+    {
+        get => GetValue(TitleMarginProperty);
+        set => SetValue(TitleMarginProperty, value);
+    }
+
+    /// <summary>右边那个小图标的边长。</summary>
+    public double IconSize
+    {
+        get => GetValue(IconSizeProperty);
+        set => SetValue(IconSizeProperty, value);
+    }
+
+    /// <summary>右边那个小图标的位置：贴右缘 <see cref="ForgeMetrics.TabRightIconInset"/>，竖直居中。</summary>
+    /// <remarks>对应 <c>ContentLabel.java:252-257</c>：起点是 <c>宽度 - 4 - 图标宽</c>。</remarks>
+    public Thickness IconMargin
+    {
+        get => GetValue(IconMarginProperty);
+        set => SetValue(IconMarginProperty, value);
+    }
+
+    /// <summary>
+    /// 下划线在 tab 里的位置 —— 模板里的 <c>Border</c> 拿它当 <c>Margin</c>。
+    /// </summary>
+    /// <remarks>
+    /// 值仍出自 <see cref="ComputeUnderlineRect"/>（<b>出处注释在那里，别在这里另算一份</b>），
+    /// 由 <see cref="ArrangeOverride"/> 在知道最终尺寸之后刷进来。
+    /// </remarks>
+    public Thickness UnderlineMargin
+    {
+        get => GetValue(UnderlineMarginProperty);
+        private set => SetValue(UnderlineMarginProperty, value);
+    }
+
+    /// <summary>下划线的粗细，与 <see cref="ComputeUnderlineRect"/> 同一个度量。</summary>
+    public double UnderlineHeight
+    {
+        get => GetValue(UnderlineHeightProperty);
+        set => SetValue(UnderlineHeightProperty, value);
+    }
+
+    /// <summary>下划线的圆角。</summary>
+    /// <remarks>
+    /// ⚠ 主题里的 arc（<see cref="ForgeMetrics.HeaderTabUnderlineArc"/> = 4）是<b>直径</b>，
+    /// 给 Avalonia 要折半 —— 见 <see cref="ForgeMetrics.StripeButtonArc"/> 的说明。
+    /// </remarks>
+    public CornerRadius UnderlineCornerRadius
+    {
+        get => GetValue(UnderlineCornerRadiusProperty);
+        set => SetValue(UnderlineCornerRadiusProperty, value);
+    }
 
     /// <inheritdoc />
     protected override Size MeasureOverride(Size availableSize)
     {
-        var text = MeasureText();
+        var text = MeasureTitle();
         var width = Math.Min(
             ForgeMetrics.TabMaxWidth,
             (text?.Width ?? 0) + (Inset * 2) + IconAreaWidth);
@@ -133,60 +245,32 @@ public class ForgeContentTab : TabStripItem
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// 下划线的位置要等到知道最终尺寸才算得出来（它贴着底边），所以在这里刷
+    /// —— 与 <see cref="ForgeStripeSeparator"/> 那条线同一个做法。
+    /// </remarks>
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        var underline = ComputeUnderlineRect(new Rect(finalSize));
+        UnderlineMargin = new Thickness(underline.X, underline.Y, 0, 0);
+
+        return base.ArrangeOverride(finalSize);
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// ★ 只剩铺命中区（REQ-067）：悬停底、下划线、标题、图标全部搬进了模板
+    /// （<c>Themes/ForgeStripeButton.axaml</c> 里的 <c>ControlTheme</c>）。
+    /// <para>
+    /// <b>必须一次搬干净</b>：控件自身的 <c>Render</c> 画在**模板子元素之下**，
+    /// 只要还有一样东西留在这里画，模板里就不能放任何不透明的元素（放了就盖住它）
+    /// —— 条带按钮那次是实机撞出来的，症状是选中的按钮只剩图标、名字没了。
+    /// </para>
+    /// </remarks>
     public override void Render(DrawingContext context)
     {
         // 整块都能点，不然只有画了东西的地方收得到鼠标
         ForgeHitArea.Fill(context, Bounds.Size);
-
-        // 悬停底与选中下划线：颜色来自主题，但**必须在这里画** ——
-        // 控件自身的 Render 在模板子元素之下，放模板里会盖住下面自绘的标题文字。
-        if (IsPointerOver && !IsSelected)
-        {
-            context.FillRectangle(
-                HoverBackgroundBrush ?? new SolidColorBrush(Palette.HeaderTabHoverBackground),
-                new Rect(Bounds.Size));
-        }
-
-        if (IsSelected)
-        {
-            // arc > 0 就画圆角矩形（JBDefaultTabPainter.kt:81-85）。
-            // ⚠ 主题里的 arc 是**直径**，画的时候折半 —— 见 ForgeMetrics.StripeButtonArc 的说明。
-            var underline = IsWindowActive
-                ? UnderlineBrush ?? new SolidColorBrush(Palette.HeaderTabUnderline)
-                : InactiveUnderlineBrush ?? new SolidColorBrush(Palette.HeaderTabInactiveUnderline);
-
-            context.DrawRectangle(
-                underline,
-                null,
-                new RoundedRect(
-                    ComputeUnderlineRect(new Rect(Bounds.Size)),
-                    ForgeMetrics.HeaderTabUnderlineArc / 2));
-        }
-
-        if (MeasureText() is { } text)
-        {
-            context.DrawText(text, new Point(Inset, (Bounds.Height - text.Height) / 2));
-        }
-
-        if (CanBeClosed)
-        {
-            RenderTabIcon(context);
-        }
-    }
-
-    /// <summary>
-    /// 右边那个图标：固定住画图钉，否则画叉。
-    /// </summary>
-    /// <remarks>位置对应 <c>ContentLabel.java:252-257</c>：起点是 <c>宽度 - 4 - 图标宽</c>。</remarks>
-    private void RenderTabIcon(DrawingContext context)
-    {
-        // 图标色由模板给（Foreground），兜底回配色 —— 控件没进树时拿不到主题
-        var brush = Foreground ?? new SolidColorBrush(Palette.ButtonForeground);
-        var x = Bounds.Width - ForgeMetrics.TabRightIconInset - IconSize;
-        var rect = new Rect(x, (Bounds.Height - IconSize) / 2, IconSize, IconSize);
-
-        // 固定住的画图钉而不是叉（ContentTabLabel.java:157-159）
-        ForgeIcons.Draw(context, IsPinned ? ForgeIcons.Pin : ForgeIcons.Close, rect, brush, filled: IsPinned);
     }
 
     /// <summary>
@@ -221,6 +305,30 @@ public class ForgeContentTab : TabStripItem
     public static readonly StyledProperty<IBrush?> InactiveUnderlineBrushProperty =
         AvaloniaProperty.Register<ForgeContentTab, IBrush?>(nameof(InactiveUnderlineBrush));
 
+    /// <summary><see cref="IconBrush"/> 的属性定义。</summary>
+    public static readonly StyledProperty<IBrush?> IconBrushProperty =
+        AvaloniaProperty.Register<ForgeContentTab, IBrush?>(nameof(IconBrush));
+
+    /// <summary>
+    /// 右边那个关闭 / 图钉图标的颜色。
+    /// </summary>
+    /// <remarks>
+    /// ★ 与标题分开的原因：它们本来就是**两个颜色** ——
+    /// 图标走 <c>ToolWindow.Button.foreground</c>，标题走主题的 <c>foreground</c>
+    /// （选中且不止一块内容时还要换成下划线那档，<c>ContentTabLabel.java:199-203</c>）。
+    /// <para>
+    /// 所以 <see cref="TemplatedControl.Foreground"/> 留给**标题**（模板里的 <c>TextBlock</c>
+    /// 本来就继承它，这也是 <c>Foreground</c> 该有的含义），图标另给这一个。
+    /// 模板化之前 <c>Foreground</c> 是喂给图标的 —— 那时标题的颜色根本没经过主题，
+    /// 是直接从 <see cref="Palette"/> 取的。
+    /// </para>
+    /// </remarks>
+    public IBrush? IconBrush
+    {
+        get => GetValue(IconBrushProperty);
+        set => SetValue(IconBrushProperty, value);
+    }
+
     /// <summary>悬停底，由 <c>ControlTheme</c> 从资源键给（REQ-067）。</summary>
     public IBrush? HoverBackgroundBrush
     {
@@ -242,38 +350,37 @@ public class ForgeContentTab : TabStripItem
         set => SetValue(InactiveUnderlineBrushProperty, value);
     }
 
-    private FormattedText? MeasureText()
+    /// <summary>
+    /// 量标题有多宽 —— <b>只为测量</b>，画是模板里那个 <c>TextBlock</c> 的事。
+    /// </summary>
+    /// <remarks>
+    /// tab 的宽度是<b>按标题实际宽度</b>算的（<c>ContentLabel.java:265-269</c>），
+    /// 所以 <see cref="MeasureOverride"/> 必须有一个"这行字多宽"的答案。
+    /// 不能改成去问模板里那个 <c>TextBlock</c>：测量可能发生在模板套上之前
+    /// （控件刚建好、还没进可视树），那时问到的是 0，tab 会全部缩成两个内边距宽。
+    /// <para>
+    /// 字形与字号必须与模板里那个 <c>TextBlock</c> 同源（<see cref="ResolveTypeface"/> /
+    /// <see cref="TitleFontSize"/>），否则量出来的和画出来的对不上。
+    /// 颜色在这里无所谓（量宽度用不到），给个透明的占位。
+    /// </para>
+    /// </remarks>
+    /// <returns>标题的排版结果；没有标题时是 <see langword="null"/>。</returns>
+    private FormattedText? MeasureTitle()
     {
         if (string.IsNullOrEmpty(Title))
         {
             return null;
         }
 
-        // 单块内容时选中态不换前景（ContentTabLabel.java:199-203）
-        var color = IsSelected && !IsSoleContent ? Palette.HeaderTabUnderline : Palette.Foreground;
-
         return new FormattedText(
             Title,
             System.Globalization.CultureInfo.CurrentCulture,
             FlowDirection.LeftToRight,
             ResolveTypeface(),
-            12,
-            new SolidColorBrush(color));
+            TitleFontSize,
+            Brushes.Transparent);
     }
 
-    /// <inheritdoc />
-    protected override void OnPointerEntered(global::Avalonia.Input.PointerEventArgs e)
-    {
-        base.OnPointerEntered(e);
-        InvalidateVisual();
-    }
-
-    /// <inheritdoc />
-    protected override void OnPointerExited(global::Avalonia.Input.PointerEventArgs e)
-    {
-        base.OnPointerExited(e);
-        InvalidateVisual();
-    }
     /// <summary>
     /// 画文字用的字形 —— **走控件自己继承下来的字体**，不是 <see cref="Typeface.Default"/>。
     /// </summary>
