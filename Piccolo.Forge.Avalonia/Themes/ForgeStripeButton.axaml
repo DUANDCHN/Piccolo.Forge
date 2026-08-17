@@ -79,4 +79,67 @@
             <Setter Property="Background" Value="{DynamicResource Forge.Islands.ButtonSelectedBackground}" />
         </Style>
     </ControlTheme>
+
+    <!--  ── 条带上分组之间那条分隔线（StripeButtonSeparator.kt:22-32）──
+          占位 32×11，线本身 24×1；位置照抄原来的算式（见 LineMargin 的注释，
+          那个 y = 高/2 差半像素是上游的画法，别"修正"）。  -->
+    <ControlTheme TargetType="forge:ForgeStripeSeparator" x:Key="{x:Type forge:ForgeStripeSeparator}">
+        <Setter Property="Template">
+            <ControlTemplate TargetType="forge:ForgeStripeSeparator">
+                <Panel>
+                    <Border
+                        Background="{DynamicResource Forge.ExpUi.StripeSeparator}"
+                        HorizontalAlignment="Left"
+                        Height="1"
+                        Margin="{TemplateBinding LineMargin}"
+                        Name="PART_Line"
+                        VerticalAlignment="Top"
+                        Width="24" />
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+
+        <Style Selector="^:drag-and-drop /template/ Border#PART_Line">
+            <Setter Property="Background" Value="{DynamicResource Forge.ExpUi.StripeSeparatorDragAndDrop}" />
+        </Style>
+        <Style Selector="^:islands /template/ Border#PART_Line">
+            <Setter Property="Background" Value="{DynamicResource Forge.Islands.StripeSeparator}" />
+        </Style>
+        <Style Selector="^:islands:drag-and-drop /template/ Border#PART_Line">
+            <Setter Property="Background" Value="{DynamicResource Forge.Islands.StripeSeparatorDragAndDrop}" />
+        </Style>
+    </ControlTheme>
+
+    <!--  ── 标题条右侧那排小按钮（⿴ 停靠 / ⋮ 选项 / — 收起）──
+          悬停与按下同一个底色（ActionButton.hoverBackground）。
+          ⚠ 圆角这里直接用 ForgeMetrics.HeaderButtonArc = 4 当**半径**，
+            与条带按钮那边"Arc 是直径、要折半"的规矩不一致——照抄原实现，不在本需求里"顺手修正"，
+            改它会改变现有观感，该单独判定对错。  -->
+    <ControlTheme TargetType="forge:ForgeHeaderButton" x:Key="{x:Type forge:ForgeHeaderButton}">
+        <Setter Property="Foreground" Value="{DynamicResource Forge.ExpUi.ButtonForeground}" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="forge:ForgeHeaderButton">
+                <Panel Background="Transparent">
+                    <Border CornerRadius="4" Name="PART_Background" />
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+
+        <Style Selector="^:pointerover /template/ Border#PART_Background">
+            <Setter Property="Background" Value="{DynamicResource Forge.ExpUi.ButtonHoverBackground}" />
+        </Style>
+        <Style Selector="^:pressed /template/ Border#PART_Background">
+            <Setter Property="Background" Value="{DynamicResource Forge.ExpUi.ButtonHoverBackground}" />
+        </Style>
+
+        <Style Selector="^:islands">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Islands.ButtonForeground}" />
+        </Style>
+        <Style Selector="^:islands:pointerover /template/ Border#PART_Background">
+            <Setter Property="Background" Value="{DynamicResource Forge.Islands.ButtonHoverBackground}" />
+        </Style>
+        <Style Selector="^:islands:pressed /template/ Border#PART_Background">
+            <Setter Property="Background" Value="{DynamicResource Forge.Islands.ButtonHoverBackground}" />
+        </Style>
+    </ControlTheme>
 </ResourceDictionary>

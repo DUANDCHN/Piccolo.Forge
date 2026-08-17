@@ -1,6 +1,5 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Templates;
 using Avalonia.Media;
 using Piccolo.Forge.Themes;
 
@@ -39,17 +38,20 @@ public class ForgeHeaderButton : Button
     static ForgeHeaderButton()
     {
         AffectsRender<ForgeHeaderButton>(PaletteProperty, IconProperty, IsPointerOverProperty, IsPressedProperty);
+
+        // 族写进伪类，模板据此换一套颜色键（REQ-067）
+        PaletteProperty.Changed.AddClassHandler<ForgeHeaderButton>(
+            (x, _) => x.PseudoClasses.Set(":islands", x.Palette.Island is not null));
     }
 
     /// <summary>建一个标题条按钮。</summary>
-    public ForgeHeaderButton()
-    {
-        Focusable = false;
-
-        // 换掉 Button 自带的模板：这个按钮只有自绘内容，模板里放一个空壳就行。
-        // ⚠ 不能返回 null —— Avalonia 应用模板时会当场 NRE。
-        Template = new FuncControlTemplate((_, _) => new Panel());
-    }
+    /// <remarks>
+    /// ⚠ <b>这里曾经在构造里赋 <c>Template</c></b>（一个空 <c>Panel</c>，只为盖掉 Button 自带的模板）。
+    /// 那是 local value，**会盖过 <c>ControlTheme</c> 里的模板** —— REQ-067 把底色搬进模板之后，
+    /// 症状是"主题写了但一点不生效"，而且不报错。模板现在一律写在
+    /// <c>Themes/ForgeStripeButton.axaml</c> 的 <c>ControlTheme</c> 里。
+    /// </remarks>
+    public ForgeHeaderButton() => Focusable = false;
 
     /// <summary>配色。</summary>
     public ForgePalette Palette
@@ -83,14 +85,8 @@ public class ForgeHeaderButton : Button
     {
         ForgeHitArea.Fill(context, Bounds.Size);
 
-        if (IsPointerOver || IsPressed)
-        {
-            context.DrawRectangle(
-                new SolidColorBrush(Palette.ButtonHoverBackground),
-                null,
-                new RoundedRect(new Rect(Bounds.Size), ForgeMetrics.HeaderButtonArc));
-        }
-
+        // 悬停 / 按下的底色**不在这里画**了（REQ-067）：归模板里那层 Border#PART_Background，
+        // 颜色走 {DynamicResource}。圆角仍是 ForgeMetrics.HeaderButtonArc，写在模板里。
         if (Icon is { } icon)
         {
             var size = ForgeMetrics.HeaderButtonIconSize;
@@ -102,7 +98,14 @@ public class ForgeHeaderButton : Button
 
             // 圆点类图标是实心的（三个小方块），描边画出来会变成三个小方框；
             // 线条类（隐藏那条横线）填充与描边一致，所以统一走填充。
-            ForgeIcons.Draw(context, icon, rect, new SolidColorBrush(Palette.ButtonForeground), filled: IsFilledIcon);
+            // 前景由模板给（ControlTheme 从资源键取）；控件还没进树时兜底回配色，
+            // 两者同源所以看不出差别（见 ThemeResourceSpikeTests 里"树外取不到"那条）。
+            ForgeIcons.Draw(
+                context,
+                icon,
+                rect,
+                Foreground ?? new SolidColorBrush(Palette.ButtonForeground),
+                filled: IsFilledIcon);
         }
     }
 

@@ -386,7 +386,7 @@ public class ForgeStripeButton : ForgeSquareButtonBase
 /// 对应 <c>platform/platform-impl/src/com/intellij/openapi/wm/impl/StripeButtonSeparator.kt</c>：
 /// 占位 32×11，中间画一条 24×1 的线，横向居中于**去掉 padding 后**的区域、纵向在正中。
 /// </remarks>
-public class ForgeStripeSeparator : Control
+public class ForgeStripeSeparator : TemplatedControl
 {
     /// <summary><see cref="Palette"/> 的属性定义。</summary>
     public static readonly StyledProperty<ForgePalette> PaletteProperty =
@@ -396,9 +396,51 @@ public class ForgeStripeSeparator : Control
     public static readonly StyledProperty<bool> IsDragAndDropProperty =
         AvaloniaProperty.Register<ForgeStripeSeparator, bool>(nameof(IsDragAndDrop));
 
+    /// <summary><see cref="LineMargin"/> 的属性定义。</summary>
+    public static readonly StyledProperty<Thickness> LineMarginProperty =
+        AvaloniaProperty.Register<ForgeStripeSeparator, Thickness>(nameof(LineMargin));
+
     static ForgeStripeSeparator()
     {
         AffectsRender<ForgeStripeSeparator>(PaletteProperty, IsDragAndDropProperty);
+
+        // 拖拽态写进伪类，模板据此换色（ToolWindow.Stripe.separatorDragAndDropColor）
+        IsDragAndDropProperty.Changed.AddClassHandler<ForgeStripeSeparator>(
+            (x, e) => x.PseudoClasses.Set(":drag-and-drop", e.GetNewValue<bool>()));
+        PaletteProperty.Changed.AddClassHandler<ForgeStripeSeparator>(
+            (x, _) => x.PseudoClasses.Set(":islands", x.Palette.Island is not null));
+    }
+
+    /// <summary>
+    /// 那条线在这块占位里的位置 —— 模板里的 <c>Border</c> 拿它当 <c>Margin</c>。
+    /// </summary>
+    /// <remarks>
+    /// 值照抄原先 <c>Render</c> 里那两句：
+    /// <code>
+    /// x = 图标 padding(5) + (可画宽 - 线宽 24) / 2
+    /// y = 高 / 2                       ← 是**从中线往下画**，不是垂直居中
+    /// </code>
+    /// ⚠ 那个 <c>y</c> 看着像"居中"，其实差半像素（11 高里线在 5.5，居中该是 5）。
+    /// 照抄不"修正"——这是上游 <c>StripeButtonSeparator.kt:31-32</c> 的画法。
+    /// </remarks>
+    public Thickness LineMargin
+    {
+        get => GetValue(LineMarginProperty);
+        private set => SetValue(LineMarginProperty, value);
+    }
+
+    /// <inheritdoc />
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        var padding = ForgeMetrics.StripeButtonIconPadding;
+        var paintAreaWidth = finalSize.Width - (padding * 2);
+        LineMargin = new Thickness(
+            padding + ((paintAreaWidth - ForgeMetrics.StripeSeparatorLineWidth) / 2),
+            finalSize.Height / 2,
+            0,
+            0);
+
+        return base.ArrangeOverride(finalSize);
     }
 
     /// <summary>配色。</summary>
@@ -419,17 +461,4 @@ public class ForgeStripeSeparator : Control
     protected override Size MeasureOverride(Size availableSize)
         => new(ForgeMetrics.StripeSeparatorWidth, ForgeMetrics.StripeSeparatorHeight);
 
-    /// <inheritdoc />
-    public override void Render(DrawingContext context)
-    {
-        var padding = ForgeMetrics.StripeButtonIconPadding;
-        var paintAreaWidth = Bounds.Width - (padding * 2);
-        var x = padding + ((paintAreaWidth - ForgeMetrics.StripeSeparatorLineWidth) / 2);
-        var y = Bounds.Height / 2;
-
-        var color = IsDragAndDrop ? Palette.StripeSeparatorDragAndDrop : Palette.StripeSeparator;
-        context.FillRectangle(
-            new SolidColorBrush(color),
-            new Rect(x, y, ForgeMetrics.StripeSeparatorLineWidth, ForgeMetrics.StripeSeparatorLineHeight));
-    }
 }
