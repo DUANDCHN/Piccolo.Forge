@@ -1,6 +1,6 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Templates;
+using Avalonia.Controls.Primitives;
 using Avalonia.Media;
 using Piccolo.Forge.Themes;
 
@@ -20,10 +20,13 @@ namespace Piccolo.Forge.Avalonia;
 /// 手抖七八个像素就白点一下。
 /// </para>
 /// <para>
-/// <b>长相仍然全自绘</b>：<c>Render</c> 画背景与图标，颜色只认 <see cref="ForgePalette"/>，
-/// 不吃宿主主题（Avalonia 按控件的**实际类型**找 <c>ControlTheme</c>，宿主主题里那份是给
-/// <c>Button</c> 的、落不到子类头上）。模板换成一个只用来放宿主图标控件的空槽
-/// （<see cref="ForgeIconHost"/>）——理由见那个类。
+/// <b>背景归模板</b>（REQ-067）：底色与圆角由 <c>ControlTheme</c> 里那层 <c>Border</c> 画，
+/// 颜色走 <c>{DynamicResource}</c>，宿主重定义键即可覆盖。图标仍自绘 / 由
+/// <see cref="ForgeIconHost"/> 那个槽承载——理由见那个类。
+/// </para>
+/// <para>
+/// ⚠ <b>不要在构造里给 <c>Template</c> 赋值</b>：那是 local value，会盖过 <c>ControlTheme</c>
+/// 里的模板，于是主题白写。模板一律写在 XAML 的 <c>ControlTheme</c> 里。
 /// </para>
 /// </remarks>
 public abstract class ForgeSquareButtonBase : Button
@@ -43,6 +46,18 @@ public abstract class ForgeSquareButtonBase : Button
             PaletteProperty, IsCompactProperty, IsLeftStripeProperty, IsPointerOverProperty, IsPressedProperty);
         // 换族会改按钮宽（40 ↔ 37），所以 Palette 也要触发重新测量，不只是重画
         AffectsMeasure<ForgeSquareButtonBase>(IsCompactProperty, PaletteProperty, IsLeftStripeProperty);
+
+        // 几何（内缩 / 圆角）跟着这三样走 —— 它们是模板里 Border 的 Margin 与 CornerRadius 的来源
+        PaletteProperty.Changed.AddClassHandler<ForgeSquareButtonBase>((b, _) => b.OnFamilyOrDensityChanged());
+        IsCompactProperty.Changed.AddClassHandler<ForgeSquareButtonBase>((b, _) => b.OnFamilyOrDensityChanged());
+        IsLeftStripeProperty.Changed.AddClassHandler<ForgeSquareButtonBase>((b, _) => b.UpdateGeometry());
+    }
+
+    /// <summary>族或密度变了：几何要重算，族还要写进伪类（模板按 <c>:islands</c> 选另一套颜色键）。</summary>
+    private void OnFamilyOrDensityChanged()
+    {
+        PseudoClasses.Set(":islands", Palette.Island is not null);
+        UpdateGeometry();
     }
 
     /// <summary>
@@ -74,19 +89,21 @@ public abstract class ForgeSquareButtonBase : Button
     }
 
     /// <summary>建一个方形按钮。</summary>
-    protected ForgeSquareButtonBase()
-    {
-        Focusable = true;
+    protected ForgeSquareButtonBase() => Focusable = true;
 
-        // 换掉 Button 自带的模板：那份会把手工挂上去的图标控件扫掉（见 ForgeIconHost）。
-        Template = new FuncControlTemplate((owner, _) =>
+    /// <inheritdoc />
+    protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
+    {
+        base.OnApplyTemplate(e);
+
+        // 模板里那个图标槽（ControlTheme 给的）；找到就把宿主的图标控件交给它
+        _iconHost = e.NameScope.Find<ForgeIconHost>("PART_Icon");
+        if (_iconHost is not null)
         {
-            var button = (ForgeSquareButtonBase)owner;
-            var host = new ForgeIconHost { Placement = button.IconRect };
-            button._iconHost = host;
-            host.Icon = button._iconControl;
-            return host;
-        });
+            _iconHost.Icon = _iconControl;
+        }
+
+        UpdateGeometry();
     }
 
     private ForgeIconHost? _iconHost;
@@ -125,6 +142,53 @@ public abstract class ForgeSquareButtonBase : Button
     /// <param name="size">按钮尺寸。</param>
     /// <returns>图标矩形。</returns>
     protected virtual Rect IconRect(Size size) => BackgroundRect(new Rect(size));
+
+    /// <summary>给模板里那个图标槽问位置用的口子。</summary>
+    /// <param name="size">槽的尺寸（= 按钮尺寸）。</param>
+    /// <returns>图标矩形。</returns>
+    internal Rect IconPlacement(Size size) => IconRect(size);
+
+    /// <summary><see cref="BackgroundInsets"/> 的属性定义。</summary>
+    public static readonly StyledProperty<Thickness> BackgroundInsetsProperty =
+        AvaloniaProperty.Register<ForgeSquareButtonBase, Thickness>(nameof(BackgroundInsets));
+
+    /// <summary><see cref="ArcCornerRadius"/> 的属性定义。</summary>
+    public static readonly StyledProperty<CornerRadius> ArcCornerRadiusProperty =
+        AvaloniaProperty.Register<ForgeSquareButtonBase, CornerRadius>(nameof(ArcCornerRadius));
+
+    /// <summary>
+    /// 背景那层相对按钮要内缩多少 —— 就是 <see cref="IconPadding"/>，换成模板认识的类型。
+    /// </summary>
+    /// <remarks>
+    /// 模板里那层 <c>Border</c> 用它当 <c>Margin</c>，等价于原先
+    /// <see cref="BackgroundRect"/> 画的那个"按钮矩形 − 图标内边距"。
+    /// <para>
+    /// 做成 <c>StyledProperty</c> 而不是普通属性：模板里的 <c>TemplateBinding</c> 只认
+    /// Avalonia 属性；而它是**算出来的**（随族 / 密度 / 左右条带 / 显名变），
+    /// 所以由 <see cref="UpdateGeometry"/> 在那些输入变化时刷新。
+    /// </para>
+    /// </remarks>
+    public Thickness BackgroundInsets
+    {
+        get => GetValue(BackgroundInsetsProperty);
+        private set => SetValue(BackgroundInsetsProperty, value);
+    }
+
+    /// <summary>背景那层的圆角，理由同 <see cref="BackgroundInsets"/>。</summary>
+    /// <remarks>值是 <see cref="ArcRadius"/>（上游那个 <c>Arc</c> 是直径，这里已折半）。</remarks>
+    public CornerRadius ArcCornerRadius
+    {
+        get => GetValue(ArcCornerRadiusProperty);
+        private set => SetValue(ArcCornerRadiusProperty, value);
+    }
+
+    /// <summary>把算出来的几何刷进那两个供模板绑定的属性。</summary>
+    protected void UpdateGeometry()
+    {
+        var padding = IconPadding;
+        BackgroundInsets = new Thickness(padding.Left, padding.Top, padding.Right, padding.Bottom);
+        ArcCornerRadius = new CornerRadius(ArcRadius);
+    }
 
     /// <summary>配色。</summary>
     public ForgePalette Palette

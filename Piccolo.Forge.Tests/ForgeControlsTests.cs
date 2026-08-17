@@ -274,12 +274,10 @@ public class ForgeControlsTests
         // 上游 SquareStripeButton.kt:356-367 · scaleIcon 是把图标**缩放成 iconSize**（20），
         // padding 决定的是按钮内容区，不是图标大小。
         var icon = new Border();
-        var button = new ForgeStripeButton { Icon = icon };
-
-        button.Measure(Size.Infinity);
-        button.Arrange(new Rect(button.DesiredSize));
+        var window = HostButton(new ForgeStripeButton { Icon = icon });
 
         Assert.Equal(new Rect(10, 10, 20, 20), icon.Bounds);
+        window.Close();
     }
 
     [AvaloniaFact]
@@ -287,12 +285,10 @@ public class ForgeControlsTests
     {
         // 紧凑：按钮 32、图标 16 → 居中在 (8, 8)
         var icon = new Border();
-        var button = new ForgeStripeButton { Icon = icon, IsCompact = true };
-
-        button.Measure(Size.Infinity);
-        button.Arrange(new Rect(button.DesiredSize));
+        var window = HostButton(new ForgeStripeButton { Icon = icon, IsCompact = true });
 
         Assert.Equal(new Rect(8, 8, 16, 16), icon.Bounds);
+        window.Close();
     }
 
     [AvaloniaFact]
@@ -328,9 +324,7 @@ public class ForgeControlsTests
         // 宿主给 MaterialIcon 这类控件时，既不画它、也不画默认图形，按钮一片空白。
         var icon = new Border { Width = 20, Height = 20 };
         var button = new ForgeStripeButton { Icon = icon };
-
-        button.Measure(Size.Infinity);
-        button.Arrange(new Rect(button.DesiredSize));
+        var window = HostButton(button);
 
         // 图标挂在**模板里的槽**（ForgeIconHost）上，不直接挂按钮 —— Button 的 ApplyTemplate
         // 会清空 VisualChildren，手工挂在按钮身上的东西活不过一次测量（见 ForgeIconHost）。
@@ -348,15 +342,14 @@ public class ForgeControlsTests
         var first = new Border();
         var second = new Border();
         var button = new ForgeStripeButton { Icon = first };
+        var window = HostButton(button);
 
-        button.Measure(Size.Infinity);
-        button.Arrange(new Rect(button.DesiredSize));
         button.Icon = second;
-        button.Measure(Size.Infinity);
-        button.Arrange(new Rect(button.DesiredSize));
+        Relayout(window);
 
         Assert.DoesNotContain(first, button.GetVisualDescendants());
         Assert.Contains(second, button.GetVisualDescendants());
+        window.Close();
     }
 
     [AvaloniaFact]
@@ -386,6 +379,38 @@ public class ForgeControlsTests
 
         button.IsToolWindowActive = true;
         Assert.Equal(ForgePalette.ExpUiLight.ButtonSelectedForeground, ((SolidColorBrush)button.Foreground!).Color);
+    }
+
+    /// <summary>
+    /// 把按钮挂进一个真窗口再排版 —— 模板化之后**必须**这么做。
+    /// </summary>
+    /// <remarks>
+    /// Avalonia 按控件的实际类型找 <c>ControlTheme</c>，而它只有在控件**进了带样式的可视树**
+    /// 之后才解析得到。脱树的 <c>new + Measure + Arrange</c> 拿不到模板，图标槽根本不存在，
+    /// 图标的 Bounds 恒为 0 —— 不报错，断言直接对不上。判据见 <see cref="ThemeResourceSpikeTests"/>。
+    /// </remarks>
+    /// <param name="button">要摆进去的按钮。</param>
+    /// <returns>承载它的窗口（用完 Close）。</returns>
+    private static Window HostButton(ForgeStripeButton button)
+    {
+        // ⚠ 靠左上摆，别让 Window 把它拉满：原先那些用例是 Arrange(DesiredSize)，
+        //   按钮就是 40×40；被拉成 200×200 的话图标会按 200 居中，断言的坐标全变。
+        button.HorizontalAlignment = global::Avalonia.Layout.HorizontalAlignment.Left;
+        button.VerticalAlignment = global::Avalonia.Layout.VerticalAlignment.Top;
+
+        var window = new Window { Width = 200, Height = 200, Content = button };
+        window.Show();
+        Relayout(window);
+        return window;
+    }
+
+    /// <summary>改完属性重新排一次版。</summary>
+    /// <param name="window">窗口。</param>
+    private static void Relayout(Window window)
+    {
+        Dispatcher.UIThread.RunJobs();
+        window.CaptureRenderedFrame();
+        Dispatcher.UIThread.RunJobs();
     }
 }
 

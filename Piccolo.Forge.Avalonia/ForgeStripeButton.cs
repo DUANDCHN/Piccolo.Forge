@@ -50,6 +50,16 @@ public class ForgeStripeButton : ForgeSquareButtonBase
         AffectsRender<ForgeStripeButton>(
             IsToolWindowVisibleProperty, IsToolWindowActiveProperty, ShowNameProperty, TitleProperty, IconProperty);
         AffectsMeasure<ForgeStripeButton>(ShowNameProperty, StripeWidthProperty, TitleProperty);
+
+        // 两个状态写进伪类，模板据此选底色（见 Themes/ForgeStripeButton.axaml）。
+        // 用伪类而不是样式类：它们是控件自己的状态，不该让宿主用 Classes 去改。
+        IsToolWindowVisibleProperty.Changed.AddClassHandler<ForgeStripeButton>(
+            (b, e) => b.PseudoClasses.Set(":toolwindow-visible", e.GetNewValue<bool>()));
+        IsToolWindowActiveProperty.Changed.AddClassHandler<ForgeStripeButton>(
+            (b, e) => b.PseudoClasses.Set(":toolwindow-active", e.GetNewValue<bool>()));
+
+        // 显名会换一整套内边距键，几何跟着变
+        ShowNameProperty.Changed.AddClassHandler<ForgeStripeButton>((b, _) => b.UpdateGeometry());
     }
 
     /// <summary>对应的工具窗口当前是否可见。</summary>
@@ -122,10 +132,11 @@ public class ForgeStripeButton : ForgeSquareButtonBase
     /// 当前该用哪个背景。
     /// </summary>
     /// <remarks>
-    /// 优先级照抄 <c>SquareStripeButton.kt:208-219</c>：
-    /// **焦点 &gt; 窗口可见 &gt; 悬停 &gt; 无**。
-    /// 注意「窗口可见」压过「悬停」——鼠标划过一个已经打开的工具窗口按钮时，
-    /// 显示的是 pressed 背景而不是 hover 背景。
+    /// ⚠ <b>它已经不决定画面了</b>（REQ-067）：底色由模板里那层 <c>Border</c> 按伪类选，
+    /// 见 <c>Themes/ForgeStripeButton.axaml</c>。这里留着是给**用例**当判据用的
+    /// ——"这个按钮此刻该亮成哪一档"是个语义问题，从伪类反推不如直接问它。
+    /// 两边的优先级必须一致，改一处要改两处；顺序照抄
+    /// <c>SquareStripeButton.kt:208-219</c>：**焦点 &gt; 窗口可见 &gt; 悬停 &gt; 无**。
     /// </remarks>
     /// <returns>背景色；都不满足时是 <see langword="null"/>（不画）。</returns>
     public override Color? ResolveBackground()
@@ -276,24 +287,10 @@ public class ForgeStripeButton : ForgeSquareButtonBase
         // 整块都能点，不然只有画了东西的地方收得到鼠标
         ForgeHitArea.Fill(context, Bounds.Size);
 
-        var background = ResolveBackground();
-        if (background is { } color)
-        {
-            // 高亮画的是「按钮矩形 − 图标内边距」（SquareStripeButtonLook.kt:64-70：
-            // Rectangle(component.size) 减 insets 再减 iconPadding）。
-            //
-            // ⚠ **显名时也是整块按钮，含名字那一截** —— 上游 SquareStripeButton.kt:196-198
-            // 的 paintButtonLook 里，paintBackground 收到的就是 button 本身（它的 size 已经
-            // 包含名字的高度），只有 paintIcon 才把高度砍掉一截去摆图标（:227-242 那个
-            // buttonWrapper，注释原话是 "we need change height for right icon layout"）。
-            // 之前这里跟着图标一起砍，于是高亮只包住图标、名字露在背景板外面 ——
-            // 看着就是"选中的是图标，不是这一项"。
-            context.DrawRectangle(
-                new SolidColorBrush(color),
-                null,
-                new RoundedRect(BackgroundRect(new Rect(Bounds.Size)), ArcRadius));
-        }
-
+        // ★ 底色与圆角**不在这里画**了（REQ-067）：归模板里那层 Border#PART_Background，
+        //   颜色走 {DynamicResource}，宿主重定义键即可覆盖。
+        //   那块矩形仍是「按钮矩形 − 图标内边距」，只是改由 Border 的 Margin 表达
+        //   （BackgroundInsets），几何出处见 ForgeStripeButton.axaml 的注释。
         var iconRect = IconRect(Bounds.Size);
 
         if (ShowName)

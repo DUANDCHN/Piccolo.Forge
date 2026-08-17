@@ -1,4 +1,4 @@
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Controls;
 
 namespace Piccolo.Forge.Avalonia;
@@ -12,8 +12,13 @@ namespace Piccolo.Forge.Avalonia;
 /// 按钮把宿主给的图标控件手工挂在自己身上，挂一次被扫一次，图标当场消失。
 /// <para>
 /// 所以图标不挂在按钮上，挂在**模板产出的这个槽**里：它是普通 <see cref="Control"/>，
-/// 没有模板机制，手工管子元素是安全的。按钮只负责告诉它「图标该放哪个矩形」
-/// （<see cref="Placement"/>）——那仍然是按钮自己的度量学问。
+/// 没有模板机制，手工管子元素是安全的。「图标该放哪个矩形」仍是按钮自己的度量学问，
+/// 由这个槽**回头去问 <see cref="StyledElement.TemplatedParent"/>**。
+/// <para>
+/// ⚠ 从"按钮在构造里建模板、顺手把 <c>IconRect</c> 当委托塞进来"改成"槽自己问"，
+/// 是 REQ-067 逼出来的：模板要写进 <c>ControlTheme</c>（XAML），XAML 里传不了方法组；
+/// 而且控件在构造里给 <c>Template</c> 赋的是 local value，**会盖过 ControlTheme 里的那份**。
+/// </para>
 /// </para>
 /// <para>
 /// 这么绕一道换来的是：点击、键盘、按下态全部由 <see cref="Button"/> 提供，
@@ -24,8 +29,10 @@ internal sealed class ForgeIconHost : Control
 {
     private Control? _icon;
 
-    /// <summary>按钮说图标该放哪；不给就铺满。</summary>
-    public Func<Size, Rect>? Placement { get; set; }
+    /// <summary>按钮说图标该放哪；问不到按钮就铺满。</summary>
+    /// <remarks>模板里的槽，<c>TemplatedParent</c> 就是那个按钮。</remarks>
+    private Rect Placement(Size size)
+        => TemplatedParent is ForgeSquareButtonBase button ? button.IconPlacement(size) : new Rect(size);
 
     /// <summary>宿主给的图标控件。</summary>
     public Control? Icon
@@ -69,7 +76,7 @@ internal sealed class ForgeIconHost : Control
     {
         if (_icon is not null)
         {
-            var rect = Placement?.Invoke(finalSize) ?? new Rect(finalSize);
+            var rect = Placement(finalSize);
             _icon.Measure(rect.Size);
             _icon.Arrange(rect);
         }
