@@ -183,13 +183,32 @@ public class ForgeControlsTests
     public void Toolbar_is_button_width_plus_one_pixel_border()
     {
         // ToolWindowLeftToolbar.kt:28 —— 右缘一条 1px 线
-        var toolbar = new ForgeToolWindowToolbar { Side = StripeSide.Left };
+        var toolbar = new ForgeToolWindowToolbar
+        {
+            Side = StripeSide.Left,
+            HorizontalAlignment = global::Avalonia.Layout.HorizontalAlignment.Left,
+            VerticalAlignment = global::Avalonia.Layout.VerticalAlignment.Top,
+        };
         toolbar.TopGroup.Children.Add(new ForgeStripeButton());
 
-        toolbar.Measure(new Size(double.PositiveInfinity, 600));
+        // ⚠ **改的是写法不是断言**（REQ-067）：条带模板化之后，两组按钮住在模板里那个槽中，
+        //   脱树的 `new + Measure` 拿不到 ControlTheme → 没有模板 → 量出来恒为 0。
+        //   期望值 41（按钮 40 + 那条 1px 线）一字未改。
+        var window = new Window
+        {
+            Width = 200,
+            Height = 600,
+            Content = toolbar,
+            RequestedThemeVariant = ThemeVariant.Dark,
+        };
+
+        window.Show();
+        Relayout(window);
 
         Assert.Equal(41, toolbar.DesiredSize.Width);
         Assert.True(toolbar.HasButtons);
+
+        window.Close();
     }
 
     [AvaloniaFact]

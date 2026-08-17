@@ -59,8 +59,10 @@ public class ForgeToolWindowHeader : TemplatedControl
     /// <summary>建一个标题条。</summary>
     public ForgeToolWindowHeader()
     {
-        VisualChildren.Add(_tabs);
-        LogicalChildren.Add(_tabs);
+        // ⚠ 子控件**不再**挂在这个控件身上（REQ-067 模板化）：ApplyTemplate 会清空
+        //   VisualChildren，挂这儿等于每套一次模板被扫一次；LogicalChildren 也不能留
+        //   —— 槽（Panel.Children）自己会认领逻辑父，两处都认就抛「already has a parent」。
+        //   它们改为住在模板里那个槽（PART_Content）中，见 OnApplyTemplate / SyncSlot。
 
         // 拖动窗口：子控件吃掉的按下也要收得到（理由见 OnHeaderPressed）
         AddHandler(PointerPressedEvent, OnHeaderPressed, RoutingStrategies.Bubble, handledEventsToo: true);
@@ -81,10 +83,34 @@ public class ForgeToolWindowHeader : TemplatedControl
         _options.Click += (_, e) => OptionsRequested?.Invoke(this, e);
         _hide.Click += (_, e) => HideRequested?.Invoke(this, e);
 
-        foreach (var button in new Control[] { _dock, _options, _hide })
+    }
+
+    private ForgeHeaderContentHost? _slot;
+
+    /// <inheritdoc />
+    /// <remarks>把标签条与按钮放进模板的槽里；重新套模板时先从上一份槽里摘走。</remarks>
+    protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
+    {
+        base.OnApplyTemplate(e);
+
+        _slot?.Children.Clear();
+        _slot = e.NameScope.Find<ForgeHeaderContentHost>("PART_Content");
+        SyncSlot();
+    }
+
+    /// <summary>把当前该出现的子控件同步进槽 —— 次序即绘制次序（标签条在按钮之下）。</summary>
+    private void SyncSlot()
+    {
+        if (_slot is null)
         {
-            VisualChildren.Add(button);
-            LogicalChildren.Add(button);
+            return;
+        }
+
+        _slot.Children.Clear();
+        _slot.Children.Add(_tabs);
+        foreach (var button in Buttons)
+        {
+            _slot.Children.Add(button);
         }
     }
 
@@ -137,12 +163,6 @@ public class ForgeToolWindowHeader : TemplatedControl
     /// <param name="buttons">要追加的按钮，按从左到右。</param>
     public void SetExtraButtons(IEnumerable<Control>? buttons)
     {
-        foreach (var old in _extra)
-        {
-            VisualChildren.Remove(old);
-            LogicalChildren.Remove(old);
-        }
-
         _extra.Clear();
 
         if (buttons is not null)
@@ -154,10 +174,9 @@ public class ForgeToolWindowHeader : TemplatedControl
         {
             // 同内置按钮：标题条整条是窗口拖动区，按钮得标出来才收得到点击（见构造里那段）
             WindowDecorationProperties.SetElementRole(button, WindowDecorationsElementRole.User);
-            VisualChildren.Add(button);
-            LogicalChildren.Add(button);
         }
 
+        SyncSlot();
         InvalidateMeasure();
     }
 
@@ -184,6 +203,10 @@ public class ForgeToolWindowHeader : TemplatedControl
         // 族写进伪类，ControlTheme 据此换一套颜色键（REQ-067）
         PaletteProperty.Changed.AddClassHandler<ForgeToolWindowHeader>(
             (h, _) => h.PseudoClasses.Set(":islands", h.Palette.Island is not null));
+
+        // 上面两个角跟着岛磨圆，下面两个角照旧是方的 —— 模板里那层 Border 拿 HeaderCornerRadius
+        TopCornerRadiusProperty.Changed.AddClassHandler<ForgeToolWindowHeader>(
+            (h, e) => h.HeaderCornerRadius = new CornerRadius(e.GetNewValue<double>(), e.GetNewValue<double>(), 0, 0));
     }
 
     /// <summary>配色。</summary>
@@ -404,7 +427,19 @@ public class ForgeToolWindowHeader : TemplatedControl
     }
 
     /// <inheritdoc />
+    /// <remarks>模板量完（其中槽会回头调 <see cref="MeasureContent"/>），这一行的高度仍由自己定。</remarks>
     protected override Size MeasureOverride(Size availableSize)
+    {
+        base.MeasureOverride(availableSize.WithHeight(HeaderHeight));
+        return new Size(double.IsInfinity(availableSize.Width) ? 0 : availableSize.Width, HeaderHeight);
+    }
+
+    /// <summary>
+    /// 量槽里的子控件 —— <b>算式与模板化之前逐字一致</b>，只是改由槽触发（REQ-067）。
+    /// </summary>
+    /// <param name="availableSize">槽拿到的可用空间。</param>
+    /// <returns>槽的期望尺寸（铺满即可，真正的排布在 <see cref="ArrangeContent"/>）。</returns>
+    internal Size MeasureContent(Size availableSize)
     {
         _dock.IsVisible = ShowButtons && ShowDockButton;
 
@@ -420,8 +455,12 @@ public class ForgeToolWindowHeader : TemplatedControl
         return new Size(double.IsInfinity(availableSize.Width) ? 0 : availableSize.Width, HeaderHeight);
     }
 
-    /// <inheritdoc />
-    protected override Size ArrangeOverride(Size finalSize)
+    /// <summary>
+    /// 排槽里的子控件 —— <b>算式与模板化之前逐字一致</b>。
+    /// </summary>
+    /// <param name="finalSize">槽的最终尺寸（模板根铺满标题条，所以它就是标题条的尺寸）。</param>
+    /// <returns>用掉的尺寸。</returns>
+    internal Size ArrangeContent(Size finalSize)
     {
         // 按钮靠右（上游是 BorderLayout.EAST，ToolWindowHeader.kt:202），标签页排在标题与按钮之间；
         // 独立窗口形态下再往左让出窗口那三个系统按钮的地方（见 CaptionButtonsWidth）
@@ -527,9 +566,12 @@ public class ForgeToolWindowHeader : TemplatedControl
                 System.Globalization.CultureInfo.CurrentCulture,
                 FlowDirection.LeftToRight,
                 ResolveTypeface(TitleFontWeight),
-                12,
-                // 标题文字色由模板给（ControlTheme 的 Foreground），兜底回配色
-                Foreground ?? new SolidColorBrush(Palette.Foreground));
+                TitleFontSize,
+                // ★ **只为量宽度**（REQ-067）：标题的画由模板里那个 TextBlock 负责。
+                //   ComputeTabsStart 要"这行字多宽"才知道标签从哪开始 —— 这就是需求开头
+                //   「风险 1：布局算式依赖测出来的文字宽度」的答案：**测量留在 FormattedText，
+                //   绘制归模板**，两边字体/字号/字重同源即可。颜色在这里用不到。
+                Brushes.Transparent);
 
     /// <inheritdoc />
     /// <summary><see cref="HeaderBackgroundBrush"/> 的属性定义。</summary>
@@ -560,33 +602,55 @@ public class ForgeToolWindowHeader : TemplatedControl
         set => SetValue(HeaderBorderBrushProperty, value);
     }
 
+    /// <summary><see cref="HeaderCornerRadius"/> 的属性定义。</summary>
+    public static readonly StyledProperty<CornerRadius> HeaderCornerRadiusProperty =
+        AvaloniaProperty.Register<ForgeToolWindowHeader, CornerRadius>(nameof(HeaderCornerRadius));
+
+    /// <summary><see cref="TitleMargin"/> 的属性定义。</summary>
+    public static readonly StyledProperty<Thickness> TitleMarginProperty =
+        AvaloniaProperty.Register<ForgeToolWindowHeader, Thickness>(
+            nameof(TitleMargin),
+            new Thickness(ForgeMetrics.TabLayoutStart + ForgeMetrics.HeaderLabelInsetLeft, 0, 0, 0));
+
+    /// <summary><see cref="TitleFontSize"/> 的属性定义。</summary>
+    public static readonly StyledProperty<double> TitleFontSizeProperty =
+        AvaloniaProperty.Register<ForgeToolWindowHeader, double>(nameof(TitleFontSize), 12);
+
+    /// <summary>标题条底那块的圆角：**只磨上面两个角**，下面接着正文。</summary>
+    /// <remarks>由 <see cref="TopCornerRadius"/> 算出（跟着岛走），模板里那层 <c>Border</c> 拿它。</remarks>
+    public CornerRadius HeaderCornerRadius
+    {
+        get => GetValue(HeaderCornerRadiusProperty);
+        private set => SetValue(HeaderCornerRadiusProperty, value);
+    }
+
+    /// <summary>标题文字的位置：左边让开 <c>TabLayoutStart + HeaderLabelInsetLeft</c>，竖直居中。</summary>
+    public Thickness TitleMargin
+    {
+        get => GetValue(TitleMarginProperty);
+        set => SetValue(TitleMarginProperty, value);
+    }
+
+    /// <summary>标题字号 —— 与 <see cref="MeasureTitle"/> 必须同源（标签起点按量出来的标题宽算）。</summary>
+    public double TitleFontSize
+    {
+        get => GetValue(TitleFontSizeProperty);
+        set => SetValue(TitleFontSizeProperty, value);
+    }
+
     /// <inheritdoc />
+    /// <remarks>
+    /// ★ 只剩铺命中区（REQ-067）：底、下边那条 1px 线、标题文字全部搬进了模板。
+    /// <para>
+    /// 活动与非活动**同色**：<c>ToolWindowHeader.kt:312</c> 是
+    /// <c>val active = !isNewUi &amp;&amp; isActive</c>，新 UI 下恒为 false，
+    /// <c>drawHeader</c> 永远走 <c>headerBackground()</c>。「活动标题条」那条高亮是老 UI 的东西。
+    /// </para>
+    /// </remarks>
     public override void Render(DrawingContext context)
     {
-        // 活动与非活动**同色**：ToolWindowHeader.kt:312 是 `val active = !isNewUi && isActive`，
-        // 新 UI 下恒为 false，drawHeader 永远走 headerBackground()。
-        // 「活动标题条」那条高亮是老 UI 的东西，照它画一眼就不像。
-        // 上面两个角跟着岛磨圆（见 TopCornerRadius）；下面两个角照旧是方的 —— 它接着正文
-        context.DrawRectangle(
-            HeaderBackgroundBrush ?? new SolidColorBrush(Palette.HeaderBackground),
-            null,
-            new RoundedRect(
-                new Rect(Bounds.Size),
-                new CornerRadius(TopCornerRadius, TopCornerRadius, 0, 0)));
-
-        // 下边一条 1px 分隔线
-        context.FillRectangle(
-            HeaderBorderBrush ?? new SolidColorBrush(Palette.HeaderBorder),
-            new Rect(0, Bounds.Height - 1, Bounds.Width, 1));
-
-        if (MeasureTitle() is { } text)
-        {
-            context.DrawText(
-                text,
-                new Point(
-                    ForgeMetrics.TabLayoutStart + ForgeMetrics.HeaderLabelInsetLeft,
-                    (Bounds.Height - text.Height) / 2));
-        }
+        // 整条都要能按下（拖窗口、右键菜单），不然只有画了东西的地方收得到鼠标
+        ForgeHitArea.Fill(context, Bounds.Size);
     }
     /// <summary>
     /// 画文字用的字形 —— **走控件自己继承下来的字体**，不是 <see cref="Typeface.Default"/>。
