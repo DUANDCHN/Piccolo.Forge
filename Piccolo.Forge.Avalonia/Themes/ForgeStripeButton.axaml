@@ -1,20 +1,21 @@
-﻿<!--  ★ 条带按钮的模板（REQ-067 的第一片）。★
+﻿<!--  ★ Forge 控件的主题（REQ-067）。★
 
-      在这之前，背景是 ForgeStripeButton.Render 里一句 DrawRectangle 画的，颜色只认 ForgePalette，
-      宿主想改只能给一个 C# 回调。现在底色与圆角归这份模板，颜色走 {DynamicResource}，
-      宿主在自己的 ThemeDictionaries 里重定义同名键就能盖过去，且明暗各盖各的。
+      颜色一律走 {DynamicResource}，键名见 Piccolo.Forge.Themes/Themes/ForgeColors.axaml。
+      宿主在自己的 ThemeDictionaries 里重定义同名键即可覆盖，且明暗各盖各的。
 
-      ⚠ 三条容易踩的：
-        · 控件**不能在构造里给 Template 赋值** —— 那是 local value，会盖过这里；
-        · 族（expUI / Islands）不进 ThemeDictionaries（它只认明暗），进**键名 + 伪类**：
-          ForgeSquareButtonBase 按 Palette.Island 设 :islands，下面据此换一套键；
-        · Margin / CornerRadius 绑的是控件上算好的 Avalonia 属性
-          （BackgroundInsets / ArcCornerRadius）—— TemplateBinding 不认普通 C# 属性。
+      ⚠ **底色为什么不放在模板里的 Border 上**（实机撞出来的，别再改回去）：
+        Avalonia 里控件自身的 Render 画在**模板子元素之下**。这些控件的名字、自绘图标、
+        标题文字都在 Render 里 —— 底色一旦做成模板里的 Border，
+        选中态那块不透明的底就会把文字整个盖住（症状：选中的条带按钮只剩图标、底下的字没了；
+        图标还在，是因为它是模板子元素）。
+        所以这里只用 Setter 把**画刷**喂给控件，绘制仍由 Render 完成；
+        模板只留一件事：放宿主图标控件的槽（ForgeIconHost）。
 
-      背景那块矩形是「按钮矩形 − 图标内边距」，照抄上游
-      SquareStripeButtonLook.kt:64-70 · paintBackground（它先减 insets 再减 iconPadding）。
-      **显名时也是整块按钮、含名字那一截**（SquareStripeButton.kt:196-198），
-      所以内缩只用 Margin 表达、不去砍高度。  -->
+      ⚠ 控件**不能在构造里赋 Template**：那是 local value，会盖过这里的模板与 Setter，
+        而且不报错。
+
+      族（expUI / Islands）进键名 + :islands 伪类，明暗进 ThemeDictionaries
+      —— Avalonia 的变体机制只认明暗。  -->
 <ResourceDictionary
     xmlns="https://github.com/avaloniaui"
     xmlns:forge="clr-namespace:Piccolo.Forge.Avalonia"
@@ -27,35 +28,21 @@
               Foreground，所以这一条同时管住了自绘图标、名字文字、和宿主的图标控件三者。
               漏了它的表现很难猜：浅色主题下一排看不见的白图标，而库自绘那套却是好的。  -->
         <Setter Property="Foreground" Value="{DynamicResource Forge.ExpUi.ButtonForeground}" />
+        <Setter Property="HoverBackgroundBrush" Value="{DynamicResource Forge.ExpUi.ButtonHoverBackground}" />
+        <Setter Property="PressedBackgroundBrush" Value="{DynamicResource Forge.ExpUi.ButtonPressedBackground}" />
+        <Setter Property="SelectedBackgroundBrush" Value="{DynamicResource Forge.ExpUi.ButtonSelectedBackground}" />
         <Setter Property="Template">
             <ControlTemplate TargetType="forge:ForgeStripeButton">
+                <!--  只放宿主图标控件的槽；底色由 Render 画（见文件头）  -->
                 <Panel Background="Transparent">
-                    <!--  底色那层：默认不画（Transparent），四个状态由下面的样式换色  -->
-                    <Border
-                        CornerRadius="{TemplateBinding ArcCornerRadius}"
-                        Margin="{TemplateBinding BackgroundInsets}"
-                        Name="PART_Background" />
-
-                    <!--  宿主给的图标控件挂这里；位置由它回头问按钮要（见 ForgeIconHost）  -->
                     <forge:ForgeIconHost Name="PART_Icon" />
                 </Panel>
             </ControlTemplate>
         </Setter>
 
-        <!--  ── 状态色。优先级照抄 SquareStripeButton.kt:208-219 · getBackgroundColor：
-              焦点 > 窗口可见 > 悬停 > 无。
-              ⚠ 次序在 XAML 里是「后面的赢」，所以要从弱到强写：hover → visible → active。
-              别按阅读顺序写成 active 在前 —— 那样鼠标划过一个已打开的面板按钮时
-              会显示 hover 色，而上游那里显示的是 pressed 色。  ──  -->
-        <Style Selector="^:pointerover /template/ Border#PART_Background">
-            <Setter Property="Background" Value="{DynamicResource Forge.ExpUi.ButtonHoverBackground}" />
-        </Style>
-        <Style Selector="^:toolwindow-visible /template/ Border#PART_Background">
-            <Setter Property="Background" Value="{DynamicResource Forge.ExpUi.ButtonPressedBackground}" />
-        </Style>
-        <Style Selector="^:toolwindow-active /template/ Border#PART_Background">
-            <Setter Property="Background" Value="{DynamicResource Forge.ExpUi.ButtonSelectedBackground}" />
-        </Style>
+        <!--  三档底色的**优先级不在这里定**（焦点 > 窗口可见 > 悬停 > 无，
+              SquareStripeButton.kt:208-219），而在 ResolveBackgroundBrush 里 ——
+              这里只负责把三个画刷各自喂进去。  -->
 
         <!--  激活时前景换一档（ToolWindow.Button.selectedForeground）  -->
         <Style Selector="^:toolwindow-active">
@@ -69,14 +56,10 @@
         <Style Selector="^:islands:toolwindow-active">
             <Setter Property="Foreground" Value="{DynamicResource Forge.Islands.ButtonSelectedForeground}" />
         </Style>
-        <Style Selector="^:islands:pointerover /template/ Border#PART_Background">
-            <Setter Property="Background" Value="{DynamicResource Forge.Islands.ButtonHoverBackground}" />
-        </Style>
-        <Style Selector="^:islands:toolwindow-visible /template/ Border#PART_Background">
-            <Setter Property="Background" Value="{DynamicResource Forge.Islands.ButtonPressedBackground}" />
-        </Style>
-        <Style Selector="^:islands:toolwindow-active /template/ Border#PART_Background">
-            <Setter Property="Background" Value="{DynamicResource Forge.Islands.ButtonSelectedBackground}" />
+        <Style Selector="^:islands">
+            <Setter Property="HoverBackgroundBrush" Value="{DynamicResource Forge.Islands.ButtonHoverBackground}" />
+            <Setter Property="PressedBackgroundBrush" Value="{DynamicResource Forge.Islands.ButtonPressedBackground}" />
+            <Setter Property="SelectedBackgroundBrush" Value="{DynamicResource Forge.Islands.ButtonSelectedBackground}" />
         </Style>
     </ControlTheme>
 
@@ -117,29 +100,11 @@
             改它会改变现有观感，该单独判定对错。  -->
     <ControlTheme TargetType="forge:ForgeHeaderButton" x:Key="{x:Type forge:ForgeHeaderButton}">
         <Setter Property="Foreground" Value="{DynamicResource Forge.ExpUi.ButtonForeground}" />
-        <Setter Property="Template">
-            <ControlTemplate TargetType="forge:ForgeHeaderButton">
-                <Panel Background="Transparent">
-                    <Border CornerRadius="4" Name="PART_Background" />
-                </Panel>
-            </ControlTemplate>
-        </Setter>
-
-        <Style Selector="^:pointerover /template/ Border#PART_Background">
-            <Setter Property="Background" Value="{DynamicResource Forge.ExpUi.ButtonHoverBackground}" />
-        </Style>
-        <Style Selector="^:pressed /template/ Border#PART_Background">
-            <Setter Property="Background" Value="{DynamicResource Forge.ExpUi.ButtonHoverBackground}" />
-        </Style>
+        <Setter Property="HoverBackgroundBrush" Value="{DynamicResource Forge.ExpUi.ButtonHoverBackground}" />
 
         <Style Selector="^:islands">
             <Setter Property="Foreground" Value="{DynamicResource Forge.Islands.ButtonForeground}" />
-        </Style>
-        <Style Selector="^:islands:pointerover /template/ Border#PART_Background">
-            <Setter Property="Background" Value="{DynamicResource Forge.Islands.ButtonHoverBackground}" />
-        </Style>
-        <Style Selector="^:islands:pressed /template/ Border#PART_Background">
-            <Setter Property="Background" Value="{DynamicResource Forge.Islands.ButtonHoverBackground}" />
+            <Setter Property="HoverBackgroundBrush" Value="{DynamicResource Forge.Islands.ButtonHoverBackground}" />
         </Style>
     </ControlTheme>
 
@@ -170,26 +135,18 @@
           底色规则也一样（按钮矩形 − 图标内边距）。不可用时整块不画、也不吃鼠标。  -->
     <ControlTheme TargetType="forge:ForgeMoreButton" x:Key="{x:Type forge:ForgeMoreButton}">
         <Setter Property="Foreground" Value="{DynamicResource Forge.ExpUi.ButtonForeground}" />
+        <Setter Property="HoverBackgroundBrush" Value="{DynamicResource Forge.ExpUi.ButtonHoverBackground}" />
         <Setter Property="Template">
             <ControlTemplate TargetType="forge:ForgeMoreButton">
                 <Panel Background="Transparent">
-                    <Border
-                        CornerRadius="{TemplateBinding ArcCornerRadius}"
-                        Margin="{TemplateBinding BackgroundInsets}"
-                        Name="PART_Background" />
                     <forge:ForgeIconHost Name="PART_Icon" />
                 </Panel>
             </ControlTemplate>
         </Setter>
 
-        <Style Selector="^:pointerover /template/ Border#PART_Background">
-            <Setter Property="Background" Value="{DynamicResource Forge.ExpUi.ButtonHoverBackground}" />
-        </Style>
         <Style Selector="^:islands">
             <Setter Property="Foreground" Value="{DynamicResource Forge.Islands.ButtonForeground}" />
-        </Style>
-        <Style Selector="^:islands:pointerover /template/ Border#PART_Background">
-            <Setter Property="Background" Value="{DynamicResource Forge.Islands.ButtonHoverBackground}" />
+            <Setter Property="HoverBackgroundBrush" Value="{DynamicResource Forge.Islands.ButtonHoverBackground}" />
         </Style>
     </ControlTheme>
 
@@ -213,45 +170,15 @@
           「工具窗口这一版整体下移 1 并减高」的出处。  -->
     <ControlTheme TargetType="forge:ForgeContentTab" x:Key="{x:Type forge:ForgeContentTab}">
         <Setter Property="Foreground" Value="{DynamicResource Forge.ExpUi.ButtonForeground}" />
-        <Setter Property="Template">
-            <ControlTemplate TargetType="forge:ForgeContentTab">
-                <Panel>
-                    <Border Name="PART_Hover" />
-                    <Border
-                        CornerRadius="2"
-                        Height="3"
-                        HorizontalAlignment="Stretch"
-                        IsVisible="False"
-                        Margin="{TemplateBinding UnderlineMargin}"
-                        Name="PART_Underline"
-                        VerticalAlignment="Top" />
-                </Panel>
-            </ControlTemplate>
-        </Setter>
-
-        <!--  选中的不再画悬停底（原实现就是 IsPointerOver && !IsSelected）  -->
-        <Style Selector="^:pointerover:not(:selected) /template/ Border#PART_Hover">
-            <Setter Property="Background" Value="{DynamicResource Forge.ExpUi.HeaderTabHoverBackground}" />
-        </Style>
-        <Style Selector="^:selected /template/ Border#PART_Underline">
-            <Setter Property="IsVisible" Value="True" />
-            <Setter Property="Background" Value="{DynamicResource Forge.ExpUi.HeaderTabInactiveUnderline}" />
-        </Style>
-        <Style Selector="^:selected:window-active /template/ Border#PART_Underline">
-            <Setter Property="Background" Value="{DynamicResource Forge.ExpUi.HeaderTabUnderline}" />
-        </Style>
+        <Setter Property="HoverBackgroundBrush" Value="{DynamicResource Forge.ExpUi.HeaderTabHoverBackground}" />
+        <Setter Property="UnderlineBrush" Value="{DynamicResource Forge.ExpUi.HeaderTabUnderline}" />
+        <Setter Property="InactiveUnderlineBrush" Value="{DynamicResource Forge.ExpUi.HeaderTabInactiveUnderline}" />
 
         <Style Selector="^:islands">
             <Setter Property="Foreground" Value="{DynamicResource Forge.Islands.ButtonForeground}" />
-        </Style>
-        <Style Selector="^:islands:pointerover:not(:selected) /template/ Border#PART_Hover">
-            <Setter Property="Background" Value="{DynamicResource Forge.Islands.HeaderTabHoverBackground}" />
-        </Style>
-        <Style Selector="^:islands:selected /template/ Border#PART_Underline">
-            <Setter Property="Background" Value="{DynamicResource Forge.Islands.HeaderTabInactiveUnderline}" />
-        </Style>
-        <Style Selector="^:islands:selected:window-active /template/ Border#PART_Underline">
-            <Setter Property="Background" Value="{DynamicResource Forge.Islands.HeaderTabUnderline}" />
+            <Setter Property="HoverBackgroundBrush" Value="{DynamicResource Forge.Islands.HeaderTabHoverBackground}" />
+            <Setter Property="UnderlineBrush" Value="{DynamicResource Forge.Islands.HeaderTabUnderline}" />
+            <Setter Property="InactiveUnderlineBrush" Value="{DynamicResource Forge.Islands.HeaderTabInactiveUnderline}" />
         </Style>
     </ControlTheme>
 

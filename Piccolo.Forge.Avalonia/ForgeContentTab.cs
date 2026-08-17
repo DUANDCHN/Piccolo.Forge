@@ -138,8 +138,30 @@ public class ForgeContentTab : TabStripItem
         // 整块都能点，不然只有画了东西的地方收得到鼠标
         ForgeHitArea.Fill(context, Bounds.Size);
 
-        // 悬停底与选中下划线归模板（REQ-067）：颜色走 {DynamicResource}，
-        // 几何由 UnderlineMargin / UnderlineHeight 两个绑定属性给（值仍出自 ComputeUnderlineRect）。
+        // 悬停底与选中下划线：颜色来自主题，但**必须在这里画** ——
+        // 控件自身的 Render 在模板子元素之下，放模板里会盖住下面自绘的标题文字。
+        if (IsPointerOver && !IsSelected)
+        {
+            context.FillRectangle(
+                HoverBackgroundBrush ?? new SolidColorBrush(Palette.HeaderTabHoverBackground),
+                new Rect(Bounds.Size));
+        }
+
+        if (IsSelected)
+        {
+            // arc > 0 就画圆角矩形（JBDefaultTabPainter.kt:81-85）。
+            // ⚠ 主题里的 arc 是**直径**，画的时候折半 —— 见 ForgeMetrics.StripeButtonArc 的说明。
+            var underline = IsWindowActive
+                ? UnderlineBrush ?? new SolidColorBrush(Palette.HeaderTabUnderline)
+                : InactiveUnderlineBrush ?? new SolidColorBrush(Palette.HeaderTabInactiveUnderline);
+
+            context.DrawRectangle(
+                underline,
+                null,
+                new RoundedRect(
+                    ComputeUnderlineRect(new Rect(Bounds.Size)),
+                    ForgeMetrics.HeaderTabUnderlineArc / 2));
+        }
 
         if (MeasureText() is { } text)
         {
@@ -187,24 +209,37 @@ public class ForgeContentTab : TabStripItem
         return new Rect(bounds.X, bounds.Y + border + height - thickness, bounds.Width, thickness);
     }
 
-    /// <summary><see cref="UnderlineMargin"/> 的属性定义。</summary>
-    public static readonly StyledProperty<Thickness> UnderlineMarginProperty =
-        AvaloniaProperty.Register<ForgeContentTab, Thickness>(nameof(UnderlineMargin));
+    /// <summary><see cref="HoverBackgroundBrush"/> 的属性定义。</summary>
+    public static readonly StyledProperty<IBrush?> HoverBackgroundBrushProperty =
+        AvaloniaProperty.Register<ForgeContentTab, IBrush?>(nameof(HoverBackgroundBrush));
 
-    /// <summary>选中下划线的位置，模板里那层 <c>Border</c> 拿它当 <c>Margin</c>。</summary>
-    /// <remarks>值仍由 <see cref="ComputeUnderlineRect"/> 算（出处见那个方法）。</remarks>
-    public Thickness UnderlineMargin
+    /// <summary><see cref="UnderlineBrush"/> 的属性定义。</summary>
+    public static readonly StyledProperty<IBrush?> UnderlineBrushProperty =
+        AvaloniaProperty.Register<ForgeContentTab, IBrush?>(nameof(UnderlineBrush));
+
+    /// <summary><see cref="InactiveUnderlineBrush"/> 的属性定义。</summary>
+    public static readonly StyledProperty<IBrush?> InactiveUnderlineBrushProperty =
+        AvaloniaProperty.Register<ForgeContentTab, IBrush?>(nameof(InactiveUnderlineBrush));
+
+    /// <summary>悬停底，由 <c>ControlTheme</c> 从资源键给（REQ-067）。</summary>
+    public IBrush? HoverBackgroundBrush
     {
-        get => GetValue(UnderlineMarginProperty);
-        private set => SetValue(UnderlineMarginProperty, value);
+        get => GetValue(HoverBackgroundBrushProperty);
+        set => SetValue(HoverBackgroundBrushProperty, value);
     }
 
-    /// <inheritdoc />
-    protected override Size ArrangeOverride(Size finalSize)
+    /// <summary>选中下划线（窗口活动时）。</summary>
+    public IBrush? UnderlineBrush
     {
-        var rect = ComputeUnderlineRect(new Rect(finalSize));
-        UnderlineMargin = new Thickness(rect.X, rect.Y, 0, 0);
-        return base.ArrangeOverride(finalSize);
+        get => GetValue(UnderlineBrushProperty);
+        set => SetValue(UnderlineBrushProperty, value);
+    }
+
+    /// <summary>选中下划线（窗口失焦时）。</summary>
+    public IBrush? InactiveUnderlineBrush
+    {
+        get => GetValue(InactiveUnderlineBrushProperty);
+        set => SetValue(InactiveUnderlineBrushProperty, value);
     }
 
     private FormattedText? MeasureText()

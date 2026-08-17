@@ -42,6 +42,7 @@ public class ForgeHeaderButton : Button
         // 族写进伪类，模板据此换一套颜色键（REQ-067）
         PaletteProperty.Changed.AddClassHandler<ForgeHeaderButton>(
             (x, _) => x.PseudoClasses.Set(":islands", x.Palette.Island is not null));
+        AffectsRender<ForgeHeaderButton>(HoverBackgroundBrushProperty);
     }
 
     /// <summary>建一个标题条按钮。</summary>
@@ -52,6 +53,17 @@ public class ForgeHeaderButton : Button
     /// <c>Themes/ForgeStripeButton.axaml</c> 的 <c>ControlTheme</c> 里。
     /// </remarks>
     public ForgeHeaderButton() => Focusable = false;
+
+    /// <summary><see cref="HoverBackgroundBrush"/> 的属性定义。</summary>
+    public static readonly StyledProperty<IBrush?> HoverBackgroundBrushProperty =
+        AvaloniaProperty.Register<ForgeHeaderButton, IBrush?>(nameof(HoverBackgroundBrush));
+
+    /// <summary>悬停 / 按下时的底，由 <c>ControlTheme</c> 从资源键给（REQ-067）。</summary>
+    public IBrush? HoverBackgroundBrush
+    {
+        get => GetValue(HoverBackgroundBrushProperty);
+        set => SetValue(HoverBackgroundBrushProperty, value);
+    }
 
     /// <summary>配色。</summary>
     public ForgePalette Palette
@@ -85,8 +97,16 @@ public class ForgeHeaderButton : Button
     {
         ForgeHitArea.Fill(context, Bounds.Size);
 
-        // 悬停 / 按下的底色**不在这里画**了（REQ-067）：归模板里那层 Border#PART_Background，
-        // 颜色走 {DynamicResource}。圆角仍是 ForgeMetrics.HeaderButtonArc，写在模板里。
+        // 悬停 / 按下的底色：颜色来自主题（HoverBackgroundBrush），但**必须在这里画** ——
+        // 控件自身的 Render 在模板子元素之下，放模板里会盖住下面自绘的图标。
+        if (IsPointerOver || IsPressed)
+        {
+            context.DrawRectangle(
+                HoverBackgroundBrush ?? new SolidColorBrush(Palette.ButtonHoverBackground),
+                null,
+                new RoundedRect(new Rect(Bounds.Size), ForgeMetrics.HeaderButtonArc));
+        }
+
         if (Icon is { } icon)
         {
             var size = ForgeMetrics.HeaderButtonIconSize;

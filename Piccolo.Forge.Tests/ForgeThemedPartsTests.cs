@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
@@ -91,8 +91,10 @@ public class ForgeThemedPartsTests
         // 前景（图标色）来自主题
         Assert.Equal(ForgePalette.ExpUiDark.ButtonForeground, ((ISolidColorBrush)button.Foreground!).Color);
 
-        // 没悬停时底色不画
-        Assert.Null((Part(button, "PART_Background").Background as ISolidColorBrush)?.Color);
+        // 悬停底也来自主题（画在 Render 里，见 ForgeSquareButtonBase.ResolveBackgroundBrush）
+        Assert.Equal(
+            ForgePalette.ExpUiDark.ButtonHoverBackground,
+            (button.HoverBackgroundBrush as ISolidColorBrush)?.Color);
 
         // 换族换一套键
         button.Palette = ForgePalette.IslandsDark;

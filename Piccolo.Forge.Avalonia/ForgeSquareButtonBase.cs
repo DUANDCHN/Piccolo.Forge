@@ -261,6 +261,17 @@ public abstract class ForgeSquareButtonBase : Button
     /// <summary>宿主指定的圆角**直径**；<see langword="null"/> 表示按主题的默认值。</summary>
     public double? ArcOverride { get; set; }
 
+    /// <summary><see cref="HoverBackgroundBrush"/> 的属性定义。</summary>
+    public static readonly StyledProperty<IBrush?> HoverBackgroundBrushProperty =
+        AvaloniaProperty.Register<ForgeSquareButtonBase, IBrush?>(nameof(HoverBackgroundBrush));
+
+    /// <summary>悬停底，由 <c>ControlTheme</c> 从资源键给（REQ-067）。</summary>
+    public IBrush? HoverBackgroundBrush
+    {
+        get => GetValue(HoverBackgroundBrushProperty);
+        set => SetValue(HoverBackgroundBrushProperty, value);
+    }
+
     /// <summary>
     /// 当前该用哪个背景。
     /// </summary>
@@ -273,6 +284,26 @@ public abstract class ForgeSquareButtonBase : Button
     /// <returns>背景色；都不满足时是 <see langword="null"/>（不画）。</returns>
     public virtual Color? ResolveBackground()
         => IsPointerOver ? Palette.ButtonHoverBackground : null;
+
+    /// <summary>
+    /// 当前该用哪个背景画刷 —— 与 <see cref="ResolveBackground"/> 同一套优先级，取的是主题给的画刷。
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>底色必须由 <c>Render</c> 画，不能放进模板</b>（REQ-067 实机撞出来的）：
+    /// Avalonia 里控件自身的 <c>Render</c> 画在**模板子元素之下**，
+    /// 而这些按钮的名字与自绘图标都在 <c>Render</c> 里 ——
+    /// 底色一旦做成模板里的 <c>Border</c>，选中态那块不透明的蓝就把名字整个盖住了
+    /// （实机症状：<b>选中的按钮只剩图标、底下的字不见了</b>；图标还在是因为它是模板子元素）。
+    /// 模板里现在只留放宿主图标控件的槽。
+    /// </remarks>
+    /// <returns>背景画刷；不画时是 <see langword="null"/>。</returns>
+    protected virtual IBrush? ResolveBackgroundBrush()
+        => IsPointerOver ? HoverBackgroundBrush ?? Fallback(Palette.ButtonHoverBackground) : null;
+
+    /// <summary>控件还没进可视树时拿不到主题，兜底回配色（两者同源）。</summary>
+    /// <param name="color">配色里的颜色。</param>
+    /// <returns>画刷。</returns>
+    protected static IBrush Fallback(Color color) => new SolidColorBrush(color);
 
     /// <summary>当前该用哪个前景。</summary>
     /// <returns>前景色。</returns>

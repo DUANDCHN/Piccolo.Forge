@@ -154,6 +154,44 @@ public class ForgeStripeButton : ForgeSquareButtonBase
         return base.ResolveBackground();
     }
 
+    /// <summary><see cref="SelectedBackgroundBrush"/> 的属性定义。</summary>
+    public static readonly StyledProperty<IBrush?> SelectedBackgroundBrushProperty =
+        AvaloniaProperty.Register<ForgeStripeButton, IBrush?>(nameof(SelectedBackgroundBrush));
+
+    /// <summary><see cref="PressedBackgroundBrush"/> 的属性定义。</summary>
+    public static readonly StyledProperty<IBrush?> PressedBackgroundBrushProperty =
+        AvaloniaProperty.Register<ForgeStripeButton, IBrush?>(nameof(PressedBackgroundBrush));
+
+    /// <summary>面板处于激活态时的底，由 <c>ControlTheme</c> 从资源键给。</summary>
+    public IBrush? SelectedBackgroundBrush
+    {
+        get => GetValue(SelectedBackgroundBrushProperty);
+        set => SetValue(SelectedBackgroundBrushProperty, value);
+    }
+
+    /// <summary>面板开着（但未激活）时的底，来源同上。</summary>
+    public IBrush? PressedBackgroundBrush
+    {
+        get => GetValue(PressedBackgroundBrushProperty);
+        set => SetValue(PressedBackgroundBrushProperty, value);
+    }
+
+    /// <inheritdoc />
+    protected override IBrush? ResolveBackgroundBrush()
+    {
+        if (IsToolWindowActive)
+        {
+            return SelectedBackgroundBrush ?? Fallback(Palette.ButtonSelectedBackground);
+        }
+
+        if (IsToolWindowVisible)
+        {
+            return PressedBackgroundBrush ?? Fallback(Palette.ButtonPressedBackground);
+        }
+
+        return base.ResolveBackgroundBrush();
+    }
+
     /// <summary>当前该用哪个前景。</summary>
     /// <remarks>激活时是 <c>ToolWindow.Button.selectedForeground</c>，否则 <c>ToolWindow.Button.foreground</c>。</remarks>
     /// <returns>前景色。</returns>
@@ -281,10 +319,19 @@ public class ForgeStripeButton : ForgeSquareButtonBase
         // 整块都能点，不然只有画了东西的地方收得到鼠标
         ForgeHitArea.Fill(context, Bounds.Size);
 
-        // ★ 底色与圆角**不在这里画**了（REQ-067）：归模板里那层 Border#PART_Background，
-        //   颜色走 {DynamicResource}，宿主重定义键即可覆盖。
-        //   那块矩形仍是「按钮矩形 − 图标内边距」，只是改由 Border 的 Margin 表达
-        //   （BackgroundInsets），几何出处见 ForgeStripeButton.axaml 的注释。
+        // 底色：颜色来自主题（ResolveBackgroundBrush），但**必须在这里画** ——
+        // 放进模板会盖住下面自绘的名字，理由见 ResolveBackgroundBrush 的注释。
+        // 矩形是「按钮矩形 − 图标内边距」（SquareStripeButtonLook.kt:64-70：
+        // Rectangle(component.size) 减 insets 再减 iconPadding）。
+        // ⚠ 显名时也是整块按钮、含名字那一截（SquareStripeButton.kt:196-198），别跟着图标一起砍。
+        if (ResolveBackgroundBrush() is { } background)
+        {
+            context.DrawRectangle(
+                background,
+                null,
+                new RoundedRect(BackgroundRect(new Rect(Bounds.Size)), ArcRadius));
+        }
+
         var iconRect = IconRect(Bounds.Size);
 
         if (ShowName)

@@ -98,8 +98,16 @@ public class ForgeMoreButton : ForgeSquareButtonBase
         // 可用时整块都能点
         ForgeHitArea.Fill(context, Bounds.Size);
 
-        // 底色归模板（REQ-067）：与工具窗口按钮同一条规则，高亮是「按钮矩形 − 图标内边距」
+        // 底色：颜色来自主题，但必须在这里画（放模板会盖住自绘图标，见 ResolveBackgroundBrush）。
+        // 与工具窗口按钮同一条规则：高亮是「按钮矩形 − 图标内边距」
         // （SquareStripeButtonLook 是两者共用的 look，见 SquareStripeButton.kt:62-80 的兄弟关系）。
+        if (ResolveBackgroundBrush() is { } background)
+        {
+            context.DrawRectangle(
+                background,
+                null,
+                new RoundedRect(BackgroundRect(new Rect(Bounds.Size)), ArcRadius));
+        }
 
         // 三个点，对应上游的 AllIcons.Actions.MoreHorizontal（MoreSquareStripeButton.kt:91-96）
         var iconRect = new Rect(
