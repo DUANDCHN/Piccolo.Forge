@@ -105,6 +105,35 @@ public sealed record ForgeAppearance
     /// </remarks>
     public double HeaderHeight { get; init; } = double.NaN;
 
+    /// <summary>
+    /// 面板标题条上，标题距左缘多远；<see cref="double.NaN"/> = 走上游
+    /// （<c>TabLayoutStart</c> 4 + <c>HeaderLabelInsetLeft</c> 12 = 16）。
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>它同时挪标题与标签的起点。</b>标签是从「标题右缘」往后排的
+    /// （<c>TabContentLayout.java:178-184</c>），只挪标题不挪起点会在两者之间留一段空。
+    /// 所以这个值一处给、两处用（见 <c>ForgeToolWindowHeader.ComputeTabsStart</c>）。
+    /// <para>
+    /// 与 <see cref="HeaderHeight"/> 同类：给宿主的**版面取舍**口子，不是密度开关。
+    /// </para>
+    /// </remarks>
+    public double HeaderTitleInsetLeft { get; init; } = double.NaN;
+
+    /// <summary>
+    /// 条带按钮多宽；<see cref="double.NaN"/> = 走上游（常规 40 / 紧凑 32）。
+    /// </summary>
+    /// <remarks>
+    /// 只改宽度：高度与图标尺寸不跟着变，图标仍在扣掉内边距后的区域里居中。
+    /// 收起状态下的**条带宽 = 这个值 + 内侧那条 1px 线**。
+    /// </remarks>
+    public double StripeButtonWidth { get; init; } = double.NaN;
+
+    /// <summary>
+    /// 「显示名字」时条带多宽；<see cref="double.NaN"/> = 走上游
+    /// （<see cref="ForgeMetrics.StripeNamedDefaultWidth"/> = 59）。
+    /// </summary>
+    public double StripeNamedWidth { get; init; } = double.NaN;
+
     /// <summary>文档标签上那行字的字重。</summary>
     /// <remarks>上游是常规字重，所以默认 <see cref="FontWeight.Normal"/>。</remarks>
     public FontWeight TabTitleFontWeight { get; init; } = FontWeight.Normal;

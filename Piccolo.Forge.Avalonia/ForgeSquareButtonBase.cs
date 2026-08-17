@@ -45,7 +45,8 @@ public abstract class ForgeSquareButtonBase : Button
         AffectsRender<ForgeSquareButtonBase>(
             PaletteProperty, IsCompactProperty, IsLeftStripeProperty, IsPointerOverProperty, IsPressedProperty);
         // 换族会改按钮宽（40 ↔ 37），所以 Palette 也要触发重新测量，不只是重画
-        AffectsMeasure<ForgeSquareButtonBase>(IsCompactProperty, PaletteProperty, IsLeftStripeProperty);
+        AffectsMeasure<ForgeSquareButtonBase>(
+            IsCompactProperty, PaletteProperty, IsLeftStripeProperty, WidthOverrideProperty);
 
         // 几何（内缩 / 圆角）跟着这三样走 —— 它们是模板里 Border 的 Margin 与 CornerRadius 的来源
         PaletteProperty.Changed.AddClassHandler<ForgeSquareButtonBase>((b, _) => b.OnFamilyOrDensityChanged());
@@ -261,7 +262,7 @@ public abstract class ForgeSquareButtonBase : Button
         => ForgeStripeButtonMetrics.ForTheme(Palette.Family, IsCompact);
 
     /// <summary>按钮宽：expUI 40（紧凑 32），Islands 常规档 37。</summary>
-    public double ButtonWidth => StripeMetrics.Width;
+    public double ButtonWidth => double.IsNaN(WidthOverride) ? StripeMetrics.Width : WidthOverride;
 
     /// <summary>按钮高：40（紧凑 32）。</summary>
     public double ButtonHeight => StripeMetrics.Height;
@@ -291,6 +292,25 @@ public abstract class ForgeSquareButtonBase : Button
 
     /// <summary>宿主指定的圆角**直径**；<see langword="null"/> 表示按主题的默认值。</summary>
     public double? ArcOverride { get; set; }
+
+    /// <summary><see cref="WidthOverride"/> 的属性定义。</summary>
+    public static readonly StyledProperty<double> WidthOverrideProperty =
+        AvaloniaProperty.Register<ForgeSquareButtonBase, double>(nameof(WidthOverride), double.NaN);
+
+    /// <summary>
+    /// 宿主指定的按钮**宽度**；<see cref="double.NaN"/> = 按主题的默认值（上游 40 / 紧凑 32）。
+    /// </summary>
+    /// <remarks>
+    /// 给的是**版面取舍**的口子，不是紧凑档开关：紧凑是一整档密度（图标、字号、圆角一起变小），
+    /// 而"侧边栏该多宽"常常只想单收这一项。高度与图标尺寸都不跟着变 ——
+    /// 图标仍在扣掉内边距后的区域里居中（见 <see cref="ForgeStripeButton.IconRect"/>），
+    /// 所以收窄之后图标照样正。
+    /// </remarks>
+    public double WidthOverride
+    {
+        get => GetValue(WidthOverrideProperty);
+        set => SetValue(WidthOverrideProperty, value);
+    }
 
     /// <summary><see cref="HoverBackgroundBrush"/> 的属性定义。</summary>
     public static readonly StyledProperty<IBrush?> HoverBackgroundBrushProperty =

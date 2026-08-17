@@ -207,6 +207,10 @@ public class ForgeToolWindowHeader : TemplatedControl
         // 上面两个角跟着岛磨圆，下面两个角照旧是方的 —— 模板里那层 Border 拿 HeaderCornerRadius
         TopCornerRadiusProperty.Changed.AddClassHandler<ForgeToolWindowHeader>(
             (h, e) => h.HeaderCornerRadius = new CornerRadius(e.GetNewValue<double>(), e.GetNewValue<double>(), 0, 0));
+
+        // 标题左内边距一处给、两处用：模板里那个 TextBlock 的 Margin + 标签的起点
+        TitleInsetLeftProperty.Changed.AddClassHandler<ForgeToolWindowHeader>((h, _) => h.SyncTitleMargin());
+        AffectsMeasure<ForgeToolWindowHeader>(TitleInsetLeftProperty);
     }
 
     /// <summary>配色。</summary>
@@ -397,8 +401,7 @@ public class ForgeToolWindowHeader : TemplatedControl
     public double ComputeTabsStart()
     {
         var title = MeasureTitle();
-        return ForgeMetrics.TabLayoutStart
-               + ForgeMetrics.HeaderLabelInsetLeft
+        return ResolvedTitleInset
                + (title?.Width ?? 0)
                + (title is null ? 0 : ForgeMetrics.HeaderLabelInsetRight);
     }
@@ -612,6 +615,31 @@ public class ForgeToolWindowHeader : TemplatedControl
             nameof(TitleMargin),
             new Thickness(ForgeMetrics.TabLayoutStart + ForgeMetrics.HeaderLabelInsetLeft, 0, 0, 0));
 
+    /// <summary><see cref="TitleInsetLeft"/> 的属性定义。</summary>
+    public static readonly StyledProperty<double> TitleInsetLeftProperty =
+        AvaloniaProperty.Register<ForgeToolWindowHeader, double>(nameof(TitleInsetLeft), double.NaN);
+
+    /// <summary>
+    /// 标题距左缘多远；<see cref="double.NaN"/> = 走上游
+    /// （<see cref="ForgeMetrics.TabLayoutStart"/> + <see cref="ForgeMetrics.HeaderLabelInsetLeft"/>）。
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>一处给、两处用</b>：它既是 <see cref="TitleMargin"/> 的左边距，
+    /// 也是 <see cref="ComputeTabsStart"/> 的起点 —— 标签从"标题右缘"往后排，
+    /// 只挪标题不挪起点会在两者之间留一段空。
+    /// </remarks>
+    public double TitleInsetLeft
+    {
+        get => GetValue(TitleInsetLeftProperty);
+        set => SetValue(TitleInsetLeftProperty, value);
+    }
+
+    /// <summary>标题实际用的左内边距 —— 宿主没指定就走上游那两个度量之和。</summary>
+    private double ResolvedTitleInset
+        => double.IsNaN(TitleInsetLeft)
+            ? ForgeMetrics.TabLayoutStart + ForgeMetrics.HeaderLabelInsetLeft
+            : TitleInsetLeft;
+
     /// <summary><see cref="TitleFontSize"/> 的属性定义。</summary>
     public static readonly StyledProperty<double> TitleFontSizeProperty =
         AvaloniaProperty.Register<ForgeToolWindowHeader, double>(nameof(TitleFontSize), 12);
@@ -630,6 +658,9 @@ public class ForgeToolWindowHeader : TemplatedControl
         get => GetValue(TitleMarginProperty);
         set => SetValue(TitleMarginProperty, value);
     }
+
+    /// <summary>把标题的左内边距刷进模板绑的那个 <see cref="TitleMargin"/>。</summary>
+    private void SyncTitleMargin() => TitleMargin = new Thickness(ResolvedTitleInset, 0, 0, 0);
 
     /// <summary>标题字号 —— 与 <see cref="MeasureTitle"/> 必须同源（标签起点按量出来的标题宽算）。</summary>
     public double TitleFontSize

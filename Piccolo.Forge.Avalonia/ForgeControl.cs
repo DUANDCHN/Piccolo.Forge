@@ -615,6 +615,12 @@ public class ForgeControl : TemplatedControl
         SyncDockPane();
     }
 
+    /// <summary>「显示名字」时条带多宽 —— 宿主没指定就走上游那 59。</summary>
+    private double ResolvedStripeNamedWidth
+        => double.IsNaN(Appearance.StripeNamedWidth)
+            ? ForgeMetrics.StripeNamedDefaultWidth
+            : Appearance.StripeNamedWidth;
+
     private void SyncStripes()
     {
         _left.Palette = Palette;
@@ -622,7 +628,7 @@ public class ForgeControl : TemplatedControl
         _left.TransparentBackdrop = TransparentBackdrop;
         _right.TransparentBackdrop = TransparentBackdrop;
 
-        var stripeWidth = ShowToolWindowNames ? ForgeMetrics.StripeNamedDefaultWidth : 0;
+        var stripeWidth = ShowToolWindowNames ? ResolvedStripeNamedWidth : 0;
         _left.CustomWidth = stripeWidth;
         _right.CustomWidth = stripeWidth;
 
@@ -780,11 +786,12 @@ public class ForgeControl : TemplatedControl
         // 按钮实例是**复用**的，拖到另一条带时这里要跟着改，不能只在新建时设。
         button.IsLeftStripe = side == StripeSide.Left;
         button.ArcOverride = StripeButtonArc;
+        button.WidthOverride = Appearance.StripeButtonWidth;
         button.Icon = vm.Icon;
         button.Text = vm.Icon is null ? vm.Title[..1] : null;
         button.Title = vm.Title;
         button.ShowName = ShowToolWindowNames;
-        button.StripeWidth = ShowToolWindowNames ? ForgeMetrics.StripeNamedDefaultWidth : 0;
+        button.StripeWidth = ShowToolWindowNames ? ResolvedStripeNamedWidth : 0;
         button.IsToolWindowVisible = vm.IsOpen;
         button.IsToolWindowActive = vm.IsActive;
 
@@ -1746,6 +1753,7 @@ public class ForgeControl : TemplatedControl
         // 只有当宿主把系统按钮也摆到这一行时才需要让位（CaptionButtonsWidth，默认 0 不让）。
         header.TitleBarHeight = info.Type == ToolWindowType.Floating ? TitleBarHeight : double.NaN;
         header.HeightOverride = Appearance.HeaderHeight;
+        header.TitleInsetLeft = Appearance.HeaderTitleInsetLeft;
         header.CaptionButtonsWidth = info.Type == ToolWindowType.Windowed ? CaptionButtonsWidth : 0;
         header.SetExtraButtons(HeaderButtonsExtension?.Invoke(vm.Id));
         SyncTabs(header, vm, info.ContentUiType);
