@@ -97,9 +97,22 @@ public abstract class ForgeSquareButtonBase : Button
         //   所以：**宿主没收窄 → 一个像素都不动（照上游）；收窄了 → 收成居中的正方形。**
         //   ⚠ 显名时**不收**：那一档的底本来就要盖住图标 + 名字整块
         //     （SquareStripeButton.kt:196-198），收成方的会把名字露在底外面。
-        if (ShowsName || double.IsNaN(WidthOverride))
+        if (double.IsNaN(WidthOverride))
         {
             return rect;
+        }
+
+        // 显名那一档只**横向居中**，不收成正方形：底要盖住图标 + 名字整块
+        // （SquareStripeButton.kt:196-198），收方了名字会露在底外面。
+        // 但左右仍然要居中 —— 实机量到的是 bg 中心 30.5、按钮中心 28.5，偏 2px，
+        // 正是 Islands 那份 6/2 的不对称在这条路上没被处理。
+        if (ShowsName)
+        {
+            return new Rect(
+                cell.X + ((cell.Width - rect.Width) / 2),
+                rect.Y,
+                rect.Width,
+                rect.Height);
         }
 
         var side = Math.Min(rect.Width, rect.Height);
@@ -282,9 +295,15 @@ public abstract class ForgeSquareButtonBase : Button
         //   Islands 的 5/2 会把它推偏 1.5px，正是实机看到的"图标偏一边"。
         var square = !ShowsName && !double.IsNaN(WidthOverride);
 
+        // 宿主收窄了按钮时，左右一律**对称**：Islands 那份 5/2（显名档 6/2）是为了
+        // 把窄按钮在宽条带里推向外缘，按钮与条带一样宽之后它只会让人看着偏一边。
+        var horizontal = double.IsNaN(WidthOverride)
+            ? (padding.Left, padding.Right)
+            : ((cell.Width - background.Width) / 2, (cell.Width - background.Width) / 2);
+
         BackgroundInsets = square
             ? default
-            : new Thickness(padding.Left, padding.Top, padding.Right, padding.Bottom);
+            : new Thickness(horizontal.Item1, padding.Top, horizontal.Item2, padding.Bottom);
         BackgroundSize = square ? Math.Min(background.Width, background.Height) : double.NaN;
 
         // 模板据此换对齐：方底那一档居中，其余照旧铺满
