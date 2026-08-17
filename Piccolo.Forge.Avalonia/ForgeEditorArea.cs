@@ -49,6 +49,16 @@ public class ForgeEditorArea : TemplatedControl
 
     private EditorAreaViewModel? _area;
 
+    /// <summary>
+    /// <see cref="Area"/> 的属性定义。
+    /// </summary>
+    /// <remarks>
+    /// 做成可绑定属性而不是只读 + <c>Attach()</c>，理由同
+    /// <see cref="ForgeToolWindowFrame.ShellProperty"/>：整块外壳要能在 XAML 里声明。
+    /// </remarks>
+    public static readonly StyledProperty<EditorAreaViewModel?> AreaProperty =
+        AvaloniaProperty.Register<ForgeEditorArea, EditorAreaViewModel?>(nameof(Area));
+
     /// <summary><see cref="Palette"/> 的属性定义。</summary>
     public static readonly StyledProperty<ForgePalette> PaletteProperty =
         AvaloniaProperty.Register<ForgeEditorArea, ForgePalette>(nameof(Palette), ForgePalette.ExpUiDark);
@@ -58,6 +68,8 @@ public class ForgeEditorArea : TemplatedControl
         // ⚠ 这些都是**纯外观**，不要走 Sync（那会重建整棵树，见 RefreshAppearance 的说明）
         PaletteProperty.Changed.AddClassHandler<ForgeEditorArea>((x, _) => x.RefreshAppearance());
         ShowTabActionsProperty.Changed.AddClassHandler<ForgeEditorArea>((x, _) => x.Sync());
+        AreaProperty.Changed.AddClassHandler<ForgeEditorArea, EditorAreaViewModel?>(
+            (x, e) => x.OnAreaChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
 
         // 外观换了一份：重跑取色（可能换了族或取色回调），再把纯外观的部分刷一遍。
         // ⚠ 别把 _variantApplied 归零，理由见 ForgeToolWindowFrame 同处的注释
@@ -493,19 +505,48 @@ public class ForgeEditorArea : TemplatedControl
         set => SetValue(PaletteProperty, value);
     }
 
-    /// <summary>接上的编辑区 VM。</summary>
-    public EditorAreaViewModel? Area => _area;
+    /// <summary>
+    /// 接上的编辑区 VM；赋值即接上（同 <see cref="Attach"/>），可在 XAML 里绑定。
+    /// </summary>
+    public EditorAreaViewModel? Area
+    {
+        get => GetValue(AreaProperty);
+        set => SetValue(AreaProperty, value);
+    }
 
     /// <summary>接上一个编辑区 VM。</summary>
     /// <param name="area">编辑区 VM。</param>
     public void Attach(EditorAreaViewModel area)
     {
         ArgumentNullException.ThrowIfNull(area);
+        Area = area;
+    }
+
+    /// <summary>换了一个编辑区 VM：退订旧的、订上新的、按新状态同步一遍。</summary>
+    /// <remarks>
+    /// ⚠ 退订那一句是**必须的**：这里原先每次 Attach 都挂一个新的 lambda、从不摘旧的，
+    /// 接第二次就会同一个变更同步两遍。以前只 Attach 一次所以没露头，
+    /// 改成可绑定属性之后绑定随时可能重发，就藏不住了。
+    /// </remarks>
+    /// <param name="oldArea">上一个（可能没有）。</param>
+    /// <param name="area">新的（<see langword="null"/> = 摘下来）。</param>
+    private void OnAreaChanged(EditorAreaViewModel? oldArea, EditorAreaViewModel? area)
+    {
+        if (oldArea is not null)
+        {
+            oldArea.Area.Changed -= OnAreaModelChanged;
+        }
 
         _area = area;
-        area.Area.Changed += (_, _) => Sync();
+        if (area is not null)
+        {
+            area.Area.Changed += OnAreaModelChanged;
+        }
+
         Sync();
     }
+
+    private void OnAreaModelChanged(object? sender, EventArgs e) => Sync();
 
     /// <inheritdoc />
     protected override Size MeasureOverride(Size availableSize)

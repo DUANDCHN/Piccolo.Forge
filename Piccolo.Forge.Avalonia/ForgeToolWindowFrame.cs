@@ -48,6 +48,18 @@ public class ForgeToolWindowFrame : TemplatedControl
     public static readonly StyledProperty<ForgePalette> PaletteProperty =
         AvaloniaProperty.Register<ForgeToolWindowFrame, ForgePalette>(nameof(Palette), ForgePalette.ExpUiDark);
 
+    /// <summary>
+    /// <see cref="Shell"/> 的属性定义。
+    /// </summary>
+    /// <remarks>
+    /// 做成可绑定属性而不是只读 + <c>Attach()</c>，是为了让整个外壳能在 XAML 里声明：
+    /// <code>&lt;forge:ForgeToolWindowFrame Shell="{Binding Shell.ViewModel}"/&gt;</code>
+    /// 对位 Dock.Avalonia 的 <c>&lt;DockControl Layout="{Binding Layout}"/&gt;</c>。
+    /// <c>Attach()</c> 仍在，它现在就是写这个属性。
+    /// </remarks>
+    public static readonly StyledProperty<ToolWindowShellViewModel?> ShellProperty =
+        AvaloniaProperty.Register<ForgeToolWindowFrame, ToolWindowShellViewModel?>(nameof(Shell));
+
     /// <summary><see cref="TransparentBackdrop"/> 的属性定义。</summary>
     public static readonly StyledProperty<bool> TransparentBackdropProperty =
         AvaloniaProperty.Register<ForgeToolWindowFrame, bool>(nameof(TransparentBackdrop));
@@ -89,6 +101,8 @@ public class ForgeToolWindowFrame : TemplatedControl
             f.Sync();
         });
         TransparentBackdropProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Sync());
+        ShellProperty.Changed.AddClassHandler<ForgeToolWindowFrame, ToolWindowShellViewModel?>(
+            (f, e) => f.OnShellChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
         StripeButtonArcProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Sync());
         EditorContentProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Sync());
         ShowHeaderButtonsProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Sync());
@@ -428,17 +442,30 @@ public class ForgeToolWindowFrame : TemplatedControl
     public void Attach(ToolWindowShellViewModel shell)
     {
         ArgumentNullException.ThrowIfNull(shell);
+        Shell = shell;
+    }
 
-        if (_shell is not null)
+    /// <summary>换了一个外壳 VM：退订旧的、订上新的、按新状态同步一遍。</summary>
+    /// <param name="oldShell">上一个（可能没有）。</param>
+    /// <param name="shell">新的（<see langword="null"/> = 摘下来，不接任何 VM）。</param>
+    private void OnShellChanged(ToolWindowShellViewModel? oldShell, ToolWindowShellViewModel? shell)
+    {
+        if (oldShell is not null)
         {
-            _shell.StateChanged -= OnShellStateChanged;
-            _shell.PropertyChanged -= OnShellPropertyChanged;
+            oldShell.StateChanged -= OnShellStateChanged;
+            oldShell.PropertyChanged -= OnShellPropertyChanged;
         }
 
         _shell = shell;
-        _shell.StateChanged += OnShellStateChanged;
+        if (shell is null)
+        {
+            Sync();
+            return;
+        }
+
+        shell.StateChanged += OnShellStateChanged;
         NormalizeViewModes();
-        _shell.PropertyChanged += OnShellPropertyChanged;
+        shell.PropertyChanged += OnShellPropertyChanged;
 
         // 「显示名字」的真相在 VM（它跟布局一起存），控件跟着它走 ——
         // 宿主的恢复顺序是「先 Attach、后读存档」，所以还得订阅着，等存档读回来再跟一次。
@@ -448,11 +475,11 @@ public class ForgeToolWindowFrame : TemplatedControl
         // 会被一个还没读存档的 VM 冲掉。
         if (IsSet(ShowToolWindowNamesProperty))
         {
-            _shell.ShowToolWindowNames = ShowToolWindowNames;
+            shell.ShowToolWindowNames = ShowToolWindowNames;
         }
         else
         {
-            ShowToolWindowNames = _shell.ShowToolWindowNames;
+            ShowToolWindowNames = shell.ShowToolWindowNames;
         }
 
         Sync();
@@ -466,8 +493,14 @@ public class ForgeToolWindowFrame : TemplatedControl
         }
     }
 
-    /// <summary>接上的外壳 VM。</summary>
-    public ToolWindowShellViewModel? Shell => _shell;
+    /// <summary>
+    /// 接上的外壳 VM；赋值即接上（同 <see cref="Attach"/>），可在 XAML 里绑定。
+    /// </summary>
+    public ToolWindowShellViewModel? Shell
+    {
+        get => GetValue(ShellProperty);
+        set => SetValue(ShellProperty, value);
+    }
 
     private void OnShellStateChanged(object? sender, ToolWindowStateChangedEventArgs e)
     {
