@@ -46,6 +46,7 @@
                           **问这个 TextBlock 本人**要（见那里），两边同源、剪不着。  -->
                     <TextBlock
                         FontSize="{TemplateBinding NameFontSize}"
+                        FontWeight="{TemplateBinding NameFontWeight}"
                         Foreground="{TemplateBinding Foreground}"
                         HorizontalAlignment="Stretch"
                         Margin="{TemplateBinding NameMargin}"

@@ -160,6 +160,12 @@ public sealed record ForgeAppearance
     /// </remarks>
     public double StripeNameFontSize { get; init; } = double.NaN;
 
+    /// <summary>
+    /// 条带按钮上名字的字重；<see langword="null"/> = 跟着宿主的全局字重走。
+    /// </summary>
+    /// <remarks>小字压在云母那种半透明底上时，常规字重会发虚，压重一档更实。</remarks>
+    public FontWeight? StripeNameFontWeight { get; init; }
+
     /// <summary>文档标签上那行字的字重。</summary>
     /// <remarks>上游是常规字重，所以默认 <see cref="FontWeight.Normal"/>。</remarks>
     public FontWeight TabTitleFontWeight { get; init; } = FontWeight.Normal;

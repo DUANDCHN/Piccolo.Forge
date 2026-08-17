@@ -50,7 +50,8 @@ public class ForgeStripeButton : ForgeSquareButtonBase
         AffectsRender<ForgeStripeButton>(
             IsToolWindowVisibleProperty, IsToolWindowActiveProperty, ShowNameProperty, TitleProperty, IconProperty);
         AffectsMeasure<ForgeStripeButton>(
-            ShowNameProperty, StripeWidthProperty, TitleProperty, NameFontSizeOverrideProperty);
+            ShowNameProperty, StripeWidthProperty, TitleProperty,
+            NameFontSizeOverrideProperty, NameFontWeightOverrideProperty);
 
         // 两个状态写进伪类，模板据此选底色（见 Themes/ForgeStripeButton.axaml）。
         // 用伪类而不是样式类：它们是控件自己的状态，不该让宿主用 Classes 去改。
@@ -252,6 +253,38 @@ public class ForgeStripeButton : ForgeSquareButtonBase
         set => SetValue(NameFontSizeOverrideProperty, value);
     }
 
+    /// <summary><see cref="NameFontWeightOverride"/> 的属性定义。</summary>
+    public static readonly StyledProperty<FontWeight?> NameFontWeightOverrideProperty =
+        AvaloniaProperty.Register<ForgeStripeButton, FontWeight?>(nameof(NameFontWeightOverride));
+
+    /// <summary><see cref="NameFontWeight"/> 的属性定义。</summary>
+    public static readonly StyledProperty<FontWeight> NameFontWeightProperty =
+        AvaloniaProperty.Register<ForgeStripeButton, FontWeight>(nameof(NameFontWeight), FontWeight.Normal);
+
+    /// <summary>
+    /// 宿主指定的名字字重；<see langword="null"/> = **跟着继承来的字重走**（宿主的全局样式）。
+    /// </summary>
+    /// <remarks>
+    /// 默认之所以是"跟着继承"而不是某个具体档：字重是宿主整套排版的一部分
+    /// （本软件全局是 Medium），库不该替它定。想单独压重（小字在云母上发虚时）才给这个值。
+    /// </remarks>
+    public FontWeight? NameFontWeightOverride
+    {
+        get => GetValue(NameFontWeightOverrideProperty);
+        set => SetValue(NameFontWeightOverrideProperty, value);
+    }
+
+    /// <summary>名字实际用的字重 —— 模板绑它。</summary>
+    /// <remarks>
+    /// ⚠ 模板一旦绑了它，这就是 local value，**继承链就断了** ——
+    /// 所以它必须自己把"没覆盖时跟着继承走"实现出来：值 = 覆盖 ?? 控件自己的 <c>FontWeight</c>。
+    /// </remarks>
+    public FontWeight NameFontWeight
+    {
+        get => GetValue(NameFontWeightProperty);
+        private set => SetValue(NameFontWeightProperty, value);
+    }
+
     /// <summary>按当前密度算出的字号（<see cref="NameFontSize"/> 的来源）。</summary>
     /// <remarks>上游是 <c>RelativeFont.TINY</c>（<c>SquareStripeButton.kt:329</c>），这里取图标的一半。</remarks>
     private double ComputeNameFontSize()
@@ -400,6 +433,7 @@ public class ForgeStripeButton : ForgeSquareButtonBase
         var lines = SplitTitle(Title);
         NameText = ShowName && lines.Count > 0 ? string.Join('\n', lines) : null;
         NameFontSize = ComputeNameFontSize();
+        NameFontWeight = NameFontWeightOverride ?? FontWeight;
         NameLineHeight = ComputeNameLineHeight();
 
         // 竖直起点与自绘时同一条算式；左右留 TextPadding，文字在其中居中
@@ -465,6 +499,8 @@ public class ForgeStripeButton : ForgeSquareButtonBase
             || change.Property == IsCompactProperty
             || change.Property == IsLeftStripeProperty
             || change.Property == NameFontSizeOverrideProperty
+            || change.Property == NameFontWeightOverrideProperty
+            || change.Property == FontWeightProperty
             || change.Property == PaletteProperty)
         {
             SyncName();

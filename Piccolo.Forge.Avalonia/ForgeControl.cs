@@ -797,6 +797,7 @@ public class ForgeControl : TemplatedControl
         button.ArcOverride = StripeButtonArc;
         button.HighlightSize = Appearance.StripeHighlightSize;
         button.NameFontSizeOverride = Appearance.StripeNameFontSize;
+        button.NameFontWeightOverride = Appearance.StripeNameFontWeight;
         button.HighlightInset = Appearance.StripeHighlightInset;
         button.Icon = vm.Icon;
         button.Text = vm.Icon is null ? vm.Title[..1] : null;
