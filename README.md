@@ -1,4 +1,4 @@
-# Piccolo.Forge
+﻿# Piccolo.Forge
 
 用 Avalonia / C#（.NET 8）**复刻 IntelliJ 平台**的工具窗口布局与主题。
 
@@ -70,7 +70,7 @@ net8.0 / Avalonia 12.1.1，`TreatWarningsAsErrors` 与 `GenerateDocumentationFil
 - 停靠几何：默认 TOP/BOTTOM 通栏，宽屏模式反过来
 - 明暗两套 expUI 配色、紧凑模式度量、`JBUI.scale` 的取整规则
 - **Islands 主题**（Rider 主题菜单里的 `Islands Dark` / `Islands Light`）：面板变成圆角、
-  四周留缝、浮在「海」上。`ThemeFamily` 一个属性切换，与明暗正交、各走各的。
+  四周留缝、浮在「海」上。`Appearance.Family` 一处切换（外框设一次，编辑区继承），与明暗正交、各走各的。
   形态与配色照抄上游（`Island.arc` 20 / `borderWidth` 6 / `borderArcLength` 14），
   实现上用裁剪替掉 Swing 的「画完再盖」——差异与理由写在 `ForgeIslandDecor` 的注释里
 - 布局存档读写（XML 形状与属性名照抄上游）

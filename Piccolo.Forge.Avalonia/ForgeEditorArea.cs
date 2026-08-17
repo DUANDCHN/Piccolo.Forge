@@ -57,21 +57,18 @@ public class ForgeEditorArea : TemplatedControl
     {
         // ⚠ 这些都是**纯外观**，不要走 Sync（那会重建整棵树，见 RefreshAppearance 的说明）
         PaletteProperty.Changed.AddClassHandler<ForgeEditorArea>((x, _) => x.RefreshAppearance());
-        IslandMetricsProperty.Changed.AddClassHandler<ForgeEditorArea>((x, _) => x.RefreshAppearance());
         ShowTabActionsProperty.Changed.AddClassHandler<ForgeEditorArea>((x, _) => x.Sync());
 
-        // 换族要重跑取色。⚠ 别把 _variantApplied 归零，理由见 ForgeToolWindowFrame 同处的注释
+        // 外观换了一份：重跑取色（可能换了族或取色回调），再把纯外观的部分刷一遍。
+        // ⚠ 别把 _variantApplied 归零，理由见 ForgeToolWindowFrame 同处的注释
         // （会把「宿主自己管配色」那道探测重新武装，换族与跟随明暗一起坏掉）。
-        ThemeFamilyProperty.Changed.AddClassHandler<ForgeEditorArea>((x, _) => x.ApplyThemeVariant());
+        // ⚠ 也别走 Sync —— 外观是纯外观，Sync 会重建整棵树（见 RefreshAppearance 的说明）。
+        ForgeChrome.AppearanceProperty.Changed.AddClassHandler<ForgeEditorArea>((x, _) =>
+        {
+            x.ApplyThemeVariant();
+            x.RefreshAppearance();
+        });
     }
-
-    /// <summary><see cref="FollowThemeVariant"/> 的属性定义。</summary>
-    public static readonly StyledProperty<bool> FollowThemeVariantProperty =
-        AvaloniaProperty.Register<ForgeEditorArea, bool>(nameof(FollowThemeVariant), defaultValue: true);
-
-    /// <summary><see cref="ThemeFamily"/> 的属性定义。</summary>
-    public static readonly StyledProperty<ForgeThemeFamily> ThemeFamilyProperty =
-        AvaloniaProperty.Register<ForgeEditorArea, ForgeThemeFamily>(nameof(ThemeFamily));
 
     /// <summary>
     /// 宿主往标签页右键菜单里追加自己的项。
@@ -125,30 +122,18 @@ public class ForgeEditorArea : TemplatedControl
     public static readonly StyledProperty<bool> ShowTabActionsProperty =
         AvaloniaProperty.Register<ForgeEditorArea, bool>(nameof(ShowTabActions), defaultValue: true);
 
-    /// <summary><see cref="IslandMetrics"/> 的属性定义。</summary>
-    public static readonly StyledProperty<ForgeIslandMetrics?> IslandMetricsProperty =
-        AvaloniaProperty.Register<ForgeEditorArea, ForgeIslandMetrics?>(nameof(IslandMetrics));
-
     /// <summary>
-    /// 岛的几何；<see langword="null"/> 用配色自带的。
-    /// </summary>
-    /// <remarks>⚠ 与 <see cref="ForgeToolWindowFrame.IslandMetrics"/> **两边都要设**，只设一边圆角会不一致。</remarks>
-    public ForgeIslandMetrics? IslandMetrics
-    {
-        get => GetValue(IslandMetricsProperty);
-        set => SetValue(IslandMetricsProperty, value);
-    }
-
-    /// <summary>
-    /// 配色族——方角的 expUI 还是圆角留缝的 Islands。默认 <see cref="ForgeThemeFamily.ExpUi"/>。
+    /// 外观：配色族、取色、岛几何、标签行的字重和行高。
     /// </summary>
     /// <remarks>
-    /// 编辑区与外框是两个独立控件，**两边都要设**，否则会出现「四边是岛、中间还是方角」。
+    /// 摆在外框里用时**不必设** —— 外观是继承式附加属性，从外框自动流下来
+    /// （见 <see cref="ForgeChrome.AppearanceProperty"/>），这正是「四边是岛、中间还是方角」
+    /// 那类事故的根治。独立使用（浮出去的编辑窗口、没有外框的宿主）才需要自己给一份。
     /// </remarks>
-    public ForgeThemeFamily ThemeFamily
+    public ForgeAppearance Appearance
     {
-        get => GetValue(ThemeFamilyProperty);
-        set => SetValue(ThemeFamilyProperty, value);
+        get => ForgeChrome.GetAppearance(this);
+        set => ForgeChrome.SetAppearance(this, value);
     }
 
     /// <summary>建一个编辑区控件。</summary>
@@ -181,21 +166,6 @@ public class ForgeEditorArea : TemplatedControl
 
     private readonly ForgeDragOverlay _overlay = new();
 
-    /// <summary>
-    /// 跟着宿主的明暗变体自动切配色。
-    /// </summary>
-    /// <remarks>
-    /// 与 <see cref="ForgeToolWindowFrame.FollowThemeVariant"/> 同义、同默认值。
-    /// <b>它必须和外壳一样默认开着</b>：编辑区是外壳中间那块，两者跟不同的主题走，
-    /// 结果就是浅色界面里中间一大片是黑的 —— 而且看上去像「主题没做」，
-    /// 不像「有个开关没打开」。
-    /// </remarks>
-    public bool FollowThemeVariant
-    {
-        get => GetValue(FollowThemeVariantProperty);
-        set => SetValue(FollowThemeVariantProperty, value);
-    }
-
     /// <inheritdoc />
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
@@ -223,23 +193,6 @@ public class ForgeEditorArea : TemplatedControl
     /// 库只往里塞内容。不给就用一个朴素窗口。
     /// </remarks>
     public Func<Window>? ExternalWindowFactory { get; set; }
-
-    /// <summary>
-    /// 文档标签上那行字的字重。
-    /// </summary>
-    /// <remarks>上游是常规字重，所以默认 <see cref="FontWeight.Normal"/>。</remarks>
-    public FontWeight TabTitleFontWeight { get; set; } = FontWeight.Normal;
-
-    /// <summary>
-    /// 文档标签行多高；<see cref="double.NaN"/> = 不指定，走上游按族算出的行高
-    /// （<see cref="ForgeMetrics.EditorTabRowHeight"/>：Islands 40 / expUI 42）。
-    /// </summary>
-    /// <remarks>
-    /// 给宿主的版面取舍口子，与工具窗口那边的 <c>ForgeToolWindowFrame.HeaderHeight</c> 同义 ——
-    /// 中央文档区的标签行常常要与四周面板的标题条**一样高**，而这两个高度在上游本就不是一个数
-    /// （40/42 对 41），对齐只能由宿主说了算。
-    /// </remarks>
-    public double TabRowHeight { get; set; } = double.NaN;
 
     /// <summary>
     /// 指针跑出本编辑区之后的反馈：示意窗口跟着走，停靠提示交给光标底下那个编辑区。
@@ -393,10 +346,12 @@ public class ForgeEditorArea : TemplatedControl
     {
         var owner = _floatingOwner ?? this;
         var area = new EditorAreaViewModel();
+        // ⚠ 浮出去的编辑区在**另一棵树**里，继承过不来，得显式给一份 ——
+        //   给的是整个外观对象，所以不会像早先手抄字段那样抄漏
+        //   （抄漏过取色回调 / 字重 / 行高，表现是浮窗里描边没了、字重和行高变回默认）。
         var control = new ForgeEditorArea
         {
-            ThemeFamily = ThemeFamily,
-            IslandMetrics = IslandMetrics,
+            Appearance = Appearance,
             ExternalWindowFactory = owner.ExternalWindowFactory,
             _floatingOwner = owner,
         };
@@ -504,20 +459,9 @@ public class ForgeEditorArea : TemplatedControl
     /// 而不是「值变了没有」：属性的默认值本身就是一套配色，宿主赋成同一套时不会有变更通知。
     /// 我们自己写过之后 <c>IsSet</c> 也为真，所以只在第一次之前认它。
     /// </remarks>
-    /// <summary>
-    /// 跟随明暗时用哪套配色 —— 不给就用库内置的那套（照上游主题抄的）。
-    /// </summary>
-    /// <remarks>
-    /// 内置那两套是**上游主题的移植**，不该为某个项目改掉。项目要微调
-    /// （比如岛与自家窗口底板对比不够），在这里拿内置那套 <c>with</c> 出一套自己的：
-    /// <code>PaletteResolver = (family, variant) =>
-    ///     ForgePalette.ForTheme(family, variant) with { Background = ... };</code>
-    /// </remarks>
-    public Func<ForgeThemeFamily, ThemeVariant, ForgePalette>? PaletteResolver { get; set; }
-
     private void ApplyThemeVariant()
     {
-        if (!FollowThemeVariant)
+        if (!Appearance.FollowThemeVariant)
         {
             return;
         }
@@ -532,8 +476,8 @@ public class ForgeEditorArea : TemplatedControl
             return;
         }
 
-        var wanted = PaletteResolver?.Invoke(ThemeFamily, ActualThemeVariant)
-                     ?? ForgePalette.ForTheme(ThemeFamily, ActualThemeVariant);
+        var wanted = Appearance.PaletteResolver?.Invoke(Appearance.Family, ActualThemeVariant)
+                     ?? ForgePalette.ForTheme(Appearance.Family, ActualThemeVariant);
         if (!ReferenceEquals(Palette, wanted))
         {
             Palette = wanted;
@@ -592,7 +536,7 @@ public class ForgeEditorArea : TemplatedControl
             return;
         }
 
-        ForgeIslandDecor.Apply(_root, Palette, anchor: null, IslandMetrics, Palette.EditorBackground);
+        ForgeIslandDecor.Apply(_root, Palette, anchor: null, Appearance.IslandMetrics, Palette.EditorBackground);
 
         // 那圈边与根同参；根自己那条画在内容之下、会被分屏叶子的不透明底盖住四角，
         // 所以这一层补在最上面（见 _islandRing）。
@@ -738,7 +682,7 @@ public class ForgeEditorArea : TemplatedControl
             return;
         }
 
-        ForgeIslandDecor.Apply(_root, Palette, anchor: null, IslandMetrics, Palette.EditorBackground);
+        ForgeIslandDecor.Apply(_root, Palette, anchor: null, Appearance.IslandMetrics, Palette.EditorBackground);
 
         // 那圈边与根同参；根自己那条画在内容之下、会被分屏叶子的不透明底盖住四角，
         // 所以这一层补在最上面（见 _islandRing）。
@@ -767,6 +711,11 @@ public class ForgeEditorArea : TemplatedControl
                 {
                     control.Palette = Palette;
                     control.IsGroupActive = active;
+
+                    // 字重与行高也是外观：换一份外观（比如宿主改了行高）得当场生效，
+                    // 而不是等到下一次 Sync 重建标签容器 —— 那可能永远不来。
+                    control.TitleFontWeight = Appearance.TabTitleFontWeight;
+                    control.RowHeightOverride = Appearance.TabRowHeight;
                 }
             }
         }
@@ -1011,8 +960,8 @@ public class ForgeEditorArea : TemplatedControl
     private void ApplyTabContainer(EditorTabViewModel tab, ForgeEditorTab control, ForgeEditorTabStrip strip)
     {
         control.Palette = Palette;
-        control.TitleFontWeight = TabTitleFontWeight;
-        control.RowHeightOverride = TabRowHeight;
+        control.TitleFontWeight = Appearance.TabTitleFontWeight;
+        control.RowHeightOverride = Appearance.TabRowHeight;
 
         // 菜单**实例建一次**，内容在每次打开前刷 —— 每次同步都换个新实例的话，
         // 右键按下与松手之间实例就被换掉了，系统那套弹出流程落空，表现是右键没反应。

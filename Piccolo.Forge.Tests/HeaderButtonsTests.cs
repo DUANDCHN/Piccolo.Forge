@@ -252,7 +252,7 @@ public class HeaderButtonsTests
         };
 
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(new DesktopLayout(infos)));
-        var frame = new ForgeToolWindowFrame { Palette = ForgePalette.ExpUiDark, FollowThemeVariant = false };
+        var frame = new ForgeToolWindowFrame { Palette = ForgePalette.ExpUiDark, Appearance = ForgeAppearance.Default with { FollowThemeVariant = false } };
         configure?.Invoke(frame);
         frame.Attach(shell);
 
@@ -267,7 +267,7 @@ public class HeaderButtonsTests
         var (window, frame, _) = Build();
 
         var vm = new EditorAreaViewModel();
-        var editor = new ForgeEditorArea { Palette = ForgePalette.ExpUiDark, FollowThemeVariant = false };
+        var editor = new ForgeEditorArea { Palette = ForgePalette.ExpUiDark, Appearance = ForgeAppearance.Default with { FollowThemeVariant = false } };
         editor.Attach(vm);
         frame.EditorContent = editor;
 

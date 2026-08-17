@@ -1,5 +1,6 @@
-using Avalonia.Controls;
+﻿using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
+using Avalonia.Media;
 using Avalonia.Styling;
 using Piccolo.Forge.Avalonia;
 using Piccolo.Forge.Model;
@@ -73,7 +74,7 @@ public class ThemeVariantTests
     public void Turning_the_switch_off_hands_control_back_to_the_host()
     {
         var frame = NewFrame();
-        frame.FollowThemeVariant = false;
+        frame.Appearance = frame.Appearance with { FollowThemeVariant = false };
         frame.Palette = ForgePalette.ExpUiDark;
 
         var window = new Window { Content = frame, RequestedThemeVariant = ThemeVariant.Light };
@@ -142,8 +143,9 @@ public class ThemeVariantTests
 
         Assert.Same(ForgePalette.ExpUiDark, frame.Palette);
 
-        frame.ThemeFamily = ForgeThemeFamily.Islands;
-        editor.ThemeFamily = ForgeThemeFamily.Islands;
+        // 只设外框 —— 编辑区是它的 EditorContent，外观从树上继承下来（ForgeChrome.AppearanceProperty）。
+        // 早先这里要两边各设一遍，漏一边就是「四边是岛、中间还是方角」。
+        frame.Appearance = frame.Appearance with { Family = ForgeThemeFamily.Islands };
 
         Assert.Same(ForgePalette.IslandsDark, frame.Palette);
         Assert.Same(ForgePalette.IslandsDark, editor.Palette);
@@ -155,7 +157,7 @@ public class ThemeVariantTests
         Assert.Same(ForgePalette.IslandsLight, editor.Palette);
 
         // 换回去也要成立（不是单向的）
-        frame.ThemeFamily = ForgeThemeFamily.ExpUi;
+        frame.Appearance = frame.Appearance with { Family = ForgeThemeFamily.ExpUi };
         Assert.Same(ForgePalette.ExpUiLight, frame.Palette);
     }
 
@@ -172,7 +174,7 @@ public class ThemeVariantTests
     public void Switching_the_family_works_even_when_it_was_set_in_the_initializer()
     {
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
-        var frame = new ForgeToolWindowFrame { ThemeFamily = ForgeThemeFamily.Islands };
+        var frame = new ForgeToolWindowFrame { Appearance = ForgeAppearance.Default with { Family = ForgeThemeFamily.Islands } };
         frame.Attach(shell);
 
         var window = new Window { Content = frame, RequestedThemeVariant = ThemeVariant.Light };
@@ -181,7 +183,7 @@ public class ThemeVariantTests
         Assert.Same(ForgePalette.IslandsLight, frame.Palette);
 
         // 设置里切成经典 —— 旧代码在这里纹丝不动
-        frame.ThemeFamily = ForgeThemeFamily.ExpUi;
+        frame.Appearance = frame.Appearance with { Family = ForgeThemeFamily.ExpUi };
         Assert.Same(ForgePalette.ExpUiLight, frame.Palette);
 
         // 且切过之后仍要跟着系统明暗走（旧代码这里也一起坏掉）
@@ -202,5 +204,86 @@ public class ThemeVariantTests
         window.Show();
 
         Assert.Same(frame.Palette, editor.Palette);
+    }
+
+    /// <summary>
+    /// 宿主设在外框上的外观，编辑区**不用宿主再设一遍**就跟着走。
+    /// </summary>
+    /// <remarks>
+    /// 这条钉的是接口形状本身：外观早先是两边各一份的散装属性，宿主漏设一边就得到
+    /// 「四边是岛、中间还是方角」，而且加一个新属性要在四处各改一遍。
+    /// 现在是一个对象 + 继承式附加属性（<see cref="ForgeChrome.AppearanceProperty"/>）。
+    /// </remarks>
+    [AvaloniaFact]
+    public void 编辑区从外框继承整份外观()
+    {
+        var frame = NewFrame();
+        var editor = new ForgeEditorArea();
+        editor.Attach(new EditorAreaViewModel());
+        frame.EditorContent = editor;
+
+        var window = new Window { Content = frame, RequestedThemeVariant = ThemeVariant.Dark };
+        window.Show();
+
+        // 只设外框
+        var metrics = ForgeIslandMetrics.Default with { BorderWidth = 3 };
+        frame.Appearance = frame.Appearance with
+        {
+            Family = ForgeThemeFamily.Islands,
+            IslandMetrics = metrics,
+            TabRowHeight = 31,
+        };
+
+        Assert.Same(frame.Appearance, editor.Appearance);
+        Assert.Same(ForgePalette.IslandsDark, editor.Palette);
+        Assert.Equal(31, editor.Appearance.TabRowHeight);
+    }
+
+    /// <summary>
+    /// 文档浮出去之后，那个窗口里的编辑区拿到的是**同一份**外观。
+    /// </summary>
+    /// <remarks>
+    /// 回归：浮出去是**另一棵树**，继承过不来，只能显式传。早先传的是手抄的三个字段
+    /// （族 / 岛几何 / 窗体工厂），抄漏了取色回调、字重、行高 ——
+    /// 表现是浮窗里岛的描边没了（宿主自定义的描边色丢了，而 Islands 默认那条是全透明）、
+    /// 标签字重和行高变回库默认。现在传的是整个对象，漏抄在语法上不可能。
+    /// </remarks>
+    [AvaloniaFact]
+    public void 浮出去的编辑区拿到同一份外观()
+    {
+        var frame = NewFrame();
+        var vm = new EditorAreaViewModel();
+        var editor = new ForgeEditorArea();
+        editor.Attach(vm);
+        frame.EditorContent = editor;
+
+        Window? floated = null;
+        editor.ExternalWindowFactory = () => floated = new Window();
+
+        var window = new Window { Content = frame, RequestedThemeVariant = ThemeVariant.Dark };
+        window.Show();
+
+        // 宿主自定义取色 + 字重 + 行高：早先这三样正是浮出去之后丢掉的
+        var mine = ForgePalette.ForTheme(ForgeThemeFamily.Islands, ThemeVariant.Dark) with
+        {
+            IslandBorder = ForgeColor.Parse("#2E3237"),
+        };
+        frame.Appearance = frame.Appearance with
+        {
+            Family = ForgeThemeFamily.Islands,
+            PaletteResolver = (_, _) => mine,
+            TabTitleFontWeight = FontWeight.Bold,
+            TabRowHeight = 31,
+        };
+
+        vm.Open("d0", "cam-1.png", new TextBlock());
+        editor.MoveToNewWindow("d0");
+
+        var floatedArea = Assert.IsType<ForgeEditorArea>(floated!.Content);
+        Assert.Same(frame.Appearance, floatedArea.Appearance);
+        Assert.Same(mine, floatedArea.Palette);
+
+        floated.Close();
+        window.Close();
     }
 }

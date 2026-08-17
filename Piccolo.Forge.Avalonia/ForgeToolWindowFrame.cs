@@ -48,21 +48,9 @@ public class ForgeToolWindowFrame : TemplatedControl
     public static readonly StyledProperty<ForgePalette> PaletteProperty =
         AvaloniaProperty.Register<ForgeToolWindowFrame, ForgePalette>(nameof(Palette), ForgePalette.ExpUiDark);
 
-    /// <summary><see cref="FollowThemeVariant"/> 的属性定义。</summary>
-    public static readonly StyledProperty<bool> FollowThemeVariantProperty =
-        AvaloniaProperty.Register<ForgeToolWindowFrame, bool>(nameof(FollowThemeVariant), defaultValue: true);
-
-    /// <summary><see cref="ThemeFamily"/> 的属性定义。</summary>
-    public static readonly StyledProperty<ForgeThemeFamily> ThemeFamilyProperty =
-        AvaloniaProperty.Register<ForgeToolWindowFrame, ForgeThemeFamily>(nameof(ThemeFamily));
-
     /// <summary><see cref="TransparentBackdrop"/> 的属性定义。</summary>
     public static readonly StyledProperty<bool> TransparentBackdropProperty =
         AvaloniaProperty.Register<ForgeToolWindowFrame, bool>(nameof(TransparentBackdrop));
-
-    /// <summary><see cref="IslandMetrics"/> 的属性定义。</summary>
-    public static readonly StyledProperty<ForgeIslandMetrics?> IslandMetricsProperty =
-        AvaloniaProperty.Register<ForgeToolWindowFrame, ForgeIslandMetrics?>(nameof(IslandMetrics));
 
     /// <summary><see cref="StripeButtonArc"/> 的属性定义。</summary>
     public static readonly StyledProperty<double?> StripeButtonArcProperty =
@@ -88,16 +76,19 @@ public class ForgeToolWindowFrame : TemplatedControl
     {
         PaletteProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Sync());
 
-        // 换族要重跑一次取色。
+        // 外观换了一份：重跑取色（可能换了族或取色回调），再同步一遍（岛几何、字重、行高都在里面）。
         // ⚠ **不要在这里把 _variantApplied 归零**（曾经这么写过，是个双重 bug）：
         // ApplyThemeVariant 开头那道「宿主是不是自己管配色」的探测用 IsSet(PaletteProperty) 判，
         // 而我们自己写过 Palette 之后它恒为真。归零 _variantApplied 等于把探测重新武装，
         // 于是换族那一下被判成"宿主自己管"，_paletteSetByHost 被永久钉死 ——
         // 换族当场不生效，此后连跟随系统明暗也一起停摆。
         // _variantApplied 保持为真时，ApplyThemeVariant 会跳过探测、直接按新族重算，这正是要的。
-        ThemeFamilyProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.ApplyThemeVariant());
+        ForgeChrome.AppearanceProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) =>
+        {
+            f.ApplyThemeVariant();
+            f.Sync();
+        });
         TransparentBackdropProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Sync());
-        IslandMetricsProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Sync());
         StripeButtonArcProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Sync());
         EditorContentProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Sync());
         ShowHeaderButtonsProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Sync());
@@ -220,19 +211,22 @@ public class ForgeToolWindowFrame : TemplatedControl
     /// </para>
     /// </remarks>
     /// <summary>
-    /// 跟随明暗时用哪套配色 —— 不给就用库内置的那套（照上游主题抄的）。
+    /// 外观：配色族、取色、岛几何、标题条与标签行的字重和行高。
     /// </summary>
     /// <remarks>
-    /// 内置那两套是**上游主题的移植**，不该为某个项目改掉。项目要微调
-    /// （比如岛与自家窗口底板对比不够），在这里拿内置那套 <c>with</c> 出一套自己的：
-    /// <code>PaletteResolver = (family, variant) =>
-    ///     ForgePalette.ForTheme(family, variant) with { Background = ... };</code>
+    /// 一个对象管完，**设在这儿就自动流到编辑区**（继承式附加属性，见
+    /// <see cref="ForgeChrome.AppearanceProperty"/>）—— 宿主不必两边各设一遍，也就不会只设一边。
+    /// 改一处用 <c>with</c>：<c>frame.Appearance = frame.Appearance with { Family = … };</c>
     /// </remarks>
-    public Func<ForgeThemeFamily, ThemeVariant, ForgePalette>? PaletteResolver { get; set; }
+    public ForgeAppearance Appearance
+    {
+        get => ForgeChrome.GetAppearance(this);
+        set => ForgeChrome.SetAppearance(this, value);
+    }
 
     private void ApplyThemeVariant()
     {
-        if (!FollowThemeVariant)
+        if (!Appearance.FollowThemeVariant)
         {
             return;
         }
@@ -248,8 +242,8 @@ public class ForgeToolWindowFrame : TemplatedControl
             return;
         }
 
-        var wanted = PaletteResolver?.Invoke(ThemeFamily, ActualThemeVariant)
-                     ?? ForgePalette.ForTheme(ThemeFamily, ActualThemeVariant);
+        var wanted = Appearance.PaletteResolver?.Invoke(Appearance.Family, ActualThemeVariant)
+                     ?? ForgePalette.ForTheme(Appearance.Family, ActualThemeVariant);
         if (!ReferenceEquals(Palette, wanted))
         {
             Palette = wanted;
@@ -258,43 +252,15 @@ public class ForgeToolWindowFrame : TemplatedControl
         _variantApplied = true;
     }
 
-    /// <summary>
-    /// 配色族——方角的 expUI 还是圆角留缝的 Islands。默认 <see cref="ForgeThemeFamily.ExpUi"/>。
-    /// </summary>
-    /// <remarks>
-    /// 与明暗**正交**：换族不影响「跟随系统明暗」，两个维度各走各的。
-    /// 这也是宿主该用的入口——直接赋 <see cref="Palette"/> 会被当成
-    /// 「宿主自己管配色」，从此不再跟随系统明暗（见 <see cref="FollowThemeVariant"/>）。
-    /// </remarks>
-    public ForgeThemeFamily ThemeFamily
-    {
-        get => GetValue(ThemeFamilyProperty);
-        set => SetValue(ThemeFamilyProperty, value);
-    }
-
     /// <summary>配色。</summary>
     /// <remarks>
-    /// <see cref="FollowThemeVariant"/> 为真时（默认），它跟着宿主的明暗变体自动切，
-    /// 不需要手动赋值。
+    /// <see cref="ForgeAppearance.FollowThemeVariant"/> 为真时（默认），它跟着宿主的明暗变体自动切，
+    /// 不需要手动赋值。这是**算出来的结果**，想换配色请改 <see cref="Appearance"/>。
     /// </remarks>
     public ForgePalette Palette
     {
         get => GetValue(PaletteProperty);
         set => SetValue(PaletteProperty, value);
-    }
-
-    /// <summary>
-    /// 配色是否跟着宿主的明暗变体走。默认 <see langword="true"/>。
-    /// </summary>
-    /// <remarks>
-    /// 宿主的明暗通常跟随系统。钉死一套的结果是系统切浅色时
-    /// 「软件其余部分变白、外壳还是黑的」，中间一道硬边。
-    /// 想自己控制配色就把它设成 <see langword="false"/> 再赋 <see cref="Palette"/>。
-    /// </remarks>
-    public bool FollowThemeVariant
-    {
-        get => GetValue(FollowThemeVariantProperty);
-        set => SetValue(FollowThemeVariantProperty, value);
     }
 
     /// <summary>
@@ -306,7 +272,7 @@ public class ForgeToolWindowFrame : TemplatedControl
     /// <para>
     /// 与配色**正交**，所以做成控件上的开关而不是「换一套透明配色」：
     /// 直接赋 <see cref="Palette"/> 会被当成「宿主自己管配色」，从此不再跟随系统明暗
-    /// （见 <see cref="FollowThemeVariant"/>）——那是拿一个 bug 换一个效果。
+    /// （见 <see cref="ForgeAppearance.FollowThemeVariant"/>）——那是拿一个 bug 换一个效果。
     /// </para>
     /// <para>
     /// ⚠ 只是「不画」。窗口本身透不透明由**宿主**负责（Avalonia 侧是
@@ -318,25 +284,6 @@ public class ForgeToolWindowFrame : TemplatedControl
     {
         get => GetValue(TransparentBackdropProperty);
         set => SetValue(TransparentBackdropProperty, value);
-    }
-
-    /// <summary>
-    /// 岛的几何（圆角、缝宽、描边）。<see langword="null"/> 表示用配色自带的
-    /// <see cref="ForgePalette.Island"/>，即上游取值。
-    /// </summary>
-    /// <remarks>
-    /// 给宿主留的调节口——观感这件事各家软件口味不同，圆角大小尤其。
-    /// 默认值仍是照上游抄的，覆盖是**宿主的选择**，不是库的默认。
-    /// <para>
-    /// 只在岛形态下有意义：配色的 <see cref="ForgePalette.Island"/> 为 <see langword="null"/>
-    /// （expUI）时，这里设了也不会凭空变成岛——形态由族决定，本属性只调几何。
-    /// </para>
-    /// <example>把圆角调小一半：<c>frame.IslandMetrics = ForgeIslandMetrics.Default with { Arc = 10 };</c></example>
-    /// </remarks>
-    public ForgeIslandMetrics? IslandMetrics
-    {
-        get => GetValue(IslandMetricsProperty);
-        set => SetValue(IslandMetricsProperty, value);
     }
 
     /// <summary>
@@ -1643,22 +1590,6 @@ public class ForgeToolWindowFrame : TemplatedControl
     public double TitleBarHeight { get; set; } = ForgeMetrics.WindowTitleBarHeight;
 
     /// <summary>
-    /// 停靠着的面板标题条多高；<see cref="double.NaN"/> = 不指定，走上游那两档（紧凑 31 / 常规 41）。
-    /// </summary>
-    /// <remarks>
-    /// 这是给宿主的**版面取舍**口子，不是紧凑档的开关：紧凑是一整档密度（条带按钮、字号、圆角一起变），
-    /// 而"标题条该多高"常常只想单改这一行。想跟着密度走就别设它。
-    /// <para>浮动形态不吃这个值 —— 那时标题条兼任窗口标题栏，按 <see cref="TitleBarHeight"/> 长。</para>
-    /// </remarks>
-    public double HeaderHeight { get; set; } = double.NaN;
-
-    /// <summary>
-    /// 面板标题条上那行字的字重。
-    /// </summary>
-    /// <remarks>上游是常规字重，所以默认 <see cref="FontWeight.Normal"/>。</remarks>
-    public FontWeight HeaderTitleFontWeight { get; set; } = FontWeight.Normal;
-
-    /// <summary>
     /// 独立窗口形态下，标题条右端要给窗口的最小化 / 最大化 / 关闭留出多宽。
     /// </summary>
     /// <remarks>
@@ -1728,16 +1659,16 @@ public class ForgeToolWindowFrame : TemplatedControl
     {
         var info = _shell!.Manager.Layout.GetInfo(vm.Id)!;
 
-        ForgeIslandDecor.Apply(host, Palette, info.Anchor, IslandMetrics);
+        ForgeIslandDecor.Apply(host, Palette, info.Anchor, Appearance.IslandMetrics);
 
         var header = _panelHeaders[vm.Id];
         header.Palette = Palette;
         header.Title = vm.Title;
-        header.TitleFontWeight = HeaderTitleFontWeight;
+        header.TitleFontWeight = Appearance.HeaderTitleFontWeight;
 
         // 标题条坐在岛顶上：跟着岛磨圆上面两个角，否则它会把那两段弧盖掉（见 TopCornerRadius）。
         // 减掉描边自己占的 1px —— 内圆角比外圆角小这一圈。
-        header.TopCornerRadius = (IslandMetrics ?? Palette.Island) is { } island && Palette.Island is not null
+        header.TopCornerRadius = (Appearance.IslandMetrics ?? Palette.Island) is { } island && Palette.Island is not null
             ? Math.Max(0, island.CornerRadius - 1)
             : 0;
         header.IsActive = vm.IsActive;
@@ -1751,7 +1682,7 @@ public class ForgeToolWindowFrame : TemplatedControl
         // 独立窗口另说：那种窗体自带标题栏（第一行），这条仍是普通的面板标题条（第二行）；
         // 只有当宿主把系统按钮也摆到这一行时才需要让位（CaptionButtonsWidth，默认 0 不让）。
         header.TitleBarHeight = info.Type == ToolWindowType.Floating ? TitleBarHeight : double.NaN;
-        header.HeightOverride = HeaderHeight;
+        header.HeightOverride = Appearance.HeaderHeight;
         header.CaptionButtonsWidth = info.Type == ToolWindowType.Windowed ? CaptionButtonsWidth : 0;
         header.SetExtraButtons(HeaderButtonsExtension?.Invoke(vm.Id));
         SyncTabs(header, vm, info.ContentUiType);

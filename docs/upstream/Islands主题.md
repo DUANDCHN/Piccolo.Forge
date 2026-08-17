@@ -1,4 +1,4 @@
-# Islands 主题
+﻿# Islands 主题
 
 > Rider 主题菜单里的 **Islands Dark / Islands Light / Islands Darcula**。
 > 相对已复刻的 expUI（`Dark` / `Light`，方角、面板彼此贴死），Islands 把每块面板做成
@@ -219,7 +219,7 @@ Islands 相对 expUI 多出**两个正交维度**：配色族（expUI / Islands�
 | `ForgeIslandMetrics` | arc / borderWidth / borderArcLength / insets，常规与紧凑两档 |
 | `ForgeStripeButtonMetrics` + `ForgeInsets` | §4 的四份内边距 × 两档密度 × 两个族 |
 | `ForgeIslandDecor.Apply` | 裁剪 + 描边，套在工具窗口面板与编辑区外层（对应上游的 `XNextIslandHolder` 与 `EditorsSplitters`） |
-| `ForgeToolWindowFrame.ThemeFamily` / `ForgeEditorArea.ThemeFamily` | 宿主的开关。⚠ **两个控件都要设**，只设一个会得到「四边是岛、中间还是方角」 |
+| `ForgeAppearance.Family` | 宿主的开关。设在外框上，编辑区继承（见[宿主接入指南 §5.0](../conventions/宿主接入指南.md)）。早先是两个控件各一个属性、要各设一遍，只设一个就得到「四边是岛、中间还是方角」 |
 
 `ForgeMetrics` / `ForgeCompactMetrics` 里那几个条带按钮常量**保留但降级为「代码兜底」**——
 它们是"主题一个键都没写时的值"，画界面一律走 `ForgeStripeButtonMetrics.ForTheme`。

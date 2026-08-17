@@ -82,7 +82,7 @@ public class StripeButtonClickTests
         };
 
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(new DesktopLayout(infos)));
-        var frame = new ForgeToolWindowFrame { Palette = ForgePalette.ExpUiDark, FollowThemeVariant = false };
+        var frame = new ForgeToolWindowFrame { Palette = ForgePalette.ExpUiDark, Appearance = ForgeAppearance.Default with { FollowThemeVariant = false } };
         frame.Attach(shell);
 
         var window = new Window { Width = 700, Height = 300, WindowDecorations = WindowDecorations.None, Content = frame };

@@ -1,4 +1,4 @@
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
@@ -65,7 +65,7 @@ public class IslandDecorTests
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
         var frame = new ForgeToolWindowFrame
         {
-            ThemeFamily = ForgeThemeFamily.Islands,
+            Appearance = ForgeAppearance.Default with { Family = ForgeThemeFamily.Islands },
             TransparentBackdrop = transparent,
         };
         frame.Attach(shell);

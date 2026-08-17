@@ -367,8 +367,11 @@ public class ViewModeTests
 
         // 按宿主的真实配置来：岛形态下面板有外边距和圆角，配色也是另一套
         //（回归：Islands 的 WindowBorder 是全透明，用它画线等于没画）
-        frame.ThemeFamily = family;
-        frame.IslandMetrics = ForgeIslandMetrics.Default with { BorderWidth = 3 };
+        frame.Appearance = frame.Appearance with
+        {
+            Family = family,
+            IslandMetrics = ForgeIslandMetrics.Default with { BorderWidth = 3 },
+        };
         Pump(window);
 
         shell.Manager.SetType("相机列表", ToolWindowType.Sliding);
@@ -558,8 +561,11 @@ public class ViewModeTests
         var frame = new ForgeToolWindowFrame
         {
             EditorContent = editor,
-            ThemeFamily = ForgeThemeFamily.Islands,
-            IslandMetrics = metrics,
+            Appearance = ForgeAppearance.Default with
+            {
+                Family = ForgeThemeFamily.Islands,
+                IslandMetrics = metrics,
+            },
         };
         frame.Attach(shell);
 
@@ -814,7 +820,11 @@ public class ViewModeTests
 
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(new DesktopLayout(infos)));
         var editor = new Border();
-        var frame = new ForgeToolWindowFrame { EditorContent = editor, HeaderHeight = headerHeight };
+        var frame = new ForgeToolWindowFrame
+        {
+            EditorContent = editor,
+            Appearance = ForgeAppearance.Default with { HeaderHeight = headerHeight },
+        };
         frame.Attach(shell);
 
         var window = new Window { Width = 900, Height = 500, WindowDecorations = WindowDecorations.None, Content = frame };
