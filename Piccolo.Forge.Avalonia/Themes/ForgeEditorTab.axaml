@@ -11,6 +11,25 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <ControlTheme TargetType="forge:ForgeEditorTab" x:Key="{x:Type forge:ForgeEditorTab}">
+        <!--  ★ 这份**空模板不是可有可无的**（修 d7ee5f1 引入的回归）：★
+              TabStripItem 是 ContentControl，Avalonia 给它兜了一份自带模板
+              （FuncControlTemplate + PART_ContentPresenter）。标签的容器由 TabStrip 建，
+              Content 被喂成**视图模型对象本身** —— 那份兜底模板会把它 ToString 出来画在标签上，
+              症状就是标签行顶上多出一串 "Piccolo.Forge.Mvvm.EditorTabViewModel"。
+              这个控件的标题 / 图标 / 底与描边全在 Render 里，压根不需要 ContentPresenter。
+
+              原先靠**构造里赋 Template**（一个空 Border）把它盖掉，
+              REQ-067 清理"构造里的 local value 会盖过 ControlTheme"时把那句删了，
+              却没在这里补上替代 —— 于是兜底模板当场露出来。
+              ⚠ 由此得到一条规矩：**删构造里的 Template，必须同时在 ControlTheme 里补一份**，
+                哪怕是空的；不补就等于把控件交还给 Avalonia 的兜底模板。
+              等这个控件做成真模板时（REQ-067 剩余活第 1 项），这里换成真的结构即可。  -->
+        <Setter Property="Template">
+            <ControlTemplate TargetType="forge:ForgeEditorTab">
+                <Panel />
+            </ControlTemplate>
+        </Setter>
+
         <Setter Property="Foreground" Value="{DynamicResource Forge.ExpUi.Foreground}" />
         <Setter Property="SelectedBackgroundBrush" Value="{DynamicResource Forge.ExpUi.EditorTabSelectedBackground}" />
         <Setter Property="SelectedBorderBrush" Value="{DynamicResource Forge.ExpUi.EditorTabSelectedBorder}" />
