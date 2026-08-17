@@ -88,22 +88,32 @@ public abstract class ForgeSquareButtonBase : Button
             Math.Max(0, cell.Width - padding.Horizontal),
             Math.Max(0, cell.Height - padding.Vertical));
 
-        // ★ **收进一个居中的正方形**（不显名时）。
-        //   上游那两套主题里按钮本来就是方的（40×40 / 37×37），扣掉内边距仍是方的，
-        //   所以这一步在上游是恒等变换 —— 一个像素都不动。
-        //   宿主把宽度单独收窄之后（ForgeAppearance.StripeButtonWidth）才有分别：
-        //   不收成正方形的话，高亮会变成一块长方形板，图标浮在里面像没放正。
+        // ★ **宿主收窄了按钮时，高亮收成一个在按钮里居中的正方形。**
+        //   上游那两套主题的按钮本来就是方的（40×40 / 37×37）；Islands 的图标内边距是
+        //   左右不对称的（5 / 2），那是为了把 37 宽的按钮在 40 宽的条带里推向外缘 ——
+        //   **按钮与条带不一样宽**时这条才有意义。
+        //   宿主用 ForgeAppearance.StripeButtonWidth 收窄之后，按钮就是条带的宽度，
+        //   那份不对称失去了由头，留着只会让高亮和图标看着偏一边（实机就是这么被看出来的）。
+        //   所以：**宿主没收窄 → 一个像素都不动（照上游）；收窄了 → 收成居中的正方形。**
         //   ⚠ 显名时**不收**：那一档的底本来就要盖住图标 + 名字整块
         //     （SquareStripeButton.kt:196-198），收成方的会把名字露在底外面。
-        if (ShowsName)
+        if (ShowsName || double.IsNaN(WidthOverride))
         {
             return rect;
         }
 
         var side = Math.Min(rect.Width, rect.Height);
+
+        // ⚠ 边长与格子的**奇偶要一致**，否则居中会落在半像素上（Islands 是 27 对 34，
+        //   两边各 3.5 → 布局取整成 4，看着就偏了半格）。差一像素换一个整齐的居中，划算。
+        if ((cell.Width - side) % 2 != 0)
+        {
+            side -= 1;
+        }
+
         return new Rect(
-            rect.X + ((rect.Width - side) / 2),
-            rect.Y + ((rect.Height - side) / 2),
+            cell.X + ((cell.Width - side) / 2),
+            cell.Y + ((cell.Height - side) / 2),
             side,
             side);
     }
@@ -225,6 +235,24 @@ public abstract class ForgeSquareButtonBase : Button
         private set => SetValue(BackgroundInsetsProperty, value);
     }
 
+    /// <summary><see cref="BackgroundSize"/> 的属性定义。</summary>
+    public static readonly StyledProperty<double> BackgroundSizeProperty =
+        AvaloniaProperty.Register<ForgeSquareButtonBase, double>(nameof(BackgroundSize), double.NaN);
+
+    /// <summary>
+    /// 高亮底的**边长**；<see cref="double.NaN"/> = 不指定（按 <see cref="BackgroundInsets"/> 铺满）。
+    /// </summary>
+    /// <remarks>
+    /// 只有"宿主收窄了按钮"这一档会给值 —— 那时底要收成一个在按钮里**居中的正方形**，
+    /// 见 <see cref="BackgroundRect"/> 的说明。给边长而不是给 Margin，是因为 Margin
+    /// 相对的是实际排到的尺寸，与度量里的 ButtonWidth/Height 不一定相等。
+    /// </remarks>
+    public double BackgroundSize
+    {
+        get => GetValue(BackgroundSizeProperty);
+        private set => SetValue(BackgroundSizeProperty, value);
+    }
+
     /// <summary>背景那层的圆角，理由同 <see cref="BackgroundInsets"/>。</summary>
     /// <remarks>值是 <see cref="ArcRadius"/>（上游那个 <c>Arc</c> 是直径，这里已折半）。</remarks>
     public CornerRadius ArcCornerRadius
@@ -246,13 +274,21 @@ public abstract class ForgeSquareButtonBase : Button
         var cell = new Rect(0, 0, ButtonWidth, ButtonHeight);
         var background = BackgroundRect(cell);
 
-        BackgroundInsets = ShowsName
-            ? new Thickness(padding.Left, padding.Top, padding.Right, padding.Bottom)
-            : new Thickness(
-                background.X,
-                background.Y,
-                Math.Max(0, cell.Width - background.Right),
-                Math.Max(0, cell.Height - background.Bottom));
+        // ⚠ 方底**不能靠 Margin 拉伸出来**：Margin 相对的是**实际排到的尺寸**，
+        //   而这里的算式用的是度量里的 ButtonWidth/Height。两者一旦不等
+        //   （Islands 的按钮度量 37 高、条带却按 40 排），拉出来就不是正方形（实机量到 27×28）。
+        //   所以方底那一档改成：**给显式边长 + 居中 + 不留边距**。
+        //   边距一旦还在，居中就是"在扣掉不对称内边距之后的那块地里居中"——
+        //   Islands 的 5/2 会把它推偏 1.5px，正是实机看到的"图标偏一边"。
+        var square = !ShowsName && !double.IsNaN(WidthOverride);
+
+        BackgroundInsets = square
+            ? default
+            : new Thickness(padding.Left, padding.Top, padding.Right, padding.Bottom);
+        BackgroundSize = square ? Math.Min(background.Width, background.Height) : double.NaN;
+
+        // 模板据此换对齐：方底那一档居中，其余照旧铺满
+        PseudoClasses.Set(":square-background", square);
 
         ArcCornerRadius = new CornerRadius(ArcRadius);
     }

@@ -23,6 +23,9 @@
                       TextBlock），所以底色可以回到模板里 —— 结构因此**真的可换**：
                       宿主重写这份模板就能改底色的形状、层次，甚至重排图标与文字。  -->
                 <Panel Background="Transparent">
+                    <!--  默认（上游那种矩形高亮）：按 Margin 铺满。
+                          宿主收窄了按钮时走 :square-background 那条 —— 换成
+                          「显式边长 + 居中 + 零边距」，理由见 UpdateGeometry 的注释。  -->
                     <Border
                         Background="{TemplateBinding BackgroundBrush}"
                         CornerRadius="{TemplateBinding ArcCornerRadius}"
@@ -35,11 +38,14 @@
                     <!--  名字：⚠ **不能开 TextWrapping** —— 折行已经按上游规则
                           （第一个空格拆两段）在 NameText 里拼好了，
                           再让它按宽度自动换行会多切一刀，行数与量出来的高度就对不上。  -->
+                    <!--  ⚠ **不设 LineHeight**：它是行盒的高度，小于字体的自然行高时
+                          Avalonia 会把字剪掉 —— 实机就是"名字只剩上半截"。
+                          行距因此走字体的自然行高，而按钮的高度由 MeasureOverride
+                          **问这个 TextBlock 本人**要（见那里），两边同源、剪不着。  -->
                     <TextBlock
                         FontSize="{TemplateBinding NameFontSize}"
                         Foreground="{TemplateBinding Foreground}"
                         HorizontalAlignment="Stretch"
-                        LineHeight="{TemplateBinding NameLineHeight}"
                         Margin="{TemplateBinding NameMargin}"
                         Name="PART_Name"
                         Text="{TemplateBinding NameText}"
@@ -48,6 +54,14 @@
                 </Panel>
             </ControlTemplate>
         </Setter>
+
+        <!--  方底那一档：显式边长 + 居中（其余情况 BackgroundSize 是 NaN，这条不参与）  -->
+        <Style Selector="^:square-background /template/ Border#PART_Background">
+            <Setter Property="Width" Value="{TemplateBinding BackgroundSize}" />
+            <Setter Property="Height" Value="{TemplateBinding BackgroundSize}" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
 
         <!--  三档底色的**优先级不在这里定**（焦点 > 窗口可见 > 悬停 > 无，
               SquareStripeButton.kt:208-219），而在 ResolveBackgroundBrush 里 ——

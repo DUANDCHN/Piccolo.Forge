@@ -323,6 +323,45 @@ public class ForgeStripeButton : ForgeSquareButtonBase
         private set => SetValue(NameLineHeightProperty, value);
     }
 
+    /// <summary>
+    /// 名字那一截有多高 —— <b>问模板里那个 <c>TextBlock</c> 本人</b>。
+    /// </summary>
+    /// <remarks>
+    /// ★ 实机 bug 两次都出在这（REQ-067）：名字是模板里的 <c>TextBlock</c>，
+    /// 而它的高度由**字体的自然行高**决定；库这边照上游算的「字号 × 1.4」
+    /// 只是个估计值，字体一换就不准 —— 估小了按钮装不下，字被剪掉半截。
+    /// 上位机内嵌的 HarmonyOS Sans SC 就是这种。
+    /// <para>
+    /// 所以不再估：<c>ApplyTemplate()</c> 之后直接量那个 <c>TextBlock</c>，
+    /// 它用的就是渲染时那套字体栈（含中西文回退），量出来多高就给多高，**结构上剪不着**。
+    /// 模板还没套上（控件没进可视树）时才退回估计值。
+    /// </para>
+    /// </remarks>
+    /// <param name="lines">名字折成了几行。</param>
+    /// <returns>名字那一截的高度。</returns>
+    private double MeasureNameHeight(int lines)
+    {
+        // 测量期间模板可能还没套上；这一句是幂等的
+        ApplyTemplate();
+
+        if (_nameBlock is { } block)
+        {
+            block.Measure(Size.Infinity);
+            return Math.Max(0, block.DesiredSize.Height - block.Margin.Top - block.Margin.Bottom);
+        }
+
+        return lines * ComputeNameLineHeight();
+    }
+
+    private TextBlock? _nameBlock;
+
+    /// <inheritdoc />
+    protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
+    {
+        base.OnApplyTemplate(e);
+        _nameBlock = e.NameScope.Find<TextBlock>("PART_Name");
+    }
+
     /// <summary>把名字的文本、位置、行高刷进那三个供模板绑定的属性。</summary>
     private void SyncName()
     {
@@ -351,13 +390,9 @@ public class ForgeStripeButton : ForgeSquareButtonBase
             return new Size(ButtonWidth, ButtonHeight);
         }
 
-        // 高度 = 基础高 + 间距 + 行数 × 行高（SquareStripeButton.kt:320-327）
+        // 高度 = 基础高 + 间距 + 名字那一截（SquareStripeButton.kt:320-327）
         var lines = SplitTitle(Title).Count;
-        // ⚠ 这里用**现算的**行高，不读 NameLineHeight 那个属性：属性靠 SyncName 刷，
-        //   而测量可能发生在它之前（控件刚建好、还没收到任何属性变更）—— 那时属性是 0，
-        //   高度会少掉名字那一截。
-        //   行高不是单纯的「字号 × 1.4」，字体装不下时会让开，见 ComputeNameLineHeight。
-        var height = ButtonHeight + (lines > 0 ? ForgeMetrics.StripeIconLabelGap + (lines * ComputeNameLineHeight()) : 0);
+        var height = ButtonHeight + (lines > 0 ? ForgeMetrics.StripeIconLabelGap + MeasureNameHeight(lines) : 0);
         var width = StripeWidth > 0 ? StripeWidth : ButtonWidth;
 
         return new Size(width, height);
