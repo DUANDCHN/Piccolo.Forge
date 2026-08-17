@@ -151,6 +151,15 @@ public sealed record ForgeAppearance
     public double StripeHighlightInsetVertical { get; init; } = double.NaN;
 
     /// <summary>
+    /// 条带上图标的边长；<see cref="double.NaN"/> = 走上游（常规 20 / 紧凑 16）。
+    /// </summary>
+    /// <remarks>
+    /// **不影响按钮尺寸**：宽高由「边距 + 方底 + 边距」撑，图标只是在方底里居中 ——
+    /// 所以调它只改图标本身的大小。
+    /// </remarks>
+    public double StripeIconSize { get; init; } = double.NaN;
+
+    /// <summary>
     /// 「显示名字」时那块高亮底多宽；<see cref="double.NaN"/> = 走上游
     /// （<see cref="ForgeMetrics.StripeNamedDefaultWidth"/> = 59，那时它是**条带宽**）。
     /// </summary>
@@ -175,6 +184,12 @@ public sealed record ForgeAppearance
     /// </summary>
     /// <remarks>小字压在云母那种半透明底上时，常规字重会发虚，压重一档更实。</remarks>
     public FontWeight? StripeNameFontWeight { get; init; }
+
+    /// <summary>
+    /// 显名时**内容与背板之间再让开多少**（上下各这么多）；<c>0</c> = 不让。
+    /// </summary>
+    /// <remarks>内容整块下挪这么多、按钮高加两份，于是背板跟着长出上下各这么多留白。</remarks>
+    public double StripeNamedContentInset { get; init; }
 
     /// <summary>文档标签上那行字的字重。</summary>
     /// <remarks>上游是常规字重，所以默认 <see cref="FontWeight.Normal"/>。</remarks>

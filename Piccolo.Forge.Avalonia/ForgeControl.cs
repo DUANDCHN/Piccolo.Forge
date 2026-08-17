@@ -796,8 +796,10 @@ public class ForgeControl : TemplatedControl
         button.IsLeftStripe = side == StripeSide.Left;
         button.ArcOverride = StripeButtonArc;
         button.HighlightSize = Appearance.StripeHighlightSize;
+        button.IconSizeOverride = Appearance.StripeIconSize;
         button.NameFontSizeOverride = Appearance.StripeNameFontSize;
         button.NameFontWeightOverride = Appearance.StripeNameFontWeight;
+        button.NamedContentInset = Appearance.StripeNamedContentInset;
         button.HighlightInsetHorizontal = Appearance.StripeHighlightInsetHorizontal;
         button.HighlightInsetVertical = Appearance.StripeHighlightInsetVertical;
         button.Icon = vm.Icon;

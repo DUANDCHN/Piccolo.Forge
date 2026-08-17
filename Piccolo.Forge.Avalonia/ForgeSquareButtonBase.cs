@@ -47,7 +47,8 @@ public abstract class ForgeSquareButtonBase : Button
         // 换族会改按钮宽（40 ↔ 37），所以 Palette 也要触发重新测量，不只是重画
         AffectsMeasure<ForgeSquareButtonBase>(
             IsCompactProperty, PaletteProperty, IsLeftStripeProperty,
-            HighlightSizeProperty, HighlightInsetHorizontalProperty, HighlightInsetVerticalProperty);
+            HighlightSizeProperty, HighlightInsetHorizontalProperty, HighlightInsetVerticalProperty,
+            IconSizeOverrideProperty);
 
         // 几何（内缩 / 圆角）跟着这三样走 —— 它们是模板里 Border 的 Margin 与 CornerRadius 的来源
         PaletteProperty.Changed.AddClassHandler<ForgeSquareButtonBase>((b, _) => b.OnFamilyOrDensityChanged());
@@ -56,6 +57,7 @@ public abstract class ForgeSquareButtonBase : Button
         HighlightSizeProperty.Changed.AddClassHandler<ForgeSquareButtonBase>((b, _) => b.UpdateGeometry());
         HighlightInsetHorizontalProperty.Changed.AddClassHandler<ForgeSquareButtonBase>((b, _) => b.UpdateGeometry());
         HighlightInsetVerticalProperty.Changed.AddClassHandler<ForgeSquareButtonBase>((b, _) => b.UpdateGeometry());
+        IconSizeOverrideProperty.Changed.AddClassHandler<ForgeSquareButtonBase>((b, _) => b.UpdateGeometry());
     }
 
     /// <summary>族或密度变了：几何要重算，族还要写进伪类（模板按 <c>:islands</c> 选另一套颜色键）。</summary>
@@ -359,7 +361,7 @@ public abstract class ForgeSquareButtonBase : Button
     public double ButtonHeight => IsHostSized ? (ResolvedInsetVertical * 2) + HighlightSize : StripeMetrics.Height;
 
     /// <summary>图标边长：紧凑 16，否则 20。</summary>
-    public double IconSize => StripeMetrics.IconSize;
+    public double IconSize => double.IsNaN(IconSizeOverride) ? StripeMetrics.IconSize : IconSizeOverride;
 
     /// <summary>图标四周 padding，按左右条带与是否显名取。</summary>
     public ForgeInsets IconPadding => StripeMetrics.IconPadding(IsLeftStripe, ShowsName);
@@ -400,6 +402,23 @@ public abstract class ForgeSquareButtonBase : Button
     {
         get => GetValue(HighlightSizeProperty);
         set => SetValue(HighlightSizeProperty, value);
+    }
+
+    /// <summary><see cref="IconSizeOverride"/> 的属性定义。</summary>
+    public static readonly StyledProperty<double> IconSizeOverrideProperty =
+        AvaloniaProperty.Register<ForgeSquareButtonBase, double>(nameof(IconSizeOverride), double.NaN);
+
+    /// <summary>
+    /// 宿主指定的图标边长；<see cref="double.NaN"/> = 按主题（上游 20 / 紧凑 16）。
+    /// </summary>
+    /// <remarks>
+    /// 它**不影响按钮尺寸** —— 宽高由「边距 + 方底 + 边距」撑，图标只是在方底里居中。
+    /// 所以调它只改图标本身的大小，条带宽度、方底、间距都不动。
+    /// </remarks>
+    public double IconSizeOverride
+    {
+        get => GetValue(IconSizeOverrideProperty);
+        set => SetValue(IconSizeOverrideProperty, value);
     }
 
     /// <summary><see cref="HighlightInsetVertical"/> 的属性定义。</summary>

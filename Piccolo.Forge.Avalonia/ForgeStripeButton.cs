@@ -51,7 +51,7 @@ public class ForgeStripeButton : ForgeSquareButtonBase
             IsToolWindowVisibleProperty, IsToolWindowActiveProperty, ShowNameProperty, TitleProperty, IconProperty);
         AffectsMeasure<ForgeStripeButton>(
             ShowNameProperty, StripeWidthProperty, TitleProperty,
-            NameFontSizeOverrideProperty, NameFontWeightOverrideProperty);
+            NameFontSizeOverrideProperty, NameFontWeightOverrideProperty, NamedContentInsetProperty);
 
         // 两个状态写进伪类，模板据此选底色（见 Themes/ForgeStripeButton.axaml）。
         // 用伪类而不是样式类：它们是控件自己的状态，不该让宿主用 Classes 去改。
@@ -232,6 +232,24 @@ public class ForgeStripeButton : ForgeSquareButtonBase
     {
         get => GetValue(NameFontSizeProperty);
         private set => SetValue(NameFontSizeProperty, value);
+    }
+
+    /// <summary><see cref="NamedContentInset"/> 的属性定义。</summary>
+    public static readonly StyledProperty<double> NamedContentInsetProperty =
+        AvaloniaProperty.Register<ForgeStripeButton, double>(nameof(NamedContentInset));
+
+    /// <summary>
+    /// 显名时**内容与背板之间再让开多少**（上下各这么多），<c>0</c> = 不让。
+    /// </summary>
+    /// <remarks>
+    /// 内容（图标 + 名字）整块往下挪这么多，按钮的高度加两份 —— 于是背板跟着长，
+    /// 上下各多出这么多留白。图标那一格与名字的相对关系不变。
+    /// <para>不影响收起态：那一档的背板是定死的方块，内容就是图标本身。</para>
+    /// </remarks>
+    public double NamedContentInset
+    {
+        get => GetValue(NamedContentInsetProperty);
+        set => SetValue(NamedContentInsetProperty, value);
     }
 
     /// <summary><see cref="NameFontSizeOverride"/> 的属性定义。</summary>
@@ -467,7 +485,10 @@ public class ForgeStripeButton : ForgeSquareButtonBase
         // **名字折几行就有多高** —— 长名字折成三行，按钮就跟着高一截。
         var lines = SplitTitle(Title).Count;
         var width = StripeWidth > 0 ? StripeWidth : ButtonWidth;
-        var height = ButtonHeight + (lines > 0 ? ForgeMetrics.StripeIconLabelGap + MeasureNameHeight(lines, width) : 0);
+        var height = ButtonHeight
+                     + (lines > 0
+                         ? (NamedContentInset * 2) + ForgeMetrics.StripeIconLabelGap + MeasureNameHeight(lines, width)
+                         : 0);
 
         return new Size(width, height);
     }
@@ -507,6 +528,7 @@ public class ForgeStripeButton : ForgeSquareButtonBase
             || change.Property == IsLeftStripeProperty
             || change.Property == NameFontSizeOverrideProperty
             || change.Property == NameFontWeightOverrideProperty
+            || change.Property == NamedContentInsetProperty
             || change.Property == FontWeightProperty
             || change.Property == PaletteProperty)
         {
@@ -577,7 +599,7 @@ public class ForgeStripeButton : ForgeSquareButtonBase
     {
         // 显名时按钮被名字撑高，图标只在上面那一格里排
         var cell = ShowName
-            ? new Rect((size.Width - ButtonWidth) / 2, 0, ButtonWidth, ButtonHeight)
+            ? new Rect((size.Width - ButtonWidth) / 2, NamedContentInset, ButtonWidth, ButtonHeight)
             : new Rect(size);
 
         var area = BackgroundRect(cell);
