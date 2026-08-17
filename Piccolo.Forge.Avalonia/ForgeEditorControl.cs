@@ -19,7 +19,7 @@ namespace Piccolo.Forge.Avalonia;
 /// 标签页容器由 <see cref="TabStrip"/> 按 <c>ItemsSource</c> 管理；正文宿主按组与 id
 /// 复用，开合别的标签页不会重造宿主交进来的正文控件。
 /// </remarks>
-public class ForgeEditorArea : TemplatedControl
+public class ForgeEditorControl : TemplatedControl
 {
     // 正文宿主的键是 (组, 标签页 id) 而不是单纯 id：分屏后同一个 id
     // 可同时存在于两个组（EditorWindow.kt:570-571）。
@@ -50,32 +50,37 @@ public class ForgeEditorArea : TemplatedControl
     private EditorAreaViewModel? _area;
 
     /// <summary>
-    /// <see cref="Area"/> 的属性定义。
+    /// <see cref="Editor"/> 的属性定义。
     /// </summary>
     /// <remarks>
     /// 做成可绑定属性而不是只读 + <c>Attach()</c>，理由同
-    /// <see cref="ForgeToolWindowFrame.ShellProperty"/>：整块外壳要能在 XAML 里声明。
+    /// <see cref="ForgeControl.ShellProperty"/>：整块外壳要能在 XAML 里声明。
+    /// <para>
+    /// ⚠ 叫 <c>Editor</c> 不叫 <c>Area</c>：这个控件本来就叫 <c>ForgeEditorControl</c>，
+    /// 而它接的 VM 自己还有个 <c>Area</c>（那是模型 <see cref="EditorArea"/>）——
+    /// 叫 Area 的话宿主看到的是 <c>control.Area.Area.Root</c>，一条链上三个 Area。
+    /// </para>
     /// </remarks>
-    public static readonly StyledProperty<EditorAreaViewModel?> AreaProperty =
-        AvaloniaProperty.Register<ForgeEditorArea, EditorAreaViewModel?>(nameof(Area));
+    public static readonly StyledProperty<EditorAreaViewModel?> EditorProperty =
+        AvaloniaProperty.Register<ForgeEditorControl, EditorAreaViewModel?>(nameof(Editor));
 
     /// <summary><see cref="Palette"/> 的属性定义。</summary>
     public static readonly StyledProperty<ForgePalette> PaletteProperty =
-        AvaloniaProperty.Register<ForgeEditorArea, ForgePalette>(nameof(Palette), ForgePalette.ExpUiDark);
+        AvaloniaProperty.Register<ForgeEditorControl, ForgePalette>(nameof(Palette), ForgePalette.ExpUiDark);
 
-    static ForgeEditorArea()
+    static ForgeEditorControl()
     {
         // ⚠ 这些都是**纯外观**，不要走 Sync（那会重建整棵树，见 RefreshAppearance 的说明）
-        PaletteProperty.Changed.AddClassHandler<ForgeEditorArea>((x, _) => x.RefreshAppearance());
-        ShowTabActionsProperty.Changed.AddClassHandler<ForgeEditorArea>((x, _) => x.Sync());
-        AreaProperty.Changed.AddClassHandler<ForgeEditorArea, EditorAreaViewModel?>(
-            (x, e) => x.OnAreaChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
+        PaletteProperty.Changed.AddClassHandler<ForgeEditorControl>((x, _) => x.RefreshAppearance());
+        ShowTabActionsProperty.Changed.AddClassHandler<ForgeEditorControl>((x, _) => x.Sync());
+        EditorProperty.Changed.AddClassHandler<ForgeEditorControl, EditorAreaViewModel?>(
+            (x, e) => x.OnEditorChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
 
         // 外观换了一份：重跑取色（可能换了族或取色回调），再把纯外观的部分刷一遍。
-        // ⚠ 别把 _variantApplied 归零，理由见 ForgeToolWindowFrame 同处的注释
+        // ⚠ 别把 _variantApplied 归零，理由见 ForgeControl 同处的注释
         // （会把「宿主自己管配色」那道探测重新武装，换族与跟随明暗一起坏掉）。
         // ⚠ 也别走 Sync —— 外观是纯外观，Sync 会重建整棵树（见 RefreshAppearance 的说明）。
-        ForgeChrome.AppearanceProperty.Changed.AddClassHandler<ForgeEditorArea>((x, _) =>
+        ForgeChrome.AppearanceProperty.Changed.AddClassHandler<ForgeEditorControl>((x, _) =>
         {
             x.ApplyThemeVariant();
             x.RefreshAppearance();
@@ -118,7 +123,7 @@ public class ForgeEditorArea : TemplatedControl
     /// 宿主往标签条右端追加自己的按钮（排在 ⋮ 左边）。
     /// </summary>
     /// <remarks>
-    /// 与 <c>ForgeToolWindowFrame.HeaderButtonsExtension</c> 同形，只是编辑区一组一条标签行，
+    /// 与 <c>ForgeControl.HeaderButtonsExtension</c> 同形，只是编辑区一组一条标签行，
     /// 所以参数是那一组的第一页 id（没有页时为 <see langword="null"/>）。
     /// ⚠ 同一组请返回同一批控件实例，别每次同步都造新的。
     /// </remarks>
@@ -132,7 +137,7 @@ public class ForgeEditorArea : TemplatedControl
 
     /// <summary><see cref="ShowTabActions"/> 的属性定义。</summary>
     public static readonly StyledProperty<bool> ShowTabActionsProperty =
-        AvaloniaProperty.Register<ForgeEditorArea, bool>(nameof(ShowTabActions), defaultValue: true);
+        AvaloniaProperty.Register<ForgeEditorControl, bool>(nameof(ShowTabActions), defaultValue: true);
 
     /// <summary>
     /// 外观：配色族、取色、岛几何、标签行的字重和行高。
@@ -149,7 +154,7 @@ public class ForgeEditorArea : TemplatedControl
     }
 
     /// <summary>建一个编辑区控件。</summary>
-    public ForgeEditorArea()
+    public ForgeEditorControl()
     {
         VisualChildren.Add(_root);
         LogicalChildren.Add(_root);
@@ -159,7 +164,7 @@ public class ForgeEditorArea : TemplatedControl
         LogicalChildren.Add(_islandRing);
 
         // 覆盖层加在 _root **之后** —— 父控件的 Render 在子控件之下，
-        // 落点高亮必须盖在分屏与正文之上才看得见（同 ForgeToolWindowFrame）。
+        // 落点高亮必须盖在分屏与正文之上才看得见（同 ForgeControl）。
         VisualChildren.Add(_overlay);
         LogicalChildren.Add(_overlay);
         _overlay.IsVisible = false;
@@ -191,8 +196,8 @@ public class ForgeEditorArea : TemplatedControl
     // 就新开一个窗口装着它；拖到别的容器上，就交给那个容器。
     // 浮窗里是**一整个编辑区**（能再开标签、能分屏），不是"单文档窗口"。
 
-    private readonly Dictionary<Window, ForgeEditorArea> _floatingWindows = [];
-    private ForgeEditorArea? _floatingOwner;
+    private readonly Dictionary<Window, ForgeEditorControl> _floatingWindows = [];
+    private ForgeEditorControl? _floatingOwner;
 
     /// <summary>这个编辑区浮出去的那些窗口。</summary>
     public IReadOnlyCollection<Window> FloatingWindows => _floatingWindows.Keys;
@@ -306,7 +311,7 @@ public class ForgeEditorArea : TemplatedControl
     }
 
     /// <summary>这一家：主编辑区，加上它浮出去的那些。</summary>
-    private IEnumerable<ForgeEditorArea> Family()
+    private IEnumerable<ForgeEditorControl> Family()
     {
         var owner = _floatingOwner ?? this;
         yield return owner;
@@ -361,7 +366,7 @@ public class ForgeEditorArea : TemplatedControl
         // ⚠ 浮出去的编辑区在**另一棵树**里，继承过不来，得显式给一份 ——
         //   给的是整个外观对象，所以不会像早先手抄字段那样抄漏
         //   （抄漏过取色回调 / 字重 / 行高，表现是浮窗里描边没了、字重和行高变回默认）。
-        var control = new ForgeEditorArea
+        var control = new ForgeEditorControl
         {
             Appearance = Appearance,
             ExternalWindowFactory = owner.ExternalWindowFactory,
@@ -389,7 +394,7 @@ public class ForgeEditorArea : TemplatedControl
             {
                 if (area.Detach(id) is { } back)
                 {
-                    owner.Area?.Attach(back, select: false);
+                    owner.Editor?.Attach(back, select: false);
                 }
             }
 
@@ -508,10 +513,10 @@ public class ForgeEditorArea : TemplatedControl
     /// <summary>
     /// 接上的编辑区 VM；赋值即接上（同 <see cref="Attach"/>），可在 XAML 里绑定。
     /// </summary>
-    public EditorAreaViewModel? Area
+    public EditorAreaViewModel? Editor
     {
-        get => GetValue(AreaProperty);
-        set => SetValue(AreaProperty, value);
+        get => GetValue(EditorProperty);
+        set => SetValue(EditorProperty, value);
     }
 
     /// <summary>接上一个编辑区 VM。</summary>
@@ -519,7 +524,7 @@ public class ForgeEditorArea : TemplatedControl
     public void Attach(EditorAreaViewModel area)
     {
         ArgumentNullException.ThrowIfNull(area);
-        Area = area;
+        Editor = area;
     }
 
     /// <summary>换了一个编辑区 VM：退订旧的、订上新的、按新状态同步一遍。</summary>
@@ -530,7 +535,7 @@ public class ForgeEditorArea : TemplatedControl
     /// </remarks>
     /// <param name="oldArea">上一个（可能没有）。</param>
     /// <param name="area">新的（<see langword="null"/> = 摘下来）。</param>
-    private void OnAreaChanged(EditorAreaViewModel? oldArea, EditorAreaViewModel? area)
+    private void OnEditorChanged(EditorAreaViewModel? oldArea, EditorAreaViewModel? area)
     {
         if (oldArea is not null)
         {
@@ -1280,7 +1285,7 @@ public class ForgeEditorArea : TemplatedControl
         public ForgeDragGhost? Ghost { get; set; }
 
         /// <summary>光标此刻指着的**别的**编辑区（拖回主窗口时就是它）。</summary>
-        public ForgeEditorArea? ExternalTarget { get; set; }
+        public ForgeEditorControl? ExternalTarget { get; set; }
     }
 
     /// <summary>
@@ -1644,7 +1649,7 @@ public class ForgeEditorArea : TemplatedControl
 
         if (target is not null)
         {
-            target.Area!.Attach(tab);
+            target.Editor!.Attach(tab);
         }
         else
         {

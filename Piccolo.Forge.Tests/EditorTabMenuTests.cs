@@ -72,7 +72,7 @@ public class EditorTabMenuTests
     public void 标签容器上必须挂着右键菜单()
     {
         var area = NewArea();
-        var control = new ForgeEditorArea();
+        var control = new ForgeEditorControl();
         control.Attach(area);
 
         var window = new Window { Width = 600, Height = 400, Content = control };

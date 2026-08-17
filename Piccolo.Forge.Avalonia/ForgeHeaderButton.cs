@@ -21,8 +21,8 @@ namespace Piccolo.Forge.Avalonia;
 /// <see cref="ForgeSquareButtonBase"/>）。模板换成空的，只留自绘。
 /// </para>
 /// <para>
-/// <b>宿主可以直接 new 它来塞自己的按钮</b>（<c>ForgeToolWindowFrame.HeaderButtonsExtension</c> /
-/// <c>ForgeEditorArea.TabActionsExtension</c>），也可以塞任意别的 <see cref="Control"/> ——
+/// <b>宿主可以直接 new 它来塞自己的按钮</b>（<c>ForgeControl.HeaderButtonsExtension</c> /
+/// <c>ForgeEditorControl.TabActionsExtension</c>），也可以塞任意别的 <see cref="Control"/> ——
 /// 库不规定宿主的按钮长什么样，只保证位置和排布。
 /// </para>
 /// </remarks>

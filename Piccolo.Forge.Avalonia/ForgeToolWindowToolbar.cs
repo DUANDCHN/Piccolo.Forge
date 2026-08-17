@@ -44,7 +44,7 @@ public class ForgeToolWindowToolbar : TemplatedControl
         AvaloniaProperty.Register<ForgeToolWindowToolbar, bool>(nameof(TransparentBackdrop));
 
     /// <summary>
-    /// 不画条带底，让窗口背后的东西透上来。由 <see cref="ForgeToolWindowFrame"/> 下发，别单独设。
+    /// 不画条带底，让窗口背后的东西透上来。由 <see cref="ForgeControl"/> 下发，别单独设。
     /// </summary>
     public bool TransparentBackdrop
     {

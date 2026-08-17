@@ -1,4 +1,4 @@
-﻿using Avalonia;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
@@ -60,7 +60,7 @@ public class SlotInvariantTests
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(Broken()));
         shell.RestoreLayout(ToolWindowLayoutSerializer.Write(Broken()));
 
-        var frame = new ForgeToolWindowFrame { Palette = ForgePalette.ExpUiDark, Appearance = ForgeAppearance.Default with { FollowThemeVariant = false } };
+        var frame = new ForgeControl { Palette = ForgePalette.ExpUiDark, Appearance = ForgeAppearance.Default with { FollowThemeVariant = false } };
         frame.Attach(shell);
 
         var window = new Window { Width = 700, Height = 400, WindowDecorations = WindowDecorations.None, Content = frame };

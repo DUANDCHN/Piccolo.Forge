@@ -57,10 +57,10 @@ internal sealed class SampleApp : Application
         editor.Open("sample-b", "Sample B", Document("Sample B"));
         editor.Area.DropTab("sample-b", editor.Area.Groups[0], EditorDropSide.Right);
 
-        var editorControl = new ForgeEditorArea();
+        var editorControl = new ForgeEditorControl();
         editorControl.Attach(editor);
 
-        var frame = new ForgeToolWindowFrame { EditorContent = editorControl };
+        var frame = new ForgeControl { EditorContent = editorControl };
 
         frame.Attach(shell);
 

@@ -13,17 +13,24 @@ using Piccolo.Forge.Themes;
 namespace Piccolo.Forge.Avalonia;
 
 /// <summary>
-/// 把左右两根条带、停靠区和编辑区拼在一起，并跟 <see cref="ToolWindowManager"/> 联动。
+/// Forge 的**总控件**：把左右两根条带、停靠区和编辑区拼在一起，
+/// 并跟 <see cref="ToolWindowManager"/> 联动。宿主摆进 XAML 的就是它。
 /// </summary>
 /// <remarks>
-/// 对应 <c>ToolWindowPaneNewButtonManager.kt:58-68 · wrapWithControls</c>：
-/// 条带在 WEST / EAST，pane 在 CENTER。
+/// 名字对位 Dock.Avalonia 的 <c>DockControl</c> —— 库名 + <c>Control</c> = 那个总控件。
+/// Forge 里**只有它和 <see cref="ForgeEditorControl"/> 带 <c>Control</c> 后缀**，
+/// 其余（<see cref="ForgeStripeButton"/>、<see cref="ForgeToolWindowHeader"/>…）都是零件。
+/// <para>
+/// 上游对位 <c>ToolWindowPane</c>（<c>ToolWindowPaneNewButtonManager.kt:58-68 · wrapWithControls</c>）：
+/// 条带在 WEST / EAST，pane 在 CENTER。名字里不再带 "ToolWindow" 是有意的 ——
+/// 它拼进来的还有编辑区（<see cref="EditorContent"/>），叫工具窗口只说了一半。
+/// </para>
 /// <para>
 /// 按钮落位不在这里算，走 <see cref="StripePlacementResolver"/>；
 /// 组内次序与分隔符走 <see cref="StripeGroupLayout"/>。
 /// </para>
 /// </remarks>
-public class ForgeToolWindowFrame : TemplatedControl
+public class ForgeControl : TemplatedControl
 {
     private readonly ForgeToolWindowToolbar _left = new() { Side = StripeSide.Left };
     private readonly ForgeToolWindowToolbar _right = new() { Side = StripeSide.Right };
@@ -46,47 +53,47 @@ public class ForgeToolWindowFrame : TemplatedControl
 
     /// <summary><see cref="Palette"/> 的属性定义。</summary>
     public static readonly StyledProperty<ForgePalette> PaletteProperty =
-        AvaloniaProperty.Register<ForgeToolWindowFrame, ForgePalette>(nameof(Palette), ForgePalette.ExpUiDark);
+        AvaloniaProperty.Register<ForgeControl, ForgePalette>(nameof(Palette), ForgePalette.ExpUiDark);
 
     /// <summary>
     /// <see cref="Shell"/> 的属性定义。
     /// </summary>
     /// <remarks>
     /// 做成可绑定属性而不是只读 + <c>Attach()</c>，是为了让整个外壳能在 XAML 里声明：
-    /// <code>&lt;forge:ForgeToolWindowFrame Shell="{Binding Shell.ViewModel}"/&gt;</code>
+    /// <code>&lt;forge:ForgeControl Shell="{Binding Shell.ViewModel}"/&gt;</code>
     /// 对位 Dock.Avalonia 的 <c>&lt;DockControl Layout="{Binding Layout}"/&gt;</c>。
     /// <c>Attach()</c> 仍在，它现在就是写这个属性。
     /// </remarks>
     public static readonly StyledProperty<ToolWindowShellViewModel?> ShellProperty =
-        AvaloniaProperty.Register<ForgeToolWindowFrame, ToolWindowShellViewModel?>(nameof(Shell));
+        AvaloniaProperty.Register<ForgeControl, ToolWindowShellViewModel?>(nameof(Shell));
 
     /// <summary><see cref="TransparentBackdrop"/> 的属性定义。</summary>
     public static readonly StyledProperty<bool> TransparentBackdropProperty =
-        AvaloniaProperty.Register<ForgeToolWindowFrame, bool>(nameof(TransparentBackdrop));
+        AvaloniaProperty.Register<ForgeControl, bool>(nameof(TransparentBackdrop));
 
     /// <summary><see cref="StripeButtonArc"/> 的属性定义。</summary>
     public static readonly StyledProperty<double?> StripeButtonArcProperty =
-        AvaloniaProperty.Register<ForgeToolWindowFrame, double?>(nameof(StripeButtonArc));
+        AvaloniaProperty.Register<ForgeControl, double?>(nameof(StripeButtonArc));
 
     /// <summary><see cref="MoreButtonSide"/> 的属性定义。</summary>
     public static readonly StyledProperty<StripeSide> MoreButtonSideProperty =
-        AvaloniaProperty.Register<ForgeToolWindowFrame, StripeSide>(nameof(MoreButtonSide));
+        AvaloniaProperty.Register<ForgeControl, StripeSide>(nameof(MoreButtonSide));
 
     /// <summary><see cref="ShowHeaderButtons"/> 的属性定义。</summary>
     public static readonly StyledProperty<bool> ShowHeaderButtonsProperty =
-        AvaloniaProperty.Register<ForgeToolWindowFrame, bool>(nameof(ShowHeaderButtons), defaultValue: true);
+        AvaloniaProperty.Register<ForgeControl, bool>(nameof(ShowHeaderButtons), defaultValue: true);
 
     /// <summary><see cref="ShowToolWindowNames"/> 的属性定义。</summary>
     public static readonly StyledProperty<bool> ShowToolWindowNamesProperty =
-        AvaloniaProperty.Register<ForgeToolWindowFrame, bool>(nameof(ShowToolWindowNames));
+        AvaloniaProperty.Register<ForgeControl, bool>(nameof(ShowToolWindowNames));
 
     /// <summary><see cref="EditorContent"/> 的属性定义。</summary>
     public static readonly StyledProperty<Control?> EditorContentProperty =
-        AvaloniaProperty.Register<ForgeToolWindowFrame, Control?>(nameof(EditorContent));
+        AvaloniaProperty.Register<ForgeControl, Control?>(nameof(EditorContent));
 
-    static ForgeToolWindowFrame()
+    static ForgeControl()
     {
-        PaletteProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Sync());
+        PaletteProperty.Changed.AddClassHandler<ForgeControl>((f, _) => f.Sync());
 
         // 外观换了一份：重跑取色（可能换了族或取色回调），再同步一遍（岛几何、字重、行高都在里面）。
         // ⚠ **不要在这里把 _variantApplied 归零**（曾经这么写过，是个双重 bug）：
@@ -95,18 +102,18 @@ public class ForgeToolWindowFrame : TemplatedControl
         // 于是换族那一下被判成"宿主自己管"，_paletteSetByHost 被永久钉死 ——
         // 换族当场不生效，此后连跟随系统明暗也一起停摆。
         // _variantApplied 保持为真时，ApplyThemeVariant 会跳过探测、直接按新族重算，这正是要的。
-        ForgeChrome.AppearanceProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) =>
+        ForgeChrome.AppearanceProperty.Changed.AddClassHandler<ForgeControl>((f, _) =>
         {
             f.ApplyThemeVariant();
             f.Sync();
         });
-        TransparentBackdropProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Sync());
-        ShellProperty.Changed.AddClassHandler<ForgeToolWindowFrame, ToolWindowShellViewModel?>(
+        TransparentBackdropProperty.Changed.AddClassHandler<ForgeControl>((f, _) => f.Sync());
+        ShellProperty.Changed.AddClassHandler<ForgeControl, ToolWindowShellViewModel?>(
             (f, e) => f.OnShellChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
-        StripeButtonArcProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Sync());
-        EditorContentProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Sync());
-        ShowHeaderButtonsProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Sync());
-        ShowToolWindowNamesProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) =>
+        StripeButtonArcProperty.Changed.AddClassHandler<ForgeControl>((f, _) => f.Sync());
+        EditorContentProperty.Changed.AddClassHandler<ForgeControl>((f, _) => f.Sync());
+        ShowHeaderButtonsProperty.Changed.AddClassHandler<ForgeControl>((f, _) => f.Sync());
+        ShowToolWindowNamesProperty.Changed.AddClassHandler<ForgeControl>((f, _) =>
         {
             // 菜单里的「显示工具窗口名称」改的是控件属性；写回 VM 才跟着布局一起存下去。
             // 两边都是幂等 setter，回写不会来回弹。
@@ -117,11 +124,11 @@ public class ForgeToolWindowFrame : TemplatedControl
 
             f.Sync();
         });
-        MoreButtonSideProperty.Changed.AddClassHandler<ForgeToolWindowFrame>((f, _) => f.Sync());
+        MoreButtonSideProperty.Changed.AddClassHandler<ForgeControl>((f, _) => f.Sync());
     }
 
     /// <summary>建一个框架。</summary>
-    public ForgeToolWindowFrame()
+    public ForgeControl()
     {
         DockPanel.SetDock(_left, Dock.Left);
         DockPanel.SetDock(_right, Dock.Right);

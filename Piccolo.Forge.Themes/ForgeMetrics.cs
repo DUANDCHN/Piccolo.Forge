@@ -120,7 +120,7 @@ public static class ForgeMetrics
     /// <remarks>
     /// 不是上游的度量 —— 这是**平台**的（Windows 标准标题栏在 100% 缩放下 31~32）。
     /// 用在浮动窗口上：它没有系统标题栏，面板标题条兼任，按面板的 41 长会明显比别的窗口高一截。
-    /// 宿主自绘的标题栏若不是这个高度，用 <c>ForgeToolWindowFrame.TitleBarHeight</c> 对齐。
+    /// 宿主自绘的标题栏若不是这个高度，用 <c>ForgeControl.TitleBarHeight</c> 对齐。
     /// </remarks>
     public const double WindowTitleBarHeight = 32;
 

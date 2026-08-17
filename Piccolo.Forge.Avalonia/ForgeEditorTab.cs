@@ -42,7 +42,7 @@ public class ForgeEditorTab : TabStripItem
     /// </summary>
     /// <remarks>
     /// 上游是常规字重，所以默认 <see cref="FontWeight.Normal"/>；
-    /// 由 <c>ForgeEditorArea.TabTitleFontWeight</c> 统一给值。
+    /// 由 <c>ForgeEditorControl.TabTitleFontWeight</c> 统一给值。
     /// </remarks>
     public static readonly StyledProperty<FontWeight> TitleFontWeightProperty =
         AvaloniaProperty.Register<ForgeEditorTab, FontWeight>(nameof(TitleFontWeight), FontWeight.Normal);
@@ -363,7 +363,7 @@ public class ForgeEditorTab : TabStripItem
         //
         //   同一页真的同时开在两个分屏时，实例只能跟着最后同步的那个走 ——
         //   这是「传实例」本身的代价（宿主传 Func<Control> 工厂即可两边都有，
-        //   见 ForgeEditorArea.ResolveIcon）。但**无论如何不能让它打断同步**。
+        //   见 ForgeEditorControl.ResolveIcon）。但**无论如何不能让它打断同步**。
         if (control?.GetVisualParent() is ForgeEditorTab previous)
         {
             previous.ReleaseIcon();

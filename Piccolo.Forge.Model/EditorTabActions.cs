@@ -63,7 +63,7 @@ public readonly record struct EditorTabMenuItem(EditorTabMenuItemKind Kind);
 /// 取的是**布局那一半**：关闭系列、拆分系列、固定、在新窗口中打开。
 /// <para>
 /// <b>Forge 不认识这些，也不该认识。</b>宿主要往菜单里加自己的项，走
-/// <c>ForgeEditorArea.TabMenuExtension</c> 那个口子追加，而不是让库去建模 Git。
+/// <c>ForgeEditorControl.TabMenuExtension</c> 那个口子追加，而不是让库去建模 Git。
 /// </para>
 /// <para>
 /// 同样有意略过的还有「关闭未修改标签页」与「关闭所有只读项」——

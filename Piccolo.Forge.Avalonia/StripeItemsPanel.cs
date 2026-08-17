@@ -180,7 +180,7 @@ public class StripeItemsPanel : Panel
         //    上组因为紧贴窗口顶、负坐标落到窗外看不见，下组却正好落在界面里 ——
         //    表现成"左下角拖动时上面多出一个图标，别的角没有"。
         //    不能靠 IsVisible=false：那样连拖拽虚影都取不到它的视觉。虚影现在走
-        //    ForgeToolWindowFrame 在拖拽开始时拍的位图快照，与这个控件解耦。
+        //    ForgeControl 在拖拽开始时拍的位图快照，与这个控件解耦。
         DraggedChild?.Arrange(default);
 
         return new Size(Math.Max(fitWidth, finalSize.Width), Math.Max(y, finalSize.Height));

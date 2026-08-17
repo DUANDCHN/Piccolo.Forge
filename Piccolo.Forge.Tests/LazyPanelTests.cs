@@ -45,7 +45,7 @@ public class LazyPanelTests
         var shell = new ToolWindowShellViewModel();
         shell.Add("Histogram", "直方图", ToolWindowAnchor.Bottom, isSplit: true, icon: "H");
 
-        var frame = new ForgeToolWindowFrame();
+        var frame = new ForgeControl();
         frame.Attach(shell);
 
         // anchor=Bottom + isSplit=true → 右条带的下半组（§1.2）
@@ -80,7 +80,7 @@ public class LazyPanelTests
         shell.Add("Log", "日志", ToolWindowAnchor.Bottom);
         shell.Add("Histogram", "直方图", ToolWindowAnchor.Bottom, isSplit: true);
 
-        var frame = new ForgeToolWindowFrame();
+        var frame = new ForgeControl();
         frame.Attach(shell);
 
         Assert.Single(frame.LeftToolbar.TopGroup.Children.OfType<ForgeStripeButton>());
@@ -98,7 +98,7 @@ public class LazyPanelTests
         var shell = new ToolWindowShellViewModel();
         shell.Add("Log", "日志", ToolWindowAnchor.Bottom);
 
-        var frame = new ForgeToolWindowFrame();
+        var frame = new ForgeControl();
         frame.Attach(shell);
         frame.Measure(new Size(800, 600));
         frame.Arrange(new Rect(0, 0, 800, 600));
@@ -148,7 +148,7 @@ public class LazyPanelTests
         var shell = new ToolWindowShellViewModel();
         shell.Add("Histogram", "直方图", ToolWindowAnchor.Bottom, () => new HeavyTool("Histogram"));
 
-        var frame = new ForgeToolWindowFrame();
+        var frame = new ForgeControl();
         frame.Attach(shell);
 
         var window = new Window { Width = 600, Height = 400, Content = frame };

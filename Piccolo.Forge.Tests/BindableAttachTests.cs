@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Headless;
@@ -25,7 +25,7 @@ public class BindableAttachTests
     [AvaloniaFact]
     public void 给外框赋一个外壳VM就等于接上()
     {
-        var frame = new ForgeToolWindowFrame();
+        var frame = new ForgeControl();
         var window = new Window { Width = 700, Height = 300, Content = frame };
         window.Show();
         Render(window);
@@ -46,7 +46,7 @@ public class BindableAttachTests
     public void Attach与赋值等价()
     {
         var shell = NewShell();
-        var frame = new ForgeToolWindowFrame();
+        var frame = new ForgeControl();
         frame.Attach(shell);
 
         Assert.Same(shell, frame.Shell);
@@ -55,17 +55,17 @@ public class BindableAttachTests
     [AvaloniaFact]
     public void 给编辑区赋一个VM就等于接上()
     {
-        var area = new ForgeEditorArea();
-        var window = new Window { Width = 700, Height = 300, Content = area };
+        var editorControl = new ForgeEditorControl();
+        var window = new Window { Width = 700, Height = 300, Content = editorControl };
         window.Show();
         Render(window);
 
         var vm = new EditorAreaViewModel();
         vm.Open("d0", "cam-1.png", new TextBlock());
-        area.Area = vm;
+        editorControl.Editor = vm;
         Render(window);
 
-        Assert.Contains(Tabs(area), x => x.Title == "cam-1.png");
+        Assert.Contains(Tabs(editorControl), x => x.Title == "cam-1.png");
         window.Close();
     }
 
@@ -76,7 +76,7 @@ public class BindableAttachTests
     /// 钉的是"换一份"这件事本身（早先只 Attach 一次，没人试过换）。
     /// <para>
     /// ⚠ 它**测不到**同一次改动里补的那句退订（<c>Attach</c> 原先每次都往
-    /// <c>area.Area.Changed</c> 挂新 lambda、从不摘旧的）：漏摘的后果是同一个变更多同步一遍，
+    /// <c>vm.Area.Changed</c> 挂新 lambda、从不摘旧的）：漏摘的后果是同一个变更多同步一遍，
     /// 而 <c>Sync</c> 读的是当前 VM，画出来一模一样。那是笔性能/卫生债，不改变可观测行为。
     /// </para>
     /// </remarks>
@@ -86,25 +86,25 @@ public class BindableAttachTests
         var first = new EditorAreaViewModel();
         first.Open("a", "第一份", new TextBlock());
 
-        var area = new ForgeEditorArea { Area = first };
-        var window = new Window { Width = 700, Height = 300, Content = area };
+        var editorControl = new ForgeEditorControl { Editor = first };
+        var window = new Window { Width = 700, Height = 300, Content = editorControl };
         window.Show();
         Render(window);
-        Assert.Contains(Tabs(area), x => x.Title == "第一份");
+        Assert.Contains(Tabs(editorControl), x => x.Title == "第一份");
 
         var second = new EditorAreaViewModel();
         second.Open("b", "第二份", new TextBlock());
-        area.Area = second;
+        editorControl.Editor = second;
         Render(window);
 
-        Assert.Same(second, area.Area);
-        Assert.Contains(Tabs(area), x => x.Title == "第二份");
-        Assert.DoesNotContain(Tabs(area), x => x.Title == "第一份");
+        Assert.Same(second, editorControl.Editor);
+        Assert.Contains(Tabs(editorControl), x => x.Title == "第二份");
+        Assert.DoesNotContain(Tabs(editorControl), x => x.Title == "第一份");
 
         // 旧的那份再动，画面不该跟着变
         first.Open("c", "旧的又开了一页", new TextBlock());
         Render(window);
-        Assert.DoesNotContain(Tabs(area), x => x.Title == "旧的又开了一页");
+        Assert.DoesNotContain(Tabs(editorControl), x => x.Title == "旧的又开了一页");
 
         window.Close();
     }
@@ -119,10 +119,10 @@ public class BindableAttachTests
         return new ToolWindowShellViewModel(new ToolWindowManager(new DesktopLayout(infos)));
     }
 
-    private static IEnumerable<ForgeStripeButton> Buttons(ForgeToolWindowFrame frame)
+    private static IEnumerable<ForgeStripeButton> Buttons(ForgeControl frame)
         => frame.GetVisualDescendants().OfType<ForgeStripeButton>();
 
-    private static IEnumerable<ForgeEditorTab> Tabs(ForgeEditorArea area)
+    private static IEnumerable<ForgeEditorTab> Tabs(ForgeEditorControl area)
         => area.GetVisualDescendants().OfType<ForgeEditorTab>();
 
     private static void Render(Window window)

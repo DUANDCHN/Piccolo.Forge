@@ -20,10 +20,10 @@ namespace Piccolo.Forge.Tests;
 /// </remarks>
 public class SplitDividerTests
 {
-    private static (ForgeToolWindowFrame Frame, ToolWindowShellViewModel Shell) Show()
+    private static (ForgeControl Frame, ToolWindowShellViewModel Shell) Show()
     {
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
-        var frame = new ForgeToolWindowFrame();
+        var frame = new ForgeControl();
         frame.Attach(shell);
 
         var window = new Window { Width = 900, Height = 600, Content = frame };
@@ -33,7 +33,7 @@ public class SplitDividerTests
         return (frame, shell);
     }
 
-    private static IEnumerable<ForgeDockResizer> SplitDividers(ForgeToolWindowFrame frame)
+    private static IEnumerable<ForgeDockResizer> SplitDividers(ForgeControl frame)
         => frame.DockPane.Children
             .OfType<ForgeDockResizer>()
             .Where(x => x.IsSplitDivider);

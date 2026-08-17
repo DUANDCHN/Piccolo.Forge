@@ -190,7 +190,7 @@ public sealed record ForgePalette
     /// 标签条**下面那条分割线**（`EditorTabs.underTabsBorderColor`）。
     /// </summary>
     /// <remarks>
-    /// 它属于标签条整体，不属于某一个标签页 —— 由 <c>ForgeEditorArea</c> 在标签条底边画一条 1px。
+    /// 它属于标签条整体，不属于某一个标签页 —— 由 <c>ForgeEditorControl</c> 在标签条底边画一条 1px。
     /// expUI Light 没定义这个键，回落 `Borders.color`（与条带边框同色）。
     /// </remarks>
     public required Color EditorTabsBorder { get; init; }

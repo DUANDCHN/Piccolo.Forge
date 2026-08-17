@@ -235,7 +235,7 @@ public class ForgeToolWindowHeader : TemplatedControl
     /// 浮动形态没有系统标题栏（见 <see cref="IsWindowDragArea"/>），这条就是那个窗口的标题栏 ——
     /// 那它该按**窗口标题栏**的高度长，而不是面板标题条的 41
     /// （<c>JBUI.java:1178-1180</c> 那个高度是给停靠着的面板定的，摞在窗口顶上会明显偏高）。
-    /// 具体多高由宿主定（<c>ForgeToolWindowFrame.TitleBarHeight</c>），因为"这个应用的窗口标题栏多高"
+    /// 具体多高由宿主定（<c>ForgeControl.TitleBarHeight</c>），因为"这个应用的窗口标题栏多高"
     /// 是宿主的事。
     /// </remarks>
     public static readonly StyledProperty<double> TitleBarHeightProperty =
@@ -246,7 +246,7 @@ public class ForgeToolWindowHeader : TemplatedControl
     /// </summary>
     /// <remarks>
     /// 上游那条标题是常规字重，所以默认 <see cref="FontWeight.Normal"/>；
-    /// 想让面板名更立得住的项目自己调（<c>ForgeToolWindowFrame.HeaderTitleFontWeight</c>）。
+    /// 想让面板名更立得住的项目自己调（<c>ForgeControl.HeaderTitleFontWeight</c>）。
     /// </remarks>
     public static readonly StyledProperty<FontWeight> TitleFontWeightProperty =
         AvaloniaProperty.Register<ForgeToolWindowHeader, FontWeight>(nameof(TitleFontWeight), FontWeight.Normal);
@@ -295,7 +295,7 @@ public class ForgeToolWindowHeader : TemplatedControl
     /// 中间偏右是面板自己的按钮（⿴ ⋮ —），最右边才是窗口的三个系统按钮。
     /// 那三个按钮由宿主的 chrome 画在客户区上层，布局里看不见，所以得在这里留出它们的宽度，
     /// 否则面板的按钮会被压在它们底下。
-    /// <para>具体多宽只有宿主知道（各家 chrome 不一样），由 <c>ForgeToolWindowFrame.CaptionButtonsWidth</c> 给。</para>
+    /// <para>具体多宽只有宿主知道（各家 chrome 不一样），由 <c>ForgeControl.CaptionButtonsWidth</c> 给。</para>
     /// </remarks>
     public static readonly StyledProperty<double> CaptionButtonsWidthProperty =
         AvaloniaProperty.Register<ForgeToolWindowHeader, double>(nameof(CaptionButtonsWidth));

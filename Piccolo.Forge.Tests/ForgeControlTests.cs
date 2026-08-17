@@ -1,4 +1,4 @@
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Piccolo.Forge.Avalonia;
@@ -9,7 +9,7 @@ using Xunit;
 namespace Piccolo.Forge.Tests;
 
 /// 条带 + 停靠区 + manager 三者接起来之后的整体行为。
-public class ForgeToolWindowFrameTests
+public class ForgeControlTests
 {
     [AvaloniaFact]
     public void Default_layout_puts_every_bottom_button_on_the_left_stripe()
@@ -128,7 +128,7 @@ public class ForgeToolWindowFrameTests
             IsUnifiedToolWindowSizesEnabled = false,
         });
         var manager = shell.Manager;
-        var frame = new ForgeToolWindowFrame();
+        var frame = new ForgeControl();
         frame.Attach(shell);
 
         manager.Activate("Project");
@@ -145,14 +145,14 @@ public class ForgeToolWindowFrameTests
         => group.Children.Count(x => x is not ForgeMoreButton);
 
     // 停靠区里除了工具窗口，还有编辑区和几条拖拽热区
-    private static List<Border> DockedWindows(ForgeToolWindowFrame frame)
+    private static List<Border> DockedWindows(ForgeControl frame)
         => frame.DockPane.Children.OfType<Border>().ToList();
 
-    private static (ForgeToolWindowFrame Frame, ToolWindowManager Manager) Build()
+    private static (ForgeControl Frame, ToolWindowManager Manager) Build()
     {
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
         var manager = shell.Manager;
-        var frame = new ForgeToolWindowFrame();
+        var frame = new ForgeControl();
         frame.Attach(shell);
         return (frame, manager);
     }

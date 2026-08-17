@@ -1,4 +1,4 @@
-﻿using Avalonia.Controls;
+using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Media;
 using Avalonia.Styling;
@@ -83,10 +83,10 @@ public class ThemeVariantTests
         Assert.Same(ForgePalette.ExpUiDark, frame.Palette);
     }
 
-    private static ForgeToolWindowFrame NewFrame()
+    private static ForgeControl NewFrame()
     {
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
-        var frame = new ForgeToolWindowFrame();
+        var frame = new ForgeControl();
         frame.Attach(shell);
         return frame;
     }
@@ -96,7 +96,7 @@ public class ThemeVariantTests
     {
         // 回归：编辑区没跟着变体走，于是浅色界面里中间一大片是黑的 ——
         // 它是外壳中间那块，两者跟不同主题走没有任何合理性。
-        var editor = new ForgeEditorArea();
+        var editor = new ForgeEditorControl();
         editor.Attach(new EditorAreaViewModel());
 
         var window = new Window { Content = editor, RequestedThemeVariant = ThemeVariant.Light };
@@ -111,7 +111,7 @@ public class ThemeVariantTests
     [AvaloniaFact]
     public void The_editor_area_keeps_an_explicit_palette()
     {
-        var editor = new ForgeEditorArea { Palette = ForgePalette.ExpUiDark };
+        var editor = new ForgeEditorControl { Palette = ForgePalette.ExpUiDark };
         editor.Attach(new EditorAreaViewModel());
 
         var window = new Window { Content = editor, RequestedThemeVariant = ThemeVariant.Light };
@@ -134,7 +134,7 @@ public class ThemeVariantTests
     public void Switching_the_family_at_runtime_repaints_and_keeps_following_the_variant()
     {
         var frame = NewFrame();
-        var editor = new ForgeEditorArea();
+        var editor = new ForgeEditorControl();
         editor.Attach(new EditorAreaViewModel());
         frame.EditorContent = editor;
 
@@ -174,7 +174,7 @@ public class ThemeVariantTests
     public void Switching_the_family_works_even_when_it_was_set_in_the_initializer()
     {
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
-        var frame = new ForgeToolWindowFrame { Appearance = ForgeAppearance.Default with { Family = ForgeThemeFamily.Islands } };
+        var frame = new ForgeControl { Appearance = ForgeAppearance.Default with { Family = ForgeThemeFamily.Islands } };
         frame.Attach(shell);
 
         var window = new Window { Content = frame, RequestedThemeVariant = ThemeVariant.Light };
@@ -196,7 +196,7 @@ public class ThemeVariantTests
     {
         // 宿主是分别 new 出来的两个控件，装在一起必须是同一套配色。
         var frame = NewFrame();
-        var editor = new ForgeEditorArea();
+        var editor = new ForgeEditorControl();
         editor.Attach(new EditorAreaViewModel());
         frame.EditorContent = editor;
 
@@ -218,7 +218,7 @@ public class ThemeVariantTests
     public void 编辑区从外框继承整份外观()
     {
         var frame = NewFrame();
-        var editor = new ForgeEditorArea();
+        var editor = new ForgeEditorControl();
         editor.Attach(new EditorAreaViewModel());
         frame.EditorContent = editor;
 
@@ -253,7 +253,7 @@ public class ThemeVariantTests
     {
         var frame = NewFrame();
         var vm = new EditorAreaViewModel();
-        var editor = new ForgeEditorArea();
+        var editor = new ForgeEditorControl();
         editor.Attach(vm);
         frame.EditorContent = editor;
 
@@ -279,7 +279,7 @@ public class ThemeVariantTests
         vm.Open("d0", "cam-1.png", new TextBlock());
         editor.MoveToNewWindow("d0");
 
-        var floatedArea = Assert.IsType<ForgeEditorArea>(floated!.Content);
+        var floatedArea = Assert.IsType<ForgeEditorControl>(floated!.Content);
         Assert.Same(frame.Appearance, floatedArea.Appearance);
         Assert.Same(mine, floatedArea.Palette);
 

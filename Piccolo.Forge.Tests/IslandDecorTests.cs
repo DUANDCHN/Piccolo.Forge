@@ -1,4 +1,4 @@
-﻿using Avalonia;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
@@ -63,7 +63,7 @@ public class IslandDecorTests
     public void The_transparent_backdrop_only_stops_painting_the_sea(bool transparent)
     {
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
-        var frame = new ForgeToolWindowFrame
+        var frame = new ForgeControl
         {
             Appearance = ForgeAppearance.Default with { Family = ForgeThemeFamily.Islands },
             TransparentBackdrop = transparent,

@@ -57,7 +57,7 @@ public sealed class ToolWindowShellViewModel : ForgeObservableObject
 
     /// <summary>条带上是否在图标下面显示名字。</summary>
     /// <remarks>
-    /// <b>这里是运行期的真相</b>，控件（<c>ForgeToolWindowFrame.ShowToolWindowNames</c>）跟着它走：
+    /// <b>这里是运行期的真相</b>，控件（<c>ForgeControl.ShowToolWindowNames</c>）跟着它走：
     /// 菜单里切换会落到这里，宿主也从这里读写。
     /// <para>
     /// <b>库不负责持久化它。</b>上游把它放在应用级的 <c>UISettings.showToolWindowsNames</c>

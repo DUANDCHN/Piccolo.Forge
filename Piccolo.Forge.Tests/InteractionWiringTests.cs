@@ -74,7 +74,7 @@ public class ForgeMenuBuilderTests
     {
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
         var manager = shell.Manager;
-        var frame = new ForgeToolWindowFrame();
+        var frame = new ForgeControl();
         frame.Attach(shell);
 
         Assert.All(
@@ -168,10 +168,10 @@ public class ForgeFadeControllerTests
 /// 拖动工具窗口时的视觉反馈（AbstractDroppableStripe.kt:627-660 + ToolWindowDragHelper.kt:126-134）。
 public class ForgeDragFeedbackTests
 {
-    private static (ForgeToolWindowFrame Frame, Window Window) Show()
+    private static (ForgeControl Frame, Window Window) Show()
     {
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
-        var frame = new ForgeToolWindowFrame { Palette = ForgePalette.ExpUiDark };
+        var frame = new ForgeControl { Palette = ForgePalette.ExpUiDark };
         frame.Attach(shell);
 
         var window = new Window { Width = 900, Height = 600, Content = frame };
@@ -181,7 +181,7 @@ public class ForgeDragFeedbackTests
         return (frame, window);
     }
 
-    private static ForgeStripeButton FirstButton(ForgeToolWindowFrame frame)
+    private static ForgeStripeButton FirstButton(ForgeControl frame)
         => frame.LeftToolbar.TopGroup.Children.OfType<ForgeStripeButton>().First();
 
     /// <summary>
@@ -338,7 +338,7 @@ public class ForgeHitAreaTests
         var shell = new ToolWindowShellViewModel();
         shell.Add("A", "甲", ToolWindowAnchor.Left, false, ForgeIcons.Camera);
 
-        var frame = new ForgeToolWindowFrame();
+        var frame = new ForgeControl();
         frame.Attach(shell);
 
         var window = new Window { Width = 600, Height = 400, Content = frame };
@@ -364,7 +364,7 @@ public class ForgeHitAreaTests
         editor.Open("a", "A");
         editor.Open("b", "B");          // b 选中，a 未选中
 
-        var control = new ForgeEditorArea();
+        var control = new ForgeEditorControl();
         control.Attach(editor);
 
         var window = new Window { Width = 600, Height = 400, Content = control };
@@ -396,7 +396,7 @@ public class ForgeStripeRegroupTests
         shell.Add("A", "甲", ToolWindowAnchor.Left, false, ForgeIcons.Camera);
         shell.Add("B", "乙", ToolWindowAnchor.Bottom, false, ForgeIcons.Terminal);
 
-        var frame = new ForgeToolWindowFrame();
+        var frame = new ForgeControl();
         frame.Attach(shell);
 
         var window = new Window { Width = 600, Height = 400, Content = frame };
@@ -433,7 +433,7 @@ public class ForgeStripeRegroupTests
         shell.Add("A", "甲", ToolWindowAnchor.Left, false);
         shell.Add("B", "乙", ToolWindowAnchor.Bottom, false);
 
-        var frame = new ForgeToolWindowFrame();
+        var frame = new ForgeControl();
         frame.Attach(shell);
 
         var window = new Window { Width = 600, Height = 400, Content = frame };

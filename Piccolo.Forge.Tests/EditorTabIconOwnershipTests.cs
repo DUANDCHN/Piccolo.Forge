@@ -64,10 +64,10 @@ public class EditorTabIconOwnershipTests
         }
     }
 
-    private static (Window Window, ForgeEditorArea Control, EditorAreaViewModel Vm) Build()
+    private static (Window Window, ForgeEditorControl Control, EditorAreaViewModel Vm) Build()
     {
         var vm = new EditorAreaViewModel();
-        var control = new ForgeEditorArea();
+        var control = new ForgeEditorControl();
         var window = new Window { Content = control, Width = 800, Height = 600 };
         control.Attach(vm);
         window.Show();
@@ -89,6 +89,6 @@ public class EditorTabIconOwnershipTests
         Dispatcher.UIThread.RunJobs();
     }
 
-    private static List<TabStrip> Strips(ForgeEditorArea area) =>
+    private static List<TabStrip> Strips(ForgeEditorControl area) =>
         [.. area.GetVisualDescendants().OfType<TabStrip>()];
 }

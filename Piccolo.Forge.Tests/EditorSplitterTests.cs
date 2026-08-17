@@ -119,10 +119,10 @@ public class EditorSplitterTests
     /// <summary>感知亮度（Rec. 601）—— 只用来比"谁更深"。</summary>
     private static double Luminance(Color c) => (0.299 * c.R) + (0.587 * c.G) + (0.114 * c.B);
 
-    private static (Window Window, ForgeEditorArea Area, EditorAreaViewModel Vm) Build()
+    private static (Window Window, ForgeEditorControl Area, EditorAreaViewModel Vm) Build()
     {
         var vm = new EditorAreaViewModel();
-        var area = new ForgeEditorArea();
+        var area = new ForgeEditorControl();
         var window = new Window { Content = area, Width = 800, Height = 600, WindowDecorations = WindowDecorations.None };
         area.Attach(vm);
         window.Show();

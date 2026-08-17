@@ -100,7 +100,7 @@ public class TabOverflowTests
     public void 编辑区窄窗格里标签一个不少()
     {
         var vm = new EditorAreaViewModel();
-        var area = new ForgeEditorArea();
+        var area = new ForgeEditorControl();
         var window = new Window { Content = area, Width = 260, Height = 400 };
         area.Attach(vm);
         window.Show();

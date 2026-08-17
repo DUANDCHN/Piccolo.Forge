@@ -82,7 +82,7 @@ public class ForgeIconsTests
         var shell = new ToolWindowShellViewModel();
         shell.Add("Project", "项目", ToolWindowAnchor.Left, icon: ForgeIcons.DefaultToolWindow);
 
-        var frame = new ForgeToolWindowFrame();
+        var frame = new ForgeControl();
         frame.Attach(shell);
 
         var button = Assert.Single(frame.LeftToolbar.TopGroup.Children.OfType<ForgeStripeButton>());

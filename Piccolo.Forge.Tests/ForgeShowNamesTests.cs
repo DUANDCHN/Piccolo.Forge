@@ -80,7 +80,7 @@ public class ForgeShowNamesTests
     {
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
         var manager = shell.Manager;
-        var frame = new ForgeToolWindowFrame { ShowToolWindowNames = true };
+        var frame = new ForgeControl { ShowToolWindowNames = true };
         frame.Attach(shell);
 
         Assert.Equal(ForgeMetrics.StripeNamedDefaultWidth, frame.LeftToolbar.CustomWidth);
@@ -155,7 +155,7 @@ public class ForgeShowNamesTests
     public void 控件与VM的显示名字两头对齐()
     {
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
-        var frame = new ForgeToolWindowFrame();
+        var frame = new ForgeControl();
         frame.Attach(shell);
 
         // 菜单那一路：改控件 → 落到 VM（否则存不下去）

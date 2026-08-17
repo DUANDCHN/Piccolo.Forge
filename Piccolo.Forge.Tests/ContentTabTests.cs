@@ -117,7 +117,7 @@ public class ContentTabTests
     {
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
         var manager = shell.Manager;
-        var frame = new ForgeToolWindowFrame();
+        var frame = new ForgeControl();
         frame.Attach(shell);
 
         var contents = frame.GetContentManager("Version Control");
@@ -142,7 +142,7 @@ public class ContentTabTests
         // 默认布局里 Project 是 COMBO（defaultToolWindowlayoutProvider.kt:258-261）
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
         var manager = shell.Manager;
-        var frame = new ForgeToolWindowFrame();
+        var frame = new ForgeControl();
         frame.Attach(shell);
 
         var contents = frame.GetContentManager("Project");

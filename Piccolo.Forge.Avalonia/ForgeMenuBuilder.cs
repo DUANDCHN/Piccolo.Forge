@@ -54,7 +54,7 @@ public static class ForgeMenuBuilder
     /// </param>
     /// <param name="viewModes">
     /// 「视图模式」里列哪几种；不给就只列停靠固定。视图层应当只给它**画得出来**的那些
-    /// （<c>ForgeToolWindowFrame.SupportedViewModes</c>）。
+    /// （<c>ForgeControl.SupportedViewModes</c>）。
     /// </param>
     /// <returns>菜单。</returns>
     public static ContextMenu ForHeaderOptions(
@@ -275,7 +275,7 @@ public static class ForgeMenuBuilder
                     menu.Items.Add(pin);
                     break;
 
-                // 与"把标签拖出编辑区"是同一条路（ForgeEditorArea.MoveToNewWindow），
+                // 与"把标签拖出编辑区"是同一条路（ForgeEditorControl.MoveToNewWindow），
                 // 不另开一种"菜单开出来的窗口"。
                 case EditorTabMenuItemKind.MoveToNewWindow when moveToNewWindow is not null:
                     menu.Items.Add(Item("在新窗口中打开标签页", () => moveToNewWindow(tabId)));

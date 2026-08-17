@@ -1,4 +1,4 @@
-﻿# Islands 主题
+# Islands 主题
 
 > Rider 主题菜单里的 **Islands Dark / Islands Light / Islands Darcula**。
 > 相对已复刻的 expUI（`Dark` / `Light`，方角、面板彼此贴死），Islands 把每块面板做成

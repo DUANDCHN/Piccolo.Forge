@@ -91,7 +91,7 @@ public class ContentReuseTests
         Assert.Same(viewModel, FindContentHost(frame, "Project").Content);
     }
 
-    private static ContentControl FindContentHost(ForgeToolWindowFrame frame, string id)
+    private static ContentControl FindContentHost(ForgeControl frame, string id)
     {
         var header = frame.DockPane.GetVisualDescendants()
             .OfType<ForgeToolWindowHeader>()
@@ -102,10 +102,10 @@ public class ContentReuseTests
         return body.Children.OfType<ContentControl>().Single();
     }
 
-    private static (ForgeToolWindowFrame Frame, ToolWindowShellViewModel Shell) Build()
+    private static (ForgeControl Frame, ToolWindowShellViewModel Shell) Build()
     {
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
-        var frame = new ForgeToolWindowFrame();
+        var frame = new ForgeControl();
         frame.Attach(shell);
         return (frame, shell);
     }

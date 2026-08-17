@@ -471,7 +471,7 @@ public class ViewModeTests
 
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(new DesktopLayout(infos)));
         var editor = new Border();
-        var frame = new ForgeToolWindowFrame { EditorContent = editor };
+        var frame = new ForgeControl { EditorContent = editor };
         frame.Attach(shell);
 
         var window = new Window { Width = 900, Height = 500, WindowDecorations = WindowDecorations.None, Content = frame };
@@ -514,7 +514,7 @@ public class ViewModeTests
 
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(new DesktopLayout(infos)));
         var editor = new Border();
-        var frame = new ForgeToolWindowFrame { EditorContent = editor };
+        var frame = new ForgeControl { EditorContent = editor };
         frame.Attach(shell);
 
         var window = new Window { Width = 900, Height = 500, WindowDecorations = WindowDecorations.None, Content = frame };
@@ -558,7 +558,7 @@ public class ViewModeTests
         var metrics = ForgeIslandMetrics.Default with { BorderWidth = 3 };
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(new DesktopLayout(infos)));
         var editor = new Border();
-        var frame = new ForgeToolWindowFrame
+        var frame = new ForgeControl
         {
             EditorContent = editor,
             Appearance = ForgeAppearance.Default with
@@ -606,7 +606,7 @@ public class ViewModeTests
         };
 
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(new DesktopLayout(infos)));
-        var frame = new ForgeToolWindowFrame { EditorContent = new Border() };
+        var frame = new ForgeControl { EditorContent = new Border() };
         frame.Attach(shell);
 
         var window = new Window { Width = 900, Height = 500, WindowDecorations = WindowDecorations.None, Content = frame };
@@ -810,7 +810,7 @@ public class ViewModeTests
     }
 
     /// <param name="headerHeight">宿主指定的标题条高度；NaN = 不指定，走上游默认。</param>
-    private static (Window Window, ForgeToolWindowFrame Frame, ToolWindowShellViewModel Shell, Border Editor) Build(
+    private static (Window Window, ForgeControl Frame, ToolWindowShellViewModel Shell, Border Editor) Build(
         double headerHeight = double.NaN)
     {
         var infos = new List<WindowInfo>
@@ -820,7 +820,7 @@ public class ViewModeTests
 
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(new DesktopLayout(infos)));
         var editor = new Border();
-        var frame = new ForgeToolWindowFrame
+        var frame = new ForgeControl
         {
             EditorContent = editor,
             Appearance = ForgeAppearance.Default with { HeaderHeight = headerHeight },

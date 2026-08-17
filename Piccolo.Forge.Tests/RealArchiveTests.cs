@@ -44,7 +44,7 @@ public class RealArchiveTests
         }
 
         var editor = new Border();
-        var frame = new ForgeToolWindowFrame { EditorContent = editor };
+        var frame = new ForgeControl { EditorContent = editor };
         frame.Attach(shell);
 
         // 宿主真实顺序：控件先接上，再读存档（MainWindowViewModel.SetupShell）

@@ -1,4 +1,4 @@
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Styling;
@@ -11,12 +11,12 @@ namespace Piccolo.Forge.Avalonia;
 /// </summary>
 /// <remarks>
 /// <b>为什么是一个对象，而不是各控件一堆属性。</b>
-/// 外框（<see cref="ForgeToolWindowFrame"/>）与编辑区（<see cref="ForgeEditorArea"/>）是两个独立控件，
+/// 外框（<see cref="ForgeControl"/>）与编辑区（<see cref="ForgeEditorControl"/>）是两个独立控件，
 /// 但「配色族 / 取色 / 跟随明暗 / 岛几何」说的是**同一件事**，另有两对是同一件事的两半
 /// （面板标题条 ↔ 文档标签行的字重与行高）。早先这些是两边各一份的散装属性，代价有三笔：
 /// <list type="number">
 /// <item>宿主每样都要设两遍，漏一边就得到「四边是岛、中间还是方角」；</item>
-/// <item>库内部每个传播点都得手抄一遍 —— <c>ForgeEditorArea.FloatOut</c> 就抄漏了三个
+/// <item>库内部每个传播点都得手抄一遍 —— <c>ForgeEditorControl.FloatOut</c> 就抄漏了三个
 /// （取色回调、字重、行高），表现是文档浮出去之后描边没了、字重和行高变回默认；</item>
 /// <item>每加一个外观属性要改四处（两个控件 + 宿主两处），加错一处不报错、只是看着不对。</item>
 /// </list>
@@ -101,7 +101,7 @@ public sealed record ForgeAppearance
     /// <remarks>
     /// 这是给宿主的**版面取舍**口子，不是紧凑档的开关：紧凑是一整档密度（条带按钮、字号、圆角一起变），
     /// 而"标题条该多高"常常只想单改这一行。想跟着密度走就别设它。
-    /// <para>浮动形态不吃这个值 —— 那时标题条兼任窗口标题栏，按 <c>ForgeToolWindowFrame.TitleBarHeight</c> 长。</para>
+    /// <para>浮动形态不吃这个值 —— 那时标题条兼任窗口标题栏，按 <c>ForgeControl.TitleBarHeight</c> 长。</para>
     /// </remarks>
     public double HeaderHeight { get; init; } = double.NaN;
 
@@ -147,7 +147,7 @@ public sealed class ForgeChrome
     /// —— 这就是「编辑区想跟外框不一样」的口子，不必再给库加开关。
     /// <para>
     /// ⚠ 继承到不了**另一棵树**：面板/文档浮出去之后在自己的窗口里，与主窗口的树没有父子关系。
-    /// 那几处由库显式把这个对象传过去（<c>ForgeEditorArea.FloatOut</c>、外部窗口的装配），
+    /// 那几处由库显式把这个对象传过去（<c>ForgeEditorControl.FloatOut</c>、外部窗口的装配），
     /// 传的是整个对象，所以不存在"抄漏了哪个字段"。
     /// </para>
     /// </remarks>

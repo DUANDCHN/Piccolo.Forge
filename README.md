@@ -1,4 +1,4 @@
-﻿# Piccolo.Forge
+# Piccolo.Forge
 
 用 Avalonia / C#（.NET 8）**复刻 IntelliJ 平台**的工具窗口布局与主题。
 

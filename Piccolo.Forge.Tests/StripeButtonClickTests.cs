@@ -74,7 +74,7 @@ public class StripeButtonClickTests
     private static Point Center(Control button, Window window)
         => button.TranslatePoint(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2), window)!.Value;
 
-    private static (Window Window, ForgeToolWindowFrame Frame, ToolWindowShellViewModel Shell) Build()
+    private static (Window Window, ForgeControl Frame, ToolWindowShellViewModel Shell) Build()
     {
         var infos = new List<WindowInfo>
         {
@@ -82,7 +82,7 @@ public class StripeButtonClickTests
         };
 
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(new DesktopLayout(infos)));
-        var frame = new ForgeToolWindowFrame { Palette = ForgePalette.ExpUiDark, Appearance = ForgeAppearance.Default with { FollowThemeVariant = false } };
+        var frame = new ForgeControl { Palette = ForgePalette.ExpUiDark, Appearance = ForgeAppearance.Default with { FollowThemeVariant = false } };
         frame.Attach(shell);
 
         var window = new Window { Width = 700, Height = 300, WindowDecorations = WindowDecorations.None, Content = frame };

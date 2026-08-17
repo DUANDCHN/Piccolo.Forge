@@ -119,7 +119,7 @@ public class HeaderButtonsTests
             menu.Items.Add(new MenuItem { Header = "我自己的项" });
         };
 
-        var group = editor.Area!.Groups[0];
+        var group = editor.Editor!.Groups[0];
         var headers = editor.BuildTabActionsMenu(group).Items.OfType<MenuItem>()
             .Select(x => x.Header as string)
             .ToList();
@@ -135,7 +135,7 @@ public class HeaderButtonsTests
     public void 更多菜单里点一页就切过去()
     {
         var (window, _, editor) = BuildWithEditor();
-        var vm = editor.Area!;
+        var vm = editor.Editor!;
         vm.Select("d0");
 
         var item = editor.BuildTabActionsMenu(vm.Groups[0]).Items.OfType<MenuItem>()
@@ -160,7 +160,7 @@ public class HeaderButtonsTests
         var (window, _, shell) = Build();
 
         var menu = ForgeMenuBuilder.ForHeaderOptions(
-            shell.Manager, "相机列表", viewModes: ForgeToolWindowFrame.SupportedViewModes);
+            shell.Manager, "相机列表", viewModes: ForgeControl.SupportedViewModes);
         var top = menu.Items.OfType<MenuItem>().Select(x => x.Header as string).ToList();
 
         Assert.Equal(["视图模式", "移至", "从边栏中移除"], top);
@@ -189,10 +189,10 @@ public class HeaderButtonsTests
         var (window, _, shell) = Build();
 
         var menu = ForgeMenuBuilder.ForHeaderOptions(
-            shell.Manager, "相机列表", viewModes: ForgeToolWindowFrame.SupportedViewModes);
+            shell.Manager, "相机列表", viewModes: ForgeControl.SupportedViewModes);
         var modes = menu.Items.OfType<MenuItem>().First(x => (string?)x.Header == "视图模式");
 
-        Assert.Equal(ForgeToolWindowFrame.SupportedViewModes.Count, modes.Items.Count);
+        Assert.Equal(ForgeControl.SupportedViewModes.Count, modes.Items.Count);
 
         window.Close();
     }
@@ -238,13 +238,13 @@ public class HeaderButtonsTests
     /// 「停靠回去」那个恒在树上、只在外部形态时可见（同上游：DockToolWindowAction 只有
     /// 浮动 / 独立窗口时才出现），所以这里按可见性过滤。
     /// </remarks>
-    private static List<ForgeHeaderButton> Buttons(ForgeToolWindowFrame frame) =>
+    private static List<ForgeHeaderButton> Buttons(ForgeControl frame) =>
         [.. frame.GetVisualDescendants().OfType<ForgeToolWindowHeader>()
             .SelectMany(h => h.GetVisualDescendants().OfType<ForgeHeaderButton>())
             .Where(x => x.IsVisible)];
 
-    private static (Window Window, ForgeToolWindowFrame Frame, ToolWindowShellViewModel Shell) Build(
-        Action<ForgeToolWindowFrame>? configure = null)
+    private static (Window Window, ForgeControl Frame, ToolWindowShellViewModel Shell) Build(
+        Action<ForgeControl>? configure = null)
     {
         var infos = new List<WindowInfo>
         {
@@ -252,7 +252,7 @@ public class HeaderButtonsTests
         };
 
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(new DesktopLayout(infos)));
-        var frame = new ForgeToolWindowFrame { Palette = ForgePalette.ExpUiDark, Appearance = ForgeAppearance.Default with { FollowThemeVariant = false } };
+        var frame = new ForgeControl { Palette = ForgePalette.ExpUiDark, Appearance = ForgeAppearance.Default with { FollowThemeVariant = false } };
         configure?.Invoke(frame);
         frame.Attach(shell);
 
@@ -262,12 +262,12 @@ public class HeaderButtonsTests
         return (window, frame, shell);
     }
 
-    private static (Window Window, ForgeToolWindowFrame Frame, ForgeEditorArea Editor) BuildWithEditor()
+    private static (Window Window, ForgeControl Frame, ForgeEditorControl Editor) BuildWithEditor()
     {
         var (window, frame, _) = Build();
 
         var vm = new EditorAreaViewModel();
-        var editor = new ForgeEditorArea { Palette = ForgePalette.ExpUiDark, Appearance = ForgeAppearance.Default with { FollowThemeVariant = false } };
+        var editor = new ForgeEditorControl { Palette = ForgePalette.ExpUiDark, Appearance = ForgeAppearance.Default with { FollowThemeVariant = false } };
         editor.Attach(vm);
         frame.EditorContent = editor;
 

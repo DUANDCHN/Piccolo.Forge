@@ -37,7 +37,7 @@ public class RenderSnapshotTests
         // 竖着切一刀，把选中那页带过去
         editor.Area.Split(editor.Area.CurrentGroup, isVertical: true);
 
-        var control = new ForgeEditorArea
+        var control = new ForgeEditorControl
         {
             Palette = palette,
             // 编辑区正文的底色。islands-light 也是浅色，所以按「名字里带 light」判，
@@ -79,7 +79,7 @@ public class RenderSnapshotTests
             shell.Add(id, title, anchor, split, icon);
         }
 
-        var frame = new ForgeToolWindowFrame
+        var frame = new ForgeControl
         {
             Palette = palette,
             EditorContent = new Border { Background = new SolidColorBrush(ForgeColor.Parse("#1E1F22")) },
@@ -128,7 +128,7 @@ public class RenderSnapshotTests
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
         var manager = shell.Manager;
 
-        var frame = new ForgeToolWindowFrame
+        var frame = new ForgeControl
         {
             Palette = palette,
             ShowToolWindowNames = showNames,
@@ -216,10 +216,10 @@ public class RenderSnapshotTests
         editor.Find("cam-1")!.Icon = ForgeIcons.Camera;
         editor.Find("snap-1")!.Icon = ForgeIcons.Bookmarks;
 
-        var editorControl = new ForgeEditorArea();
+        var editorControl = new ForgeEditorControl();
         editorControl.Attach(editor);
 
-        var frame = new ForgeToolWindowFrame { EditorContent = editorControl };
+        var frame = new ForgeControl { EditorContent = editorControl };
         frame.Attach(shell);
 
         shell.Open("ImageLibrary");
@@ -257,7 +257,7 @@ public class RenderSnapshotTests
     public void Render_a_drag_in_progress(string themeName)
     {
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
-        var frame = new ForgeToolWindowFrame
+        var frame = new ForgeControl
         {
             EditorContent = new Border(),
         };

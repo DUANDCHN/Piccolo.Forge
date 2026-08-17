@@ -25,7 +25,7 @@ public sealed class ForgeFloatingToolWindow
     /// <param name="projectName">项目名，WINDOWED 的标题要带上它。</param>
     /// <param name="content">窗口里放什么。</param>
     /// <param name="host">
-    /// 宿主自己的窗体（<see cref="ForgeToolWindowFrame.ExternalWindowFactory"/> 给的）；
+    /// 宿主自己的窗体（<see cref="ForgeControl.ExternalWindowFactory"/> 给的）；
     /// 不给就用库自带的朴素窗口。
     /// </param>
     /// <exception cref="ArgumentException">传了内部形态。</exception>

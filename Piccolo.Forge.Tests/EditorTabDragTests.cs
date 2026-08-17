@@ -320,7 +320,7 @@ public class EditorTabDragTests
         var editor = new EditorAreaViewModel();
         editor.Open("only", "Only.cs");
 
-        var control = new ForgeEditorArea();
+        var control = new ForgeEditorControl();
         control.Attach(editor);
         var window = new Window { Width = 800, Height = 500, Content = control };
         window.Show();
@@ -356,7 +356,7 @@ public class EditorTabDragTests
         editor.Open("a", "Alpha.cs", new Button { Content = "A" });
         editor.Open("b", "Bravo.cs", new Button { Content = "B" });
 
-        var control = new ForgeEditorArea();
+        var control = new ForgeEditorControl();
         control.Attach(editor);
         var window = new Window { Width = 800, Height = 500, Content = control };
         window.Show();
@@ -394,7 +394,7 @@ public class EditorTabDragTests
         first.Icon = new Border { Width = 12, Height = 12 };
         editor.Open("b", "Bravo.cs");
 
-        var control = new ForgeEditorArea();
+        var control = new ForgeEditorControl();
         control.Attach(editor);
         var window = new Window { Width = 800, Height = 500, Content = control };
         window.Show();
@@ -419,7 +419,7 @@ public class EditorTabDragTests
         var vm = editor.Open("a", "Alpha.cs");
         vm.Icon = new Func<Control>(() => { made++; return new Border { Width = 12, Height = 12 }; });
 
-        var control = new ForgeEditorArea();
+        var control = new ForgeEditorControl();
         control.Attach(editor);
         var window = new Window { Width = 800, Height = 500, Content = control };
         window.Show();
@@ -447,7 +447,7 @@ public class EditorTabDragTests
         editor.Open("a", "Alpha.cs", new Button { Content = "A" });
         editor.Open("b", "Bravo.cs", new Button { Content = "B" });
 
-        var control = new ForgeEditorArea();
+        var control = new ForgeEditorControl();
         control.Attach(editor);
         var window = new Window { Width = 800, Height = 500, Content = control };
         window.Show();
@@ -475,7 +475,7 @@ public class EditorTabDragTests
         editor.Open("a", "Alpha.cs").Icon = new Border { Width = 12, Height = 12 };
         editor.Open("b", "Bravo.cs").Icon = new Border { Width = 12, Height = 12 };
 
-        var control = new ForgeEditorArea();
+        var control = new ForgeEditorControl();
         control.Attach(editor);
         var window = new Window { Width = 800, Height = 500, Content = control };
         window.Show();
@@ -505,7 +505,7 @@ public class EditorTabDragTests
         var editor = new EditorAreaViewModel();
         editor.Open("a", "Alpha.cs");
         editor.Open("b", "Bravo.cs");
-        var control = new ForgeEditorArea();
+        var control = new ForgeEditorControl();
         control.Attach(editor);
         var window = new Window { Width = 800, Height = 500, Content = control };
         window.Show();
@@ -693,7 +693,7 @@ public class EditorTabDragTests
         editor.Open("b", "Bravo.cs");
         editor.Open("c", "Charlie.cs");
 
-        var control = new ForgeEditorArea();
+        var control = new ForgeEditorControl();
         control.Attach(editor);
         var window = new Window { Width = 900, Height = 600, Content = control };
         window.Show();
@@ -801,8 +801,8 @@ public class EditorTabDragTests
         Assert.Equal(["b", "c"], Order(editor));
 
         var floating = Assert.Single(control.FloatingWindows);
-        var floatedArea = floating.GetVisualDescendants().OfType<ForgeEditorArea>().Single();
-        var floatedTab = floatedArea.Area!.Find("a");
+        var floatedArea = floating.GetVisualDescendants().OfType<ForgeEditorControl>().Single();
+        var floatedTab = floatedArea.Editor!.Find("a");
 
         Assert.NotNull(floatedTab);
         Assert.Same(content, floatedTab!.Content);
@@ -818,7 +818,7 @@ public class EditorTabDragTests
     public void 空的编辑区不画标签行那条线()
     {
         var editor = new EditorAreaViewModel();
-        var control = new ForgeEditorArea();
+        var control = new ForgeEditorControl();
         control.Attach(editor);
 
         var window = new Window { Width = 600, Height = 400, Content = control };
@@ -893,7 +893,7 @@ public class EditorTabDragTests
         window.Close();
     }
 
-    private static (EditorAreaViewModel Editor, Window Window, ForgeEditorArea Control, ForgeEditorTab A, ForgeEditorTab B) Shown()
+    private static (EditorAreaViewModel Editor, Window Window, ForgeEditorControl Control, ForgeEditorTab A, ForgeEditorTab B) Shown()
     {
         // 标题给真实长度：一个字母的标签只有 49px 宽，几何上不足以演示重排。
         // ⚠ 标题在 Open 时给，不能事后赋 —— 改 VM 的 Title 不发 Area.Changed，
@@ -903,7 +903,7 @@ public class EditorTabDragTests
         editor.Open("b", "Bravo.cs");
         editor.Open("c", "Charlie.cs");
 
-        var control = new ForgeEditorArea();
+        var control = new ForgeEditorControl();
         control.Attach(editor);
 
         var window = new Window { Width = 600, Height = 400, Content = control };
