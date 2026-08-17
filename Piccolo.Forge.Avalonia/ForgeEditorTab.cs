@@ -71,13 +71,33 @@ public class ForgeEditorTab : TabStripItem
     public static readonly StyledProperty<bool> CanBeClosedProperty =
         AvaloniaProperty.Register<ForgeEditorTab, bool>(nameof(CanBeClosed), defaultValue: true);
 
+    /// <summary>
+    /// 宿主指定的标签行高；<see cref="double.NaN"/> = 不指定，按
+    /// <see cref="ForgeMetrics.EditorTabRowHeight"/>（Islands 40 / expUI 42）走。
+    /// </summary>
+    /// <remarks>
+    /// 行高变了，Islands 那个内缩圆角块跟着自适应 —— 它的高度是
+    /// <c>行高 - max(行高 - 28, 8)</c>（见 <see cref="IslandsBlockRect"/>），
+    /// 行高压到 31 时块高 23、上下各留 4，不会顶出去。
+    /// </remarks>
+    public static readonly StyledProperty<double> RowHeightOverrideProperty =
+        AvaloniaProperty.Register<ForgeEditorTab, double>(nameof(RowHeightOverride), double.NaN);
+
+    /// <summary>宿主指定的标签行高，NaN = 走上游默认。</summary>
+    public double RowHeightOverride
+    {
+        get => GetValue(RowHeightOverrideProperty);
+        set => SetValue(RowHeightOverrideProperty, value);
+    }
+
     static ForgeEditorTab()
     {
         AffectsRender<ForgeEditorTab>(
             PaletteProperty, TitleProperty, IsSelectedProperty, IsGroupActiveProperty,
             IsPinnedProperty, CanBeClosedProperty, IconProperty, IsCompactProperty);
         AffectsMeasure<ForgeEditorTab>(
-            TitleProperty, CanBeClosedProperty, IconProperty, TitleFontWeightProperty);
+            TitleProperty, CanBeClosedProperty, IconProperty, TitleFontWeightProperty,
+            RowHeightOverrideProperty);
     }
 
     /// <summary>配色。</summary>
@@ -160,7 +180,11 @@ public class ForgeEditorTab : TabStripItem
                     + LeadingIconWidth
                     + IconAreaWidth;
 
-        return new Size(width, ForgeMetrics.EditorTabRowHeight(Palette.Island is not null));
+        var rowHeight = double.IsNaN(RowHeightOverride)
+            ? ForgeMetrics.EditorTabRowHeight(islands)
+            : RowHeightOverride;
+
+        return new Size(width, rowHeight);
     }
 
     /// <summary>

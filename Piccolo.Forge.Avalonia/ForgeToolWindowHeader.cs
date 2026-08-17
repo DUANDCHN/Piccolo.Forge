@@ -176,6 +176,7 @@ public class ForgeToolWindowHeader : TemplatedControl
             ShowButtonsProperty,
             ShowDockButtonProperty,
             TitleBarHeightProperty,
+            HeightOverrideProperty,
             CaptionButtonsWidthProperty);
         ContentUiTypeProperty.Changed.AddClassHandler<ForgeToolWindowHeader>((h, _) => h.InvalidateMeasure());
     }
@@ -265,6 +266,28 @@ public class ForgeToolWindowHeader : TemplatedControl
     }
 
     /// <summary>
+    /// 宿主指定的标题条高度；<see cref="double.NaN"/> = 不指定，按上游那两档（紧凑 31 / 常规 41）走。
+    /// </summary>
+    /// <remarks>
+    /// 与 <see cref="IsCompact"/> **不是一回事**：紧凑是上游的一整档密度（条带按钮、字号、圆角一起变小），
+    /// 这里只改标题条这一行的高度，别的度量不动 —— "面板标题条该多高"是宿主的版面取舍，
+    /// 它不该被迫连同整档密度一起切换。
+    /// <para>
+    /// 兼任窗口标题栏时（<see cref="IsWindowTitleBar"/>）不吃这个值：那种形态下这一行是**窗口的**标题栏，
+    /// 高度得跟应用里其它窗体对齐（<see cref="TitleBarHeight"/>），与面板标题条多高无关。
+    /// </para>
+    /// </remarks>
+    public static readonly StyledProperty<double> HeightOverrideProperty =
+        AvaloniaProperty.Register<ForgeToolWindowHeader, double>(nameof(HeightOverride), double.NaN);
+
+    /// <summary>宿主指定的标题条高度，NaN = 走上游默认。</summary>
+    public double HeightOverride
+    {
+        get => GetValue(HeightOverrideProperty);
+        set => SetValue(HeightOverrideProperty, value);
+    }
+
+    /// <summary>
     /// 右端要给窗口的系统按钮（最小化 / 最大化 / 关闭）留出多宽。
     /// </summary>
     /// <remarks>
@@ -316,10 +339,24 @@ public class ForgeToolWindowHeader : TemplatedControl
         set => SetValue(TopCornerRadiusProperty, value);
     }
 
-    /// <summary>标题条高度：兼任窗口标题栏时按 <see cref="TitleBarHeight"/>，否则紧凑 31 / 常规 41。</summary>
-    public double HeaderHeight => double.IsNaN(TitleBarHeight)
-        ? (IsCompact ? ForgeCompactMetrics.HeaderHeight : ForgeMetrics.HeaderHeight)
-        : TitleBarHeight;
+    /// <summary>
+    /// 标题条高度：兼任窗口标题栏时按 <see cref="TitleBarHeight"/>，
+    /// 否则宿主给了 <see cref="HeightOverride"/> 就按它，再否则紧凑 31 / 常规 41。
+    /// </summary>
+    public double HeaderHeight
+    {
+        get
+        {
+            if (!double.IsNaN(TitleBarHeight))
+            {
+                return TitleBarHeight;
+            }
+
+            return double.IsNaN(HeightOverride)
+                ? (IsCompact ? ForgeCompactMetrics.HeaderHeight : ForgeMetrics.HeaderHeight)
+                : HeightOverride;
+        }
+    }
 
     /// <summary>
     /// 标题在左边占多宽 —— tab 从这里往右排。
@@ -372,7 +409,9 @@ public class ForgeToolWindowHeader : TemplatedControl
             button.Measure(new Size(ForgeMetrics.HeaderButtonSize, ForgeMetrics.HeaderButtonSize));
         }
 
-        _tabs.Measure(availableSize);
+        // 标签按**这一行最终的高度**量，别把外面给的（可能是无限）原样传下去 ——
+        // ForgeContentTab 量到无限高时会退回上游那个 41，标题条却按 HeaderHeight 排，两处对不上。
+        _tabs.Measure(availableSize.WithHeight(HeaderHeight));
         return new Size(double.IsInfinity(availableSize.Width) ? 0 : availableSize.Width, HeaderHeight);
     }
 

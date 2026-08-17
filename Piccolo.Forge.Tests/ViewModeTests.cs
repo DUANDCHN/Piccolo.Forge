@@ -198,6 +198,31 @@ public class ViewModeTests
     }
 
     /// <summary>
+    /// 宿主指定了标题条高度就按宿主的来；浮动那一下不受它影响 —— 那时这条是**窗口**的标题栏。
+    /// </summary>
+    [AvaloniaFact]
+    public void 宿主指定的标题条高度盖过上游默认()
+    {
+        var (window, frame, shell, _) = Build(headerHeight: 31);
+        var header = frame.GetVisualDescendants().OfType<ForgeToolWindowHeader>().Single();
+
+        Assert.NotEqual(ForgeMetrics.HeaderHeight, 31);
+        Assert.Equal(31, header.Bounds.Height, 1.0);
+
+        // 浮动：这一行改当窗口标题栏，走 TitleBarHeight，与面板标题条多高无关
+        shell.Manager.SetType("相机列表", ToolWindowType.Floating);
+        Pump(window);
+        Assert.Equal(ForgeMetrics.WindowTitleBarHeight, header.HeaderHeight, 1.0);
+
+        // 停靠回来，仍是宿主指定的那个高度
+        shell.Manager.SetType("相机列表", ToolWindowType.Docked);
+        Pump(window);
+        Assert.Equal(31, header.Bounds.Height, 1.0);
+
+        window.Close();
+    }
+
+    /// <summary>
     /// 独立窗口形态下，标题条与窗口标题栏是同一行：面板的按钮要给右边那三个系统按钮让位。
     /// </summary>
     [AvaloniaFact]
@@ -778,7 +803,9 @@ public class ViewModeTests
         window.Close();
     }
 
-    private static (Window Window, ForgeToolWindowFrame Frame, ToolWindowShellViewModel Shell, Border Editor) Build()
+    /// <param name="headerHeight">宿主指定的标题条高度；NaN = 不指定，走上游默认。</param>
+    private static (Window Window, ForgeToolWindowFrame Frame, ToolWindowShellViewModel Shell, Border Editor) Build(
+        double headerHeight = double.NaN)
     {
         var infos = new List<WindowInfo>
         {
@@ -787,7 +814,7 @@ public class ViewModeTests
 
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(new DesktopLayout(infos)));
         var editor = new Border();
-        var frame = new ForgeToolWindowFrame { EditorContent = editor };
+        var frame = new ForgeToolWindowFrame { EditorContent = editor, HeaderHeight = headerHeight };
         frame.Attach(shell);
 
         var window = new Window { Width = 900, Height = 500, WindowDecorations = WindowDecorations.None, Content = frame };

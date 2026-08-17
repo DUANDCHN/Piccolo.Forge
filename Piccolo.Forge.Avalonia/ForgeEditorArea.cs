@@ -231,6 +231,17 @@ public class ForgeEditorArea : TemplatedControl
     public FontWeight TabTitleFontWeight { get; set; } = FontWeight.Normal;
 
     /// <summary>
+    /// 文档标签行多高；<see cref="double.NaN"/> = 不指定，走上游按族算出的行高
+    /// （<see cref="ForgeMetrics.EditorTabRowHeight"/>：Islands 40 / expUI 42）。
+    /// </summary>
+    /// <remarks>
+    /// 给宿主的版面取舍口子，与工具窗口那边的 <c>ForgeToolWindowFrame.HeaderHeight</c> 同义 ——
+    /// 中央文档区的标签行常常要与四周面板的标题条**一样高**，而这两个高度在上游本就不是一个数
+    /// （40/42 对 41），对齐只能由宿主说了算。
+    /// </remarks>
+    public double TabRowHeight { get; set; } = double.NaN;
+
+    /// <summary>
     /// 指针跑出本编辑区之后的反馈：示意窗口跟着走，停靠提示交给光标底下那个编辑区。
     /// </summary>
     /// <remarks>
@@ -1001,6 +1012,7 @@ public class ForgeEditorArea : TemplatedControl
     {
         control.Palette = Palette;
         control.TitleFontWeight = TabTitleFontWeight;
+        control.RowHeightOverride = TabRowHeight;
 
         // 菜单**实例建一次**，内容在每次打开前刷 —— 每次同步都换个新实例的话，
         // 右键按下与松手之间实例就被换掉了，系统那套弹出流程落空，表现是右键没反应。

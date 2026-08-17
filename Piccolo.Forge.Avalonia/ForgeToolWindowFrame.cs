@@ -1643,6 +1643,16 @@ public class ForgeToolWindowFrame : TemplatedControl
     public double TitleBarHeight { get; set; } = ForgeMetrics.WindowTitleBarHeight;
 
     /// <summary>
+    /// 停靠着的面板标题条多高；<see cref="double.NaN"/> = 不指定，走上游那两档（紧凑 31 / 常规 41）。
+    /// </summary>
+    /// <remarks>
+    /// 这是给宿主的**版面取舍**口子，不是紧凑档的开关：紧凑是一整档密度（条带按钮、字号、圆角一起变），
+    /// 而"标题条该多高"常常只想单改这一行。想跟着密度走就别设它。
+    /// <para>浮动形态不吃这个值 —— 那时标题条兼任窗口标题栏，按 <see cref="TitleBarHeight"/> 长。</para>
+    /// </remarks>
+    public double HeaderHeight { get; set; } = double.NaN;
+
+    /// <summary>
     /// 面板标题条上那行字的字重。
     /// </summary>
     /// <remarks>上游是常规字重，所以默认 <see cref="FontWeight.Normal"/>。</remarks>
@@ -1741,6 +1751,7 @@ public class ForgeToolWindowFrame : TemplatedControl
         // 独立窗口另说：那种窗体自带标题栏（第一行），这条仍是普通的面板标题条（第二行）；
         // 只有当宿主把系统按钮也摆到这一行时才需要让位（CaptionButtonsWidth，默认 0 不让）。
         header.TitleBarHeight = info.Type == ToolWindowType.Floating ? TitleBarHeight : double.NaN;
+        header.HeightOverride = HeaderHeight;
         header.CaptionButtonsWidth = info.Type == ToolWindowType.Windowed ? CaptionButtonsWidth : 0;
         header.SetExtraButtons(HeaderButtonsExtension?.Invoke(vm.Id));
         SyncTabs(header, vm, info.ContentUiType);

@@ -250,6 +250,23 @@ public class ForgeControlsTests
             icon.Bounds);
     }
 
+    /// <summary>
+    /// 宿主可以指定文档标签的行高（上游 Islands 40 / expUI 42），Islands 那个圆角块跟着自适应。
+    /// </summary>
+    [AvaloniaFact]
+    public void 宿主指定的标签行高盖过上游默认()
+    {
+        var tab = new ForgeEditorTab { Title = "cam-1.png", RowHeightOverride = 31 };
+        tab.Measure(Size.Infinity);
+
+        Assert.Equal(31, tab.DesiredSize.Height);
+
+        // 不设就还是上游那两档
+        var upstream = new ForgeEditorTab { Title = "cam-1.png" };
+        upstream.Measure(Size.Infinity);
+        Assert.Equal(ForgeMetrics.EditorTabRowHeight(islands: false), upstream.DesiredSize.Height);
+    }
+
     [AvaloniaFact]
     public void The_icon_is_20_square_and_centred_not_button_minus_padding()
     {
