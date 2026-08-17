@@ -54,6 +54,48 @@ public class ForgeShowNamesTests
         Assert.True(two.DesiredSize.Height > one.DesiredSize.Height);
     }
 
+    /// <summary>
+    /// 名字的行高**不许小于字体的自然行高** —— 小了 Avalonia 会把字剪掉。
+    /// </summary>
+    /// <remarks>
+    /// ★ 实机 bug（REQ-067）：模板化之后名字是模板里的 <c>TextBlock</c>，
+    /// 而 <c>TextBlock.LineHeight</c> 是**行盒的高度**，装不下就剪 ——
+    /// 症状是条带按钮上的名字"只剩上半截"。自绘时代的 <c>FormattedText</c> 是
+    /// "每行往下推 1.4 字高"，推得再密也只是行距挤，字本身照画不误，所以搬家时没人想到这条。
+    /// <para>
+    /// ⚠ <b>这条用例的判别力取决于跑它的机器上装了什么字体</b>：默认字体 1.4 em 恰好够用，
+    /// 所以**它拦不住"改回写死 1.4 em"**。真正暴露它的是上位机内嵌的 HarmonyOS Sans SC。
+    /// 这里钉的是不变式本身（行高 ≥ 自然行高），别把它当成"这个 bug 不会再来"的保证。
+    /// </para>
+    /// </remarks>
+    [AvaloniaFact]
+    public void 名字的行高不小于字体的自然行高()
+    {
+        foreach (var title in new[] { "相机列表", "Version Control", "Terminal" })
+        {
+            var button = Named(title);
+
+            // 同字体同字号、**不设 LineHeight** 的一行字有多高 —— 那就是自然行高
+            var probe = new TextBlock
+            {
+                Text = ForgeStripeButton.SplitTitle(title)[0],
+                FontFamily = button.FontFamily,
+                FontSize = button.NameFontSize,
+            };
+            probe.Measure(Size.Infinity);
+
+            Assert.True(
+                button.NameLineHeight >= probe.DesiredSize.Height,
+                $"「{title}」行高 {button.NameLineHeight} < 自然行高 {probe.DesiredSize.Height}，字会被剪");
+
+            // 按钮的高度也要跟着让开，否则字挤出按钮
+            var lines = ForgeStripeButton.SplitTitle(title).Count;
+            Assert.True(
+                button.DesiredSize.Height >= 40 + ForgeMetrics.StripeIconLabelGap + (lines * probe.DesiredSize.Height),
+                $"「{title}」按钮 {button.DesiredSize.Height} 装不下 {lines} 行自然行高");
+        }
+    }
+
     [AvaloniaFact]
     public void The_stripe_takes_the_custom_width()
     {

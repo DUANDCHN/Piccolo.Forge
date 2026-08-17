@@ -235,6 +235,45 @@ public class ForgeStripeButton : ForgeSquareButtonBase
     /// <summary>按当前密度算出的字号（<see cref="NameFontSize"/> 的来源）。</summary>
     private double ComputeNameFontSize() => Math.Max(8, IconSize * 0.5);
 
+    /// <summary>
+    /// 名字的行高：上游的 <b>字号 × 1.4</b>，但**不小于这个字体在这个字号下的自然行高**。
+    /// </summary>
+    /// <remarks>
+    /// ★ 后半句是实机 bug 换来的（REQ-067）：模板化之后名字是模板里的 <c>TextBlock</c>，
+    /// 而 <c>TextBlock.LineHeight</c> 一旦**小于自然行高，Avalonia 会把字剪掉**
+    /// —— 症状是"字只剩上半截"，且**只在某些字体 / 缩放下出现**：
+    /// 自绘时代的 <c>FormattedText</c> 是"每行往下推 1.4 字高"，推得再密也只是行距挤，
+    /// 字本身照画不误；换成 <c>TextBlock</c> 之后 1.4 em 成了**行盒的高度**，装不下就剪。
+    /// 用例里那套默认字体 1.4 em 恰好够用，所以用例全绿也发现不了 ——
+    /// 上位机用的是内嵌的 HarmonyOS Sans SC，它不够。
+    /// <para>
+    /// 取 <c>max</c> 而不是直接用自然行高：字体够用时逐像素保持上游的 1.4 em 行距，
+    /// 只在真的装不下时才让开。<b>测量与模板必须用同一个值</b>，否则按钮高度与字对不上。
+    /// </para>
+    /// </remarks>
+    /// <returns>行高。</returns>
+    private double ComputeNameLineHeight()
+    {
+        var fontSize = ComputeNameFontSize();
+        var pitch = fontSize * 1.4;
+        var lines = SplitTitle(Title);
+        if (lines.Count == 0)
+        {
+            return pitch;
+        }
+
+        // 用**真正要画的那行字**去量：中西文回退到的字体不同，自然行高也不同
+        var natural = new FormattedText(
+            lines[0],
+            System.Globalization.CultureInfo.CurrentCulture,
+            FlowDirection.LeftToRight,
+            ResolveTypeface(),
+            fontSize,
+            Brushes.Transparent).Height;
+
+        return Math.Max(pitch, natural);
+    }
+
     /// <summary><see cref="NameText"/> 的属性定义。</summary>
     public static readonly StyledProperty<string?> NameTextProperty =
         AvaloniaProperty.Register<ForgeStripeButton, string?>(nameof(NameText));
@@ -290,7 +329,7 @@ public class ForgeStripeButton : ForgeSquareButtonBase
         var lines = SplitTitle(Title);
         NameText = ShowName && lines.Count > 0 ? string.Join('\n', lines) : null;
         NameFontSize = ComputeNameFontSize();
-        NameLineHeight = NameFontSize * 1.4;
+        NameLineHeight = ComputeNameLineHeight();
 
         // 竖直起点与自绘时同一条算式；左右留 TextPadding，文字在其中居中
         var top = IconRect(new Size(ButtonWidth, ButtonHeight)).Bottom + ForgeMetrics.StripeIconLabelGap;
@@ -314,11 +353,11 @@ public class ForgeStripeButton : ForgeSquareButtonBase
 
         // 高度 = 基础高 + 间距 + 行数 × 行高（SquareStripeButton.kt:320-327）
         var lines = SplitTitle(Title).Count;
-        // ⚠ 这里用**算出来的**字号，不用 NameFontSize 那个属性：属性靠 SyncName 刷，
+        // ⚠ 这里用**现算的**行高，不读 NameLineHeight 那个属性：属性靠 SyncName 刷，
         //   而测量可能发生在它之前（控件刚建好、还没收到任何属性变更）—— 那时属性是 0，
         //   高度会少掉名字那一截。
-        var fontSize = ComputeNameFontSize();
-        var height = ButtonHeight + (lines > 0 ? ForgeMetrics.StripeIconLabelGap + (lines * fontSize * 1.4) : 0);
+        //   行高不是单纯的「字号 × 1.4」，字体装不下时会让开，见 ComputeNameLineHeight。
+        var height = ButtonHeight + (lines > 0 ? ForgeMetrics.StripeIconLabelGap + (lines * ComputeNameLineHeight()) : 0);
         var width = StripeWidth > 0 ? StripeWidth : ButtonWidth;
 
         return new Size(width, height);
