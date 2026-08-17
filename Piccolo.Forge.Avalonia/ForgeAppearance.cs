@@ -141,10 +141,24 @@ public sealed record ForgeAppearance
     public double StripeHighlightInset { get; init; } = double.NaN;
 
     /// <summary>
-    /// 「显示名字」时条带多宽；<see cref="double.NaN"/> = 走上游
-    /// （<see cref="ForgeMetrics.StripeNamedDefaultWidth"/> = 59）。
+    /// 「显示名字」时那块高亮底多宽；<see cref="double.NaN"/> = 走上游
+    /// （<see cref="ForgeMetrics.StripeNamedDefaultWidth"/> = 59，那时它是**条带宽**）。
     /// </summary>
-    public double StripeNamedWidth { get; init; } = double.NaN;
+    /// <remarks>
+    /// 与收起态同一条构造：<c>条带宽 = 边距 + 底 + 边距</c>
+    /// （边距用 <see cref="StripeHighlightInset"/>），所以两侧留白天然相等。
+    /// **高度不用给** —— 名字按这个宽度折行，折几行按钮就有多高。
+    /// </remarks>
+    public double StripeNamedHighlightWidth { get; init; } = double.NaN;
+
+    /// <summary>
+    /// 条带按钮上名字的字号；<see cref="double.NaN"/> = 走上游（图标边长的一半，不小于 8）。
+    /// </summary>
+    /// <remarks>
+    /// ⚠ 它**不吃宿主的全局字号**：模板里那个 <c>TextBlock</c> 绑的是控件的属性（local value），
+    /// 盖过 <c>Style Selector="TextBlock"</c> 那类设定 —— 想改只能从这里改。
+    /// </remarks>
+    public double StripeNameFontSize { get; init; } = double.NaN;
 
     /// <summary>文档标签上那行字的字重。</summary>
     /// <remarks>上游是常规字重，所以默认 <see cref="FontWeight.Normal"/>。</remarks>

@@ -105,16 +105,16 @@ public abstract class ForgeSquareButtonBase : Button
             return rect;
         }
 
-        // 显名那一档只**横向居中**，不收成正方形：底要盖住图标 + 名字整块
-        // （SquareStripeButton.kt:196-198），收方了名字会露在底外面。
-        // 但左右仍然要居中 —— 实机量到的是 bg 中心 30.5、按钮中心 28.5，偏 2px，
-        // 正是 Islands 那份 6/2 的不对称在这条路上没被处理。
+        // 显名那一档不收成正方形：底要盖住图标 + 名字整块（SquareStripeButton.kt:196-198），
+        // 收方了名字会露在底外面。但**左右按宿主给的边距来**，与收起态同一条构造：
+        //   条带宽 = 边距 + 底 + 边距 → 底宽 = 条带宽 − 2×边距，两侧留白天然相等。
+        // ⚠ 这里不能用图标内边距（Islands 是 5/2 不对称，会把底推偏 2px —— 实机看出来过）。
         if (ShowsName)
         {
             return new Rect(
-                cell.X + ((cell.Width - rect.Width) / 2),
+                cell.X + HighlightInset,
                 rect.Y,
-                rect.Width,
+                Math.Max(0, cell.Width - (HighlightInset * 2)),
                 rect.Height);
         }
 
@@ -296,7 +296,7 @@ public abstract class ForgeSquareButtonBase : Button
         // 把窄按钮在宽条带里推向外缘，按钮与条带一样宽之后它只会让人看着偏一边。
         var horizontal = !IsHostSized
             ? (padding.Left, padding.Right)
-            : ((cell.Width - background.Width) / 2, (cell.Width - background.Width) / 2);
+            : (HighlightInset, HighlightInset);
 
         BackgroundInsets = square
             ? default

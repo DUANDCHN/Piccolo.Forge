@@ -49,7 +49,8 @@ public class ForgeStripeButton : ForgeSquareButtonBase
     {
         AffectsRender<ForgeStripeButton>(
             IsToolWindowVisibleProperty, IsToolWindowActiveProperty, ShowNameProperty, TitleProperty, IconProperty);
-        AffectsMeasure<ForgeStripeButton>(ShowNameProperty, StripeWidthProperty, TitleProperty);
+        AffectsMeasure<ForgeStripeButton>(
+            ShowNameProperty, StripeWidthProperty, TitleProperty, NameFontSizeOverrideProperty);
 
         // 两个状态写进伪类，模板据此选底色（见 Themes/ForgeStripeButton.axaml）。
         // 用伪类而不是样式类：它们是控件自己的状态，不该让宿主用 Classes 去改。
@@ -232,8 +233,29 @@ public class ForgeStripeButton : ForgeSquareButtonBase
         private set => SetValue(NameFontSizeProperty, value);
     }
 
+    /// <summary><see cref="NameFontSizeOverride"/> 的属性定义。</summary>
+    public static readonly StyledProperty<double> NameFontSizeOverrideProperty =
+        AvaloniaProperty.Register<ForgeStripeButton, double>(nameof(NameFontSizeOverride), double.NaN);
+
+    /// <summary>
+    /// 宿主指定的名字字号；<see cref="double.NaN"/> = 走上游（图标边长的一半，不小于 8）。
+    /// </summary>
+    /// <remarks>
+    /// ⚠ 名字的字号**不吃宿主的全局字号**：模板里那个 <c>TextBlock</c> 绑的是
+    /// <see cref="NameFontSize"/>，是 local value，盖过宿主 <c>Style Selector="TextBlock"</c>
+    /// 那类样式设定 —— 所以想改只能从这里改。
+    /// （字**重**相反：模板没设，所以它吃宿主的全局字重。）
+    /// </remarks>
+    public double NameFontSizeOverride
+    {
+        get => GetValue(NameFontSizeOverrideProperty);
+        set => SetValue(NameFontSizeOverrideProperty, value);
+    }
+
     /// <summary>按当前密度算出的字号（<see cref="NameFontSize"/> 的来源）。</summary>
-    private double ComputeNameFontSize() => Math.Max(8, IconSize * 0.5);
+    /// <remarks>上游是 <c>RelativeFont.TINY</c>（<c>SquareStripeButton.kt:329</c>），这里取图标的一半。</remarks>
+    private double ComputeNameFontSize()
+        => double.IsNaN(NameFontSizeOverride) ? Math.Max(8, IconSize * 0.5) : NameFontSizeOverride;
 
     /// <summary>
     /// 名字的行高：上游的 <b>字号 × 1.4</b>，但**不小于这个字体在这个字号下的自然行高**。
@@ -442,6 +464,7 @@ public class ForgeStripeButton : ForgeSquareButtonBase
             || change.Property == ShowNameProperty
             || change.Property == IsCompactProperty
             || change.Property == IsLeftStripeProperty
+            || change.Property == NameFontSizeOverrideProperty
             || change.Property == PaletteProperty)
         {
             SyncName();

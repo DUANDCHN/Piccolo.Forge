@@ -615,11 +615,14 @@ public class ForgeControl : TemplatedControl
         SyncDockPane();
     }
 
-    /// <summary>「显示名字」时条带多宽 —— 宿主没指定就走上游那 59。</summary>
+    /// <summary>
+    /// 「显示名字」时条带多宽 —— 宿主给的是**底的宽度**，条带宽 = 边距 + 底 + 边距。
+    /// </summary>
+    /// <remarks>宿主没指定就走上游那 59（上游那个数本身就是条带宽）。</remarks>
     private double ResolvedStripeNamedWidth
-        => double.IsNaN(Appearance.StripeNamedWidth)
+        => double.IsNaN(Appearance.StripeNamedHighlightWidth) || double.IsNaN(Appearance.StripeHighlightInset)
             ? ForgeMetrics.StripeNamedDefaultWidth
-            : Appearance.StripeNamedWidth;
+            : Appearance.StripeNamedHighlightWidth + (Appearance.StripeHighlightInset * 2);
 
     private void SyncStripes()
     {
@@ -793,6 +796,7 @@ public class ForgeControl : TemplatedControl
         button.IsLeftStripe = side == StripeSide.Left;
         button.ArcOverride = StripeButtonArc;
         button.HighlightSize = Appearance.StripeHighlightSize;
+        button.NameFontSizeOverride = Appearance.StripeNameFontSize;
         button.HighlightInset = Appearance.StripeHighlightInset;
         button.Icon = vm.Icon;
         button.Text = vm.Icon is null ? vm.Title[..1] : null;
