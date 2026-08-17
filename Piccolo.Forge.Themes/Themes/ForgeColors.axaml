@@ -1,0 +1,55 @@
+<!--  ★ 条带按钮的颜色（REQ-067 第一片）。★
+
+      ⚠ **这个文件是从 ForgePalette 转写出来的，别手改数值。**
+        转写有一处会静默出错：上游 / ForgeColor.Parse 是 #RRGGBBAA（alpha 在后），
+        而 Avalonia 的 Color 是 #AARRGGBB（alpha 在前）——**顺序相反**。
+        原样抄会把 #0000001D（黑 11%）读成 alpha=0，悬停高亮整个消失且不报错。
+        每个 8 位的值后面都注了上游原文，方便核对；
+        真正的守护是 ForgeThemeDictionaryTests：它逐键断言这里的值 == ForgePalette 对应字段。
+
+      族（expUI / Islands）进**键名**，明暗进 **ThemeDictionaries**：
+      Avalonia 的变体机制只认明暗，族只能由键名或样式类表达。
+      宿主要覆盖，就在自己的 ThemeDictionaries 里重定义同名键。  -->
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+            <!--  ExpUi · Light（源：ForgePalette.ExpUiLight）  -->
+            <Color x:Key="Forge.ExpUi.ButtonForeground">#5A5D6B</Color>
+            <Color x:Key="Forge.ExpUi.ButtonSelectedForeground">#FFFFFF</Color>
+            <Color x:Key="Forge.ExpUi.ButtonSelectedBackground">#3574F0</Color>
+            <Color x:Key="Forge.ExpUi.ButtonPressedBackground">#1D000000</Color>  <!-- 上游 #0000001D -->
+            <Color x:Key="Forge.ExpUi.ButtonHoverBackground">#12000000</Color>  <!-- 上游 #00000012 -->
+            <Color x:Key="Forge.ExpUi.StripeSeparator">#C9CCD6</Color>
+            <Color x:Key="Forge.ExpUi.StripeSeparatorDragAndDrop">#709CF5</Color>
+
+            <!--  Islands · Light（源：ForgePalette.IslandsLight）  -->
+            <Color x:Key="Forge.Islands.ButtonForeground">#5F6269</Color>
+            <Color x:Key="Forge.Islands.ButtonSelectedForeground">#FFFFFF</Color>
+            <Color x:Key="Forge.Islands.ButtonSelectedBackground">#3871E1</Color>
+            <Color x:Key="Forge.Islands.ButtonPressedBackground">#1D000000</Color>  <!-- 上游 #0000001D -->
+            <Color x:Key="Forge.Islands.ButtonHoverBackground">#12000000</Color>  <!-- 上游 #00000012 -->
+            <Color x:Key="Forge.Islands.StripeSeparator">#20000000</Color>  <!-- 上游 #00000020 -->
+            <Color x:Key="Forge.Islands.StripeSeparatorDragAndDrop">#3871E1</Color>
+        </ResourceDictionary>
+
+        <ResourceDictionary x:Key="Dark">
+            <!--  ExpUi · Dark（源：ForgePalette.ExpUiDark）  -->
+            <Color x:Key="Forge.ExpUi.ButtonForeground">#9DA0A8</Color>
+            <Color x:Key="Forge.ExpUi.ButtonSelectedForeground">#FFFFFF</Color>
+            <Color x:Key="Forge.ExpUi.ButtonSelectedBackground">#3574F0</Color>
+            <Color x:Key="Forge.ExpUi.ButtonPressedBackground">#26FFFFFF</Color>  <!-- 上游 #FFFFFF26 -->
+            <Color x:Key="Forge.ExpUi.ButtonHoverBackground">#16FFFFFF</Color>  <!-- 上游 #FFFFFF16 -->
+            <Color x:Key="Forge.ExpUi.StripeSeparator">#43454A</Color>
+            <Color x:Key="Forge.ExpUi.StripeSeparatorDragAndDrop">#548AF7</Color>
+
+            <!--  Islands · Dark（源：ForgePalette.IslandsDark）  -->
+            <Color x:Key="Forge.Islands.ButtonForeground">#9FA2A8</Color>
+            <Color x:Key="Forge.Islands.ButtonSelectedForeground">#FFFFFF</Color>
+            <Color x:Key="Forge.Islands.ButtonSelectedBackground">#3871E1</Color>
+            <Color x:Key="Forge.Islands.ButtonPressedBackground">#26FFFFFF</Color>  <!-- 上游 #FFFFFF26 -->
+            <Color x:Key="Forge.Islands.ButtonHoverBackground">#16FFFFFF</Color>  <!-- 上游 #FFFFFF16 -->
+            <Color x:Key="Forge.Islands.StripeSeparator">#21FFFFFF</Color>  <!-- 上游 #FFFFFF21 -->
+            <Color x:Key="Forge.Islands.StripeSeparatorDragAndDrop">#3871E1</Color>
+        </ResourceDictionary>
+    </ResourceDictionary.ThemeDictionaries>
+</ResourceDictionary>
