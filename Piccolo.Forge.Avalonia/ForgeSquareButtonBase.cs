@@ -47,15 +47,15 @@ public abstract class ForgeSquareButtonBase : Button
         // 换族会改按钮宽（40 ↔ 37），所以 Palette 也要触发重新测量，不只是重画
         AffectsMeasure<ForgeSquareButtonBase>(
             IsCompactProperty, PaletteProperty, IsLeftStripeProperty,
-            HighlightSizeProperty, HighlightInsetProperty, ButtonHeightOverrideProperty);
+            HighlightSizeProperty, HighlightInsetHorizontalProperty, HighlightInsetVerticalProperty);
 
         // 几何（内缩 / 圆角）跟着这三样走 —— 它们是模板里 Border 的 Margin 与 CornerRadius 的来源
         PaletteProperty.Changed.AddClassHandler<ForgeSquareButtonBase>((b, _) => b.OnFamilyOrDensityChanged());
         IsCompactProperty.Changed.AddClassHandler<ForgeSquareButtonBase>((b, _) => b.OnFamilyOrDensityChanged());
         IsLeftStripeProperty.Changed.AddClassHandler<ForgeSquareButtonBase>((b, _) => b.UpdateGeometry());
         HighlightSizeProperty.Changed.AddClassHandler<ForgeSquareButtonBase>((b, _) => b.UpdateGeometry());
-        HighlightInsetProperty.Changed.AddClassHandler<ForgeSquareButtonBase>((b, _) => b.UpdateGeometry());
-        ButtonHeightOverrideProperty.Changed.AddClassHandler<ForgeSquareButtonBase>((b, _) => b.UpdateGeometry());
+        HighlightInsetHorizontalProperty.Changed.AddClassHandler<ForgeSquareButtonBase>((b, _) => b.UpdateGeometry());
+        HighlightInsetVerticalProperty.Changed.AddClassHandler<ForgeSquareButtonBase>((b, _) => b.UpdateGeometry());
     }
 
     /// <summary>族或密度变了：几何要重算，族还要写进伪类（模板按 <c>:islands</c> 选另一套颜色键）。</summary>
@@ -113,9 +113,9 @@ public abstract class ForgeSquareButtonBase : Button
         if (ShowsName)
         {
             return new Rect(
-                cell.X + HighlightInset,
+                cell.X + HighlightInsetHorizontal,
                 rect.Y,
-                Math.Max(0, cell.Width - (HighlightInset * 2)),
+                Math.Max(0, cell.Width - (HighlightInsetHorizontal * 2)),
                 rect.Height);
         }
 
@@ -297,11 +297,14 @@ public abstract class ForgeSquareButtonBase : Button
         // 把窄按钮在宽条带里推向外缘，按钮与条带一样宽之后它只会让人看着偏一边。
         var horizontal = !IsHostSized
             ? (padding.Left, padding.Right)
-            : (HighlightInset, HighlightInset);
+            : (HighlightInsetHorizontal, HighlightInsetHorizontal);
+        var vertical = !IsHostSized
+            ? (padding.Top, padding.Bottom)
+            : (ResolvedInsetVertical, ResolvedInsetVertical);
 
         BackgroundInsets = square
             ? default
-            : new Thickness(horizontal.Item1, padding.Top, horizontal.Item2, padding.Bottom);
+            : new Thickness(horizontal.Item1, vertical.Item1, horizontal.Item2, vertical.Item2);
         BackgroundSize = square ? HighlightSize : double.NaN;
 
         // 模板据此换对齐：方底那一档居中，其余照旧铺满
@@ -350,10 +353,10 @@ public abstract class ForgeSquareButtonBase : Button
         => ForgeStripeButtonMetrics.ForTheme(Palette.Family, IsCompact);
 
     /// <summary>按钮宽：expUI 40（紧凑 32），Islands 常规档 37。</summary>
-    public double ButtonWidth => IsHostSized ? (HighlightInset * 2) + HighlightSize : StripeMetrics.Width;
+    public double ButtonWidth => IsHostSized ? (HighlightInsetHorizontal * 2) + HighlightSize : StripeMetrics.Width;
 
     /// <summary>按钮高：40（紧凑 32）。</summary>
-    public double ButtonHeight => double.IsNaN(ButtonHeightOverride) ? StripeMetrics.Height : ButtonHeightOverride;
+    public double ButtonHeight => IsHostSized ? (ResolvedInsetVertical * 2) + HighlightSize : StripeMetrics.Height;
 
     /// <summary>图标边长：紧凑 16，否则 20。</summary>
     public double IconSize => StripeMetrics.IconSize;
@@ -385,22 +388,44 @@ public abstract class ForgeSquareButtonBase : Button
     public static readonly StyledProperty<double> HighlightSizeProperty =
         AvaloniaProperty.Register<ForgeSquareButtonBase, double>(nameof(HighlightSize), double.NaN);
 
-    /// <summary><see cref="HighlightInset"/> 的属性定义。</summary>
-    public static readonly StyledProperty<double> HighlightInsetProperty =
-        AvaloniaProperty.Register<ForgeSquareButtonBase, double>(nameof(HighlightInset), double.NaN);
+    /// <summary><see cref="HighlightInsetHorizontal"/> 的属性定义。</summary>
+    public static readonly StyledProperty<double> HighlightInsetHorizontalProperty =
+        AvaloniaProperty.Register<ForgeSquareButtonBase, double>(nameof(HighlightInsetHorizontal), double.NaN);
 
     /// <summary>
     /// 宿主指定的**高亮底**边长（那块方底）；<see cref="double.NaN"/> = 按主题算（按钮 − 图标内边距）。
     /// </summary>
-    /// <remarks>与 <see cref="HighlightInset"/> **成对给**，见那里。图标不受它影响，仍是主题里的尺寸。</remarks>
+    /// <remarks>与 <see cref="HighlightInsetHorizontal"/> **成对给**，见那里。图标不受它影响，仍是主题里的尺寸。</remarks>
     public double HighlightSize
     {
         get => GetValue(HighlightSizeProperty);
         set => SetValue(HighlightSizeProperty, value);
     }
 
+    /// <summary><see cref="HighlightInsetVertical"/> 的属性定义。</summary>
+    public static readonly StyledProperty<double> HighlightInsetVerticalProperty =
+        AvaloniaProperty.Register<ForgeSquareButtonBase, double>(nameof(HighlightInsetVertical), double.NaN);
+
     /// <summary>
-    /// 宿主指定的**高亮底左右边距**；<see cref="double.NaN"/> = 不指定（宽度走主题的按钮宽）。
+    /// 宿主指定的**高亮底上下边距**；<see cref="double.NaN"/> = 与左右同值（方按钮）。
+    /// </summary>
+    /// <remarks>
+    /// ★ <b>上下相邻两块底之间的空白 = 这个值 × 2</b>（按钮之间没有间隙，
+    /// 上游是 <c>VerticalFlowLayout(0, 0)</c>）—— 想让两块底相距 6px，就给 3。
+    /// 高度不用另给：<c>高 = 上边距 + 底 + 下边距</c>，和宽度同一条构造。
+    /// </remarks>
+    public double HighlightInsetVertical
+    {
+        get => GetValue(HighlightInsetVerticalProperty);
+        set => SetValue(HighlightInsetVerticalProperty, value);
+    }
+
+    /// <summary>上下边距实际取的值 —— 宿主没单独给就与左右同值。</summary>
+    private double ResolvedInsetVertical
+        => double.IsNaN(HighlightInsetVertical) ? HighlightInsetHorizontal : HighlightInsetVertical;
+
+    /// <summary>
+    /// 宿主指定的**高亮底左右边距**；<see cref="double.NaN"/> = 不指定（宽高走主题的按钮尺寸）。
     /// </summary>
     /// <remarks>
     /// ★ 这是"侧边栏该多宽"的**正确问法**（用户定的做法）：
@@ -412,32 +437,14 @@ public abstract class ForgeSquareButtonBase : Button
     /// 取整后左右差 1px，实机看着就是图标偏一边。
     /// </para>
     /// </remarks>
-    public double HighlightInset
+    public double HighlightInsetHorizontal
     {
-        get => GetValue(HighlightInsetProperty);
-        set => SetValue(HighlightInsetProperty, value);
-    }
-
-    /// <summary><see cref="ButtonHeightOverride"/> 的属性定义。</summary>
-    public static readonly StyledProperty<double> ButtonHeightOverrideProperty =
-        AvaloniaProperty.Register<ForgeSquareButtonBase, double>(nameof(ButtonHeightOverride), double.NaN);
-
-    /// <summary>
-    /// 宿主指定的按钮高度；<see cref="double.NaN"/> = 按主题（上游 40 / 紧凑 32）。
-    /// </summary>
-    /// <remarks>
-    /// ★ <b>条带上下相邻图标之间的空白 = 这个高度 − 图标边长</b>（按钮之间的间隙是 0，
-    /// 上游 <c>VerticalFlowLayout(0, 0)</c>）。所以"图标之间留多少"这件事就是在定它：
-    /// 图标 20、要留 6，就给 26。
-    /// </remarks>
-    public double ButtonHeightOverride
-    {
-        get => GetValue(ButtonHeightOverrideProperty);
-        set => SetValue(ButtonHeightOverrideProperty, value);
+        get => GetValue(HighlightInsetHorizontalProperty);
+        set => SetValue(HighlightInsetHorizontalProperty, value);
     }
 
     /// <summary>宿主是不是自己定了图标尺寸与边距（那时宽度由它们算出来）。</summary>
-    protected bool IsHostSized => !double.IsNaN(HighlightInset) && !double.IsNaN(HighlightSize);
+    protected bool IsHostSized => !double.IsNaN(HighlightInsetHorizontal) && !double.IsNaN(HighlightSize);
 
     /// <summary><see cref="HoverBackgroundBrush"/> 的属性定义。</summary>
     public static readonly StyledProperty<IBrush?> HoverBackgroundBrushProperty =

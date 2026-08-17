@@ -436,18 +436,29 @@ public class ForgeControlsTests
     [AvaloniaFact]
     public void 方底撑开的按钮里方底与图标都居中()
     {
-        var button = new ForgeStripeButton { HighlightSize = 24, HighlightInset = 5, Icon = ForgeIcons.Camera };
+        var button = new ForgeStripeButton
+        {
+            HighlightSize = 24,
+            HighlightInsetHorizontal = 5,
+            HighlightInsetVertical = 3,
+            Icon = ForgeIcons.Camera,
+        };
         var window = HostButton(button);
 
         var background = button.GetVisualDescendants().OfType<Border>().Single(x => x.Name == "PART_Background");
         var icon = button.GetVisualDescendants().OfType<ForgeGeometryIcon>().Single();
 
-        // 方底 24 + 两侧 5 → 按钮 34×40
+        // 方底 24 + 左右 5 + 上下 3 → 按钮 34×30（宽高都是"边距 + 底 + 边距"撑出来的）
+        Assert.Equal(new Size(34, 30), button.DesiredSize);
         Assert.Equal(24, background.Bounds.Width);
         Assert.Equal(24, background.Bounds.Height);
         Assert.Equal(5, background.Bounds.X);
         Assert.Equal(34 - 5, background.Bounds.Right);
-        Assert.Equal(20, background.Bounds.Center.Y);
+
+        // ★ 上下边距就是"相邻两块底之间的一半"：按钮之间没有间隙（上游 VerticalFlowLayout(0,0)），
+        //   所以两块底相距 3 + 3 = 6。这条钉住"间距按底算、不按图标算"。
+        Assert.Equal(3, background.Bounds.Y);
+        Assert.Equal(30 - 3, background.Bounds.Bottom);
 
         // ★ 方底与图标两侧的留白都**逐像素相等** —— 这才是"居中"，不是"差不多在中间"。
         //   宽度由方底撑开（5 + 24 + 5），所以两者构造上都落在整数：图标 20 → 两侧各 7。
@@ -469,7 +480,7 @@ public class ForgeControlsTests
         var button = new ForgeStripeButton
         {
             HighlightSize = 24,
-            HighlightInset = 5,
+            HighlightInsetHorizontal = 5,
             Icon = ForgeIcons.Camera,
             Title = "相机列表",
             ShowName = true,

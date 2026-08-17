@@ -620,9 +620,9 @@ public class ForgeControl : TemplatedControl
     /// </summary>
     /// <remarks>宿主没指定就走上游那 59（上游那个数本身就是条带宽）。</remarks>
     private double ResolvedStripeNamedWidth
-        => double.IsNaN(Appearance.StripeNamedHighlightWidth) || double.IsNaN(Appearance.StripeHighlightInset)
+        => double.IsNaN(Appearance.StripeNamedHighlightWidth) || double.IsNaN(Appearance.StripeHighlightInsetHorizontal)
             ? ForgeMetrics.StripeNamedDefaultWidth
-            : Appearance.StripeNamedHighlightWidth + (Appearance.StripeHighlightInset * 2);
+            : Appearance.StripeNamedHighlightWidth + (Appearance.StripeHighlightInsetHorizontal * 2);
 
     private void SyncStripes()
     {
@@ -633,7 +633,7 @@ public class ForgeControl : TemplatedControl
 
         // 宿主自己定了条带宽（StripeButtonWidth）时，内侧那条线压在内容上、不再占宽 ——
         // 否则总宽 = 给的宽 + 1，图标在总宽里落半像素，取整后看着偏一边。
-        var hostSized = !double.IsNaN(Appearance.StripeHighlightInset) && !double.IsNaN(Appearance.StripeHighlightSize);
+        var hostSized = !double.IsNaN(Appearance.StripeHighlightInsetHorizontal) && !double.IsNaN(Appearance.StripeHighlightSize);
         _left.BorderOverlaysContent = hostSized;
         _right.BorderOverlaysContent = hostSized;
 
@@ -798,8 +798,8 @@ public class ForgeControl : TemplatedControl
         button.HighlightSize = Appearance.StripeHighlightSize;
         button.NameFontSizeOverride = Appearance.StripeNameFontSize;
         button.NameFontWeightOverride = Appearance.StripeNameFontWeight;
-        button.HighlightInset = Appearance.StripeHighlightInset;
-        button.ButtonHeightOverride = Appearance.StripeButtonHeight;
+        button.HighlightInsetHorizontal = Appearance.StripeHighlightInsetHorizontal;
+        button.HighlightInsetVertical = Appearance.StripeHighlightInsetVertical;
         button.Icon = vm.Icon;
         button.Text = vm.Icon is null ? vm.Title[..1] : null;
         button.Title = vm.Title;

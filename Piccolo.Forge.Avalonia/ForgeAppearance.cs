@@ -122,11 +122,11 @@ public sealed record ForgeAppearance
     /// <summary>
     /// 条带按钮上那块**高亮底**的边长；<see cref="double.NaN"/> = 按上游算（按钮 − 图标内边距）。
     /// </summary>
-    /// <remarks>与 <see cref="StripeHighlightInset"/> **成对给**，见那里。图标不受它影响。</remarks>
+    /// <remarks>与 <see cref="StripeHighlightInsetHorizontal"/> **成对给**，见那里。图标不受它影响。</remarks>
     public double StripeHighlightSize { get; init; } = double.NaN;
 
     /// <summary>
-    /// 那块高亮底的**左右边距**；<see cref="double.NaN"/> = 不指定（宽度走上游的按钮宽）。
+    /// 那块高亮底的**左右边距**；<see cref="double.NaN"/> = 不指定（宽高走上游的按钮尺寸）。
     /// </summary>
     /// <remarks>
     /// ★ 这是"侧边栏该多宽"的正确问法：**别钉宽度，钉方底大小与两侧边距**，
@@ -138,16 +138,17 @@ public sealed record ForgeAppearance
     /// （<c>ForgeToolWindowToolbar.BorderOverlaysContent</c>），否则总宽又会多出 1。
     /// </para>
     /// </remarks>
-    public double StripeHighlightInset { get; init; } = double.NaN;
+    public double StripeHighlightInsetHorizontal { get; init; } = double.NaN;
 
     /// <summary>
-    /// 条带按钮多高；<see cref="double.NaN"/> = 走上游（常规 40 / 紧凑 32）。
+    /// 那块高亮底的**上下边距**；<see cref="double.NaN"/> = 与左右同值（方按钮）。
     /// </summary>
     /// <remarks>
-    /// ★ **上下相邻图标之间的空白 = 这个值 − 图标边长**（按钮之间没有间隙，
-    /// 上游是 <c>VerticalFlowLayout(0, 0)</c>）。图标 20、想留 6px，就给 26。
+    /// ★ <b>上下相邻两块底之间的空白 = 这个值 × 2</b>（按钮之间没有间隙，
+    /// 上游是 <c>VerticalFlowLayout(0, 0)</c>）—— 想让两块底相距 6px 就给 3。
+    /// <b>高度不用给</b>：<c>高 = 上边距 + 底 + 下边距</c>，与宽度同一条构造。
     /// </remarks>
-    public double StripeButtonHeight { get; init; } = double.NaN;
+    public double StripeHighlightInsetVertical { get; init; } = double.NaN;
 
     /// <summary>
     /// 「显示名字」时那块高亮底多宽；<see cref="double.NaN"/> = 走上游
@@ -155,7 +156,7 @@ public sealed record ForgeAppearance
     /// </summary>
     /// <remarks>
     /// 与收起态同一条构造：<c>条带宽 = 边距 + 底 + 边距</c>
-    /// （边距用 <see cref="StripeHighlightInset"/>），所以两侧留白天然相等。
+    /// （边距用 <see cref="StripeHighlightInsetHorizontal"/>），所以两侧留白天然相等。
     /// **高度不用给** —— 名字按这个宽度折行，折几行按钮就有多高。
     /// </remarks>
     public double StripeNamedHighlightWidth { get; init; } = double.NaN;
