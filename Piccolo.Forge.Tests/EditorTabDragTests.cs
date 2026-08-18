@@ -178,6 +178,36 @@ public class EditorTabDragTests
     }
 
     [AvaloniaFact]
+    public void 越位之后继续往同方向拖_投影不回跳()
+    {
+        // 回归（实机）：第一个拖过第二个之后（第二个已补位），鼠标再往右挪几像素，
+        // 投影和第二个标签开始左右互换闪个不停 —— 旧判定拿起拖时的老格子当回滞基准，
+        // 而缝一挪格子全变，两套坐标打架。中线计数在当前布局上自锁，不该再跳。
+        var (editor, window, _, a, b) = Shown();
+        _ = editor;
+
+        var press = GrabPoint(a, window);
+        window.MouseDown(press, MouseButton.Left);
+        window.MouseMove(new Point(press.X + b.Bounds.Width + 5, press.Y));
+        Dispatcher.UIThread.RunJobs();
+
+        var row = window.GetVisualDescendants().OfType<HeaderTabsPanel>().First();
+        Assert.Equal(1, row.DropIndex);
+
+        // 同方向再挪几步 —— 每一步都不许回跳
+        foreach (var dx in new[] { 3, 6, 9, 12 })
+        {
+            window.MouseMove(new Point(press.X + b.Bounds.Width + 5 + dx, press.Y));
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(1, row.DropIndex);
+        }
+
+        window.MouseUp(new Point(press.X + b.Bounds.Width + 17, press.Y), MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(["b", "a", "c"], Order(editor));
+    }
+
+    [AvaloniaFact]
     public void 起拖即摘起_源标签不占行内位置_投影吸在缝上()
     {
         // ★ 分工：**被拖的视觉（拖影）全程跟光标、永不吸附；吸附的只有落点投影。**

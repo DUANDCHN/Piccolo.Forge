@@ -1572,25 +1572,42 @@ public class ForgeEditorControl : TemplatedControl
             return false;
         }
 
-        // 落点判定用**夹进行内**的矩形（ResolveTarget 要的是行内坐标）——
-        // 夹的只是判定用的数字，拖影本身不受它约束。
+        // ★ 缝的判定 = **数"拖影中心越过了谁的中线"**（与面板标题条那套同一个算法）。
+        //
+        //   曾经用 ResolveTarget 对着格子算 —— 它的回滞基准是**起拖时的老布局**，
+        //   可缝一挪，行里的标签就让位（格子全变了），两套坐标对不上，表现为
+        //   投影和邻位标签左右来回闪（实机：第一个拖过第二个之后再往右，俩不停互换）。
+        //   中线计数在"含缝的当前布局"上自带一格宽的回滞：越过谁，谁就往反方向让位、
+        //   离中线更远 —— 判定自锁，不可能振荡。
+        //
+        //   落点 id 就是 Tabs[缝]：ReorderTab 的语义（先取目标索引→移除→插回）恰好使
+        //   "落到缝 g" == "以原索引 g 的那页为目标"；缝 == 源位置时目标是它自己 → 天然无操作。
         var point = e.GetPosition(strip);
-        var dragRec = ForgeEditorTabDragTarget.MoveToFit(
-            new Rect(point.X - session.HoldDelta.X, point.Y - session.HoldDelta.Y,
-                session.OriginalRec.Width, session.OriginalRec.Height),
-            new Rect(strip.Bounds.Size));
+        var center = new Point(
+            point.X - session.HoldDelta.X + (session.OriginalRec.Width / 2),
+            Math.Clamp(point.Y - session.HoldDelta.Y + (session.OriginalRec.Height / 2),
+                0, Math.Max(0, strip.Bounds.Height)));
 
-        var order = Enumerable.Range(0, session.Source.Tabs.Count)
-            .Select(i => stripControl.ContainerFromIndex(i) as ForgeEditorTab)
-            .ToList();
-        var rects = order.Select(c => c is not null ? strip.SlotOf(c) ?? default : default).ToList();
-        var sourceIndex = order.IndexOf(control);
-        var target = ForgeEditorTabDragTarget.ResolveTarget(dragRec, session.OriginalRec, rects, sourceIndex);
+        var gap = 0;
+        for (var i = 0; i < session.Source.Tabs.Count; i++)
+        {
+            if (stripControl.ContainerFromIndex(i) is not ForgeEditorTab tab
+                || ReferenceEquals(tab, control)
+                || strip.SlotOf(tab) is not { } slot)
+            {
+                continue;
+            }
+
+            // 换行排布下先比行（整行在上方就算越过），同一行再比中线
+            if (slot.Bottom <= center.Y || (slot.Y <= center.Y && slot.Center.X <= center.X))
+            {
+                gap++;
+            }
+        }
 
         session.OverSourceRow = true;
-        session.ReorderTargetId = target >= 0 ? session.Source.Tabs[target].Id : null;
+        session.ReorderTargetId = gap < session.Source.Tabs.Count ? session.Source.Tabs[gap].Id : null;
 
-        int? gap = target >= 0 ? target : (sourceIndex >= 0 ? sourceIndex : (int?)null);
         strip.DropIndex = gap;
         strip.InvalidateArrange();
         stripControl.InvalidateVisual();   // 投影由 TabStrip 画（Panel.Render 是密封的）
