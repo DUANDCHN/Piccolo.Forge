@@ -693,7 +693,7 @@ public class EditorTabDragTests
         window.MouseMove(drop);
         Dispatcher.UIThread.RunJobs();
 
-        Assert.NotNull(overlay.ThumbImage);
+        // 拖影已改由幽灵窗承担（拖动全程一个"小窗口"），覆盖层只画提示 —— 断言提示在即可
         Assert.NotNull(overlay.AreaRect);
 
         window.MouseUp(drop, MouseButton.Left);
@@ -716,7 +716,8 @@ public class EditorTabDragTests
         window.MouseDown(press, MouseButton.Left);
         window.MouseMove(release);
         Dispatcher.UIThread.RunJobs();
-        Assert.NotNull(overlay.ThumbImage);
+        // 拖影在幽灵窗上；覆盖层画的是落点提示（光标在正文 → 分屏侧的蓝框）
+        Assert.NotNull(overlay.AreaRect);
 
         // 松手位置不在源 TabStrip 的事件路由上；拖拽若归标签条所有，这里就收不了尾。
         window.MouseUp(release, MouseButton.Left);
@@ -768,7 +769,8 @@ public class EditorTabDragTests
         window.MouseDown(press, MouseButton.Left);
         window.MouseMove(drop);
         Dispatcher.UIThread.RunJobs();
-        Assert.NotNull(overlay.ThumbImage);
+        // 拖影在幽灵窗上；这里光标压在左组标签条上 → 覆盖层画"并入这一组"的提示
+        Assert.NotNull(overlay.AreaRect);
         window.MouseUp(drop, MouseButton.Left);
         Dispatcher.UIThread.RunJobs();
 

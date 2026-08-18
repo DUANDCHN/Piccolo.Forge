@@ -1,4 +1,4 @@
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
@@ -7,7 +7,7 @@ using Piccolo.Forge.Themes;
 namespace Piccolo.Forge.Avalonia;
 
 /// <summary>
-/// 跨窗口拖动时跟着光标走的那个示意窗口。
+/// 拖动全程跟着光标走的那个示意窗口（"拖动中的小窗口"）。
 /// </summary>
 /// <remarks>
 /// 窗口内拖动的拖影画在编辑区自己的覆盖层上（<see cref="ForgeDragOverlay"/>），
@@ -50,8 +50,10 @@ internal sealed class ForgeDragGhost : Window
         //   光标底下就永远是它，落点判定全废。
         IsHitTestVisible = false;
 
-        Width = Math.Max(120, thumb?.Size.Width ?? 160);
-        Height = Math.Max(28, thumb?.Size.Height ?? 28);
+        // 贴住快照的尺寸（只加边框那 2px）：窗比快照宽的话，Stretch.None 的图会在窗里
+        // **居中**，视觉上与抓握点错开半截 —— 拖影必须与被拖的那块同大同位。
+        Width = (thumb?.Size.Width ?? 160) + 2;
+        Height = (thumb?.Size.Height ?? 28) + 2;
         Content = _frame;
     }
 

@@ -309,13 +309,9 @@ public class ForgeEditorControl : TemplatedControl
 
         external?.ShowDropHint(screen);
 
-        if (inside)
-        {
-            session.Ghost?.Close();
-            session.Ghost = null;
-            return;
-        }
-
+        // ★ 幽灵窗**全程在**（起拖那一刻就有）：拖影就是它，"拖动中的小窗口"。
+        //   曾经窗内画覆盖层缩略图、出窗才换幽灵窗 —— 两副长相，切换那一下还跳一帧；
+        //   幽灵窗是置顶真窗口，画在窗内窗外都不会被裁，干脆全程用它。
         session.Ghost ??= Open(new ForgeDragGhost(session.Thumb, Palette));
         session.Ghost.MoveTo(screen, session.HoldDelta);
 
@@ -334,7 +330,9 @@ public class ForgeEditorControl : TemplatedControl
             return;
         }
 
-        var here = window.PointToClient(screen) - Bounds.Position;
+        // 同 ToScreen 的教训：减 Bounds.Position 只补一层，要按可视树换算本控件的原点
+        var origin = this.TranslatePoint(default, window) ?? default;
+        var here = window.PointToClient(screen) - origin;
         var candidate = FindGroupAt(here);
 
         _overlay.IsVisible = true;
@@ -408,8 +406,13 @@ public class ForgeEditorControl : TemplatedControl
             && screen.Y >= origin.Y && screen.Y <= end.Y;
     }
 
+    /// <remarks>
+    /// ⚠ 必须走 <c>Visual.PointToScreen</c>（完整可视树变换）。曾经写成
+    /// <c>window.PointToScreen(point + Bounds.Position)</c> —— 那只补了**一层**父级偏移，
+    /// 而编辑区嵌在外壳好几层容器里，幽灵窗与光标就整体错开一截（实机："直接错位了"）。
+    /// </remarks>
     private PixelPoint ToScreen(Point point)
-        => TopLevel.GetTopLevel(this) is Window window ? window.PointToScreen(point + Bounds.Position) : default;
+        => TopLevel.GetTopLevel(this) is not null ? this.PointToScreen(point) : default;
 
     /// <summary>
     /// 把一页挪到新窗口里（右键菜单「在新窗口中打开标签页」走的就是这里）。
@@ -1661,13 +1664,10 @@ public class ForgeEditorControl : TemplatedControl
 
         UpdateCrossWindowFeedback(session, here);
 
+        // 拖影由幽灵窗承担（见 UpdateCrossWindowFeedback）；覆盖层只画提示（蓝框等）
         _overlay.Palette = Palette;
-        _overlay.ThumbImage = session.Thumb;
-        _overlay.ThumbRect = new Rect(
-            here.X - session.HoldDelta.X,
-            here.Y - session.HoldDelta.Y,
-            session.ThumbSize.Width,
-            session.ThumbSize.Height);
+        _overlay.ThumbImage = null;
+        _overlay.ThumbRect = default;
     }
 
     private EditorGroupViewModel? FindGroupAt(Point point)

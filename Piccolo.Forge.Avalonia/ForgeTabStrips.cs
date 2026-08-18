@@ -448,25 +448,15 @@ internal static class ForgeTabStripTemplate
 /// </remarks>
 internal static class TabDropIndicator
 {
-    /// <summary>投影的底色透明度 0.22 —— 看得见"有块地方留着"，又不至于像多了一个标签。</summary>
-    private const double FillOpacity = 0.22;
-
-    /// <summary>
-    /// 画一次 —— <b>两族的形状不一样</b>。
-    /// </summary>
+    /// <summary>画一次：一块与被拖标签**同尺寸的灰色占位**。</summary>
     /// <remarks>
-    /// 投影是"这块地方留给它"，所以它该长得像**这一族的标签选中之后**那个样子：
-    /// <list type="bullet">
-    /// <item><b>Islands</b>：圆角块（半径 6，同 IslandsEditorTabArc 12 折半），底色取
-    /// <c>EditorTabSelectedBackground</c> —— 与该族选中标签同一个键；</item>
-    /// <item><b>expUI</b>：**方角**，而且重心在下沿那条线上（这一族的选中态就是一条下划线）——
-    /// 一块淡底 + 底边一条 <c>HeaderTabUnderline</c> 的实线。</item>
-    /// </list>
-    /// 早先两族画的是同一个圆角块，在经典档里与周围一堆方角格格不入。
+    /// 它只是占位（"松手会落在这一格"），不是预渲染的标签 —— 早先按族画成选中态的样子
+    /// （圆角块 / 淡底加下划线），视觉太重，看着像凭空多出一个标签（实机反馈）。
+    /// 灰取**前景色低透明度**：明暗两套下都是一块中性灰，不用分族。
     /// </remarks>
     /// <param name="context">绘制上下文。</param>
     /// <param name="panel">这条行的排布面板（投影位置由它算）。</param>
-    /// <param name="palette">当前配色（形状与取色都按它的族分）。</param>
+    /// <param name="palette">当前配色（只取前景色调灰）。</param>
     public static void Draw(DrawingContext context, Panel? panel, ForgePalette palette)
     {
         if (panel is not HeaderTabsPanel { DropRect: { } rect })
@@ -474,27 +464,6 @@ internal static class TabDropIndicator
             return;
         }
 
-        var islands = palette.Island is not null;
-
-        // 上下各收 3：投影比标签本身矮一点，看着是"放进去的位置"而不是又一个标签
-        var inset = rect.Deflate(new Thickness(0, 3));
-
-        if (islands)
-        {
-            var color = palette.EditorTabSelectedBackground;
-            context.DrawRectangle(new SolidColorBrush(color), new Pen(new SolidColorBrush(color), 1), inset, 6, 6);
-            return;
-        }
-
-        // expUI：方角淡底 + 下沿一条实线（与这一族"选中 = 下划线"同一种语言）
-        var accent = palette.HeaderTabUnderline;
-        context.DrawRectangle(new SolidColorBrush(accent, FillOpacity), null, inset);
-
-        var underline = new Rect(
-            inset.X,
-            inset.Bottom - ForgeMetrics.HeaderTabUnderlineHeight,
-            inset.Width,
-            ForgeMetrics.HeaderTabUnderlineHeight);
-        context.FillRectangle(new SolidColorBrush(accent), underline);
+        context.FillRectangle(new SolidColorBrush(palette.Foreground, 0.15), rect);
     }
 }
