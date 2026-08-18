@@ -239,6 +239,12 @@ public class EditorTabDragTests
         // Factory.MoveDockable；手势中途绝不能重建 TabStrip 容器。
         Assert.Equal(["a", "b", "c"], Order(editor));
 
+        // ★ 投影必须画在**松手会落的那条缝**上：a 越过 b 落到它后面，
+        //   "除源之外"的缝序号 = 1。曾经写成 target-1 = 0 —— 投影画在原地、
+        //   松手却真的换了位，往右拖必现"投影骗人"。
+        var previewRow = window.GetVisualDescendants().OfType<HeaderTabsPanel>().First();
+        Assert.Equal(1, previewRow.DropIndex);
+
         window.MouseUp(release, MouseButton.Left);
         Dispatcher.UIThread.RunJobs();
 

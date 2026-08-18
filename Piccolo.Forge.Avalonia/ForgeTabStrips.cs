@@ -144,9 +144,12 @@ public sealed class ForgeContentTabStrip : TabStrip
     /// <summary>松手：落到画出来的那条缝上。</summary>
     private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
-        if (_dragging && _dragId is { } id && _dropIndex is { } index && Manager is { } manager)
+        if (_dragging && _dragId is { } id && _dropIndex is { } gap && Manager is { } manager)
         {
-            manager.MoveTo(id, index);
+            // _dropIndex 是"除被拖那一块之外"的缝（投影用的那套坐标），
+            // MoveTo 收的是**当前列表**的缝 —— 落点在源右边（含原位）要加回被移除的那一格。
+            var source = manager.Contents.ToList().FindIndex(x => string.Equals(x.Id, id, StringComparison.Ordinal));
+            manager.MoveTo(id, source >= 0 && gap >= source ? gap + 1 : gap);
         }
 
         EndDrag();
@@ -160,24 +163,42 @@ public sealed class ForgeContentTabStrip : TabStrip
         _dropIndex = null;
     }
 
-    /// <summary>指针落在第几条缝里（0 = 最前面，ItemCount = 最后面）。</summary>
-    /// <remarks>按每块 tab 的**中线**分界：过了中线就算落到它后面 —— 与画出来的竖条同一个判据。</remarks>
+    /// <summary>
+    /// 指针落在第几条缝里 —— **按"除被拖那一块之外"的次序**（0 = 最前面）。
+    /// </summary>
+    /// <remarks>
+    /// 两条规矩，都吃过亏：
+    /// <list type="bullet">
+    /// <item><b>跳过被拖的那一块</b> —— 它正跟着光标跑，拿它自己的中线判"落在哪"是自己咬自己，
+    /// 投影会抖、会错位；</item>
+    /// <item><b>用排布格子（<see cref="HeaderTabsPanel.SlotOf"/>）不用 Bounds</b> ——
+    /// 格子里已经含着空档，"过了谁的中线就落到谁后面"在这套坐标里是稳定的。</item>
+    /// </list>
+    /// </remarks>
     private int GapAt(Point position)
     {
+        if (ItemsPanelRoot is not HeaderTabsPanel panel)
+        {
+            return 0;
+        }
+
+        var gap = 0;
         for (var i = 0; i < ItemCount; i++)
         {
-            if (ContainerFromIndex(i) is not ForgeContentTab tab)
+            if (ContainerFromIndex(i) is not ForgeContentTab tab
+                || ReferenceEquals(tab, panel.DraggedChild)
+                || panel.SlotOf(tab) is not { } slot)
             {
                 continue;
             }
 
-            if (position.X < tab.Bounds.Center.X)
+            if (position.X >= slot.Center.X)
             {
-                return i;
+                gap++;
             }
         }
 
-        return ItemCount;
+        return gap;
     }
 
     /// <summary>
@@ -212,8 +233,8 @@ public sealed class ForgeContentTabStrip : TabStrip
         panel.DraggedChild = tab;
         panel.DraggedX = Math.Clamp(position.X - _grabOffset, 0, maxX);
 
-        // 空档按"除它之外"的次序算；gap 为 null = 拖到行外，没有落点（只跟手，不画投影）
-        panel.DropIndex = gap is { } value ? (value > index ? value - 1 : value) : null;
+        // GapAt 给的已经是"除它之外"的缝，直接用；null = 拖到行外，没有落点（只跟手，不画投影）
+        panel.DropIndex = gap;
         panel.InvalidateArrange();
         InvalidateVisual();   // 投影是本控件画的（见 Render）
     }

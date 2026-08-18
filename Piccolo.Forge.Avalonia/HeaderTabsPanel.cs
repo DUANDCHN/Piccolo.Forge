@@ -210,8 +210,9 @@ public class HeaderTabsPanel : Panel
             // 被拖的那一个浮在上面跟手，不占行内位置；它原来那一格由 DropIndex 处的空档接手
             if (ReferenceEquals(child, DraggedChild) && DropIndex is not null)
             {
+                // ⚠ 浮动矩形**不写进 _slots**：SlotOf 的契约是"排布算出来的格子，
+                //   不是它当前画在哪"—— 拿浮动位置去做拖拽判定就是自己咬自己。
                 var floating = new Rect(DraggedX, DraggedTop(0), width, finalSize.Height);
-                _slots[child] = floating;
                 child.ZIndex = 1;
                 child.Opacity = DraggedOpacity;
                 child.Arrange(floating);

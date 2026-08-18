@@ -1581,9 +1581,15 @@ public class ForgeEditorControl : TemplatedControl
         // 落点处留一个**空档**（模型不动，只在排布这一层让位）——
         // 上游拖动中是当场 reallocate、其余标签跟着让开，我们把模型变更推迟到松手，
         // 于是靠这个空档把"松手会落在哪"说清楚。索引按"除被拖那一个之外"的次序算。
+        //
+        // ⚠ **两个方向都恒等于 target，不要"往右减一"。** 松手走的 ReorderTab 是
+        //   "先取目标索引 → 移除源 → 插回旧索引"：拿 [a,b,c] 把 a 拖到 c(2) 上算 ——
+        //   移除 a 得 [b,c]，插回 2 → [b,c,a]，落点的"除源之外"序号 = 2 = target；
+        //   往左同理（[a,b,c] 拖 c 到 a：插回 0 → [c,a,b]，序号 0 = target）。
+        //   曾经写成 target-1，往右拖时投影画在落点左边一格 —— 投影骗人比没有投影更糟。
         var source = order.IndexOf(control);
         strip.DropIndex = target >= 0
-            ? (target > source ? target - 1 : target)
+            ? target
             : (source >= 0 ? source : null);
         strip.InvalidateArrange();
         stripControl.InvalidateVisual();   // 投影由 TabStrip 画（Panel.Render 是密封的）
