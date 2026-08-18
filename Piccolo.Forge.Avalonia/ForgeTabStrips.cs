@@ -71,6 +71,83 @@ public sealed class ForgeContentTabStrip : TabStrip
         ItemsPanel = new FuncTemplate<Panel?>(() => new HeaderTabsPanel());
         Template = ForgeTabStripTemplate.Create<ForgeContentTabStrip>();
         AddHandler(PointerPressedEvent, OnPointerPressed, RoutingStrategies.Tunnel);
+
+        // 拖着换次序：与文档标签同一套手感（越过目标就换位），只是这里不跨容器 ——
+        // 内容 tab 只属于这一个工具窗口，没有"拖到别的窗口去"这回事。
+        AddHandler(PointerMovedEvent, OnPointerMoved, RoutingStrategies.Tunnel | RoutingStrategies.Bubble);
+        AddHandler(PointerReleasedEvent, OnPointerReleased, RoutingStrategies.Tunnel | RoutingStrategies.Bubble, handledEventsToo: true);
+        AddHandler(PointerCaptureLostEvent, (_, _) => EndDrag(), RoutingStrategies.Direct, handledEventsToo: true);
+    }
+
+    private string? _dragId;
+    private Point _dragOrigin;
+    private bool _dragging;
+
+    /// <summary>
+    /// 拖到哪算换位 —— 指针进了另一块 tab 就换。
+    /// </summary>
+    /// <remarks>
+    /// 起拖有个死区（<see cref="ForgeMetrics.StripeButtonDragStartDeadzone"/> = 7）：
+    /// 按下时手抖几像素不该被当成拖 —— 条带按钮那次"有时要点两下"就是死区没设好。
+    /// <para>
+    /// 换位的语义在模型里（<c>ToolWindowContentManager.Reorder</c>）：先取目标索引再移除源，
+    /// 两个方向都是"越过目标"。这里只负责认出"指针现在压在谁身上"。
+    /// </para>
+    /// </remarks>
+    private void OnPointerMoved(object? sender, PointerEventArgs e)
+    {
+        if (_dragId is null || Manager is not { } manager)
+        {
+            return;
+        }
+
+        var position = e.GetPosition(this);
+        if (!_dragging)
+        {
+            var moved = Math.Abs(position.X - _dragOrigin.X) + Math.Abs(position.Y - _dragOrigin.Y);
+            if (moved < ForgeMetrics.StripeButtonDragStartDeadzone)
+            {
+                return;
+            }
+
+            _dragging = true;
+        }
+
+        if (TabAt(position) is not { } target || string.Equals(target, _dragId, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        manager.Reorder(_dragId, target);
+    }
+
+    private void OnPointerReleased(object? sender, PointerReleasedEventArgs e) => EndDrag();
+
+    private void EndDrag()
+    {
+        _dragId = null;
+        _dragging = false;
+    }
+
+    /// <summary>指针底下压着哪一块 tab（没有就 <see langword="null"/>）。</summary>
+    private string? TabAt(Point position)
+    {
+        for (var i = 0; i < ItemCount; i++)
+        {
+            if (ContainerFromIndex(i) is not ForgeContentTab tab
+                || tab.DataContext is not ToolWindowContent content)
+            {
+                continue;
+            }
+
+            var bounds = tab.Bounds;
+            if (position.X >= bounds.X && position.X <= bounds.Right)
+            {
+                return content.Id;
+            }
+        }
+
+        return null;
     }
 
     internal ForgePalette Palette { get; set; } = ForgePalette.ExpUiDark;
@@ -102,6 +179,7 @@ public sealed class ForgeContentTabStrip : TabStrip
             if (_manager is not null)
             {
                 _manager.SelectionChanged -= OnManagerSelectionChanged;
+                _manager.Reordered -= OnManagerReordered;
             }
 
             _manager = value;
@@ -109,6 +187,7 @@ public sealed class ForgeContentTabStrip : TabStrip
             if (_manager is not null)
             {
                 _manager.SelectionChanged += OnManagerSelectionChanged;
+                _manager.Reordered += OnManagerReordered;
             }
         }
     }
@@ -116,6 +195,22 @@ public sealed class ForgeContentTabStrip : TabStrip
     private ToolWindowContentManager? _manager;
 
     private void OnManagerSelectionChanged(object? sender, EventArgs e) => SyncSelection();
+
+    /// <summary>次序变了：换一份 ItemsSource 让容器重排，再把选中刷回去。</summary>
+    /// <remarks>
+    /// 直接改 <c>ItemsSource</c> 而不是原地挪容器：这条 tab 行的容器由 Avalonia 的
+    /// item-container 生命周期管，手工挪会与它打架（文档标签那边的"拖影卡住"就是这么来的）。
+    /// </remarks>
+    private void OnManagerReordered(object? sender, EventArgs e)
+    {
+        if (Manager is not { } manager)
+        {
+            return;
+        }
+
+        ItemsSource = manager.Contents.ToArray();
+        SyncSelection();
+    }
 
     /// <summary>把"选中的是哪块"刷到已经实现出来的那些 tab 上。</summary>
     /// <remarks>
@@ -179,6 +274,11 @@ public sealed class ForgeContentTabStrip : TabStrip
         else
         {
             manager.Select(content.Id);
+
+            // 记住"按下的是谁"——移动超过死区才真的开始拖（见 OnPointerMoved）
+            _dragId = content.Id;
+            _dragOrigin = e.GetPosition(this);
+            _dragging = false;
         }
 
         e.Handled = true;

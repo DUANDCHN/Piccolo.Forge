@@ -1,4 +1,4 @@
-namespace Piccolo.Forge.Model;
+﻿namespace Piccolo.Forge.Model;
 
 /// <summary>
 /// 工具窗口里的一块内容。
@@ -150,6 +150,60 @@ public sealed class ToolWindowContentManager
             SelectionChanged?.Invoke(this, EventArgs.Empty);
         }
     }
+
+    /// <summary>
+    /// 把一块内容拖到另一块的位置上（重排）。
+    /// </summary>
+    /// <remarks>
+    /// 语义**照抄文档标签那条**（<c>EditorSplitTree.Reorder</c> / 上游
+    /// <c>JBTabsImpl.kt:3331 · reallocate</c>）：
+    /// <c>先取目标索引 → 移除源 → 插回那个索引</c>。
+    /// <para>
+    /// ⚠ <b>索引在移除之前取，这不是笔误，是语义。</b>源在目标左边时，移除源让目标左移一格，
+    /// 插回旧索引 = 落到目标**右边**；源在右边时插回旧索引 = 落到目标**左边**。
+    /// 两个方向都是"越过目标"，这才是拖拽该有的手感；改成移除后再取索引，往右拖会永远差一格。
+    /// </para>
+    /// <para>
+    /// **选中跟着内容走**：这里挪的是次序，不改"选中的是哪块"——
+    /// 拖一下就换了选中会让人以为拖丢了。
+    /// </para>
+    /// </remarks>
+    /// <param name="sourceId">被拖的那一块。</param>
+    /// <param name="targetId">拖到谁的位置上。</param>
+    /// <returns>确实挪动了则为 <see langword="true"/>。</returns>
+    public bool Reorder(string sourceId, string targetId)
+    {
+        if (string.Equals(sourceId, targetId, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var targetIndex = _contents.FindIndex(x => string.Equals(x.Id, targetId, StringComparison.Ordinal));
+        var sourceIndex = _contents.FindIndex(x => string.Equals(x.Id, sourceId, StringComparison.Ordinal));
+        if (targetIndex < 0 || sourceIndex < 0)
+        {
+            return false;
+        }
+
+        var selectedId = SelectedContent?.Id;
+
+        var source = _contents[sourceIndex];
+        _contents.RemoveAt(sourceIndex);
+        _contents.Insert(targetIndex, source);
+
+        // 选中的是"哪一块"，不是"第几块" —— 重排后要把索引挪回那一块身上
+        if (selectedId is not null)
+        {
+            _selectedIndex = _contents.FindIndex(x => string.Equals(x.Id, selectedId, StringComparison.Ordinal));
+        }
+
+        Reordered?.Invoke(this, EventArgs.Empty);
+        return true;
+    }
+
+    /// <summary>次序变了（重排）。</summary>
+    /// <remarks>与 <see cref="SelectionChanged"/> 分开：重排不改选中，视图要做的事也不一样。</remarks>
+    public event EventHandler? Reordered;
 
     /// <summary>
     /// 选中某块内容。

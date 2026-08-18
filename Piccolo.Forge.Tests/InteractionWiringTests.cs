@@ -730,3 +730,76 @@ public class ForgeContentTabFamilyTests
         return (window, tab);
     }
 }
+
+/// <summary>标题条上的内容 tab：拖着换次序。</summary>
+/// <remarks>
+/// 语义与文档标签同一条（模型里的 Reorder：先取目标索引再移除源，两个方向都是"越过目标"）。
+/// 与文档标签不同的是**不跨容器** —— 内容 tab 只属于这一个工具窗口。
+/// </remarks>
+public class ForgeContentTabReorderTests
+{
+    [AvaloniaFact]
+    public void 拖过去就换位_而且选中的还是原来那块()
+    {
+        var (window, panel, strip) = Build();
+
+        // 选中第一块，然后把它拖到第三块身上
+        panel.Contents.Select("a");
+        Dispatcher.UIThread.RunJobs();
+
+        // ⚠ 两个坐标都要在**按下之前**量：一旦开始拖，容器会跟着次序重建，
+        //   再去问旧引用要位置就问不到了（TranslatePoint 给 null）。
+        var from = Center(TabOf(strip, "甲"), window);
+        var to = Center(TabOf(strip, "丙"), window);
+
+        window.MouseDown(from, MouseButton.Left);
+        window.MouseMove(to);
+        window.MouseUp(to, MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(["b", "c", "a"], panel.Contents.Contents.Select(x => x.Id));
+        Assert.Equal("a", panel.Contents.SelectedContent?.Id);   // 选中跟着**那一块**走，不是跟着位置
+    }
+
+    [AvaloniaFact]
+    public void 手抖不算拖()
+    {
+        // 死区 7：按下时抖两下不该换位（条带按钮那次"有时要点两下"就是死区没设好）
+        var (window, panel, strip) = Build();
+        var from = Center(TabOf(strip, "甲"), window);
+        window.MouseDown(from, MouseButton.Left);
+        window.MouseMove(new Point(from.X + 3, from.Y));
+        window.MouseUp(new Point(from.X + 3, from.Y), MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(["a", "b", "c"], panel.Contents.Contents.Select(x => x.Id));
+    }
+
+    private static ForgeContentTab TabOf(ForgeContentTabStrip strip, string title)
+        => Enumerable.Range(0, strip.ItemCount)
+            .Select(strip.ContainerFromIndex)
+            .OfType<ForgeContentTab>()
+            .Single(x => x.Title == title);
+
+    private static Point Center(ForgeContentTab tab, Window window)
+        => tab.TranslatePoint(new Point(tab.Bounds.Width / 2, tab.Bounds.Height / 2), window)!.Value;
+
+    private static (Window Window, ToolWindowViewModel Panel, ForgeContentTabStrip Strip) Build()
+    {
+        var shell = new ToolWindowShellViewModel();
+        var panel = shell.Add("A", "面板", ToolWindowAnchor.Bottom, false);
+        panel.Contents.Add(new ToolWindowContent("a", "甲", IsCloseable: false));
+        panel.Contents.Add(new ToolWindowContent("b", "乙", IsCloseable: false));
+        panel.Contents.Add(new ToolWindowContent("c", "丙", IsCloseable: false));
+        shell.Manager.Activate("A");
+
+        var frame = new ForgeControl();
+        frame.Attach(shell);
+
+        var window = new Window { Width = 900, Height = 500, Content = frame };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        return (window, panel, frame.GetVisualDescendants().OfType<ForgeContentTabStrip>().First());
+    }
+}
