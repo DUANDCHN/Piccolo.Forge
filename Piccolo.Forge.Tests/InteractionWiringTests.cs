@@ -455,6 +455,62 @@ public class ForgeDragFeedbackTests
         Assert.Equal(ToolWindowType.Floating, manager.Layout.GetInfo(id)!.Type);
     }
 
+    /// <summary>
+    /// 落点标签把「哪条边的哪一半」说清楚。
+    /// </summary>
+    /// <remarks>
+    /// 拖标题条时跟手的是一块图标（与拖条带图标同一副长相），单靠它分不清会落到哪一格；
+    /// 上游在拖影旁边挂的那条 <c>HelpTooltip</c>（<c>ToolWindowDragHelper.kt:346-352</c>）
+    /// 就是干这个的。菜单里那份 <c>DescribeMove</c> 是"左下"两个字——一列八项看得见彼此时够用；
+    /// 拖动时只有孤零零一条，得说开。
+    /// </remarks>
+    [AvaloniaTheory]
+    [InlineData(ToolWindowAnchor.Left, false, "移至 左侧 顶部")]
+    [InlineData(ToolWindowAnchor.Left, true, "移至 左侧 底部")]
+    [InlineData(ToolWindowAnchor.Right, true, "移至 右侧 底部")]
+    [InlineData(ToolWindowAnchor.Bottom, false, "移至 底部 左侧")]
+    [InlineData(ToolWindowAnchor.Bottom, true, "移至 底部 右侧")]
+    public void The_drop_label_spells_out_which_half_of_which_edge(
+        ToolWindowAnchor anchor, bool isSplit, string expected)
+        => Assert.Equal(expected, ForgeMenuBuilder.DescribeMoveTarget(anchor, isSplit));
+
+    /// <summary>
+    /// 拖标题条：拖到**别的停靠位**时是"会停靠"那一档，不是浮窗缩略。
+    /// </summary>
+    /// <remarks>
+    /// 回归（用户实机）：「拖出去成浮动缩略图，只有拖回原来的面板位置才会变回来，
+    /// 拖到别的停靠位置还是浮动缩略图」。成因是拿"出没出**本**面板"当浮动判据。
+    /// 上游的判据是 <c>isDragOut</c>（<c>ToolWindowDragHelper.kt:172-181</c>）：
+    /// 落在**任何**可见停靠面板里就不算拖出去，否则看有没有目标条带。
+    /// </remarks>
+    [AvaloniaFact]
+    public void Dragging_a_header_onto_another_stripe_is_not_a_float()
+    {
+        var (frame, window) = Show();
+        var shell = frame.Shell!;
+        shell.Open("Project");
+        Dispatcher.UIThread.RunJobs();
+
+        var header = frame.GetVisualDescendants().OfType<ForgeToolWindowHeader>().First(x => x.IsVisible);
+        var start = header.TranslatePoint(new Point(30, 10), frame)!.Value;
+
+        // 拖到右条带上组：那儿有落点，属于"会停靠"，不该是浮窗缩略
+        var rightButton = frame.RightToolbar.TopGroup.Children.OfType<ForgeStripeButton>().First();
+        var onRightStripe = rightButton.TranslatePoint(new Point(10, 10), frame)!.Value;
+
+        window.MouseDown(start, MouseButton.Left);
+        window.MouseMove(start + new Vector(0, 160));   // 走够标题条那 100 的死区
+        window.MouseMove(onRightStripe);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.NotNull(frame.DragOverlay.DropRect);
+
+        window.MouseUp(onRightStripe, MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(ToolWindowAnchor.Right, shell.Manager.Layout.GetInfo("Project")!.Anchor);
+    }
+
     [AvaloniaFact]
     public void Dragging_a_stripe_button_shows_the_drop_feedback()
     {

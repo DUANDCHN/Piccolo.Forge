@@ -23,6 +23,21 @@ internal sealed class ForgeDragGhost : Window
 {
     private readonly Image _thumb = new() { Stretch = Stretch.None };
     private readonly Border _frame;
+
+    /// <summary>落点标签：「移至 左侧 底部」那一条，摆在图标块左边。</summary>
+    /// <remarks>
+    /// 对应上游拖动时挂在拖影旁边的 <c>HelpTooltip</c>
+    /// （<c>ToolWindowDragHelper.kt:346-352</c>，文案 <c>"Move to " + anchor</c>）。
+    /// 拖标题条时只靠一块图标分不清"松手会落到哪一格"，这条字就是答案。
+    /// </remarks>
+    private readonly TextBlock _label = new()
+    {
+        VerticalAlignment = VerticalAlignment.Center,
+        IsVisible = false,
+    };
+
+    private readonly Border _labelFrame;
+    private readonly StackPanel _root;
     private readonly RenderTargetBitmap? _tabThumb;
     private readonly RenderTargetBitmap? _windowThumb;
     /// <summary>预览类形态（标签 / 浮窗缩略）的透明度（<c>ToolWindowDragHelper.kt:94 · THUMB_OPACITY</c> 那一档）。</summary>
@@ -31,6 +46,8 @@ internal sealed class ForgeDragGhost : Window
     private readonly Size _tile;
     private readonly IBrush? _tileBackground;
     private readonly IBrush _defaultBackground;
+    private readonly IBrush _labelForeground;
+    private bool _labelOnRight;
     private readonly Color _stripeBackground;
     private readonly CornerRadius _tileCorner;
     private bool _floating;
@@ -70,6 +87,7 @@ internal sealed class ForgeDragGhost : Window
         _stripeBackground = palette.StripeBackground;
         _tileCorner = tileCorner;
         _defaultBackground = new SolidColorBrush(palette.EditorBackground);
+        _labelForeground = new SolidColorBrush(palette.Foreground);
         _frame = new Border
         {
             Background = _defaultBackground,
@@ -95,7 +113,25 @@ internal sealed class ForgeDragGhost : Window
         //   光标底下就永远是它，落点判定全废。
         IsHitTestVisible = false;
 
-        Content = _frame;
+        _labelFrame = new Border
+        {
+            Background = _defaultBackground,
+            BorderBrush = new SolidColorBrush(palette.HeaderTabUnderline),
+            BorderThickness = new Thickness(1),
+            Padding = new Thickness(8, 4),
+            VerticalAlignment = VerticalAlignment.Center,
+            IsVisible = false,
+            Child = _label,
+        };
+
+        _root = new StackPanel
+        {
+            Orientation = global::Avalonia.Layout.Orientation.Horizontal,
+            Spacing = 8,
+            Children = { _labelFrame, _frame },
+        };
+
+        Content = _root;
         ApplyMode();
     }
 
@@ -125,6 +161,83 @@ internal sealed class ForgeDragGhost : Window
             (byte)Math.Round((top.R * a) + (under.R * (1 - a))),
             (byte)Math.Round((top.G * a) + (under.G * (1 - a))),
             (byte)Math.Round((top.B * a) + (under.B * (1 - a)))));
+    }
+
+    /// <summary>
+    /// 落点标签的文案；<see langword="null"/> 表示不显示。
+    /// </summary>
+    /// <remarks>
+    /// 只在「图标块」那一档有意义（浮动预览自己就说清了"会浮出一个窗口"）。
+    /// 文案由宿主给（<c>ForgeMenuBuilder.DescribeMoveTarget</c>），这里只管摆。
+    /// </remarks>
+    /// <param name="text">要显示的字；<see langword="null"/> / 空 = 不显示。</param>
+    /// <param name="onRight">
+    /// 标签挂在图标块的**右**边还是左边。上游按目标边翻面
+    /// （<c>ToolWindowDragHelper.kt:361-368</c>）：落到**左**侧的目标挂右边，其余挂左边 ——
+    /// 否则标签会伸到屏幕外或压在它要指的那条边上。
+    /// </param>
+    public void SetLabel(string? text, bool onRight = false)
+    {
+        var show = !string.IsNullOrEmpty(text) && !_floating;
+
+        // 换边就重排两个孩子的次序
+        var wantIndex = onRight ? 1 : 0;
+        if (_root.Children.IndexOf(_labelFrame) != wantIndex)
+        {
+            _root.Children.Remove(_labelFrame);
+            _root.Children.Insert(wantIndex, _labelFrame);
+        }
+
+        _labelOnRight = onRight;
+        _label.Text = text;
+        _label.IsVisible = show;
+        _labelFrame.IsVisible = show;
+
+        if (show)
+        {
+            _label.Foreground = _labelForeground;
+        }
+
+        Resize();
+    }
+
+    /// <summary>
+    /// 按当前形态定窗口尺寸。
+    /// </summary>
+    /// <remarks>
+    /// ⚠ 挂了标签就**不能**再把窗口钉成图标块那么大：内容一下变成"标签 + 间距 + 图标块"，
+    /// 钉住尺寸的结果是标签被裁掉半截（实机看到的是「移至 左」）。那一档交给
+    /// <see cref="SizeToContent"/> 去量。
+    /// <para>
+    /// 不挂标签时仍然钉尺寸——那是"背板尺寸不能变"那条硬约束，且窗口本来就要不到 24×24
+    /// （平台最小 32×39），靠 Border 定尺、窗口余下部分透明。
+    /// </para>
+    /// </remarks>
+    private void Resize()
+    {
+        if (_floating)
+        {
+            return;
+        }
+
+        if (_labelFrame.IsVisible)
+        {
+            // ⚠ 先把显式尺寸撤了：Width/Height 是**盖过** SizeToContent 的，
+            //   不撤的话窗口还钉在图标块那么大，标签被裁掉半截
+            //   （实机：第一次挂标签就是「移至 左」，拖去浮动那一档改过尺寸再回来才正常）。
+            Width = double.NaN;
+            Height = double.NaN;
+            SizeToContent = SizeToContent.WidthAndHeight;
+            return;
+        }
+
+        SizeToContent = SizeToContent.Manual;
+
+        if (_tile != default)
+        {
+            Width = _tile.Width;
+            Height = _tile.Height;
+        }
     }
 
     /// <summary>现在是不是"小窗口预览"那一档。</summary>
@@ -183,6 +296,9 @@ internal sealed class ForgeDragGhost : Window
     {
         ResetFrame();
 
+        _label.IsVisible = false;
+        _labelFrame.IsVisible = false;
+
         if (_floating && (_windowThumb ?? _tabThumb) is { } preview)
         {
             // 浮动预览：缩进 320×220 的框里（等比），圆角 + 边框 —— 长得像一个缩小的窗口
@@ -193,6 +309,7 @@ internal sealed class ForgeDragGhost : Window
             _thumb.Height = Math.Max(1, preview.Size.Height * scale);
             _frame.CornerRadius = new CornerRadius(8);
             _frame.Padding = new Thickness(2);
+            SizeToContent = SizeToContent.Manual;
             Width = _thumb.Width + 6;
             Height = _thumb.Height + 6;
             return;
@@ -241,8 +358,7 @@ internal sealed class ForgeDragGhost : Window
             _frame.HorizontalAlignment = HorizontalAlignment.Left;
             _frame.VerticalAlignment = VerticalAlignment.Top;
 
-            Width = _tile.Width;
-            Height = _tile.Height;
+            Resize();
             return;
         }
 
@@ -262,7 +378,18 @@ internal sealed class ForgeDragGhost : Window
     /// <param name="grab">抓握偏移。</param>
     public void MoveTo(PixelPoint screen, Vector grab)
     {
-        var g = _floating ? new Vector(Width / 2, 12) : grab;
+        var g = _floating
+            ? new Vector(Width / 2, 12)
+            : _labelFrame.IsVisible
+                // 图标块在光标下，标签甩在左边。宽度取实际排出来的那个（SizeToContent 之后
+                // Width 要等下一次排布才更新，直接用会差一帧、拖影抖一下）。
+                // 图标块在光标下：它挂在哪一边，抓握点就从哪一边算
+                ? _labelOnRight
+                    ? new Vector(_tile.Width / 2, _tile.Height / 2)
+                    : new Vector(
+                        (_root.Bounds.Width > 0 ? _root.Bounds.Width : Width) - (_tile.Width / 2),
+                        _tile.Height / 2)
+                : grab;
         Position = new PixelPoint(screen.X - (int)g.X, screen.Y - (int)g.Y);
     }
 }

@@ -345,6 +345,36 @@ public static class ForgeMenuBuilder
         _ => isSplit ? "上右" : "上左",
     };
 
+    /// <summary>
+    /// 拖动时那条落点标签的文案：「移至 左侧 底部」。
+    /// </summary>
+    /// <remarks>
+    /// 对应上游拖影旁边挂的 <c>HelpTooltip</c>（<c>ToolWindowDragHelper.kt:346-352</c>），
+    /// 文案是 <c>"Move to " + anchor</c>。这里比菜单里的 <see cref="DescribeMove"/> 说得开一些
+    /// ——菜单是一列八项、看得见彼此，"左下"两个字够了；拖动时只有孤零零一条，
+    /// 得让人一眼读懂是哪条边的哪一半。
+    /// </remarks>
+    /// <param name="anchor">落到哪条边。</param>
+    /// <param name="isSplit">是不是那条边的「另一半」。</param>
+    /// <returns>要显示的字。</returns>
+    public static string DescribeMoveTarget(ToolWindowAnchor anchor, bool isSplit)
+    {
+        var side = anchor switch
+        {
+            ToolWindowAnchor.Left => "左侧",
+            ToolWindowAnchor.Right => "右侧",
+            ToolWindowAnchor.Bottom => "底部",
+            _ => "顶部",
+        };
+
+        // 竖边分上下，横边分左右
+        var half = anchor is ToolWindowAnchor.Bottom or ToolWindowAnchor.Top
+            ? isSplit ? "右侧" : "左侧"
+            : isSplit ? "底部" : "顶部";
+
+        return $"移至 {side} {half}";
+    }
+
     private static MenuItem Item(string header, Action action)
     {
         var item = new MenuItem { Header = header };

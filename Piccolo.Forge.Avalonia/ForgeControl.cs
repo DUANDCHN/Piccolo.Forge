@@ -951,12 +951,22 @@ public class ForgeControl : TemplatedControl
             _headerDragging = true;
 
             // ★ 拖动中**不真的浮出**（曾经起拖即 SetType(Floating)、真窗口跟手）：
-            //   面板原地不动，跟手的是幽灵窗 —— 紧凑形态（标题条快照）表示"还在挑落点"，
-            //   出了本面板换成浮窗缩略图（与编辑区同一套形态语言）。松手才真正落位/浮出。
-            if (_headerDragHeader is { } hdr && _panelHosts.TryGetValue(id, out var host))
+            //   面板原地不动，跟手的是幽灵窗。松手才真正落位/浮出。
+            // ★ 跟手的样子与**拖条带图标完全一样**（同一块图标块），只是左边多一条
+            //   「移至 …」的标签说清会落到哪一格 —— 拖标题条和拖图标搬的是同一样东西，
+            //   长相没有理由是两副。出了面板仍换成浮窗缩略图（第三档）。
+            if (_panelHosts.TryGetValue(id, out var host))
             {
+                var button = _stripeButtons.GetValueOrDefault(id);
+                var icon = button?.FindDescendantOfType<ForgeIconHost>()?.Icon;
+
                 _headerGhost = new ForgeDragGhost(
-                    ForgeDragOverlay.CaptureThumb(hdr), Palette, ForgeDragOverlay.CaptureThumb(host));
+                    icon is not null ? ForgeDragOverlay.CaptureThumb(icon) : null,
+                    Palette,
+                    ForgeDragOverlay.CaptureThumb(host),
+                    button?.HighlightRect(button.Bounds.Size).Size ?? default,
+                    button?.HoverBackgroundBrush ?? new SolidColorBrush(Palette.ButtonHoverBackground),
+                    button?.ArcCornerRadius ?? default);
                 _headerGhost.Show();
             }
 
@@ -964,18 +974,32 @@ public class ForgeControl : TemplatedControl
             e.Pointer.Capture(this);
         }
 
-        // 幽灵窗跟手：本面板内 = 紧凑形态（还在挑落点）；出了本面板 = 浮窗缩略图（松手会浮出）
-        if (_headerGhost is { } ghost)
-        {
-            var outsideSource = !_panelHosts.TryGetValue(id, out var sourceHost)
-                                || !new Rect(sourceHost.Bounds.Size).Contains(e.GetPosition(sourceHost));
-            ghost.SetFloatPreview(outsideSource);
-            ghost.MoveTo(this.PointToScreen(point), new Vector(_headerGhostGrab.X, _headerGhostGrab.Y));
-        }
-
         // 落点反馈与拖条带按钮**同一套**：条带上让出插入槽、画高亮。
         // 拖回条带上松手 = 重新停靠（见 OnHeaderPointerReleased）。
+        // ⚠ 要**先**算落点：下面幽灵窗那一档挑哪副长相，靠的就是这一步的结果。
         UpdateDragFeedback(point);
+
+        if (_headerGhost is { } ghost)
+        {
+            // 拖影的样子 = 松手会发生什么，判据只有一个：**有没有落点**。
+            //   有 → 图标块 + 「移至 …」标签（会停靠到那一格）；
+            //   没有、且还在本面板里 → 只有图标块（松手 = 取消，什么都不变）；
+            //   没有、且已经出了本面板 → 浮窗缩略图（松手会浮出）。
+            // ⚠ 曾经拿"出没出本面板"当浮动判据 —— 那是"落到别处一律浮出"时代的写法。
+            //   现在条带上到处都能停靠，出了本面板照样可能有落点，
+            //   于是拖到别的停靠位仍显示浮窗缩略图（用户实机提的）。
+            // 照上游 isDragOut（ToolWindowDragHelper.kt:172-181）：
+            //   ① 落在**任何**可见的停靠面板里 → 不算拖出去；
+            //   ② 否则看有没有目标条带，没有才算拖出去。
+            // ⚠ 曾经拿"出没出**本**面板"当判据 —— 于是拖到别的停靠位仍是浮窗缩略图（用户实机提的）。
+            var target = CurrentDropTarget();
+
+            ghost.SetFloatPreview(target is null && !IsOverDockedPanel(point));
+            ghost.SetLabel(
+                target is { } t ? ForgeMenuBuilder.DescribeMoveTarget(t.Anchor, t.IsSplit) : null,
+                onRight: target?.Anchor == ToolWindowAnchor.Left);
+            ghost.MoveTo(this.PointToScreen(point), new Vector(_headerGhostGrab.X, _headerGhostGrab.Y));
+        }
     }
 
     private void OnHeaderPointerReleased(object? sender, PointerReleasedEventArgs e)
@@ -1381,6 +1405,52 @@ public class ForgeControl : TemplatedControl
         }
 
         _dropPanel = panel;
+    }
+
+    /// <summary>
+    /// 当前落点；落不下去就是 <see langword="null"/>。
+    /// </summary>
+    /// <remarks>用的是上一帧排布定下的插入位置——与蓝框、与松手后真正落到的那一格同一个来源。</remarks>
+    private StripeDropTarget? CurrentDropTarget()
+    {
+        if (_dropPanel is not { } panel || _lastZone is not { } zone)
+        {
+            return null;
+        }
+
+        return ResolveTargetFrom(panel, zone)
+               ?? StripeDropResolver.Resolve(zone.Side, zone.Group, isAfterSeparator: false, order: -1);
+    }
+
+    /// <summary>
+    /// 指针是不是落在**某个可见的停靠面板**里。
+    /// </summary>
+    /// <remarks>
+    /// 上游 <c>isDragOut</c> 的第一条：落在可见的停靠面板里就**不算拖出去**
+    /// （<c>ToolWindowDragHelper.kt:172-181 · isPointInVisibleDockedToolWindow</c>）。
+    /// 少了这条，拖影一离开源面板就变成浮窗缩略图 —— 哪怕它正悬在另一块停靠面板上。
+    /// </remarks>
+    /// <param name="point">指针位置（相对本控件）。</param>
+    /// <returns>在不在。</returns>
+    private bool IsOverDockedPanel(Point point)
+    {
+        foreach (var (id, host) in _panelHosts)
+        {
+            if (!host.IsVisible
+                || _shell?.Manager.Layout.GetInfo(id) is not { IsVisible: true } info
+                || ToolWindowManager.IsExternal(info.Type))
+            {
+                continue;
+            }
+
+            if (host.TranslatePoint(default, this) is { } origin
+                && new Rect(origin, host.Bounds.Size).Contains(point))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>排布落定了，把蓝框挪到那个空槽上。</summary>
