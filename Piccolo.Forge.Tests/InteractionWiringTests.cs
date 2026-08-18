@@ -555,3 +555,52 @@ public class ForgeEditorFocusTests
         return (window, control, outside, editor);
     }
 }
+
+/// <summary>
+/// 标题条按钮的两条图标路：库自带的 <c>Icon</c>（Geometry）与宿主塞的 <c>IconContent</c>（控件）。
+/// </summary>
+/// <remarks>
+/// 由来：宿主在同一排里混了图标包的图标（字形几乎撑满 em 盒），与库自带那几个
+/// （画在 16 视框里、四周留白，⋮ 的墨迹只有 10 高）摆在一起就是一大一小。
+/// <c>IconInkScale</c> 让宿主把库自带的抬到同一档；它**只作用于路径那条**。
+/// </remarks>
+public class ForgeHeaderButtonIconTests
+{
+    [AvaloniaFact]
+    public void 墨迹系数透到画图标那个子元素上()
+    {
+        var button = new ForgeHeaderButton { Icon = ForgeIcons.MoreVertical, IconInkScale = 1.15 };
+        Show(button);
+
+        var icon = button.GetVisualDescendants().OfType<ForgeGeometryIcon>().Single();
+        Assert.Equal(1.15, icon.InkScale);
+    }
+
+    [AvaloniaFact]
+    public void 默认是上游原样()
+    {
+        var button = new ForgeHeaderButton { Icon = ForgeIcons.MoreVertical };
+        Show(button);
+
+        Assert.Equal(1, button.GetVisualDescendants().OfType<ForgeGeometryIcon>().Single().InkScale);
+    }
+
+    [AvaloniaFact]
+    public void 宿主给了控件就放它而不是画路径()
+    {
+        // 宿主的图标是控件形态（图标包给的多是这种），大小由它自己说了算，不受 IconInkScale 影响
+        var glyph = new Border { Width = 12, Height = 12 };
+        var button = new ForgeHeaderButton { Icon = ForgeIcons.MoreVertical, IconContent = glyph };
+        Show(button);
+
+        Assert.Contains(glyph, button.GetVisualDescendants());
+        Assert.Empty(button.GetVisualDescendants().OfType<ForgeGeometryIcon>());
+    }
+
+    private static void Show(ForgeHeaderButton button)
+    {
+        var window = new Window { Width = 200, Height = 100, Content = button };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+    }
+}

@@ -106,6 +106,25 @@ public class ForgeHeaderButton : Button
         set => SetValue(IconContentProperty, value);
     }
 
+    /// <summary><see cref="IconInkScale"/> 的属性定义。</summary>
+    public static readonly StyledProperty<double> IconInkScaleProperty =
+        AvaloniaProperty.Register<ForgeHeaderButton, double>(nameof(IconInkScale), 1);
+
+    /// <summary>
+    /// 把 <see cref="Icon"/> 那条路径的墨迹放大多少（1 = 上游原样）；对 <see cref="IconContent"/> 无效。
+    /// </summary>
+    /// <remarks>
+    /// 由 <c>ControlTheme</c> 或宿主的 <c>Style</c> 设。用途见
+    /// <see cref="ForgeGeometryIcon.InkScale"/>：宿主在同一排里混了图标包的图标时，
+    /// 用它把库自带的 ⋮ / — 抬到同一档，而不是把宿主那批缩下去。
+    /// <para>对 <see cref="IconContent"/> 不起作用 —— 那是宿主自己的控件，大小由它自己说了算。</para>
+    /// </remarks>
+    public double IconInkScale
+    {
+        get => GetValue(IconInkScaleProperty);
+        set => SetValue(IconInkScaleProperty, value);
+    }
+
     /// <summary>图标是实心的还是描边的；圆点类实心、线条类描边。</summary>
     /// <remarks>默认按 <see cref="ForgeIcons.MoreVertical"/> 那类实心走；线条图标（如
     /// <see cref="ForgeIcons.Hide"/>）设 <see langword="false"/>。</remarks>
@@ -142,6 +161,7 @@ public class ForgeHeaderButton : Button
         _geometryIcon.Icon = Icon;
         _geometryIcon.Brush = Foreground ?? new SolidColorBrush(Palette.ButtonForeground);
         _geometryIcon.IsFilled = IsFilledIcon;
+        _geometryIcon.InkScale = IconInkScale;
     }
 
     private readonly ForgeGeometryIcon _geometryIcon = new();
@@ -174,7 +194,8 @@ public class ForgeHeaderButton : Button
 
         if (change.Property == IconProperty
             || change.Property == ForegroundProperty
-            || change.Property == PaletteProperty)
+            || change.Property == PaletteProperty
+            || change.Property == IconInkScaleProperty)
         {
             SyncIcon();
         }

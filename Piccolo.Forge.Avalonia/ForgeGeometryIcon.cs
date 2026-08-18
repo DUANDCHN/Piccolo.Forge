@@ -35,7 +35,7 @@ public sealed class ForgeGeometryIcon : Control
         AvaloniaProperty.Register<ForgeGeometryIcon, bool>(nameof(IsFilled));
 
     static ForgeGeometryIcon()
-        => AffectsRender<ForgeGeometryIcon>(IconProperty, BrushProperty, IsFilledProperty);
+        => AffectsRender<ForgeGeometryIcon>(IconProperty, BrushProperty, IsFilledProperty, InkScaleProperty);
 
     /// <summary>要画的图形；<see langword="null"/> 就什么都不画。</summary>
     public Geometry? Icon
@@ -64,6 +64,30 @@ public sealed class ForgeGeometryIcon : Control
         set => SetValue(IsFilledProperty, value);
     }
 
+    /// <summary><see cref="InkScale"/> 的属性定义。</summary>
+    public static readonly StyledProperty<double> InkScaleProperty =
+        AvaloniaProperty.Register<ForgeGeometryIcon, double>(nameof(InkScale), 1);
+
+    /// <summary>
+    /// 墨迹放大系数（1 = 上游原样）。
+    /// </summary>
+    /// <remarks>
+    /// 上游这套图标画在 16 视框里、<b>四周自带留白</b>：⋮ 的墨迹只有 10 高（y 3→13）、
+    /// 收起那条线 9 长、停靠那个方框 12。宿主若在同一排里放**图标包**的图标
+    /// （字体形态的字形几乎撑满 em 盒，墨迹约 0.83），两者摆在一起就是一大一小。
+    /// <para>
+    /// 这个口子让宿主把库自带的这几个**按墨迹**放大到与自己那批同档，
+    /// 而不是反过来把自己那批缩小 —— 哪种更好看是宿主的产品取舍，库不替它定。
+    /// 默认 1：不设就是上游原样，与本需求之前逐像素一致。
+    /// </para>
+    /// <para>⚠ 放大的是**画进去的框**，不是墨迹包围盒 —— 各图标彼此的大小关系仍是上游那套。</para>
+    /// </remarks>
+    public double InkScale
+    {
+        get => GetValue(InkScaleProperty);
+        set => SetValue(InkScaleProperty, value);
+    }
+
     /// <inheritdoc />
     public override void Render(DrawingContext context)
     {
@@ -72,6 +96,14 @@ public sealed class ForgeGeometryIcon : Control
             return;
         }
 
-        ForgeIcons.Draw(context, icon, new Rect(Bounds.Size), brush, filled: IsFilled);
+        // 放大 = 把"画进去的那个框"撑大，中心不动（Draw 自己会居中）。
+        // 不裁：控件默认 ClipToBounds=false，撑出 16 的那一点点照样画得出来。
+        var scale = double.IsFinite(InkScale) && InkScale > 0 ? InkScale : 1;
+        var bounds = new Rect(Bounds.Size);
+        var box = bounds.Inflate(new Thickness(
+            bounds.Width * (scale - 1) / 2,
+            bounds.Height * (scale - 1) / 2));
+
+        ForgeIcons.Draw(context, icon, box, brush, filled: IsFilled);
     }
 }
