@@ -270,7 +270,20 @@ public class ForgeControl : TemplatedControl
         // ★ 两个开关必须同族（REQ-068 R2）：装进 Application.Styles 的是哪套主题、
         //   这份 Appearance 说的是哪族。不一致的症状是**局部**长相不对（模板画 Islands 的圆角块，
         //   而 C# 侧按 expUI 算几何取色），肉眼极难归因 —— Debug 下当场炸成一句可读的话。
-        ForgeThemeManager.AssertConsistent(Appearance.Family);
+        //
+        // ⚠ **只在宿主真给过外观时才算数。** 控件多半是 XAML 建的，挂树那一下外观还是库默认
+        //   （宿主的那份在 code-behind 里，晚一步才设）—— 那个瞬间的 Family 不是任何人的主张，
+        //   拿它去断言就是"启动即崩"（真机撞过：配置是 Islands，主窗口 XAML 一挂树就炸）。
+        //   这一档改为**跟随装了哪族**：没人主张时，装的那套就是唯一真值。
+        var hostGaveAppearance = !ReferenceEquals(Appearance, ForgeAppearance.Default);
+        if (hostGaveAppearance)
+        {
+            ForgeThemeManager.AssertConsistent(Appearance.Family);
+        }
+
+        var family = hostGaveAppearance
+            ? Appearance.Family
+            : ForgeThemeManager.Current ?? Appearance.Family;
 
         if (!Appearance.FollowThemeVariant)
         {
@@ -288,8 +301,8 @@ public class ForgeControl : TemplatedControl
             return;
         }
 
-        var wanted = Appearance.PaletteResolver?.Invoke(Appearance.Family, ActualThemeVariant)
-                     ?? ForgePalette.ForTheme(Appearance.Family, ActualThemeVariant);
+        var wanted = Appearance.PaletteResolver?.Invoke(family, ActualThemeVariant)
+                     ?? ForgePalette.ForTheme(family, ActualThemeVariant);
         if (!ReferenceEquals(Palette, wanted))
         {
             Palette = wanted;

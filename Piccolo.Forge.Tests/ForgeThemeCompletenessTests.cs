@@ -154,6 +154,34 @@ public class ForgeThemeCompletenessTests
         Assert.Empty(lying);
     }
 
+    /// <summary>
+    /// ★ 宿主还没设外观时，控件**跟随装了哪族**，不会因为"默认那份是经典"而炸。★
+    /// </summary>
+    /// <remarks>
+    /// 回归：真机启动即崩（配置是 Islands，主窗口 XAML 里的 <see cref="ForgeControl"/> 一挂树就抛
+    /// "主题不一致"）。成因是控件由 XAML 建、挂树那一下外观还是 <see cref="ForgeAppearance.Default"/>
+    /// —— 宿主那份在 code-behind 里晚一步才设，而那个瞬间的 <c>Family</c> 不是任何人的主张。
+    /// <para>
+    /// 判据两条：**不抛**，且配色取的是**装进去那一族**（不是默认那族）——
+    /// 只做到不抛的话，首帧会是"模板 Islands、几何取色 expUI"的半旧半新。
+    /// 一致性断言仍然管着宿主**真给过**外观的那种不一致，见 <see cref="ForgeThemeManager.AssertConsistent"/>。
+    /// </para>
+    /// </remarks>
+    [AvaloniaFact]
+    public void 宿主没设外观时跟随装了哪族()
+    {
+        using var theme = ForgeThemeScope.Use(ForgeThemeFamily.Islands);
+
+        var frame = new ForgeControl();
+        var window = new Window { Width = 400, Height = 300, Content = frame, RequestedThemeVariant = ThemeVariant.Dark };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Same(ForgePalette.IslandsDark, frame.Palette);
+
+        window.Close();
+    }
+
     /// <summary>本程序集里**该有**主题的控件 —— 反射扫出来的，不是手工清单。</summary>
     private static IEnumerable<Type> ThemedControls()
         => Controls().Where(type => type.GetCustomAttribute<ForgeThemelessAttribute>() is null);
