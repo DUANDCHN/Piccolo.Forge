@@ -1385,6 +1385,15 @@ public class ForgeEditorControl : TemplatedControl
         }
     }
 
+    /// <summary>
+    /// 判"拖出标签行"时上下各留的余量 <b>12</b>。
+    /// </summary>
+    /// <remarks>
+    /// 不留余量的话，指针贴着行的上下边缘时会在"重排"与"分屏"之间来回横跳；
+    /// 留得太多又会让"往下拖去分屏"变得费劲。12 ≈ 标签行高 31 的三分之一。
+    /// </remarks>
+    private const double DragOutMargin = 12;
+
     private ForgeEditorTab? _dragTab;
     private IPointer? _dragPointer;
     private EditorGroupViewModel? _dragGroup;
@@ -1502,10 +1511,23 @@ public class ForgeEditorControl : TemplatedControl
         // IntelliJ 用纵向脱离判据；Dock.Avalonia ItemDragHelper 在指针离开
         // 整个 TabStrip 边界时交给跨窗格拖放。Forge 同时支持两者：
         // 在源条内水平移动仍是重排，但水平跨出源条后必须能合并相邻分屏。
+        // ★ **判据是"指针在不在标签行里"，不是"纵向挪了多少"。** ★
+        //
+        // 上游那条是 |dY| > 标签高 × 0.1（ForgeEditorTabDragTarget.IsDragOut，仍按上游保留着，
+        // 单测也钉着）。但本软件的标签行只有 31 高 —— 0.1 × 31 ≈ **3px**，
+        // 手往下带一点就判成拖出，而拖出在这里是**单向闩**（下面那段），此后回不到行内重排。
+        // 实机反馈"文档标签只能拖分屏、换不了序"就是这么来的：上游那个比例是给 42 高的行定的，
+        // 照抄到 31 的行上，阈值小到没有意义。
+        //
+        // 改成按位置判：**指针还在这一行里就是重排，离开这一行才是分屏**（用户描述的也正是这条）。
+        // 上下各留一点余量，免得贴着边界时来回横跳；左右不留 —— 水平跨出源条要能合并到相邻分屏。
         var pointInStrip = e.GetPosition(stripControl);
-        var leftSourceStrip = !new Rect(stripControl.Bounds.Size).Contains(pointInStrip);
-        if (leftSourceStrip
-            || ForgeEditorTabDragTarget.IsDragOut(origin, stripControl.Bounds.Width, moved.X, moved.Y))
+        var stripRect = new Rect(stripControl.Bounds.Size);
+        var leftSourceStrip = pointInStrip.X < 0
+                              || pointInStrip.X > stripRect.Width
+                              || pointInStrip.Y < -DragOutMargin
+                              || pointInStrip.Y > stripRect.Height + DragOutMargin;
+        if (leftSourceStrip)
         {
             // MouseDragHelper.java:207-217：进入 detaching mode 前先完整结束
             // 行内拖动，再把模型身份交给独立 DragSession。

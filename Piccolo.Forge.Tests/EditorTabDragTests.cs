@@ -132,6 +132,27 @@ public class EditorTabDragTests
     // ---- 端到端 ------------------------------------------------------------
 
     [AvaloniaFact]
+    public void 手往下带一点仍然是行内重排_不会变成分屏()
+    {
+        // 回归：判"拖出"曾经用上游那条 |dY| > 标签高 × 0.1。本软件的标签行只有 31 高，
+        // 阈值 ≈ 3px —— 拖的时候手往下带一点就进了"拖出"（而且是单向闩，回不来），
+        // 实机表现是"文档标签只能拖分屏、换不了序"。现在按**指针在不在这一行里**判。
+        var (editor, window, _, a, b) = Shown();
+
+        var press = GrabPoint(a, window);
+        window.MouseDown(press, MouseButton.Left);
+
+        // 横着拖过邻居，同时**往下带 6px**（真人拖动几乎不可能是纯水平的）
+        var release = new Point(press.X + b.Bounds.Width + 5, press.Y + 6);
+        window.MouseMove(release);
+        window.MouseUp(release, MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(["b", "a", "c"], Order(editor));
+        Assert.Single(editor.Area.Groups);   // 没有被当成分屏
+    }
+
+    [AvaloniaFact]
     public void Dragging_a_tab_past_its_neighbour_actually_reorders_it()
     {
         var (editor, window, _, a, b) = Shown();
