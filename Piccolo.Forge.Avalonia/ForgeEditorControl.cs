@@ -1398,11 +1398,8 @@ public class ForgeEditorControl : TemplatedControl
     private IPointer? _dragPointer;
     private EditorGroupViewModel? _dragGroup;
     private string? _dragId;
-    private string? _reorderTargetId;
     private Point _pressPoint;
     private Vector _holdDelta;
-    private Rect _dragOriginalRec;
-    private bool _dragStarted;
     private EditorDockDragSession? _dockDrag;
 
     /// <summary>
@@ -1437,6 +1434,24 @@ public class ForgeEditorControl : TemplatedControl
 
         /// <summary>光标此刻指着的**别的**编辑区（拖回主窗口时就是它）。</summary>
         public ForgeEditorControl? ExternalTarget { get; set; }
+
+        /// <summary>源组的标签条控件（区域一的缝判定与投影重绘要用）。</summary>
+        public ForgeEditorTabStrip? SourceStripControl { get; init; }
+
+        /// <summary>源组标签条的排布面板（摘起 / 缝都设在它身上）。</summary>
+        public HeaderTabsPanel? SourcePanel { get; init; }
+
+        /// <summary>被拖那一页的容器控件。</summary>
+        public ForgeEditorTab? SourceTabControl { get; init; }
+
+        /// <summary>起拖那一刻它的格子 —— <c>ResolveTarget</c> 的回滞基准。</summary>
+        public Rect OriginalRec { get; init; }
+
+        /// <summary>光标此刻在不在源标签行带里（区域一：松手 = 重排，绝不落到浮窗那条路）。</summary>
+        public bool OverSourceRow { get; set; }
+
+        /// <summary>区域一里算出的换位目标；<see langword="null"/> = 原地放下。</summary>
+        public string? ReorderTargetId { get; set; }
     }
 
     /// <summary>
@@ -1460,20 +1475,27 @@ public class ForgeEditorControl : TemplatedControl
         _dragTab = control;
         _dragPointer = e.Pointer;
         _dragId = id;
-        _reorderTargetId = null;
         _pressPoint = e.GetPosition(strip);
-        _dragStarted = false;
         // Dock.Avalonia ItemDragHelper 在标签行内只保存按下状态，不主动捕获指针；
         // 离开标签条、正式进入 dock drag 时才把捕获交给整个 DockControl。
         // 这里保持同一边界，避免 TabStrip 的选中/容器生命周期从按下起就被编辑区劫持。
     }
 
     /// <summary>
-    /// 拖动中：算出该和谁换位，只做视觉预览；松手时一次提交。
+    /// 拖动中（还没起拖时）：过了死区就把手势升级成**统一拖动会话**。
     /// </summary>
     /// <remarks>
-    /// 对应 <c>DragHelper.java:164-246 · processDrag</c>。
-    /// 几何全在 <see cref="ForgeEditorTabDragTarget"/> 里，这里只负责取数、落库、重排。
+    /// ★ <b>被拖的视觉全程是拖影（窗内画在覆盖层、出窗换幽灵窗），跟着光标走，永不吸附。</b>★
+    /// 吸附的只有提示，三个区域按位置来回切（都在 <see cref="UpdateDockDrag"/> 里）：
+    /// <list type="bullet">
+    /// <item>源标签行带 → 缝上的投影，松手 = 重排；</item>
+    /// <item>行下的内容区 → 分屏 / 并组的蓝框；</item>
+    /// <item>行上、窗外 → 浮窗预示（幽灵窗本身就是"松手会得到多大一个窗"）。</item>
+    /// </list>
+    /// <para>
+    /// 曾经是"行内用真控件摆位、出行才换拖影"两套：真控件出不了标签行（会被祖先裁掉半截），
+    /// 于是要么夹在行里被读成"吸附"、要么放出去被裁 —— 结构性死路，整条删掉。
+    /// </para>
     /// </remarks>
     private void DragTo(EditorGroupViewModel group, ForgeEditorTab control, PointerEventArgs e)
     {
@@ -1487,180 +1509,103 @@ public class ForgeEditorControl : TemplatedControl
 
         var point = e.GetPosition(strip);
         var moved = point - _pressPoint;
-
-        if (!_dragStarted)
+        if (Math.Abs(moved.X) < ForgeEditorTabDragTarget.DragStartDeadZone
+            && Math.Abs(moved.Y) < ForgeEditorTabDragTarget.DragStartDeadZone)
         {
-            if (Math.Abs(moved.X) < ForgeEditorTabDragTarget.DragStartDeadZone
-                && Math.Abs(moved.Y) < ForgeEditorTabDragTarget.DragStartDeadZone)
-            {
-                return;
-            }
-
-            _dragStarted = true;
-
-            // 抓握偏移：按在标签页内部什么位置，整个拖动过程都保持这个相对位置
-            // （DragHelper.java:178 myHoldDelta）。少了它，标签会"跳"到鼠标下居中。
-            _holdDelta = _pressPoint - origin.Position;
-            _dragOriginalRec = origin;
-        }
-
-        // 拖出标签行 —— **一旦置上，这一次拖动里就不再回到行内重排**
-        // （MouseDragHelper.java:207-217：myDetachingMode 是个单向闩，
-        //  置上那一刻先 processDragFinish(e, true) 收掉行内那套，此后只走 processDragOut）。
-        // 少了这个闩，人在标签行上下边缘来回蹭时会在"重排"与"分屏"之间反复横跳。
-        // IntelliJ 用纵向脱离判据；Dock.Avalonia ItemDragHelper 在指针离开
-        // 整个 TabStrip 边界时交给跨窗格拖放。Forge 同时支持两者：
-        // 在源条内水平移动仍是重排，但水平跨出源条后必须能合并相邻分屏。
-        // ★ **判据是"指针在不在标签行里"，不是"纵向挪了多少"。** ★
-        //
-        // 上游那条是 |dY| > 标签高 × 0.1（ForgeEditorTabDragTarget.IsDragOut，仍按上游保留着，
-        // 单测也钉着）。但本软件的标签行只有 31 高 —— 0.1 × 31 ≈ **3px**，
-        // 手往下带一点就判成拖出，而拖出在这里是**单向闩**（下面那段），此后回不到行内重排。
-        // 实机反馈"文档标签只能拖分屏、换不了序"就是这么来的：上游那个比例是给 42 高的行定的，
-        // 照抄到 31 的行上，阈值小到没有意义。
-        //
-        // 改成按位置判：**指针还在这一行里就是重排，离开这一行才是分屏**（用户描述的也正是这条）。
-        // 上下各留一点余量，免得贴着边界时来回横跳；左右不留 —— 水平跨出源条要能合并到相邻分屏。
-        var pointInStrip = e.GetPosition(stripControl);
-        var stripRect = new Rect(stripControl.Bounds.Size);
-        var leftSourceStrip = pointInStrip.X < 0
-                              || pointInStrip.X > stripRect.Width
-                              || pointInStrip.Y < -DragOutMargin
-                              || pointInStrip.Y > stripRect.Height + DragOutMargin;
-        if (leftSourceStrip)
-        {
-            // MouseDragHelper.java:207-217：进入 detaching mode 前先完整结束
-            // 行内拖动，再把模型身份交给独立 DragSession。
-            var session = new EditorDockDragSession(
-                _dragPointer!, group, _dragId, _holdDelta, origin.Size, ForgeDragOverlay.CaptureThumb(control));
-            if (strip.DraggedChild is { } floating)
-            {
-                floating.Opacity = 1;
-                floating.ZIndex = 0;
-            }
-
-            strip.DraggedChild = null;
-            strip.DropIndex = null;
-            strip.DraggedY = double.NaN;
-            strip.InvalidateArrange();
-            ClearInlineDrag(releasePointer: false);
-            _dockDrag = session;
-            session.Pointer.Capture(this);
-            UpdateDockDrag(session, e);
             return;
         }
 
-        // ★ **行内这一段：只在行里跟着光标横向走，夹在行内。** ★
-        //
-        // 这不是"吸附"—— 它是连续跟手的，不会在格位之间跳（跳的是投影）。夹住有两个硬理由：
-        //   · 标签行外面是别的控件（命令栏 / 菜单栏），画过去会被祖先裁掉一半 —— 实机见过；
-        //   · 纵向放开之后，人往上一带就越过整个窗口，拖影跑到软件外面去了。
-        // 真要"带出去"是**另一套**：越过这一行就切到拖出会话，由浮窗拖影接管（下面那段）。
-        // 曾经把这里改成横竖自由走 —— 上面两个症状当场复现，已退回。
-        var dragRec = ForgeEditorTabDragTarget.MoveToFit(
-            new Rect(point.X - _holdDelta.X, point.Y - _holdDelta.Y, origin.Width, origin.Height),
-            new Rect(strip.Bounds.Size));
+        // 抓握偏移：按在标签页内部什么位置，拖影就保持那个相对位置（DragHelper.java:178 myHoldDelta）
+        _holdDelta = _pressPoint - origin.Position;
 
-        var order = Enumerable.Range(0, group.Tabs.Count)
-            .Select(i => stripControl.ContainerFromIndex(i) as ForgeEditorTab)
-            .ToList();
-        var rects = order.Select(c => c is not null ? strip.SlotOf(c) ?? default : default).ToList();
-        var target = ForgeEditorTabDragTarget.ResolveTarget(dragRec, _dragOriginalRec, rects, order.IndexOf(control));
-
-        if (target >= 0)
+        var session = new EditorDockDragSession(
+            _dragPointer!, group, _dragId, _holdDelta, origin.Size, ForgeDragOverlay.CaptureThumb(control))
         {
-            // Dock.Avalonia ItemDragHelper 只在 Released() 里调用 Factory.MoveDockable；
-            // 拖动中仅做 RenderTransform 预览。这里同样延迟模型变更，保证 TabStrip
-            // 不会在手势尚未结束时回收/换父当前容器。
-            _reorderTargetId = group.Tabs[target].Id;
-        }
+            SourceStripControl = stripControl,
+            SourcePanel = strip,
+            SourceTabControl = control,
+            OriginalRec = origin,
+        };
 
+        // 把源标签"摘起来"：排布跳过它（缝由 DropIndex 表达）、自己被摆成空，视觉交给拖影
         strip.DraggedChild = control;
-        strip.DraggedX = dragRec.X;
-
-        // 落点处留一个**空档**（模型不动，只在排布这一层让位）——
-        // 上游拖动中是当场 reallocate、其余标签跟着让开，我们把模型变更推迟到松手，
-        // 于是靠这个空档把"松手会落在哪"说清楚。索引按"除被拖那一个之外"的次序算。
-        //
-        // ⚠ **两个方向都恒等于 target，不要"往右减一"。** 松手走的 ReorderTab 是
-        //   "先取目标索引 → 移除源 → 插回旧索引"：拿 [a,b,c] 把 a 拖到 c(2) 上算 ——
-        //   移除 a 得 [b,c]，插回 2 → [b,c,a]，落点的"除源之外"序号 = 2 = target；
-        //   往左同理（[a,b,c] 拖 c 到 a：插回 0 → [c,a,b]，序号 0 = target）。
-        //   曾经写成 target-1，往右拖时投影画在落点左边一格 —— 投影骗人比没有投影更糟。
-        var source = order.IndexOf(control);
-        strip.DropIndex = target >= 0
-            ? target
-            : (source >= 0 ? source : null);
-        strip.InvalidateArrange();
-        stripControl.InvalidateVisual();   // 投影由 TabStrip 画（Panel.Render 是密封的）
+        ClearInlineDrag(releasePointer: false);
+        _dockDrag = session;
+        session.Pointer.Capture(this);
+        UpdateDockDrag(session, e);
     }
 
     /// <summary>
-    /// 拖出去之后又拖回源标签行 —— 收掉拖出会话，回到行内重排。
+    /// 区域一：光标在源标签行带里 —— 把"松手会落到哪条缝"的投影摆上去。
     /// </summary>
     /// <remarks>
-    /// ★ <b>两种模式按位置来回切，不是单向闩。</b>★
-    /// 早先照 <c>MouseDragHelper.java:207-217 · myDetachingMode</c> 做成了**一去不回**：
-    /// 往下拖一次就永远是分屏，再拖回标签行也换不了序 —— 实机反馈"拖下去可以、拖上去就不行"。
-    /// 而上游的实际手感是分区域的：**指针在标签行里就是换序，出了这一行才是分屏**，
-    /// 来回移动就在两种模式间来回切。
+    /// 行带 = 整条标签行（含右端按钮那一段），上下各留 <see cref="DragOutMargin"/> 的余量防抖。
+    /// 换位目标用与行内拖拽同一套 <see cref="ForgeEditorTabDragTarget.ResolveTarget"/>（带回滞）。
     /// <para>
-    /// 余量与出去时同一个 <see cref="DragOutMargin"/> —— 出与回用同一条线，
-    /// 否则会出现"出去了但回不来"的死区（两条线之间那一带）。
+    /// ⚠ <b>缝序号恒等于 target，别"往右减一"。</b>松手走的 ReorderTab 是
+    /// "先取目标索引 → 移除源 → 插回旧索引"：拿 [a,b,c] 把 a 拖到 c(2) 上 ——
+    /// 移除 a 得 [b,c]，插回 2 → [b,c,a]，落点的"除源之外"序号 = 2 = target；往左同理。
     /// </para>
     /// </remarks>
-    /// <param name="session">当前的拖出会话。</param>
+    /// <param name="session">当前会话。</param>
     /// <param name="e">指针事件。</param>
-    /// <returns>已经回到行内则为 <see langword="true"/>（调用方就此收手）。</returns>
-    private bool TryReturnToInlineDrag(EditorDockDragSession session, PointerEventArgs e)
+    /// <returns>光标确实在行带里则为 <see langword="true"/>。</returns>
+    private bool UpdateSourceRowReorder(EditorDockDragSession session, PointerEventArgs e)
     {
-        if (!_groupStrips.TryGetValue(session.Source, out var stripControl)
-            || stripControl.ItemsPanelRoot is not HeaderTabsPanel strip)
+        if (session.SourceStripControl is not { } stripControl
+            || session.SourcePanel is not { } strip
+            || session.SourceTabControl is not { } control
+            || !_groupStripHosts.TryGetValue(session.Source, out var rowHost)
+            || !rowHost.IsVisible)
         {
             return false;
         }
 
-        var point = e.GetPosition(stripControl);
-        var rect = new Rect(stripControl.Bounds.Size);
-        var inside = point.X >= 0
-                     && point.X <= rect.Width
-                     && point.Y >= -DragOutMargin
-                     && point.Y <= rect.Height + DragOutMargin;
-        if (!inside)
+        var p = e.GetPosition(rowHost);
+        var inRow = p.X >= 0 && p.X <= rowHost.Bounds.Width
+                    && p.Y >= -DragOutMargin && p.Y <= rowHost.Bounds.Height + DragOutMargin;
+        if (!inRow)
         {
             return false;
         }
 
-        // 那一页的容器要还在（拖出期间它一直留在源组里，没被搬走）
-        var index = session.Source.Tabs.ToList().FindIndex(x => string.Equals(x.Id, session.TabId, StringComparison.Ordinal));
-        if (index < 0 || stripControl.ContainerFromIndex(index) is not ForgeEditorTab control
-            || strip.SlotOf(control) is not { } origin)
-        {
-            return false;
-        }
+        // 落点判定用**夹进行内**的矩形（ResolveTarget 要的是行内坐标）——
+        // 夹的只是判定用的数字，拖影本身不受它约束。
+        var point = e.GetPosition(strip);
+        var dragRec = ForgeEditorTabDragTarget.MoveToFit(
+            new Rect(point.X - session.HoldDelta.X, point.Y - session.HoldDelta.Y,
+                session.OriginalRec.Width, session.OriginalRec.Height),
+            new Rect(strip.Bounds.Size));
 
-        // 收掉拖出会话（不提交任何落点），但**不要放掉指针捕获** —— 手势还没结束
-        session.Ghost?.Close();
-        session.Ghost = null;
-        session.ExternalTarget?.ClearDropHint();
-        session.ExternalTarget = null;
-        _dockDrag = null;
-        _overlay.Clear();
-        _overlay.IsVisible = false;
-        _overlay.InvalidateVisual();
+        var order = Enumerable.Range(0, session.Source.Tabs.Count)
+            .Select(i => stripControl.ContainerFromIndex(i) as ForgeEditorTab)
+            .ToList();
+        var rects = order.Select(c => c is not null ? strip.SlotOf(c) ?? default : default).ToList();
+        var sourceIndex = order.IndexOf(control);
+        var target = ForgeEditorTabDragTarget.ResolveTarget(dragRec, session.OriginalRec, rects, sourceIndex);
 
-        // 回到行内：拖拽已经在进行中，所以 _dragStarted 直接置真（不再过死区）
-        _dragGroup = session.Source;
-        _dragTab = control;
-        _dragPointer = session.Pointer;
-        _dragId = session.TabId;
-        _dragStarted = true;
-        _holdDelta = session.HoldDelta;
-        _dragOriginalRec = origin;
-        _pressPoint = e.GetPosition(strip);
+        session.OverSourceRow = true;
+        session.ReorderTargetId = target >= 0 ? session.Source.Tabs[target].Id : null;
 
-        DragTo(session.Source, control, e);
+        int? gap = target >= 0 ? target : (sourceIndex >= 0 ? sourceIndex : (int?)null);
+        strip.DropIndex = gap;
+        strip.InvalidateArrange();
+        stripControl.InvalidateVisual();   // 投影由 TabStrip 画（Panel.Render 是密封的）
         return true;
+    }
+
+    /// <summary>离开源标签行带：收掉缝上的投影与重排意图。</summary>
+    private void ClearSourceRowHint(EditorDockDragSession session)
+    {
+        session.OverSourceRow = false;
+        session.ReorderTargetId = null;
+
+        if (session.SourcePanel is { } strip && strip.DropIndex is not null)
+        {
+            strip.DropIndex = null;
+            strip.InvalidateArrange();
+            session.SourceStripControl?.InvalidateVisual();
+        }
     }
 
     /// <summary>
@@ -1673,12 +1618,6 @@ public class ForgeEditorControl : TemplatedControl
     /// </remarks>
     private void UpdateDockDrag(EditorDockDragSession session, PointerEventArgs e)
     {
-        // 拖回源标签行 → **回到行内重排**（见 TryReturnToInlineDrag）
-        if (TryReturnToInlineDrag(session, e))
-        {
-            return;
-        }
-
         _overlay.IsVisible = true;
         var here = e.GetPosition(this);
 
@@ -1686,31 +1625,38 @@ public class ForgeEditorControl : TemplatedControl
         session.Side = EditorDropSide.None;
         _overlay.AreaRect = null;
 
-        // DockableEditorTabbedContainer.getTabsAt / DockControlState 都从当前指针下的
-        // 真实视觉元素向上找停靠容器。不再遍历缓存矩形猜测目标。
-        var candidate = FindGroupAt(here);
-        if (candidate is not null
-            && _groupHosts.TryGetValue(candidate, out var host)
-            && BoundsIn(host) is { } bounds)
+        // ── 区域一：源标签行带 —— 缝上的投影（松手 = 重排）；其余区域走停靠判定 ──
+        if (!UpdateSourceRowReorder(session, e))
         {
-            var stripHeight = _groupStripHosts.TryGetValue(candidate, out var stripHost)
-                ? stripHost.Bounds.Height
-                : 0;
+            ClearSourceRowHint(session);
 
-            var area = ForgeEditorTabDragTarget.DropArea(bounds, stripHeight);
-            // 把标签拖回另一组的标签行，本身就是最明确的“并入这一组”。
-            // DropArea 为了避免本组行内重排与分屏判定打架而扣掉了标签行；
-            // 但跨组时若仍把这段判成 None，用户把标签拖到目标标签条上松手就毫无反应。
-            var overTargetStrip = stripHost is not null
-                                  && BoundsIn(stripHost) is { } stripBounds
-                                  && stripBounds.Contains(here);
-            var side = overTargetStrip
-                ? EditorDropSide.Center
-                : EditorDropPolicy.Resolve(here.X - area.X, here.Y - area.Y, area.Width, area.Height);
+            // DockableEditorTabbedContainer.getTabsAt / DockControlState 都从当前指针下的
+            // 真实视觉元素向上找停靠容器。不再遍历缓存矩形猜测目标。
+            var candidate = FindGroupAt(here);
+            if (candidate is not null
+                && _groupHosts.TryGetValue(candidate, out var host)
+                && BoundsIn(host) is { } bounds)
+            {
+                var stripHeight = _groupStripHosts.TryGetValue(candidate, out var stripHost)
+                    ? stripHost.Bounds.Height
+                    : 0;
 
-            session.Target = candidate;
-            session.Side = side;
-            _overlay.AreaRect = ForgeEditorTabDragTarget.HighlightFor(area, side);
+                var area = ForgeEditorTabDragTarget.DropArea(bounds, stripHeight);
+                // 把标签拖回另一组的标签行，本身就是最明确的“并入这一组”。
+                // DropArea 为了避免本组行内重排与分屏判定打架而扣掉了标签行；
+                // 但跨组时若仍把这段判成 None，用户把标签拖到目标标签条上松手就毫无反应。
+                var overTargetStrip = stripHost is not null
+                                      && BoundsIn(stripHost) is { } stripBounds
+                                      && stripBounds.Contains(here);
+                var side = overTargetStrip
+                    ? EditorDropSide.Center
+                    : EditorDropPolicy.Resolve(here.X - area.X, here.Y - area.Y, area.Width, area.Height);
+
+                session.Target = candidate;
+                session.Side = side;
+                _overlay.AreaRect = ForgeEditorTabDragTarget.HighlightFor(area, side);
+            }
+
         }
 
         UpdateCrossWindowFeedback(session, here);
@@ -1791,32 +1737,14 @@ public class ForgeEditorControl : TemplatedControl
 
     private void EndInlineDrag(EditorGroupViewModel group, ForgeEditorTab control)
     {
+        _ = group;
         if (!ReferenceEquals(_dragTab, control))
         {
             return;
         }
 
-        if (_groupStrips.TryGetValue(group, out var stripControl)
-            && stripControl.ItemsPanelRoot is HeaderTabsPanel strip)
-        {
-            if (strip.DraggedChild is { } dragged)
-            {
-                dragged.Opacity = 1;   // 拖动中压到 0.7 当影子（HeaderTabsPanel.DraggedOpacity）
-                dragged.ZIndex = 0;
-            }
-
-            strip.DraggedChild = null;
-            strip.DropIndex = null;
-            strip.DraggedY = double.NaN;
-            strip.InvalidateArrange();
-            stripControl.InvalidateVisual();
-        }
-
-        if (_dragId is { } sourceId && _reorderTargetId is { } targetId)
-        {
-            _area!.ReorderTab(sourceId, targetId);
-        }
-
+        // 到这儿 = 没过死区就松手 —— 过了死区手势早升级成统一会话（走 EndDockDrag），
+        // 这里什么都没动过，清状态即可
         ClearInlineDrag(releasePointer: true);
     }
 
@@ -1827,8 +1755,6 @@ public class ForgeEditorControl : TemplatedControl
         _dragPointer = null;
         _dragGroup = null;
         _dragId = null;
-        _reorderTargetId = null;
-        _dragStarted = false;
 
         // 比的是「捕获在不在我手上」这个身份，不是相等 —— 用 ReferenceEquals 说明白，
         // 免得读的人以为 IInputElement 上有值语义的相等。
@@ -1873,6 +1799,26 @@ public class ForgeEditorControl : TemplatedControl
         if (ReferenceEquals(session.Pointer.Captured, this))
         {
             session.Pointer.Capture(null);
+        }
+
+        // 源行的"摘起"状态在**任何**结束路径都要还原 —— 别把标签留在隐身态
+        if (session.SourcePanel is { } sourcePanel)
+        {
+            sourcePanel.DraggedChild = null;
+            sourcePanel.DropIndex = null;
+            sourcePanel.InvalidateArrange();
+            session.SourceStripControl?.InvalidateVisual();
+        }
+
+        // ── 区域一收尾：松手时光标在源行带里 → 重排（或原地放下），**绝不落到浮窗那条路** ──
+        if (session.OverSourceRow)
+        {
+            if (commit && session.ReorderTargetId is { } reorderTarget)
+            {
+                _area!.ReorderTab(session.TabId, reorderTarget);
+            }
+
+            return;
         }
 
         if (drop is { } move)

@@ -762,7 +762,7 @@ public class ForgeContentTabReorderTests
         var row = strip.GetVisualDescendants().OfType<HeaderTabsPanel>().Single();
         Assert.NotNull(row.DraggedChild);
         Assert.NotNull(row.DropIndex);
-        Assert.Equal(HeaderTabsPanel.DraggedOpacity, row.DraggedChild!.Opacity);
+        Assert.NotNull(row.DropRect);   // 投影吸在缝上（被拖的视觉在幽灵窗上，不在行内）
 
         window.MouseUp(to, MouseButton.Left);
         Dispatcher.UIThread.RunJobs();

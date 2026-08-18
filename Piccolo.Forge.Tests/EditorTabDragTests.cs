@@ -178,12 +178,11 @@ public class EditorTabDragTests
     }
 
     [AvaloniaFact]
-    public void 被拖的标签横向连续跟手_但不跑出标签行()
+    public void 起拖即摘起_源标签不占行内位置_投影吸在缝上()
     {
-        // ★ 分工：**被拖的那个横向连续跟手（不吸到光标中间、不在格位间跳），
-        //   落点那块投影才吸附到格位。**
-        // 两条硬边界（都在实机上撞过）：行外是命令栏/菜单栏，画过去会被祖先裁掉一半；
-        // 纵向放开则人往上一带，拖影直接跑到软件窗口外面。所以行内这一段只走 x、且夹在行里。
+        // ★ 分工：**被拖的视觉（拖影）全程跟光标、永不吸附；吸附的只有落点投影。**
+        // 源标签被"摘起来"：排布跳过它、自己被摆成空 —— 真控件出不了标签行
+        //（会被祖先裁掉半截），这正是"拖影 + 摘空"这套分工的由来。
         var (editor, window, _, a, _) = Shown();
         _ = editor;
 
@@ -194,8 +193,8 @@ public class EditorTabDragTests
 
         var row = window.GetVisualDescendants().OfType<HeaderTabsPanel>().First();
         Assert.NotNull(row.DraggedChild);
-        Assert.True(double.IsNaN(row.DraggedY), "纵向不该跟手 —— 越过这一行是另一套（拖出会话）");
-        Assert.InRange(row.DraggedX, 0, row.Bounds.Width - row.DraggedChild!.Bounds.Width);
+        Assert.NotNull(row.DropRect);                        // 投影吸在缝上
+        Assert.Equal(0, row.DraggedChild!.Bounds.Width);     // 源标签已被摘空（视觉在拖影上）
     }
 
     [AvaloniaFact]
@@ -214,7 +213,7 @@ public class EditorTabDragTests
         var row = window.GetVisualDescendants().OfType<HeaderTabsPanel>().First();
         Assert.NotNull(row.DraggedChild);
         Assert.NotNull(row.DropRect);          // ← 落点那一格
-        Assert.Equal(HeaderTabsPanel.DraggedOpacity, row.DraggedChild!.Opacity);
+        Assert.Equal(0, row.DraggedChild!.Bounds.Width);   // 源标签已被摘空
 
         window.MouseUp(new Point(press.X + b.Bounds.Width + 5, press.Y), MouseButton.Left);
         Dispatcher.UIThread.RunJobs();

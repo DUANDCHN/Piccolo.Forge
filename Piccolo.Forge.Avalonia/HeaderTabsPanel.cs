@@ -22,40 +22,14 @@ public class HeaderTabsPanel : Panel
     /// <remarks>上游据此决定「更多」按钮显不显示（<c>TabContentLayout.java:155-168</c>）。</remarks>
     public int HiddenTabCount { get; private set; }
 
-    /// <summary>正在被拖的那一个；<see langword="null"/> 表示没人在拖。</summary>
-    /// <remarks>见 <see cref="DraggedX"/>。</remarks>
+    /// <summary>被"摘起来"的那一个；<see langword="null"/> 表示没人在拖。</summary>
+    /// <remarks>
+    /// ★ <b>摘起 = 排布跳过它、把它摆成空。</b>它的视觉由**拖影**承担
+    /// （编辑区：覆盖层缩略图 / 幽灵窗；面板标题条：幽灵窗）——
+    /// 真控件出不了这条行（会被祖先裁掉半截），夹在行里又会被读成"吸附"。
+    /// 缝由 <see cref="DropIndex"/> 表达，投影吸附在缝上；拖影永不吸附。
+    /// </remarks>
     public Control? DraggedChild { get; set; }
-
-    /// <summary>
-    /// 被拖那一个画在哪（左边缘，相对本面板）。
-    /// </summary>
-    /// <remarks>
-    /// 对应 <c>JBTabsImpl.kt:2280-2294 · moveDraggedTabLabel</c>：横向标签行
-    /// <b>只改 x，y / 宽 / 高全部保持排布算出来的值</b>。所以被拖的那一页是"沿着行滑"，
-    /// 不会边拖边变形，也不会飘到行外面 —— 飘不出去还额外靠
-    /// <see cref="ForgeEditorTabDragTarget.MoveToFit"/> 夹一道。
-    /// <para>
-    /// 注意它<b>仍然占着自己那一格</b>：拖动过程中模型已经被 <c>reallocate</c> 换过位了，
-    /// 那一格就是它"排完之后该在的地方"，松手时它落回去正好严丝合缝。
-    /// </para>
-    /// </remarks>
-    public double DraggedX { get; set; }
-
-    /// <summary>
-    /// 被拖那一个画在哪（上边缘）；<see cref="double.NaN"/> = 用格子的 y（钉在行里）。
-    /// </summary>
-    /// <remarks>
-    /// ⚠ <b>默认就该是 NaN（钉在行里），别拿它去做"跟手"。</b>
-    /// 上游 <c>moveDraggedTabLabel</c> 只改 x，理由在实机上验证过两条：
-    /// 标签行外面是别的控件，画过去会被祖先<b>裁掉一半</b>；纵向放开之后人往上一带，
-    /// 拖影直接跑到<b>软件窗口外面</b>。真要带出去是另一套 —— 越过这一行就切到拖出会话，
-    /// 由浮窗拖影接管。
-    /// <para>
-    /// 拖动中的分工是：被拖的那个**横向连续跟手**（不吸到光标中间、也不在格位间跳），
-    /// **落点投影**（<see cref="DropRect"/>）才吸附到格位。
-    /// </para>
-    /// </remarks>
-    public double DraggedY { get; set; } = double.NaN;
 
     /// <summary>
     /// 空档占位落在第几个位置（0 = 最前面）；<see langword="null"/> 表示不留空档。
@@ -71,9 +45,6 @@ public class HeaderTabsPanel : Panel
     /// </para>
     /// </remarks>
     public int? DropIndex { get; set; }
-
-    /// <summary>被拖那一个的不透明度 <b>0.7</b> —— 让它看着是"影子"，底下那块投影才读得出来。</summary>
-    public const double DraggedOpacity = 0.7;
 
     /// <summary>
     /// 落点那块**投影矩形**在哪（排布时算出来）；<see langword="null"/> 表示此刻没有落点。
@@ -207,15 +178,11 @@ public class HeaderTabsPanel : Panel
         {
             var width = WidthOf(child);
 
-            // 被拖的那一个浮在上面跟手，不占行内位置；它原来那一格由 DropIndex 处的空档接手
-            if (ReferenceEquals(child, DraggedChild) && DropIndex is not null)
+            // 被摘起来的那一个：不占行内位置、也不在这里画（视觉由拖影承担）；
+            // 它的格子照旧留在 _slots 里（SlotOf 的契约：排布格子，不是画在哪）
+            if (ReferenceEquals(child, DraggedChild))
             {
-                // ⚠ 浮动矩形**不写进 _slots**：SlotOf 的契约是"排布算出来的格子，
-                //   不是它当前画在哪"—— 拿浮动位置去做拖拽判定就是自己咬自己。
-                var floating = new Rect(DraggedX, DraggedTop(0), width, finalSize.Height);
-                child.ZIndex = 1;
-                child.Opacity = DraggedOpacity;
-                child.Arrange(floating);
+                child.Arrange(default);
                 continue;
             }
 
@@ -252,18 +219,9 @@ public class HeaderTabsPanel : Panel
             // 被拖的那一个：只把 x 换成鼠标处，其余照排布来（moveDraggedTabLabel）。
             // ZIndex 抬高是 Avalonia 这边的补充 —— Swing 那边靠 z 序天然在上，
             // 这里不抬的话它会被后面的标签盖住半截。
-            if (ReferenceEquals(child, DraggedChild))
-            {
-                child.ZIndex = 1;
-                child.Opacity = DraggedOpacity;
-                child.Arrange(new Rect(DraggedX, DraggedTop(slot.Y), slot.Width, slot.Height));
-            }
-            else
-            {
-                child.ZIndex = 0;
-                child.Opacity = 1;
-                child.Arrange(slot);
-            }
+            child.ZIndex = 0;
+            child.Opacity = 1;
+            child.Arrange(slot);
 
             x += width;
         }
@@ -334,24 +292,17 @@ public class HeaderTabsPanel : Panel
             DropRect = gap;
         }
 
-        // 被拖的那一个：只改 x，其余照它原本那一格来（moveDraggedTabLabel）
+        // 被摘起来的那一个：不画（视觉由拖影承担）
         if (DraggedChild is { } dragged && dragged.IsVisible)
         {
-            var slot = _slots.TryGetValue(dragged, out var previous)
-                ? previous
-                : new Rect(0, 0, WidthOf(dragged), rowHeight);
-
-            dragged.ZIndex = 1;
-            dragged.Opacity = DraggedOpacity;
-            dragged.Arrange(new Rect(DraggedX, DraggedTop(slot.Y), slot.Width, slot.Height));
+            dragged.ZIndex = 0;
+            dragged.Opacity = 1;
+            dragged.Arrange(default);
         }
 
         HiddenTabCount = 0;
         return finalSize;
     }
-
-    /// <summary>被拖那一个画在哪一行高度上：给了 <see cref="DraggedY"/> 就用它，否则回到格子的 y。</summary>
-    private double DraggedTop(double slotY) => double.IsNaN(DraggedY) ? slotY : DraggedY;
 
     /// <summary>这一个标签排布时该占多宽（封顶 <see cref="ForgeMetrics.TabMaxWidth"/>）。</summary>
     private static double WidthOf(Control child) => Math.Min(child.DesiredSize.Width, ForgeMetrics.TabMaxWidth);

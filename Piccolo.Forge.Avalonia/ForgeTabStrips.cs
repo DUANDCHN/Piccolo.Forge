@@ -125,21 +125,46 @@ public sealed class ForgeContentTabStrip : TabStrip
             _dragging = true;
         }
 
-        // 拖到这条行之外：不落位、也不画投影，但**继续跟手**（面板没有分屏那条路，
-        // 拖出去就是"没有落点"，不是"手势结束"）。绕回来仍能接着排。
-        var outside = position.Y < -OutsideTolerance
-                      || position.Y > Bounds.Height + OutsideTolerance;
-        if (outside)
+        if (_ghost is null)
         {
-            _dropIndex = null;
-            ShowDragPreview(position, gap: null);
+            PickUp();
+        }
+
+        // ★ 拖影全程跟着光标（屏幕坐标，出了软件窗口照样跟）—— **它永不吸附**；
+        //   吸附的只有下面那块落点投影。
+        _ghost?.MoveTo(this.PointToScreen(position), new Vector(_grabOffset, _grabOffsetY));
+
+        // 行带内 → 投影吸附到缝；行外 → 没有落点（面板没有分屏那条路，拖出去不做任何处理），
+        // 拖影照常跟手，绕回来接着排。
+        var inRow = position.Y >= -OutsideTolerance && position.Y <= Bounds.Height + OutsideTolerance;
+        _dropIndex = inRow ? GapAt(position) : null;
+        ShowDropHint(_dropIndex);
+    }
+
+    /// <summary>把按住的那块"摘起来"：排布跳过它、摆成空，视觉交给幽灵窗。</summary>
+    /// <remarks>
+    /// ★ **被拖的视觉是幽灵窗（<see cref="ForgeDragGhost"/>），全程跟光标、永不吸附。**★
+    /// 不用真控件跟手：它出不了这条行（会被祖先裁掉半截），夹在行里又被读成"吸附" ——
+    /// 文档标签那边同一个结论（拖影 + 摘空），两条 tab 行才是一套手感。
+    /// </remarks>
+    private void PickUp()
+    {
+        if (_dragId is not { } id
+            || IndexOf(id) is not { } index
+            || ContainerFromIndex(index) is not ForgeContentTab tab
+            || ItemsPanelRoot is not HeaderTabsPanel panel)
+        {
             return;
         }
 
-        var gap = GapAt(position);
-        _dropIndex = gap;
-        ShowDragPreview(position, gap);
+        panel.DraggedChild = tab;
+        panel.InvalidateArrange();
+
+        _ghost = new ForgeDragGhost(ForgeDragOverlay.CaptureThumb(tab), Palette);
+        _ghost.Show();
     }
+
+    private ForgeDragGhost? _ghost;
 
     /// <summary>松手：落到画出来的那条缝上。</summary>
     private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
@@ -157,7 +182,17 @@ public sealed class ForgeContentTabStrip : TabStrip
 
     private void EndDrag()
     {
-        ClearDragPreview();
+        _ghost?.Close();
+        _ghost = null;
+
+        if (ItemsPanelRoot is HeaderTabsPanel panel)
+        {
+            panel.DraggedChild = null;
+            panel.DropIndex = null;
+            panel.InvalidateArrange();
+            InvalidateVisual();
+        }
+
         _dragId = null;
         _dragging = false;
         _dropIndex = null;
@@ -201,63 +236,21 @@ public sealed class ForgeContentTabStrip : TabStrip
         return gap;
     }
 
-    /// <summary>
-    /// 拖动中的样子：被拖的那一块**半透明跟手**，行内在落点处留一个**空档**。
-    /// </summary>
-    /// <remarks>
-    /// 与文档标签同一套（<c>HeaderTabsPanel.DraggedChild / DraggedX / DropIndex</c>，
-    /// 对位上游 <c>JBTabsImpl.kt:2280-2294 · moveDraggedTabLabel</c>）——
-    /// 两条 tab 行在同一个界面里，插入提示不该是两种语言。
-    /// <para>
-    /// 早先这里画的是一条插入竖条：单看没问题，但与文档标签那套摆在一起就是两套设计。
-    /// </para>
-    /// </remarks>
     /// <summary>指针离开这条行多远算"拖到外面了" —— 上下各 24。</summary>
     /// <remarks>给一点余量：贴着边缘时不该反复出现/消失投影。</remarks>
     private const double OutsideTolerance = 24;
 
-    private void ShowDragPreview(Point position, int? gap)
-    {
-        if (ItemsPanelRoot is not HeaderTabsPanel panel
-            || _dragId is not { } id
-            || IndexOf(id) is not { } index
-            || ContainerFromIndex(index) is not ForgeContentTab tab)
-        {
-            return;
-        }
-
-        // 横向连续跟手（保持按下时的抓握偏移，不吸到光标中间），**夹在这条行里**：
-        // 行外面是标题条的标题与按钮，画过去会被裁掉一半；纵向同理，所以不动 y。
-        // 跳来跳去的是落点投影，不是它 —— 两者的分工见 HeaderTabsPanel.DraggedY。
-        var maxX = Math.Max(0, Bounds.Width - tab.Bounds.Width);
-        panel.DraggedChild = tab;
-        panel.DraggedX = Math.Clamp(position.X - _grabOffset, 0, maxX);
-
-        // GapAt 给的已经是"除它之外"的缝，直接用；null = 拖到行外，没有落点（只跟手，不画投影）
-        panel.DropIndex = gap;
-        panel.InvalidateArrange();
-        InvalidateVisual();   // 投影是本控件画的（见 Render）
-    }
-
-    /// <summary>收掉拖动中的样子。</summary>
-    private void ClearDragPreview()
+    /// <summary>落点投影：行内给缝的序号，行外给 <see langword="null"/>（不画）。</summary>
+    private void ShowDropHint(int? gap)
     {
         if (ItemsPanelRoot is not HeaderTabsPanel panel)
         {
             return;
         }
 
-        if (panel.DraggedChild is { } dragged)
-        {
-            dragged.Opacity = 1;
-            dragged.ZIndex = 0;
-        }
-
-        panel.DraggedChild = null;
-        panel.DropIndex = null;
-        panel.DraggedY = double.NaN;
+        panel.DropIndex = gap;
         panel.InvalidateArrange();
-        InvalidateVisual();
+        InvalidateVisual();   // 投影是本控件画的（见 Render）
     }
 
     /// <summary>这一块在当前次序里排第几。</summary>
