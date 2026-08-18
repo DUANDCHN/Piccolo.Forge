@@ -215,7 +215,31 @@ public abstract class ForgeSquareButtonBase : Button
     /// </summary>
     /// <param name="size">按钮尺寸。</param>
     /// <returns>图标矩形。</returns>
-    protected virtual Rect IconRect(Size size) => BackgroundRect(new Rect(size));
+    protected virtual Rect IconRect(Size size) => BackgroundRect(ContentCell(size));
+
+    /// <summary>
+    /// 图标那一格：整个按钮，除非子类另有说法（显名时图标只占上面一格）。
+    /// </summary>
+    protected virtual Rect ContentCell(Size size) => new(size);
+
+    /// <summary>
+    /// 这颗按钮的**背板**：悬停高亮画的那块地（expUI / Islands 都是 30×30）。
+    /// </summary>
+    /// <remarks>
+    /// 一处算、多处用：悬停高亮、图标居中、拖影背板、落点方块，说的都是这一块地。
+    /// 各算各的必然漂开 —— 拖影比按钮胖一圈、落点方块又比拖影瘦一圈，就是这么来的。
+    /// </remarks>
+    /// <param name="size">按钮自己的尺寸。</param>
+    /// <returns>背板矩形（按钮坐标系）。</returns>
+    /// <remarks>
+    /// ⚠ 基准是**整颗按钮**，不是 <see cref="ContentCell"/>。
+    /// 显名时背板照样是整块、含名字那一截（<c>SquareStripeButton.kt:196-198</c>，
+    /// 也是模板里那层底的摆法，见 <see cref="UpdateGeometry"/>）；
+    /// 而图标只排在上面那一格 —— 两件事，别用同一个矩形。
+    /// 拿 <see cref="ContentCell"/> 当背板的后果：显名时拖影和落点方块只有图标那么高，
+    /// 而按钮的高亮是整条，一眼就对不上（实机看出来的）。
+    /// </remarks>
+    public Rect HighlightRect(Size size) => BackgroundRect(new Rect(size));
 
     /// <summary>给模板里那个图标槽问位置用的口子。</summary>
     /// <param name="size">槽的尺寸（= 按钮尺寸）。</param>

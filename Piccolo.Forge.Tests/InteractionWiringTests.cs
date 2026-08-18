@@ -169,13 +169,13 @@ public class ForgeFadeControllerTests
 /// 拖动工具窗口时的视觉反馈（AbstractDroppableStripe.kt:627-660 + ToolWindowDragHelper.kt:126-134）。
 public class ForgeDragFeedbackTests
 {
-    private static (ForgeControl Frame, Window Window) Show()
+    private static (ForgeControl Frame, Window Window) Show(double height = 600)
     {
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
         var frame = new ForgeControl { Palette = ForgePalette.ExpUiDark };
         frame.Attach(shell);
 
-        var window = new Window { Width = 900, Height = 600, Content = frame };
+        var window = new Window { Width = 900, Height = height, Content = frame };
         window.Show();
         Dispatcher.UIThread.RunJobs();
 
@@ -314,6 +314,145 @@ public class ForgeDragFeedbackTests
 
         window.MouseUp(to, MouseButton.Left);
         Dispatcher.UIThread.RunJobs();
+    }
+
+    /// <summary>
+    /// 拖出去再拖回原位，虚影**照样跟手**。
+    /// </summary>
+    /// <remarks>
+    /// 回归（用户实测）：「往下拖再往上拖，鼠标一进第一个图标那块地，拖着的图标就没了」。
+    /// 成因是起拖的两个条件被写成了**每个指针事件都判**——「已经离开这个按钮」这条
+    /// 在指针回到原按钮矩形时又成立了，移动处理整个提前 return：虚影停在那儿不再跟手，
+    /// 落点也不再更新。它天然方向相关（往下拖离开没事、往上拖回来中招），
+    /// 所以表现成「先往下、再往上就很卡」——其实一帧没掉，是反馈被掐了。
+    /// <para>
+    /// 上游的死区同样只管起拖（<c>MouseDragHelper.java:32</c>），起拖后每个移动事件
+    /// 都照常喂给 <c>relocate</c>。
+    /// </para>
+    /// </remarks>
+    [AvaloniaFact]
+    public void The_thumb_keeps_following_after_the_pointer_returns_to_the_source_button()
+    {
+        var (frame, window) = Show();
+        var button = FirstButton(frame);
+        var start = button.TranslatePoint(new Point(18, 20), frame)!.Value;
+
+        window.MouseDown(start, MouseButton.Left);
+        window.MouseMove(start + new Vector(0, 260));   // 拖出去：起拖
+        Dispatcher.UIThread.RunJobs();
+
+        // 落到别人身上 = 拖影是"按钮的样子"
+        Assert.False(frame.StripeDragShowsFloatPreview);
+
+        // 拖回来，落在原按钮那块地里：反馈**不能**被掐掉（这才是本条要守的）
+        var back = start + new Vector(0, 4);
+        window.MouseMove(back);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.NotNull(frame.DragOverlay.DropRect);
+
+        window.MouseUp(back, MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    /// <summary>
+    /// 拖到"放不下"的地方，拖影不但要在，还得换成**小窗口预览**。
+    /// </summary>
+    /// <remarks>
+    /// 回归（用户实测）：「拖到侧边栏中间，拖着的图标就没了，继续往上或往下又出现」。
+    /// 条带上下两个落区之间本来就有一段谁都不属于的空白（上组只占上半、下组是窗口底部一条），
+    /// 落在那儿 <c>ResolveDropTarget</c> 返回 null —— 这是对的，"这里不能放"；
+    /// 错的是当时顺手调了 <c>Clear()</c>，把**虚影**也一起清了。
+    /// <para>
+    /// 上游的虚影是一个独立窗口，跟落点判定毫不相干，全程跟手
+    /// （<c>ToolWindowDragHelper.kt:299 · relocateImageView</c>）。
+    /// </para>
+    /// </remarks>
+    [AvaloniaFact]
+    public void The_ghost_turns_into_a_window_preview_where_nothing_can_be_dropped()
+    {
+        var (frame, window) = Show(height: 1200);
+        var button = FirstButton(frame);
+        var start = button.TranslatePoint(new Point(18, 20), frame)!.Value;
+
+        window.MouseDown(start, MouseButton.Left);
+        window.MouseMove(start + new Vector(0, 120));
+        Dispatcher.UIThread.RunJobs();
+
+        // 落得下去 = 按钮的样子
+        Assert.False(frame.StripeDragShowsFloatPreview);
+
+        var dead = FindDeadSpot(frame, window, start);
+
+        // ★ 硬约束：这儿松手会浮出窗口，那拖影现在就得长成小窗口的样子
+        Assert.True(frame.StripeDragShowsFloatPreview, "落不下去的地方，拖影必须是小窗口预览");
+        Assert.Null(frame.DragOverlay.DropRect);
+
+        window.MouseUp(dead, MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+
+        // 手势结束了，形态也该收干净
+        Assert.False(frame.StripeDragShowsFloatPreview);
+    }
+
+    /// <summary>
+    /// 现场找一个"确实放不下"的位置：没有任何落点反馈的那一点。
+    /// </summary>
+    /// <remarks>
+    /// 条带上下两个落区之间那段空白的具体几何随窗口尺寸变（上组占条带上半、
+    /// 下组是窗口底部一条），所以别写死坐标。窗口要够高才有这段空白 —— 矮的时候两者会叠上。
+    /// 调用前必须已经起拖。
+    /// </remarks>
+    private static Point FindDeadSpot(ForgeControl frame, Window window, Point start)
+    {
+        for (var y = frame.Bounds.Height / 2; y < frame.Bounds.Height; y += 10)
+        {
+            var probe = new Point(start.X, y);
+            window.MouseMove(probe);
+            Dispatcher.UIThread.RunJobs();
+
+            if (frame.DragOverlay.DropRect is null && frame.DragOverlay.AreaRect is null)
+            {
+                return probe;
+            }
+        }
+
+        Assert.Fail("这个窗口尺寸下没有「放不下」的位置，用例前提不成立");
+        return default;
+    }
+
+    /// <summary>
+    /// 在落区之外松手 = 浮出来。
+    /// </summary>
+    /// <remarks>
+    /// 实机 Rider 就是这样（用户实测：拖到条带中间那段空白松手，窗口直接浮了）。
+    /// 上游同一条路：<c>ToolWindowDragHelper.kt:457 · processDragFinish</c>
+    /// 拿不到目标条带就走浮动分支。本仓原来这里写的是"本阶段不做浮动"，
+    /// 于是那段空白成了"松手什么都不发生"的死区。
+    /// </remarks>
+    [AvaloniaFact]
+    public void Releasing_outside_every_drop_zone_floats_the_window()
+    {
+        // 窗口要够高才有那段空白：上组落区占条带上半、下组占窗口底部一条，
+        // 窗口矮的时候两者会叠上，压根没有"放不下"的地方（默认 600 就是这种）。
+        var (frame, window) = Show(height: 1200);
+        var button = FirstButton(frame);
+        var id = ((ToolWindowViewModel)button.Tag!).Id;
+        var manager = frame.Shell!.Manager;
+        var start = button.TranslatePoint(new Point(18, 20), frame)!.Value;
+
+        Assert.NotEqual(ToolWindowType.Floating, manager.Layout.GetInfo(id)!.Type);
+
+        window.MouseDown(start, MouseButton.Left);
+        window.MouseMove(start + new Vector(0, 120));
+        Dispatcher.UIThread.RunJobs();
+
+        var dead = FindDeadSpot(frame, window, start);
+
+        window.MouseUp(dead, MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(ToolWindowType.Floating, manager.Layout.GetInfo(id)!.Type);
     }
 
     [AvaloniaFact]

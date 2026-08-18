@@ -338,8 +338,6 @@ public class ForgeEditorControl : TemplatedControl
 
         _overlay.IsVisible = true;
         _overlay.Palette = Palette;
-        _overlay.ThumbImage = null;
-        _overlay.ThumbRect = default;
 
         _overlay.AreaRect = candidate is not null && _groupHosts.TryGetValue(candidate, out var host)
             ? BoundsIn(host)
@@ -1692,8 +1690,6 @@ public class ForgeEditorControl : TemplatedControl
 
         // 拖影由幽灵窗承担（见 UpdateCrossWindowFeedback）；覆盖层只画提示（蓝框等）
         _overlay.Palette = Palette;
-        _overlay.ThumbImage = null;
-        _overlay.ThumbRect = default;
     }
 
     private EditorGroupViewModel? FindGroupAt(Point point)

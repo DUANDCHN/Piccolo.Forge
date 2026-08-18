@@ -1,4 +1,4 @@
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Piccolo.Forge.Themes;
@@ -40,17 +40,13 @@ public class ForgeDragOverlay : Control
     public static readonly StyledProperty<Rect?> SplitBoxRectProperty =
         AvaloniaProperty.Register<ForgeDragOverlay, Rect?>(nameof(SplitBoxRect));
 
+    /// <summary><see cref="DropCornerRadius"/> 的属性定义。</summary>
+    public static readonly StyledProperty<CornerRadius> DropCornerRadiusProperty =
+        AvaloniaProperty.Register<ForgeDragOverlay, CornerRadius>(nameof(DropCornerRadius));
+
     /// <summary><see cref="IsCompact"/> 的属性定义。</summary>
     public static readonly StyledProperty<bool> IsCompactProperty =
         AvaloniaProperty.Register<ForgeDragOverlay, bool>(nameof(IsCompact));
-
-    /// <summary><see cref="ThumbImage"/> 的属性定义。</summary>
-    public static readonly StyledProperty<IImage?> ThumbImageProperty =
-        AvaloniaProperty.Register<ForgeDragOverlay, IImage?>(nameof(ThumbImage));
-
-    /// <summary><see cref="ThumbRect"/> 的属性定义。</summary>
-    public static readonly StyledProperty<Rect?> ThumbRectProperty =
-        AvaloniaProperty.Register<ForgeDragOverlay, Rect?>(nameof(ThumbRect));
 
     static ForgeDragOverlay()
     {
@@ -58,50 +54,16 @@ public class ForgeDragOverlay : Control
             PaletteProperty,
             AreaRectProperty,
             DropRectProperty,
+            DropCornerRadiusProperty,
             SplitBoxRectProperty,
             IsCompactProperty,
-            ThumbImageProperty,
-            ThumbRectProperty,
             DropBackgroundBrushProperty,
             DropBorderBrushProperty,
             DropAreaBrushProperty);
 
     }
 
-    /// <summary>
-    /// 跟着光标走的拖拽虚影：被拖按钮在**拖拽开始那一刻**的位图快照。
-    /// </summary>
-    /// <remarks>
-    /// 对应上游 <c>ToolWindowDragHelper.kt:820-833 · DragImageDialog</c>：
-    /// 一个 <c>opacity = THUMB_OPACITY(0.85)</c> 的无边框置顶小窗，内容是
-    /// <c>createStripeButtonDragImage</c> 拍下来的 <c>BufferedImage</c>。
-    /// <para>
-    /// <b>实现差异（有意）</b>：不开系统级小窗，在覆盖层里画。
-    /// Forge 的拖拽本来就只发生在外壳内部，开真窗口除了跨平台的透明/置顶麻烦拿不到什么。
-    /// </para>
-    /// <para>
-    /// ⚠ **是快照，不是对活控件的引用**（曾用 <c>VisualBrush</c> 引原控件）。
-    /// 那样虚影与被拖控件的排布强耦合：控件一旦被藏起来（拖拽期它本来就该从条带里消失），
-    /// 虚影跟着一起没了；于是只能把它"排到面板外面"留着，又导致它画在面板上方露出来。
-    /// 拍成位图之后两件事彻底解耦，控件可以老老实实排成零尺寸。
-    /// 快照也顺带保住了宿主塞的任意控件图标（LDVision 用的是 Material.Icons）。
-    /// </para>
-    /// </remarks>
-    public IImage? ThumbImage
-    {
-        get => GetValue(ThumbImageProperty);
-        set => SetValue(ThumbImageProperty, value);
-    }
 
-    /// <summary>虚影画在哪；<see langword="null"/> 表示不画。</summary>
-    public Rect? ThumbRect
-    {
-        get => GetValue(ThumbRectProperty);
-        set => SetValue(ThumbRectProperty, value);
-    }
-
-    /// <summary>拖拽虚影的透明度（<c>ToolWindowDragHelper.kt:94 · THUMB_OPACITY</c>）。</summary>
-    public const double ThumbOpacity = 0.85;
 
     /// <summary>建一层拖拽反馈。</summary>
     public ForgeDragOverlay()
@@ -138,6 +100,20 @@ public class ForgeDragOverlay : Control
         set => SetValue(SplitBoxRectProperty, value);
     }
 
+    /// <summary>
+    /// 落点方块的圆角；<c>default</c> 表示按度量里的 <c>Arc</c> 折半。
+    /// </summary>
+    /// <remarks>
+    /// 由宿主把**按钮自己的圆角**（<c>ForgeSquareButtonBase.ArcCornerRadius</c>）传进来：
+    /// 落点方块画的就是那颗按钮松手后占的那块地，长相要跟图标按钮、跟拖影一致。
+    /// 宿主改了圆角（本软件收成半径 4），这里不能还按库里的常量画。
+    /// </remarks>
+    public CornerRadius DropCornerRadius
+    {
+        get => GetValue(DropCornerRadiusProperty);
+        set => SetValue(DropCornerRadiusProperty, value);
+    }
+
     /// <summary>紧凑模式（只影响落点方块的圆角）。</summary>
     public bool IsCompact
     {
@@ -146,7 +122,7 @@ public class ForgeDragOverlay : Control
     }
 
     /// <summary>
-    /// 把一个控件当前的样子拍成位图，给 <see cref="ThumbImage"/> 用。
+    /// 把一个控件当前的样子拍成位图，给拖影（<see cref="ForgeDragGhost"/>）用。
     /// </summary>
     /// <remarks>
     /// 必须在它**还排在原位**时拍 —— 拖拽一开始它可能就被排成零尺寸，那时再拍是空的。
@@ -166,6 +142,15 @@ public class ForgeDragOverlay : Control
 
         var bitmap = new global::Avalonia.Media.Imaging.RenderTargetBitmap(
             new PixelSize((int)Math.Ceiling(size.Width), (int)Math.Ceiling(size.Height)));
+
+        // ⚠ 先清一次再画：新建的位图**不保证是透明的**（实测拿到的是黑底）。
+        //   拍整颗按钮时看不出来——它自己画了底；拍一个只有笔画的图标就露馅：
+        //   图标周围一圈黑块（用户实机提的）。CreateDrawingContext 会把表面清空。
+        using (bitmap.CreateDrawingContext())
+        {
+            // 只为清空，什么都不画
+        }
+
         bitmap.Render(control);
         return bitmap;
     }
@@ -173,15 +158,33 @@ public class ForgeDragOverlay : Control
     /// <summary>什么都不用画的时候，别让它白占一层渲染。</summary>
     public bool IsIdle => AreaRect is null && DropRect is null && SplitBoxRect is null;
 
-    /// <summary>一次性清掉三样东西。</summary>
-    public void Clear()
+    /// <summary>
+    /// 只撤掉「落点反馈」，**虚影留着**。
+    /// </summary>
+    /// <remarks>
+    /// 拖到不能放的地方（两个落区之间那段空白）时用它。
+    /// <para>
+    /// ⚠ 这种时候**不能**调 <see cref="Clear"/> —— 那会把虚影一起清掉，
+    /// 表现为「拖到侧边栏中间，拖着的图标就没了，再往上或往下又出现」（用户实测）。
+    /// 上游的虚影是一个独立窗口，压根不受落点判定影响
+    /// （<c>ToolWindowDragHelper.kt:299 · relocateImageView</c>），全程跟手。
+    /// </para>
+    /// </remarks>
+    public void ClearDropFeedback()
     {
         AreaRect = null;
         DropRect = null;
         SplitBoxRect = null;
-        ThumbImage = null;
-        ThumbRect = null;
     }
+
+    /// <summary>
+    /// 手势结束了：反馈全撤。
+    /// </summary>
+    /// <remarks>
+    /// 拖影不在这层里 —— 它是独立的幽灵窗（<see cref="ForgeDragGhost"/>），
+    /// 由发起拖拽的那一方关掉。这层只画"松手会落到哪"。
+    /// </remarks>
+    public void Clear() => ClearDropFeedback();
 
     /// <summary><see cref="DropBackgroundBrush"/> 的属性定义。</summary>
     public static readonly StyledProperty<IBrush?> DropBackgroundBrushProperty =
@@ -235,8 +238,11 @@ public class ForgeDragOverlay : Control
             // 落点方块与真按钮同圆角（AbstractDroppableStripe.kt:639 取的就是 stripeButtonArc）。
             // ⚠ 那是**直径**，画的时候要折半 —— 见 ForgeMetrics.StripeButtonArc 的说明。
             var arc = IsCompact ? ForgeCompactMetrics.StripeButtonArc : ForgeMetrics.StripeButtonArc;
+            var radius = DropCornerRadius == default ? new CornerRadius(arc / 2) : DropCornerRadius;
             context.DrawRectangle(
-                DropBackgroundBrush ?? new SolidColorBrush(Palette.ButtonDropBackground), null, new RoundedRect(drop, arc / 2));
+                DropBackgroundBrush ?? new SolidColorBrush(Palette.ButtonDropBackground),
+                null,
+                new RoundedRect(drop, radius));
         }
 
         if (SplitBoxRect is { } box)
@@ -253,13 +259,5 @@ public class ForgeDragOverlay : Control
             context.DrawRectangle(null, pen, box);
         }
 
-        // 虚影画在最后 —— 它要压在落点方块与区域高亮之上，跟着光标走的东西不该被别的盖住
-        if (ThumbImage is { } image && ThumbRect is { } thumb)
-        {
-            using (context.PushOpacity(ThumbOpacity))
-            {
-                context.DrawImage(image, new Rect(image.Size), thumb);
-            }
-        }
     }
 }

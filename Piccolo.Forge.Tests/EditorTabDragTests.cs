@@ -753,8 +753,6 @@ public class EditorTabDragTests
         window.MouseUp(release, MouseButton.Left);
         Dispatcher.UIThread.RunJobs();
 
-        Assert.Null(overlay.ThumbImage);
-        Assert.Null(overlay.ThumbRect);
         Assert.Null(overlay.AreaRect);
         Assert.All(
             control.GetVisualDescendants().OfType<HeaderTabsPanel>(),
@@ -788,8 +786,6 @@ public class EditorTabDragTests
             }
 
             observedMerge = true;
-            Assert.Null(overlay.ThumbImage);
-            Assert.Null(overlay.ThumbRect);
             Assert.Null(overlay.AreaRect);
             Assert.All(
                 control.GetVisualDescendants().OfType<HeaderTabsPanel>(),

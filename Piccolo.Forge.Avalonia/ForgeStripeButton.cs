@@ -595,14 +595,23 @@ public class ForgeStripeButton : ForgeSquareButtonBase
     /// </remarks>
     /// <param name="size">按钮自己的尺寸。</param>
     /// <returns>图标矩形。</returns>
-    protected override Rect IconRect(Size size)
-    {
-        // 显名时按钮被名字撑高，图标只在上面那一格里排
-        var cell = ShowName
+    /// <inheritdoc />
+    /// <remarks>显名时按钮被名字撑高，图标只在上面那一格里排。</remarks>
+    protected override Rect ContentCell(Size size)
+        => ShowName
             ? new Rect((size.Width - ButtonWidth) / 2, NamedContentInset, ButtonWidth, ButtonHeight)
             : new Rect(size);
 
-        var area = BackgroundRect(cell);
+    /// <inheritdoc />
+    /// <remarks>
+    /// ⚠ 基准是 <see cref="ContentCell"/>（图标那一格），**不是**
+    /// <see cref="ForgeSquareButtonBase.HighlightRect"/>（整颗按钮的背板）。
+    /// 显名时按钮被名字撑高，拿背板当基准，图标就在"图标+名字"里居中 ——
+    /// 往下掉半截、压在字上（实机看出来的）。
+    /// </remarks>
+    protected override Rect IconRect(Size size)
+    {
+        var area = BackgroundRect(ContentCell(size));
         return new Rect(
             area.X + ((area.Width - IconSize) / 2),
             area.Y + ((area.Height - IconSize) / 2),

@@ -48,8 +48,24 @@ public class ForgeControl : TemplatedControl
     private Point _dragStart;
     private Point _dragGrab;
     private global::Avalonia.Media.Imaging.RenderTargetBitmap? _dragThumb;
+    private global::Avalonia.Media.Imaging.RenderTargetBitmap? _dragPanelThumb;
+
+    /// <summary>
+    /// 条带拖拽的幽灵窗——拖影就是它，**全程在**。
+    /// </summary>
+    /// <remarks>
+    /// 与拖标题条（<c>_headerGhost</c>）、拖编辑区标签（<c>ForgeEditorControl</c>）同一条路：
+    /// 拖影是一个置顶的真窗口，不画在浮层里。三处统一之后，「拖影的样子 = 松手会发生什么」
+    /// 这条语言只有一份实现（<see cref="ForgeDragGhost.SetFloatPreview"/>）。
+    /// <para>
+    /// 也是上游的形：拖影是独立 <c>JDialog</c>，<c>relocateImageView</c> 只改它的位置
+    /// （<c>ToolWindowDragHelper.kt:299 / :821</c>），从不参与主窗口的绘制。
+    /// </para>
+    /// </remarks>
+    private ForgeDragGhost? _dragGhost;
     private (StripeSide Side, StripeGroup Group)? _lastZone;
     private readonly ForgeDragOverlay _overlay = new();
+
 
     /// <summary><see cref="Palette"/> 的属性定义。</summary>
     public static readonly StyledProperty<ForgePalette> PaletteProperty =
@@ -853,6 +869,7 @@ public class ForgeControl : TemplatedControl
             }
 
             _dragId = id;
+            _dragStarted = false;
             _dragStart = e.GetPosition(this);
             // 抓在按钮的哪个位置——虚影要让同一个点始终待在光标下，不然一开拖就"跳"一下。
             // 对应 ToolWindowDragHelper.kt:250 · setInitialOffsetFromStripeButton。
@@ -1020,22 +1037,55 @@ public class ForgeControl : TemplatedControl
         var point = e.GetPosition(this);
         var moved = Math.Sqrt(Math.Pow(point.X - _dragStart.X, 2) + Math.Pow(point.Y - _dragStart.Y, 2));
 
-        // 拖动开始的两个条件，缺一不可：
+        // 起拖的两个条件，缺一不可 —— 且**只在起拖前判一次**（见 _dragStarted）：
         //   ① 走够基类的死区 7（MouseDragHelper.java:32）；
         //   ② **已经离开这个按钮**。
         // ② 不是上游的原话，是这边必须加的一条：拖动一开始就会把被拖按钮排成零尺寸
         //   （腾出落点槽），而按钮一旦没了尺寸，Button 就判不出"松手落在自己身上"、
         //   发不出 Click —— 手抖八九个像素的一次点击会当场变成"拖了一下又没拖成"，
         //   也就是「侧边栏按钮有时要点两下」。
-        if (moved < ForgeMetrics.StripeButtonDragStartDeadzone || _dragButtonBounds.Contains(point))
+        if (!_dragStarted)
         {
-            return;
+            if (moved < ForgeMetrics.StripeButtonDragStartDeadzone || _dragButtonBounds.Contains(point))
+            {
+                return;
+            }
+
+            _dragStarted = true;
+
+            // 拖动**从这一刻**起有视觉：快照拍在按钮还排在原位的时候（此后它被排成零尺寸就拍不到了），
+            // 对应上游 createStripeButtonDragImage 在 dragStarted 时产出 BufferedImage。
+            // 这一步只改视觉，不碰捕获 —— 理由见按下处。
+            // 「松手会浮出窗口」那一档要给的是**这个面板的缩略图**；面板还没建/没开就退回按钮快照
+            // （ForgeDragGhost 自己会 windowThumb ?? tabThumb）。
+            _dragPanelThumb ??= _dragId is { } id && _panelHosts.TryGetValue(id, out var host)
+                ? ForgeDragOverlay.CaptureThumb(host)
+                : null;
+
+            // 跟手的是**这个图标本身**，不是整颗按钮的快照。
+            // ⚠ 拍的是图标控件，不是那个图标槽（ForgeIconHost）—— 槽跟按钮一样大，
+            //    且图标在槽里是按 IconPlacement 摆的（左右条带的内边距不一样），
+            //    拍整个槽再"居中"，居中的是**槽**、不是图标，看着就是偏的（用户实机提的）。
+            //    拍图标本身得到的是贴边位图，摆进背板才真的居中。
+            _dragThumb ??= button.FindDescendantOfType<ForgeIconHost>()?.Icon is { } icon
+                ? ForgeDragOverlay.CaptureThumb(icon) ?? ForgeDragOverlay.CaptureThumb(button)
+                : ForgeDragOverlay.CaptureThumb(button);
+
+            // 背板 = 这颗按钮的**背板**（悬停高亮那块 30×30），不是它占的整格 ——
+            // 按钮控件跟条带一样宽，拿 Bounds 当背板会胖一圈。落点方块用同一个来源，两者天然等大。
+            // 底色与圆角都问**这颗按钮**要：拖影就是"被拎起来的那个图标按钮"，
+            // 长相该与它一致（宿主改了圆角/颜色，这里跟着走，不留第二份常量）。
+            _dragGhost ??= OpenGhost(
+                new ForgeDragGhost(
+                    _dragThumb,
+                    Palette,
+                    _dragPanelThumb,
+                    button.HighlightRect(button.Bounds.Size).Size,
+                    button.HoverBackgroundBrush ?? new SolidColorBrush(Palette.ButtonHoverBackground),
+                    button.ArcCornerRadius));
+
         }
 
-        // 拖动**从这一刻**起有视觉：快照拍在按钮还排在原位的时候（此后它被排成零尺寸就拍不到了），
-        // 对应上游 createStripeButtonDragImage 在 dragStarted 时产出 BufferedImage。
-        // 这一步只改视觉，不碰捕获 —— 理由见按下处。
-        _dragThumb ??= ForgeDragOverlay.CaptureThumb(button);
         UpdateDragFeedback(point);
     }
 
@@ -1076,11 +1126,52 @@ public class ForgeControl : TemplatedControl
         var target = commit && moved ? ResolveDropTarget(point) : null;
 
         _dragId = null;
+        _dragStarted = false;
         ClearDragLayout();
 
-        if (commit && moved && dragged is not null && target is { } t)
+        if (!commit || !moved || dragged is null)
+        {
+            return;
+        }
+
+        if (target is { } t)
         {
             _shell!.Manager.MoveTo(dragged, t.Anchor, t.Order, t.IsSplit);
+            return;
+        }
+
+        // 落在任何落区之外 = **浮出来**，不是"什么都不做"。
+        // 条带上下两个落区之间那段空白（上组只占上半、下组是窗口底部一条）也算"之外" ——
+        // 实机 Rider 就是在那儿松手直接浮窗（用户实测）。上游同一条路：
+        // ToolWindowDragHelper.kt:457 · processDragFinish 拿不到目标条带就走浮动分支。
+        // 与拖标题条松手在面板外是同一件事，见 OnHeaderPointerReleased 末尾。
+        FloatAt(dragged, point);
+    }
+
+    /// <summary>
+    /// 让一个工具窗口浮出来，窗口摆到光标处。
+    /// </summary>
+    /// <remarks>
+    /// 没开的先开——浮出一个看不见的窗口等于什么都没发生。
+    /// 抓握点对齐：按下时抓在按钮哪个位置，浮窗就摆在哪，不会"跳"一下。
+    /// </remarks>
+    /// <param name="id">哪个工具窗口。</param>
+    /// <param name="point">松手的位置（相对本控件）。</param>
+    private void FloatAt(string id, Point point)
+    {
+        var shell = _shell!;
+
+        if (shell.Manager.Layout.GetInfo(id) is { IsVisible: false })
+        {
+            shell.Open(id);
+        }
+
+        shell.Manager.SetType(id, ToolWindowType.Floating);
+
+        if (_externalWindows.TryGetValue(id, out var external)
+            && this.PointToScreen(point - _dragGrab) is { } origin)
+        {
+            external.Window.Position = origin;
         }
     }
 
@@ -1114,6 +1205,22 @@ public class ForgeControl : TemplatedControl
 
     /// <summary>按下那一刻，被按的条带按钮在框架坐标系里的矩形（松手落回它里面 = 没搬家）。</summary>
     private Rect _dragButtonBounds;
+
+    /// <summary>
+    /// 这一次手势**已经起拖了**——起拖的两个条件只在起拖前判，起拖后不再判。
+    /// </summary>
+    /// <remarks>
+    /// ⚠ 少了这个闩，「离开这个按钮」那条会在**每个**指针事件上重判：
+    /// 拖出去再拖回来，指针一进原按钮那块地，移动处理就整个提前 return ——
+    /// 虚影当场停在那儿不再跟手（用户看到的是「拖着的图标没了」），落点也不再更新。
+    /// 而且它天然是方向相关的：往下拖离开了没事，往上拖回来就中招，
+    /// 正是用户报的「先往下拖、再往上拖就很卡」。
+    /// <para>
+    /// 上游的死区同样只管**起拖**（<c>MouseDragHelper.java:32</c>），起拖之后每一个
+    /// 移动事件都照常喂给 <c>relocate</c>。
+    /// </para>
+    /// </remarks>
+    private bool _dragStarted;
 
     /// <summary>
     /// 当前留着空槽的那一组；落点不在任何条带上、或没在拖，就是 <see langword="null"/>。
@@ -1210,9 +1317,32 @@ public class ForgeControl : TemplatedControl
         }
 
         _lastZone = null;
+
+        _dragGhost?.Close();
+        _dragGhost = null;
         _dragThumb?.Dispose();
         _dragThumb = null;
+        _dragPanelThumb?.Dispose();
+        _dragPanelThumb = null;
     }
+
+    /// <summary>开一扇幽灵窗。</summary>
+    private static ForgeDragGhost OpenGhost(ForgeDragGhost ghost)
+    {
+        ghost.Show();
+        return ghost;
+    }
+
+    /// <summary>拖影跟手：抓握点始终待在光标下。</summary>
+    /// <param name="point">当前指针位置（相对本控件）。</param>
+    private void MoveGhost(Point point)
+        => _dragGhost?.MoveTo(this.PointToScreen(point), new Vector(_dragGrab.X, _dragGrab.Y));
+
+    /// <summary>
+    /// 条带拖影现在是不是「松手会浮出窗口」那一档。
+    /// </summary>
+    /// <remarks>给用例看的：这条是硬约束——落不下去的地方，拖影必须是小窗口预览。</remarks>
+    public bool StripeDragShowsFloatPreview => _dragGhost?.IsFloatPreview ?? false;
 
     /// <summary>
     /// 换一组留空槽：别的组撤掉，这一组留着。
@@ -1309,26 +1439,36 @@ public class ForgeControl : TemplatedControl
         foreach (var panel in StripePanels())
         {
             panel.DraggedChild = dragged;
-            panel.DropSlotHeight = metrics.Height;
+
+            // 空槽高 = 被拖那颗按钮**自己**的高：显名时它被名字撑高，拿度量里的图标格高
+            // 会让空槽比按钮矮一截，落点方块跟着矮（拖影却是整块背板，两者对不上）。
+            // 它已被排成零尺寸，Bounds 不能用；DesiredSize 仍在量（见 StripeItemsPanel.MeasureOverride）。
+            panel.DropSlotHeight = dragged is { DesiredSize.Height: > 0 } d ? d.DesiredSize.Height : metrics.Height;
         }
 
-        // 跟随光标的虚影：抓取点始终待在光标下。画的是拖拽开始时拍的快照，
-        // 与被拖控件的排布解耦（它此刻已被排成零尺寸）。
-        if (dragged is not null && _dragThumb is not null)
-        {
-            _overlay.ThumbImage = _dragThumb;
-            _overlay.ThumbRect = new Rect(point - _dragGrab, _dragThumb.Size);
-        }
+        // 跟随光标的拖影：它是个独立窗口，挪它跟主窗口的排布、绘制都没关系。
+        MoveGhost(point);
 
         _lastZone = ResolveDropZone(point);
         if (_lastZone is not { } zone || PanelOf(zone) is not { } target || !ApplyDropOffset(target, zone, point))
         {
             SetDropPanel(null);
-            _overlay.Clear();
+
+            // 只撤落点反馈 —— 拖影要一直跟手，哪怕此刻落不下去（两个落区之间那段空白）。
+            _overlay.ClearDropFeedback();
+
+            // ★ 硬约束：这儿松手会**浮出一个窗口**，那拖影现在就得长成小窗口的样子。
+            //   拖影的样子 = 松手会发生什么；不切的话用户分不清松手是浮动还是换位。
+            _dragGhost?.SetFloatPreview(true);
+            MoveGhost(point);
             return;
         }
 
         SetDropPanel(target);
+
+        // 有人接得住 → 拖影回到"按钮的样子"。先切形态再挪位置（形态换了尺寸跟着变）。
+        _dragGhost?.SetFloatPreview(false);
+        MoveGhost(point);
 
         // ⚠ 左右一律从**落在哪根条带**推导，不能看 anchor —— 下组的 anchor 恒为 BOTTOM，
         //    拿它判会让右条带下组用成左条带的内边距，落点方块整体偏 3px
@@ -1364,14 +1504,21 @@ public class ForgeControl : TemplatedControl
             return;
         }
 
-        var metrics = ForgeStripeButtonMetrics.ForTheme(Palette.Family, _overlay.IsCompact);
-        var padding = metrics.IconPadding(zone.Side == StripeSide.Left, ShowToolWindowNames);
+        // 落点方块 = 按钮的**背板**，与跟手那块拖影背板一模一样大 ——
+        // 两者说的本来就是同一件事：这个图标松手后占的那块地。
+        // 所以尺寸从同一个来源取（HighlightRect），而不是各自扣各自的内边距（那必然漂开）。
+        var cell = DraggedButton is { } dragged
+            ? dragged.HighlightRect(new Size(panel.Bounds.Width, rect.Height))
+            : new Rect(0, 0, panel.Bounds.Width, rect.Height);
+
+        // 落点方块的圆角跟按钮走（宿主可能收过圆角）
+        _overlay.DropCornerRadius = DraggedButton?.ArcCornerRadius ?? default;
 
         _overlay.DropRect = new Rect(
-            origin.X + padding.Left,
-            origin.Y + padding.Top,
-            Math.Max(0, panel.Bounds.Width - padding.Horizontal),
-            Math.Max(0, rect.Height - padding.Vertical));
+            origin.X + cell.X,
+            origin.Y + cell.Y,
+            Math.Max(0, cell.Width),
+            Math.Max(0, cell.Height));
 
         // 「另一半」：30 见方的虚线框，贴着落点方块下面。
         // ⚠ 条件是**该组里真的有那条分组分隔符**（AbstractDroppableStripe.kt:644-654
