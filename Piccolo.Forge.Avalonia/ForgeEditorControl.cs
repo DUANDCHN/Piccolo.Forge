@@ -27,6 +27,9 @@ public class ForgeEditorControl : TemplatedControl
     private readonly Dictionary<EditorGroupViewModel, Control> _groupHosts = [];
     private readonly Dictionary<EditorGroupViewModel, ForgeEditorTabStrip> _groupStrips = [];
     private readonly Dictionary<EditorGroupViewModel, Border> _groupStripHosts = [];
+
+    /// <summary>标签条底下那条 1px 线（**压在内容上、不占高度**，见建它的地方）。</summary>
+    private readonly Dictionary<EditorGroupViewModel, Border> _groupStripLines = [];
     private readonly Dictionary<EditorGroupViewModel, ContentControl> _groupBodies = [];
     private readonly Dictionary<EditorGroupViewModel, StackPanel> _groupActions = [];
     // IntelliJ/Rider 的整个文档区是一座连续的 editor island；分屏叶子只是
@@ -825,6 +828,7 @@ public class ForgeEditorControl : TemplatedControl
             _groupHosts.Remove(group);
             _groupStrips.Remove(group);
             _groupStripHosts.Remove(group);
+            _groupStripLines.Remove(group);
             _groupBodies.Remove(group);
             _groupActions.Remove(group);
         }
@@ -865,9 +869,9 @@ public class ForgeEditorControl : TemplatedControl
                 ApplyEditorWindowDecor((Border)host);
             }
 
-            if (_groupStripHosts.TryGetValue(vm, out var stripHost))
+            if (_groupStripLines.TryGetValue(vm, out var stripLine))
             {
-                stripHost.BorderBrush = new SolidColorBrush(Palette.EditorTabsBorder);
+                stripLine.Background = new SolidColorBrush(Palette.EditorTabsBorder);
             }
 
             // 「活动」= 这一组是当前组，且编辑区握着键盘焦点（详见 SyncStrip 同处的注释）
@@ -1036,7 +1040,19 @@ public class ForgeEditorControl : TemplatedControl
             stripRow.Children.Add(actions);
             stripRow.Children.Add(strip);
 
-            var stripHost = new Border { Child = stripRow, BorderThickness = new Thickness(0, 0, 0, 1) };
+            // ⚠ 这条线**压在内容上、不占高度**：占高度的话标签行就是「行高 + 1」，
+            //   比面板标题条高出 1px —— 宿主给的 HeaderHeight / TabRowHeight 是同一个数，
+            //   意思就是这两行一样高（同 ForgeToolWindowToolbar.BorderOverlaysContent 那条边）。
+            //   放在标签**之下**（先加 = z 序在下）：选中标签自己的下划线画在它上面、正好盖住那一段，
+            //   与上游一致（蓝条压过标签栏底线，不是被它切掉 1px）。
+            var stripLine = new Border { Height = 1, VerticalAlignment = global::Avalonia.Layout.VerticalAlignment.Bottom };
+            _groupStripLines[vm] = stripLine;
+
+            var stripLayer = new Panel();
+            stripLayer.Children.Add(stripLine);
+            stripLayer.Children.Add(stripRow);
+
+            var stripHost = new Border { Child = stripLayer };
             _groupStripHosts[vm] = stripHost;
             DockPanel.SetDock(stripHost, Dock.Top);
 
@@ -1065,7 +1081,7 @@ public class ForgeEditorControl : TemplatedControl
         // 开了标签、或者分了屏，标签行自然回来。
         _groupStripHosts[vm].IsVisible = vm.Tabs.Count > 0 && !IsSingleDocumentWindow;
 
-        _groupStripHosts[vm].BorderBrush = new SolidColorBrush(Palette.EditorTabsBorder);
+        _groupStripLines[vm].Background = new SolidColorBrush(Palette.EditorTabsBorder);
 
         // 选中的那一页的内容挂到组的正文槽上
         _groupBodies[vm].Content = vm.Selected is { } selected ? GetContentHost(vm, selected) : null;
