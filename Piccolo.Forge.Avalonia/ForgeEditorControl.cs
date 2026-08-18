@@ -86,6 +86,28 @@ public class ForgeEditorControl : TemplatedControl
         set => SetValue(IslandBorderBrushProperty, value);
     }
 
+    /// <summary><see cref="EditorBackgroundBrush"/> 的属性定义。</summary>
+    public static readonly StyledProperty<IBrush?> EditorBackgroundBrushProperty =
+        AvaloniaProperty.Register<ForgeEditorControl, IBrush?>(nameof(EditorBackgroundBrush));
+
+    /// <summary>
+    /// 编辑区底色的画刷，由 <c>ControlTheme</c> 从资源键给（同 <see cref="IslandBorderBrush"/> 那条路）。
+    /// </summary>
+    /// <remarks>
+    /// <see langword="null"/> 兜底回 <see cref="ForgePalette.EditorBackground"/>（上游取值）。
+    /// <para>
+    /// 单独开这个口子的理由：上游 expUI 让编辑区比工具窗口**深一档**，那是为满屏文字的 IDE 定的；
+    /// 宿主的编辑区若常是一整块空画布（图像视口这类），同一档差会读成一个黑洞。
+    /// 改这个是**产品取舍**，不该逼宿主去改库里的配色 —— 重定义
+    /// <c>Forge.ExpUi.EditorBackground</c> / <c>Forge.Islands.EditorBackground</c> 即可，明暗各盖各的。
+    /// </para>
+    /// </remarks>
+    public IBrush? EditorBackgroundBrush
+    {
+        get => GetValue(EditorBackgroundBrushProperty);
+        set => SetValue(EditorBackgroundBrushProperty, value);
+    }
+
     static ForgeEditorControl()
     {
         // ⚠ 这些都是**纯外观**，不要走 Sync（那会重建整棵树，见 RefreshAppearance 的说明）
@@ -95,6 +117,7 @@ public class ForgeEditorControl : TemplatedControl
         PaletteProperty.Changed.AddClassHandler<ForgeEditorControl>(
             (x, _) => x.PseudoClasses.Set(":islands", x.Palette.Island is not null));
         IslandBorderBrushProperty.Changed.AddClassHandler<ForgeEditorControl>((x, _) => x.RefreshAppearance());
+        EditorBackgroundBrushProperty.Changed.AddClassHandler<ForgeEditorControl>((x, _) => x.RefreshAppearance());
         ShowTabActionsProperty.Changed.AddClassHandler<ForgeEditorControl>((x, _) => x.Sync());
         EditorProperty.Changed.AddClassHandler<ForgeEditorControl, EditorAreaViewModel?>(
             (x, e) => x.OnEditorChanged(e.OldValue.GetValueOrDefault(), e.NewValue.GetValueOrDefault()));
@@ -606,7 +629,8 @@ public class ForgeEditorControl : TemplatedControl
         }
 
         ForgeIslandDecor.Apply(
-            _root, Palette, anchor: null, Appearance.IslandMetrics, Palette.EditorBackground, IslandBorderBrush);
+            _root, Palette, anchor: null, Appearance.IslandMetrics, Palette.EditorBackground, IslandBorderBrush,
+            EditorBackgroundBrush);
 
         // 那圈边与根同参；根自己那条画在内容之下、会被分屏叶子的不透明底盖住四角，
         // 所以这一层补在最上面（见 _islandRing）。
@@ -753,7 +777,8 @@ public class ForgeEditorControl : TemplatedControl
         }
 
         ForgeIslandDecor.Apply(
-            _root, Palette, anchor: null, Appearance.IslandMetrics, Palette.EditorBackground, IslandBorderBrush);
+            _root, Palette, anchor: null, Appearance.IslandMetrics, Palette.EditorBackground, IslandBorderBrush,
+            EditorBackgroundBrush);
 
         // 那圈边与根同参；根自己那条画在内容之下、会被分屏叶子的不透明底盖住四角，
         // 所以这一层补在最上面（见 _islandRing）。
@@ -983,10 +1008,14 @@ public class ForgeEditorControl : TemplatedControl
     /// 底色取 <see cref="ForgePalette.EditorBackground"/> 而不是 <c>Background</c>——
     /// 后者是**工具窗口**那档灰。取错的后果见那个属性的说明（选中标签成白补丁、
     /// 分屏之间的线看不见）。
+    /// <para>
+    /// 主题给了 <see cref="EditorBackgroundBrush"/> 就用它 —— 分屏叶子与整块编辑区必须同色，
+    /// 少改一处的症状是"分屏之后半边亮半边暗"。
+    /// </para>
     /// </remarks>
     private void ApplyEditorWindowDecor(Border host)
     {
-        host.Background = new SolidColorBrush(Palette.EditorBackground);
+        host.Background = EditorBackgroundBrush ?? new SolidColorBrush(Palette.EditorBackground);
         host.Margin = default;
         host.CornerRadius = default;
         host.BorderBrush = null;

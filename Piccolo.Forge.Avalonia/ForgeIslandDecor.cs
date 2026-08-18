@@ -58,19 +58,31 @@ public static class ForgeIslandDecor
     /// 改成收画刷之后，宿主重定义 <c>Forge.*.IslandBorder</c> 这个键即可，与其余控件一样。
     /// </para>
     /// </param>
+    /// <param name="backgroundBrush">
+    /// 底色的画刷 —— 与 <paramref name="borderBrush"/> 同一个道理，<b>由调用方从主题取</b>。
+    /// 给了就压过 <paramref name="background"/>；<see langword="null"/> 才走那条按色值来的老路
+    /// （调用方还没进可视树、拿不到 <c>ControlTheme</c> 时就是这种情况）。
+    /// <para>
+    /// 编辑区的底色因此可以由宿主重定义 <c>Forge.*.EditorBackground</c> 来换 ——
+    /// 上游 expUI 里编辑区比工具窗口深一档，而"深多少"是宿主的产品取舍：
+    /// 内容常常是一整块空画布（不像 IDE 那样满屏文字）时，那一档差会读成一个黑洞。
+    /// </para>
+    /// </param>
     public static void Apply(
         Border host,
         ForgePalette palette,
         ToolWindowAnchor? anchor,
         ForgeIslandMetrics? metricsOverride = null,
         Color? background = null,
-        IBrush? borderBrush = null)
+        IBrush? borderBrush = null,
+        IBrush? backgroundBrush = null)
     {
         ArgumentNullException.ThrowIfNull(host);
         ArgumentNullException.ThrowIfNull(palette);
 
-        // 底色默认是工具窗口那档；编辑区传 EditorBackground（它比工具窗口更白/更深）。
-        host.Background = new SolidColorBrush(background ?? palette.Background);
+        // 底色：主题给了画刷就用它；否则默认是工具窗口那档，编辑区传 EditorBackground
+        //（它比工具窗口更白/更深）。
+        host.Background = backgroundBrush ?? new SolidColorBrush(background ?? palette.Background);
 
         if ((metricsOverride ?? palette.Island) is not { } island || palette.Island is null)
         {

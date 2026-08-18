@@ -1,4 +1,4 @@
-<!--  ★ Forge 的全部颜色（REQ-067）。★
+﻿<!--  ★ Forge 的全部颜色（REQ-067）。★
 
       ⚠ **这个文件是从 ForgePalette 转写出来的，别手改数值。**
         转写有一处会静默出错：上游 / ForgeColor.Parse 是 #RRGGBBAA（alpha 在后），
@@ -42,6 +42,7 @@
             <Color x:Key="Forge.ExpUi.IslandBorder">#F7F8FA</Color>
 
             <!--  编辑区  -->
+            <Color x:Key="Forge.ExpUi.EditorBackground">#FFFFFF</Color>  <!-- Gray14 -->
             <Color x:Key="Forge.ExpUi.EditorTabsBorder">#EBECF0</Color>
             <Color x:Key="Forge.ExpUi.EditorTabHoverBackground">#00FFFFFF</Color>  <!-- 上游 #FFFFFF00 -->
             <Color x:Key="Forge.ExpUi.EditorTabSelectedBackground">#FFFFFF</Color>
@@ -79,6 +80,7 @@
             <Color x:Key="Forge.Islands.IslandBorder">#FFFFFF</Color>
 
             <!--  编辑区  -->
+            <Color x:Key="Forge.Islands.EditorBackground">#FFFFFF</Color>  <!-- editor-bg -->
             <Color x:Key="Forge.Islands.EditorTabsBorder">#E9EAEE</Color>
             <Color x:Key="Forge.Islands.EditorTabHoverBackground">#12000000</Color>  <!-- 上游 #00000012 -->
             <Color x:Key="Forge.Islands.EditorTabSelectedBackground">#E3EBFE</Color>
@@ -117,6 +119,7 @@
             <Color x:Key="Forge.ExpUi.IslandBorder">#2B2D30</Color>
 
             <!--  编辑区  -->
+            <Color x:Key="Forge.ExpUi.EditorBackground">#1E1F22</Color>  <!-- Gray1 -->
             <Color x:Key="Forge.ExpUi.EditorTabsBorder">#393B40</Color>
             <Color x:Key="Forge.ExpUi.EditorTabHoverBackground">#001E1F22</Color>  <!-- 上游 #1E1F2200 -->
             <Color x:Key="Forge.ExpUi.EditorTabSelectedBackground">#1E1F22</Color>
@@ -154,6 +157,7 @@
             <Color x:Key="Forge.Islands.IslandBorder">#191A1C</Color>
 
             <!--  编辑区  -->
+            <Color x:Key="Forge.Islands.EditorBackground">#191A1C</Color>  <!-- editor-bg -->
             <Color x:Key="Forge.Islands.EditorTabsBorder">#26282C</Color>
             <Color x:Key="Forge.Islands.EditorTabHoverBackground">#17FFFFFF</Color>  <!-- 上游 #FFFFFF17 -->
             <Color x:Key="Forge.Islands.EditorTabSelectedBackground">#233558</Color>

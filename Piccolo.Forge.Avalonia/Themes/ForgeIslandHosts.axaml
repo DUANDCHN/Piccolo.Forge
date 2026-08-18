@@ -23,11 +23,16 @@
         </Style>
     </ControlTheme>
 
+    <!--  编辑区比外框多一样：**它自己的底色**。归了键之后，宿主想让编辑区与面板同色
+          （内容常是一整块空画布时，上游那"深一档"会读成黑洞）只需重定义同名键，
+          不必去动库里的配色。null 兜底回 ForgePalette.EditorBackground，见那个属性的说明。  -->
     <ControlTheme TargetType="forge:ForgeEditorControl" x:Key="{x:Type forge:ForgeEditorControl}">
         <Setter Property="IslandBorderBrush" Value="{DynamicResource Forge.ExpUi.IslandBorder}" />
+        <Setter Property="EditorBackgroundBrush" Value="{DynamicResource Forge.ExpUi.EditorBackground}" />
 
         <Style Selector="^:islands">
             <Setter Property="IslandBorderBrush" Value="{DynamicResource Forge.Islands.IslandBorder}" />
+            <Setter Property="EditorBackgroundBrush" Value="{DynamicResource Forge.Islands.EditorBackground}" />
         </Style>
     </ControlTheme>
 </ResourceDictionary>

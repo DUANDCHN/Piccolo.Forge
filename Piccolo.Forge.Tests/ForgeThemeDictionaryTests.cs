@@ -52,6 +52,7 @@ public class ForgeThemeDictionaryTests
         ("HeaderTabHoverBackground", p => p.HeaderTabHoverBackground),
         ("HeaderTabUnderline", p => p.HeaderTabUnderline),
         ("HeaderTabInactiveUnderline", p => p.HeaderTabInactiveUnderline),
+        ("EditorBackground", p => p.EditorBackground),
         ("EditorTabsBorder", p => p.EditorTabsBorder),
         ("EditorTabHoverBackground", p => p.EditorTabHoverBackground),
         ("EditorTabSelectedBackground", p => p.EditorTabSelectedBackground),
