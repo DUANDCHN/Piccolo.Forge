@@ -20,7 +20,7 @@ internal sealed class ForgeEditorTabStrip : TabStrip
     public override void Render(DrawingContext context)
     {
         base.Render(context);
-        TabDropIndicator.Draw(context, ItemsPanelRoot, Palette.HeaderTabUnderline);
+        TabDropIndicator.Draw(context, ItemsPanelRoot, Palette);
     }
 
     public ForgeEditorTabStrip()
@@ -124,6 +124,17 @@ public sealed class ForgeContentTabStrip : TabStrip
             _dragging = true;
         }
 
+        // 拖到这条行之外：不落位、也不画投影，但**继续跟手**（面板没有分屏那条路，
+        // 拖出去就是"没有落点"，不是"手势结束"）。绕回来仍能接着排。
+        var outside = position.Y < -OutsideTolerance
+                      || position.Y > Bounds.Height + OutsideTolerance;
+        if (outside)
+        {
+            _dropIndex = null;
+            ShowDragPreview(position, gap: null);
+            return;
+        }
+
         var gap = GapAt(position);
         _dropIndex = gap;
         ShowDragPreview(position, gap);
@@ -179,7 +190,11 @@ public sealed class ForgeContentTabStrip : TabStrip
     /// 早先这里画的是一条插入竖条：单看没问题，但与文档标签那套摆在一起就是两套设计。
     /// </para>
     /// </remarks>
-    private void ShowDragPreview(Point position, int gap)
+    /// <summary>指针离开这条行多远算"拖到外面了" —— 上下各 24。</summary>
+    /// <remarks>给一点余量：贴着边缘时不该反复出现/消失投影。</remarks>
+    private const double OutsideTolerance = 24;
+
+    private void ShowDragPreview(Point position, int? gap)
     {
         if (ItemsPanelRoot is not HeaderTabsPanel panel
             || _dragId is not { } id
@@ -191,7 +206,9 @@ public sealed class ForgeContentTabStrip : TabStrip
 
         panel.DraggedChild = tab;
         panel.DraggedX = position.X - _grabOffset;
-        panel.DropIndex = gap > index ? gap - 1 : gap;   // 空档按"除它之外"的次序算
+
+        // 空档按"除它之外"的次序算；gap 为 null = 拖到行外，没有落点（只跟手，不画投影）
+        panel.DropIndex = gap is { } value ? (value > index ? value - 1 : value) : null;
         panel.InvalidateArrange();
         InvalidateVisual();   // 投影是本控件画的（见 Render）
     }
@@ -239,7 +256,7 @@ public sealed class ForgeContentTabStrip : TabStrip
     public override void Render(DrawingContext context)
     {
         base.Render(context);
-        TabDropIndicator.Draw(context, ItemsPanelRoot, Palette.HeaderTabUnderline);
+        TabDropIndicator.Draw(context, ItemsPanelRoot, Palette);
     }
 
     /// <summary>
@@ -375,6 +392,12 @@ public sealed class ForgeContentTabStrip : TabStrip
             //   少了它，一起拖标签就"吸"到光标中间跳一下 —— 拖的那个不该吸附，
             //   吸附的是落点那块投影（HeaderTabsPanel.DropRect）。
             _grabOffset = e.GetPosition(this).X - tab.Bounds.X;
+
+            // ⚠ **捕获指针**：不捕获的话，鼠标一离开这条标题条就收不到移动事件了 ——
+            //   表现就是"拖不出去"（其实是拖出去之后画面停在原地）。
+            //   面板没有分屏那条路，拖到外面**不做任何处理**即可，但手势本身不该被截断：
+            //   人常常从外面绕一圈再拖回来。
+            e.Pointer.Capture(this);
         }
 
         e.Handled = true;
@@ -407,20 +430,50 @@ internal static class TabDropIndicator
     /// <summary>投影的底色透明度 0.22 —— 看得见"有块地方留着"，又不至于像多了一个标签。</summary>
     private const double FillOpacity = 0.22;
 
-    /// <summary>画一次。</summary>
+    /// <summary>
+    /// 画一次 —— <b>两族的形状不一样</b>。
+    /// </summary>
+    /// <remarks>
+    /// 投影是"这块地方留给它"，所以它该长得像**这一族的标签选中之后**那个样子：
+    /// <list type="bullet">
+    /// <item><b>Islands</b>：圆角块（半径 6，同 IslandsEditorTabArc 12 折半），底色取
+    /// <c>EditorTabSelectedBackground</c> —— 与该族选中标签同一个键；</item>
+    /// <item><b>expUI</b>：**方角**，而且重心在下沿那条线上（这一族的选中态就是一条下划线）——
+    /// 一块淡底 + 底边一条 <c>HeaderTabUnderline</c> 的实线。</item>
+    /// </list>
+    /// 早先两族画的是同一个圆角块，在经典档里与周围一堆方角格格不入。
+    /// </remarks>
     /// <param name="context">绘制上下文。</param>
     /// <param name="panel">这条行的排布面板（投影位置由它算）。</param>
-    /// <param name="color">取当前配色里的强调色。</param>
-    public static void Draw(DrawingContext context, Panel? panel, Color color)
+    /// <param name="palette">当前配色（形状与取色都按它的族分）。</param>
+    public static void Draw(DrawingContext context, Panel? panel, ForgePalette palette)
     {
         if (panel is not HeaderTabsPanel { DropRect: { } rect })
         {
             return;
         }
 
+        var islands = palette.Island is not null;
+
         // 上下各收 3：投影比标签本身矮一点，看着是"放进去的位置"而不是又一个标签
         var inset = rect.Deflate(new Thickness(0, 3));
-        var fill = new SolidColorBrush(color, FillOpacity);
-        context.DrawRectangle(fill, new Pen(new SolidColorBrush(color), 1), inset, 4, 4);
+
+        if (islands)
+        {
+            var color = palette.EditorTabSelectedBackground;
+            context.DrawRectangle(new SolidColorBrush(color), new Pen(new SolidColorBrush(color), 1), inset, 6, 6);
+            return;
+        }
+
+        // expUI：方角淡底 + 下沿一条实线（与这一族"选中 = 下划线"同一种语言）
+        var accent = palette.HeaderTabUnderline;
+        context.DrawRectangle(new SolidColorBrush(accent, FillOpacity), null, inset);
+
+        var underline = new Rect(
+            inset.X,
+            inset.Bottom - ForgeMetrics.HeaderTabUnderlineHeight,
+            inset.Width,
+            ForgeMetrics.HeaderTabUnderlineHeight);
+        context.FillRectangle(new SolidColorBrush(accent), underline);
     }
 }

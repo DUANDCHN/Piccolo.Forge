@@ -263,25 +263,70 @@ public class HeaderTabsPanel : Panel
     }
 
     /// <summary>换行排布：一个都不藏，放不下就往下一行放。</summary>
+    /// <remarks>
+    /// ⚠ <b>空档与投影这两件事，两条排布分支都要做。</b>
+    /// 文档标签走的正是这一条（<see cref="WrapRows"/> 开着）——
+    /// 早先只在不换行那支里写了，于是"投影矩形"在文档区**一点效果都没有**。
+    /// </remarks>
     private Size ArrangeWrapped(Size finalSize)
     {
         var rowHeight = Children.Where(c => c.IsVisible).Select(c => c.DesiredSize.Height).DefaultIfEmpty(0).Max();
+        var gapWidth = DraggedChild is { } floating && DropIndex is not null ? WidthOf(floating) : 0;
 
-        foreach (var (child, _, slot) in Wrap(finalSize.Width, rowHeight))
+        DropRect = null;
+
+        // 被拖的那一个不占行内位置（浮在上面跟手），所以先按"除它之外"的次序折行，
+        // 并在 DropIndex 处塞一个与它同宽的占位，折行结果才与松手后一致。
+        var laying = Children.Where(c => c.IsVisible && !ReferenceEquals(c, DraggedChild)).ToList();
+        var placed = 0;
+        var x = 0.0;
+        var row = 0;
+
+        void Advance(double width, out Rect slot)
         {
-            _slots[child] = slot;
+            if (x > 0 && x + width > finalSize.Width)
+            {
+                row++;
+                x = 0;
+            }
 
-            // 被拖的那一个只改 x，其余照排布来（同非换行那一支）
-            if (ReferenceEquals(child, DraggedChild))
+            slot = new Rect(x, row * rowHeight, Math.Min(width, finalSize.Width), rowHeight);
+            x += slot.Width;
+        }
+
+        foreach (var child in laying)
+        {
+            if (DropIndex == placed && gapWidth > 0)
             {
-                child.ZIndex = 1;
-                child.Arrange(slot.WithX(DraggedX));
+                Advance(gapWidth, out var gap);
+                DropRect = gap;
             }
-            else
-            {
-                child.ZIndex = 0;
-                child.Arrange(slot);
-            }
+
+            placed++;
+            Advance(WidthOf(child), out var slot);
+            _slots[child] = slot;
+            child.ZIndex = 0;
+            child.Opacity = 1;
+            child.Arrange(slot);
+        }
+
+        // 落点在最后：循环里没机会摆
+        if (DropIndex == placed && gapWidth > 0)
+        {
+            Advance(gapWidth, out var gap);
+            DropRect = gap;
+        }
+
+        // 被拖的那一个：只改 x，其余照它原本那一格来（moveDraggedTabLabel）
+        if (DraggedChild is { } dragged && dragged.IsVisible)
+        {
+            var slot = _slots.TryGetValue(dragged, out var previous)
+                ? previous
+                : new Rect(0, 0, WidthOf(dragged), rowHeight);
+
+            dragged.ZIndex = 1;
+            dragged.Opacity = DraggedOpacity;
+            dragged.Arrange(slot.WithX(DraggedX));
         }
 
         HiddenTabCount = 0;

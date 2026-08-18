@@ -178,6 +178,30 @@ public class EditorTabDragTests
     }
 
     [AvaloniaFact]
+    public void 文档标签拖动时也要画落点投影()
+    {
+        // 回归：空档与投影早先只写在**不换行**那条排布分支里，而文档标签走的是**换行**那条
+        //（WrapRows=true），于是"投影矩形"在文档区一点效果都没有。
+        var (editor, window, _, a, b) = Shown();
+        _ = editor;
+
+        var press = GrabPoint(a, window);
+        window.MouseDown(press, MouseButton.Left);
+        window.MouseMove(new Point(press.X + b.Bounds.Width + 5, press.Y));
+        Dispatcher.UIThread.RunJobs();
+
+        var row = window.GetVisualDescendants().OfType<HeaderTabsPanel>().First();
+        Assert.NotNull(row.DraggedChild);
+        Assert.NotNull(row.DropRect);          // ← 落点那一格
+        Assert.Equal(HeaderTabsPanel.DraggedOpacity, row.DraggedChild!.Opacity);
+
+        window.MouseUp(new Point(press.X + b.Bounds.Width + 5, press.Y), MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Null(row.DropRect);
+    }
+
+    [AvaloniaFact]
     public void Dragging_a_tab_past_its_neighbour_actually_reorders_it()
     {
         var (editor, window, _, a, b) = Shown();

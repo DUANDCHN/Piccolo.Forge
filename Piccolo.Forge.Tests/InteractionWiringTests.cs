@@ -774,6 +774,32 @@ public class ForgeContentTabReorderTests
     }
 
     [AvaloniaFact]
+    public void 拖出标题条不打断手势_绕回来还能接着排()
+    {
+        // 回归：早先没捕获指针 —— 鼠标一离开这条标题条就收不到移动事件，
+        // 表现是"拖不出去"（其实是画面停在原地）。面板没有分屏那条路，
+        // 拖到外面**不做处理**即可，但手势不该被截断：人常从外面绕一圈再拖回来。
+        var (window, panel, strip) = Build();
+
+        var from = Center(TabOf(strip, "甲"), window);
+        var to = Center(TabOf(strip, "丙"), window);
+
+        window.MouseDown(from, MouseButton.Left);
+        window.MouseMove(new Point(from.X + 20, from.Y + 200));   // 拖到标题条外面
+        Dispatcher.UIThread.RunJobs();
+
+        var row = strip.GetVisualDescendants().OfType<HeaderTabsPanel>().Single();
+        Assert.NotNull(row.DraggedChild);   // 还在跟手
+        Assert.Null(row.DropRect);          // 但没有落点
+
+        window.MouseMove(to);               // 绕回来
+        window.MouseUp(to, MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(["b", "c", "a"], panel.Contents.Contents.Select(x => x.Id));
+    }
+
+    [AvaloniaFact]
     public void 手抖不算拖()
     {
         // 死区 7：按下时抖两下不该换位（条带按钮那次"有时要点两下"就是死区没设好）
