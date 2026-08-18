@@ -719,10 +719,60 @@ public class ForgeEditorControl : TemplatedControl
         }
 
         SyncFloatingTitle();
+        FocusOnNewlyOpenedTab();
     }
 
     private bool _rebuilding;
     private bool _rebuildAgain;
+
+    /// <summary>见过的标签页 id —— 用来认出"这一轮新开了一张"。</summary>
+    private readonly HashSet<string> _knownTabs = [];
+
+    /// <summary>
+    /// 新开一张文档 → 焦点进编辑区（上游 <c>openFile</c> 的 <c>focusEditor</c> 默认就是真）。
+    /// </summary>
+    /// <remarks>
+    /// 只认**新出现的 id**，不认选中项变化：关掉一张会让选中落到左邻居，那不是"打开"，
+    /// 焦点本来就在编辑区里，再抢一次没有意义。
+    /// <para>
+    /// ⚠ 焦点必须**等这一轮重建完**再收：Sync 会把组宿主换父容器，而换父容器会带走焦点 ——
+    /// 在树还没搭完时收，收到的焦点转头就被自己弄丢。所以 Post 到下一轮。
+    /// </para>
+    /// <para>
+    /// 已经在编辑区里就不动（比如从一张文档里打开另一张）—— 那时焦点可能正落在
+    /// 内容里的某个输入控件上，抢过来等于把用户从他正在填的框里踢出去。
+    /// </para>
+    /// </remarks>
+    private void FocusOnNewlyOpenedTab()
+    {
+        if (_area is null)
+        {
+            return;
+        }
+
+        var ids = _area.Groups.SelectMany(g => g.Tabs).Select(t => t.Id).ToList();
+        var opened = ids.Exists(id => !_knownTabs.Contains(id));
+
+        _knownTabs.Clear();
+        foreach (var id in ids)
+        {
+            _knownTabs.Add(id);
+        }
+
+        // 还没进可视树时收不到焦点（也不该收）——那一轮只登记 id，等真正显示出来的那次
+        if (!opened || IsKeyboardFocusWithin || !IsLoaded)
+        {
+            return;
+        }
+
+        global::Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            if (!IsKeyboardFocusWithin && IsLoaded)
+            {
+                Focus();
+            }
+        });
+    }
 
     /// <summary>
     /// 把模型里已经不存在的 (组, 标签页) 从各个缓存里清掉。

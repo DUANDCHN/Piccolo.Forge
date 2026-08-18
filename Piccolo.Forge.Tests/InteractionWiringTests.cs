@@ -462,7 +462,7 @@ public class ForgeEditorFocusTests
     [AvaloniaFact]
     public void 点标签之后编辑区握着焦点()
     {
-        var (window, control, outside) = Build();
+        var (window, control, outside, _) = Build();
 
         outside.Focus();
         Dispatcher.UIThread.RunJobs();
@@ -487,7 +487,7 @@ public class ForgeEditorFocusTests
         // 没有 Fluent/Semi，TextBox 没有模板、它那条取焦点的路走不到（与本改动无关）。
         var inner = new Border { Focusable = true, Background = Brushes.Transparent };
         inner.PointerPressed += (_, _) => inner.Focus();
-        var (window, control, outside) = Build(inner);
+        var (window, control, outside, _) = Build(inner);
 
         outside.Focus();
         Dispatcher.UIThread.RunJobs();
@@ -501,8 +501,41 @@ public class ForgeEditorFocusTests
         Assert.True(control.IsKeyboardFocusWithin);
     }
 
+    [AvaloniaFact]
+    public void 新开一张文档就把焦点收进编辑区()
+    {
+        // 上游 openFile 的 focusEditor 默认为真：在项目视图里双击一个文件，焦点跟着进编辑器。
+        var (window, control, outside, editor) = Build();
+
+        outside.Focus();
+        Dispatcher.UIThread.RunJobs();
+        Assert.False(control.IsKeyboardFocusWithin);   // 前提：焦点确实在编辑区外
+
+        editor.Open("b", "B.cs");
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.True(control.IsKeyboardFocusWithin);
+    }
+
+    [AvaloniaFact]
+    public void 关掉一张不抢焦点()
+    {
+        // 关闭会让选中落到左邻居 —— 那不是"打开"，焦点该留在用户当时所在的地方。
+        var (window, control, outside, editor) = Build();
+        editor.Open("b", "B.cs");
+        Dispatcher.UIThread.RunJobs();
+
+        outside.Focus();
+        Dispatcher.UIThread.RunJobs();
+
+        editor.Area.Close("b");
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.False(control.IsKeyboardFocusWithin);
+    }
+
     /// <summary>一个编辑区 + 一个区外的可获焦控件（焦点的起点）。</summary>
-    private static (Window Window, ForgeEditorControl Control, Button Outside) Build(object? content = null)
+    private static (Window Window, ForgeEditorControl Control, Button Outside, EditorAreaViewModel Editor) Build(object? content = null)
     {
         var editor = new EditorAreaViewModel();
         editor.Open("a", "A.cs", content);
@@ -519,6 +552,6 @@ public class ForgeEditorFocusTests
         var window = new Window { Width = 800, Height = 500, Content = root };
         window.Show();
         Dispatcher.UIThread.RunJobs();
-        return (window, control, outside);
+        return (window, control, outside, editor);
     }
 }
