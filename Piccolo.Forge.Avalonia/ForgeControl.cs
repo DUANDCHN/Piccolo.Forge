@@ -1936,6 +1936,15 @@ public class ForgeControl : TemplatedControl
                 _splitResizers[anchor] = split;
             }
 
+            // 这条线**要画出来**（上游那条就是 OnePixelSplitter，ToolWindowPane.kt:617）。
+            // 分法与上面覆盖层那条同源：
+            //   · 非岛（expUI）：两块面板贴死，中间不画线就完全看不出边界在哪
+            //     —— 实机反馈"下面左右两个面板打开时中间没有分割线"说的就是这里；
+            //   · 岛（Islands）：两座岛之间本来就有缝，再画一条等于把缝糊死。
+            // 颜色同样取 EditorTabsBorder（"内容与内容之间那条线"），不用 WindowBorder ——
+            // 它在岛配色里是全透明的。
+            split.LineBrush = Palette.Island is not null ? null : new SolidColorBrush(Palette.EditorTabsBorder);
+
             yield return split;
         }
     }

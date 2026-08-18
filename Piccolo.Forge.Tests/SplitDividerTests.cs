@@ -1,9 +1,10 @@
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Piccolo.Forge.Avalonia;
 using Piccolo.Forge.Model;
 using Piccolo.Forge.Mvvm;
+using Piccolo.Forge.Themes;
 using Xunit;
 
 namespace Piccolo.Forge.Tests;
@@ -75,5 +76,27 @@ public class SplitDividerTests
         Assert.True(
             divider.Bounds.Center.X > divider.SlotBounds!.Value.X,
             "分割线跑到了它所在那一格的外面");
+    }
+
+    [AvaloniaTheory]
+    [InlineData(ForgeThemeFamily.ExpUi, true)]
+    [InlineData(ForgeThemeFamily.Islands, false)]
+    public void 非岛配色下这条线要画出来(ForgeThemeFamily family, bool expectLine)
+    {
+        // 上游那条是 OnePixelSplitter（ToolWindowPane.kt:617）——**看得见的一条线**。
+        // 岛配色例外：两座岛之间本来就有缝，再画一条等于把缝糊死。
+        // 回归：expUI 下这条线一直没画，实机表现是"下面左右两个面板打开时中间没有分割线"。
+        var (frame, shell) = Show();
+        frame.Appearance = frame.Appearance with { Family = family };
+
+        var ids = shell.ToolWindows.Select(x => x.Id).ToList();
+        shell.Manager.MoveTo(ids[0], ToolWindowAnchor.Bottom, -1, isSplit: false);
+        shell.Manager.Activate(ids[0]);
+        shell.Manager.MoveTo(ids[1], ToolWindowAnchor.Bottom, -1, isSplit: true);
+        shell.Manager.Activate(ids[1]);
+        global::Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+
+        var divider = Assert.Single(SplitDividers(frame));
+        Assert.Equal(expectLine, divider.LineBrush is not null);
     }
 }
