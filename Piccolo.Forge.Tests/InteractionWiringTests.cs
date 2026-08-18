@@ -679,3 +679,54 @@ public class ForgeContentTabClickTests
         Assert.True(second.IsSelected);                            // 视图也跟着走了
     }
 }
+
+/// <summary>
+/// 标题条上内容 tab 的**选中形态**要分族：expUI 一条下划线，Islands 一块圆角实底。
+/// </summary>
+/// <remarks>
+/// 回归：<c>:islands</c> 分支早先只换了颜色、没换形状 —— Islands 下标题条上的 tab 还是下划线，
+/// 而同屏的文档标签已经是圆角块，一个界面两套语言。
+/// </remarks>
+public class ForgeContentTabFamilyTests
+{
+    [AvaloniaTheory]
+    [InlineData(ForgeThemeFamily.ExpUi, true)]
+    [InlineData(ForgeThemeFamily.Islands, false)]
+    public void 选中态的下划线只属于_expUI(ForgeThemeFamily family, bool expectUnderline)
+    {
+        var (window, tab) = Build(family);
+        _ = window;
+
+        var underline = tab.GetVisualDescendants().OfType<Border>().Single(x => x.Name == "PART_Underline");
+        var background = tab.GetVisualDescendants().OfType<Border>().Single(x => x.Name == "PART_Background");
+
+        Assert.Equal(expectUnderline, underline.IsVisible);
+
+        // Islands：改由那块圆角底表达选中（颜色取的与文档标签同一个键）
+        Assert.Equal(!expectUnderline, background.IsVisible);
+        if (!expectUnderline)
+        {
+            Assert.True(background.CornerRadius.TopLeft > 0, "Islands 的选中底应当是圆角");
+        }
+    }
+
+    private static (Window Window, ForgeContentTab Tab) Build(ForgeThemeFamily family)
+    {
+        var shell = new ToolWindowShellViewModel();
+        var panel = shell.Add("A", "甲", ToolWindowAnchor.Bottom, false);
+        panel.Contents.Add(new ToolWindowContent("one", "一", IsCloseable: false));
+        panel.Contents.Add(new ToolWindowContent("two", "二", IsCloseable: false));
+        shell.Manager.Activate("A");
+
+        var frame = new ForgeControl();
+        frame.Attach(shell);
+        frame.Appearance = frame.Appearance with { Family = family };
+
+        var window = new Window { Width = 800, Height = 500, Content = frame };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        var tab = frame.GetVisualDescendants().OfType<ForgeContentTab>().First(x => x.IsSelected);
+        return (window, tab);
+    }
+}

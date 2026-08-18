@@ -336,7 +336,28 @@ public class ForgeContentTab : TabStripItem
         set => SetValue(HoverBackgroundBrushProperty, value);
     }
 
-    /// <summary>选中下划线（窗口活动时）。</summary>
+    /// <summary>
+    /// 选中时那块底的画刷 —— **只有 Islands 用**。
+    /// </summary>
+    /// <remarks>
+    /// 两族的选中态形状本来就不同：expUI 是一条下划线，Islands 是一块圆角实底
+    /// （文档标签那边同理，见 <see cref="ForgeEditorTab"/> 的 <c>DecorationBrush</c>）。
+    /// 早先内容 tab 的 <c>:islands</c> 分支只换了**颜色**、没换形状，于是 Islands 下
+    /// 标题条上的 tab 还是下划线，而同屏的文档标签已经是圆角块 —— 一个界面两套语言。
+    /// <para>颜色取的与文档标签同一个键（<c>Forge.Islands.EditorTabSelectedBackground</c>），
+    /// 所以两处天然一致，不用各调各的。</para>
+    /// </remarks>
+    public IBrush? SelectedBackgroundBrush
+    {
+        get => GetValue(SelectedBackgroundBrushProperty);
+        set => SetValue(SelectedBackgroundBrushProperty, value);
+    }
+
+    /// <summary><see cref="SelectedBackgroundBrush"/> 的属性定义。</summary>
+    public static readonly StyledProperty<IBrush?> SelectedBackgroundBrushProperty =
+        AvaloniaProperty.Register<ForgeContentTab, IBrush?>(nameof(SelectedBackgroundBrush));
+
+    /// <summary>选中下划线（窗口活动时）—— **只有 expUI 用**，Islands 走上面那块圆角底。</summary>
     public IBrush? UnderlineBrush
     {
         get => GetValue(UnderlineBrushProperty);
