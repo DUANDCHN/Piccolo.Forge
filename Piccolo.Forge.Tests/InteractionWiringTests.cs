@@ -1,6 +1,7 @@
 ﻿using Avalonia;
 using Avalonia.Headless;
 using Avalonia.Input;
+using Avalonia.Media;
 using Avalonia.Threading;
 using System.Linq;
 using Avalonia.Controls;
@@ -445,5 +446,79 @@ public class ForgeStripeRegroupTests
         Assert.Contains(
             frame.LeftToolbar.TopGroup.Children.OfType<ForgeStripeButton>(),
             x => x.Title == "乙");
+    }
+}
+
+/// <summary>
+/// 点进编辑区 → 编辑区拿到焦点（标签页"活动那档"配色的前提）。
+/// </summary>
+/// <remarks>
+/// 上游选中标签之后焦点就落在编辑器上，于是选中标签走的是「选中 + 活动」那档
+/// （蓝下划线）。宿主的文档内容不一定可获焦 —— 图像视口、只读画布都不是 ——
+/// 没有这条接线的话，那一档在这类宿主里**永远到不了**，选中标签的下划线一直是失焦灰。
+/// </remarks>
+public class ForgeEditorFocusTests
+{
+    [AvaloniaFact]
+    public void 点标签之后编辑区握着焦点()
+    {
+        var (window, control, outside) = Build();
+
+        outside.Focus();
+        Dispatcher.UIThread.RunJobs();
+        Assert.False(control.IsKeyboardFocusWithin);   // 前提：焦点确实在编辑区外
+
+        var tab = control.GetVisualDescendants().OfType<ForgeEditorTab>().Single();
+        var point = tab.TranslatePoint(new Point(10, tab.Bounds.Height / 2), window)!.Value;
+        window.MouseDown(point, MouseButton.Left);
+        window.MouseUp(point, MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.True(control.IsKeyboardFocusWithin);
+        Assert.True(tab.IsGroupActive);               // → 选中标签走活动那档（蓝下划线）
+    }
+
+    [AvaloniaFact]
+    public void 内容自己接管了焦点时不抢()
+    {
+        // 这一条钉住"只在没人接的时候才收焦点"：改成 Tunnel 就会抢在内容前面，
+        // 症状是文档里的输入框点了不进光标。
+        // 用一个自己在 PointerPressed 里取焦点的元素代替 TextBox —— headless 测试应用里
+        // 没有 Fluent/Semi，TextBox 没有模板、它那条取焦点的路走不到（与本改动无关）。
+        var inner = new Border { Focusable = true, Background = Brushes.Transparent };
+        inner.PointerPressed += (_, _) => inner.Focus();
+        var (window, control, outside) = Build(inner);
+
+        outside.Focus();
+        Dispatcher.UIThread.RunJobs();
+
+        var point = inner.TranslatePoint(new Point(5, inner.Bounds.Height / 2), window)!.Value;
+        window.MouseDown(point, MouseButton.Left);
+        window.MouseUp(point, MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.True(inner.IsFocused, $"focused={window.FocusManager?.GetFocusedElement()?.GetType().Name}");
+        Assert.True(control.IsKeyboardFocusWithin);
+    }
+
+    /// <summary>一个编辑区 + 一个区外的可获焦控件（焦点的起点）。</summary>
+    private static (Window Window, ForgeEditorControl Control, Button Outside) Build(object? content = null)
+    {
+        var editor = new EditorAreaViewModel();
+        editor.Open("a", "A.cs", content);
+
+        var control = new ForgeEditorControl();
+        control.Attach(editor);
+
+        var outside = new Button { Content = "外面" };
+        var root = new DockPanel();
+        DockPanel.SetDock(outside, Dock.Top);
+        root.Children.Add(outside);
+        root.Children.Add(control);
+
+        var window = new Window { Width = 800, Height = 500, Content = root };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        return (window, control, outside);
     }
 }

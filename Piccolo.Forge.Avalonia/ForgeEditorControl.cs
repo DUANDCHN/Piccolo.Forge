@@ -224,7 +224,29 @@ public class ForgeEditorControl : TemplatedControl
         AddHandler(PointerReleasedEvent, OnDragPointerReleased, dragRoutes, handledEventsToo: true);
         AddHandler(PointerCaptureLostEvent, OnDragPointerCaptureLost, dragRoutes, handledEventsToo: true);
 
-        // 焦点进出要重画：活动/失焦是两套配色
+        // ── 点进编辑区 = 编辑区拿到焦点（上游：选中标签后焦点落在编辑器上）──
+        //
+        // 标签页的五种状态里有三种取决于「这一组是不是活动的」，而"活动"= 本组是当前组
+        // **且编辑区握着键盘焦点**（见 SyncStrip）。宿主的文档内容不一定可获焦
+        // ——图像视口、只读画布这类都不是——于是没有这一段的话，那三种状态在这些宿主里
+        // **永远到不了**：选中标签的下划线一直是失焦那档灰，看着像"蓝条没生效"。
+        //
+        // 焦点落在**控件自己**身上（Focusable + IsTabStop=false）：库不知道宿主的内容里
+        // 哪个才该收焦点，而"编辑区握着焦点"这个状态只需要焦点在这棵子树里。
+        // ⚠ 走 **Bubble** 且只在没人接的时候才收：内容里若有输入框，它在冒到这里之前
+        //   已经拿到焦点（IsKeyboardFocusWithin 为真），这一段就不插手 —— 用 Tunnel 会抢在它前面。
+        Focusable = true;
+        IsTabStop = false;
+        AddHandler(PointerPressedEvent, OnEditorPointerPressed, RoutingStrategies.Bubble, handledEventsToo: true);
+    }
+
+    /// <summary>点在编辑区里而焦点还在别处（工具面板等）→ 把焦点收进来。</summary>
+    private void OnEditorPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (!IsKeyboardFocusWithin)
+        {
+            Focus(NavigationMethod.Pointer);
+        }
     }
 
     private readonly ForgeDragOverlay _overlay = new();
