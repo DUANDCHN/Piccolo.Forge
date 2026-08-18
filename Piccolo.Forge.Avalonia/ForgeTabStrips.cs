@@ -92,6 +92,7 @@ public sealed class ForgeContentTabStrip : TabStrip
     private bool _dragging;
     private int? _dropIndex;
     private double _grabOffset;
+    private double _grabOffsetY;
 
     /// <summary>
     /// 拖动中：画出**要插到哪条缝**，不当场换位。
@@ -206,6 +207,7 @@ public sealed class ForgeContentTabStrip : TabStrip
 
         panel.DraggedChild = tab;
         panel.DraggedX = position.X - _grabOffset;
+        panel.DraggedY = position.Y - _grabOffsetY;   // 纵向也跟手 —— 吸附的是投影，不是它
 
         // 空档按"除它之外"的次序算；gap 为 null = 拖到行外，没有落点（只跟手，不画投影）
         panel.DropIndex = gap is { } value ? (value > index ? value - 1 : value) : null;
@@ -229,6 +231,7 @@ public sealed class ForgeContentTabStrip : TabStrip
 
         panel.DraggedChild = null;
         panel.DropIndex = null;
+        panel.DraggedY = double.NaN;
         panel.InvalidateArrange();
         InvalidateVisual();
     }
@@ -392,6 +395,7 @@ public sealed class ForgeContentTabStrip : TabStrip
             //   少了它，一起拖标签就"吸"到光标中间跳一下 —— 拖的那个不该吸附，
             //   吸附的是落点那块投影（HeaderTabsPanel.DropRect）。
             _grabOffset = e.GetPosition(this).X - tab.Bounds.X;
+            _grabOffsetY = e.GetPosition(this).Y - tab.Bounds.Y;
 
             // ⚠ **捕获指针**：不捕获的话，鼠标一离开这条标题条就收不到移动事件了 ——
             //   表现就是"拖不出去"（其实是拖出去之后画面停在原地）。

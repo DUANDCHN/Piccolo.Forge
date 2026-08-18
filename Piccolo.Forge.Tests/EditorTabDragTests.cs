@@ -178,6 +178,31 @@ public class EditorTabDragTests
     }
 
     [AvaloniaFact]
+    public void 被拖的标签跟着光标走_不被夹在标签行里()
+    {
+        // ★ 分工：**拖的那个不吸附，落点那块投影才吸附。**
+        // 回归：早先被拖的标签被 MoveToFit 夹在行内、纵向又钉在格子上 ——
+        // 往下带就顶住不动，人的感受是"被吸住了"。
+        var (editor, window, _, a, _) = Shown();
+        _ = editor;
+
+        var press = GrabPoint(a, window);
+        window.MouseDown(press, MouseButton.Left);
+        window.MouseMove(new Point(press.X + 30, press.Y + 9));   // 往下带一点（还没出这一行）
+        Dispatcher.UIThread.RunJobs();
+
+        var row = window.GetVisualDescendants().OfType<HeaderTabsPanel>().First();
+        Assert.NotNull(row.DraggedChild);
+        Assert.False(double.IsNaN(row.DraggedY), "纵向应当跟手，而不是钉在格子的 y 上");
+        Assert.True(row.DraggedY > 0, "往下带了就该往下走");
+
+        window.MouseUp(new Point(press.X + 30, press.Y + 9), MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.True(double.IsNaN(row.DraggedY), "手势结束要还原");
+    }
+
+    [AvaloniaFact]
     public void 文档标签拖动时也要画落点投影()
     {
         // 回归：空档与投影早先只写在**不换行**那条排布分支里，而文档标签走的是**换行**那条

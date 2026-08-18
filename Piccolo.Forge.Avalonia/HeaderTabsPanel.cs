@@ -42,6 +42,17 @@ public class HeaderTabsPanel : Panel
     public double DraggedX { get; set; }
 
     /// <summary>
+    /// 被拖那一个画在哪（上边缘）；<see cref="double.NaN"/> = 用格子的 y（钉在行里）。
+    /// </summary>
+    /// <remarks>
+    /// ★ <b>拖的那个跟着光标自由走，吸附的是投影。</b>★
+    /// 上游 <c>moveDraggedTabLabel</c> 只改 x —— 那是给"标签只能在行内换序"的场景定的；
+    /// 本仓的手势里，人常常把标签往下带（去分屏，或者只是手在动），钉在行里会让人觉得
+    /// "它被吸住了、拖不动"。所以纵向也放开，落点由 <see cref="DropRect"/> 那块吸附的投影表达。
+    /// </remarks>
+    public double DraggedY { get; set; } = double.NaN;
+
+    /// <summary>
     /// 空档占位落在第几个位置（0 = 最前面）；<see langword="null"/> 表示不留空档。
     /// </summary>
     /// <remarks>
@@ -194,7 +205,7 @@ public class HeaderTabsPanel : Panel
             // 被拖的那一个浮在上面跟手，不占行内位置；它原来那一格由 DropIndex 处的空档接手
             if (ReferenceEquals(child, DraggedChild) && DropIndex is not null)
             {
-                var floating = new Rect(DraggedX, 0, width, finalSize.Height);
+                var floating = new Rect(DraggedX, DraggedTop(0), width, finalSize.Height);
                 _slots[child] = floating;
                 child.ZIndex = 1;
                 child.Opacity = DraggedOpacity;
@@ -239,7 +250,7 @@ public class HeaderTabsPanel : Panel
             {
                 child.ZIndex = 1;
                 child.Opacity = DraggedOpacity;
-                child.Arrange(slot.WithX(DraggedX));
+                child.Arrange(new Rect(DraggedX, DraggedTop(slot.Y), slot.Width, slot.Height));
             }
             else
             {
@@ -326,12 +337,15 @@ public class HeaderTabsPanel : Panel
 
             dragged.ZIndex = 1;
             dragged.Opacity = DraggedOpacity;
-            dragged.Arrange(slot.WithX(DraggedX));
+            dragged.Arrange(new Rect(DraggedX, DraggedTop(slot.Y), slot.Width, slot.Height));
         }
 
         HiddenTabCount = 0;
         return finalSize;
     }
+
+    /// <summary>被拖那一个画在哪一行高度上：给了 <see cref="DraggedY"/> 就用它，否则回到格子的 y。</summary>
+    private double DraggedTop(double slotY) => double.IsNaN(DraggedY) ? slotY : DraggedY;
 
     /// <summary>这一个标签排布时该占多宽（封顶 <see cref="ForgeMetrics.TabMaxWidth"/>）。</summary>
     private static double WidthOf(Control child) => Math.Min(child.DesiredSize.Width, ForgeMetrics.TabMaxWidth);
