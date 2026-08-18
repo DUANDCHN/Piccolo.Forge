@@ -597,6 +597,26 @@ public class ForgeHeaderButtonIconTests
         Assert.Empty(button.GetVisualDescendants().OfType<ForgeGeometryIcon>());
     }
 
+    [AvaloniaFact]
+    public void 禁用时整颗压暗()
+    {
+        // 标题条上的动作按钮是纯图标、没有文字的，"能不能用"只剩深浅这一条线索。
+        // 压的是整颗按钮而不是前景色 —— 图标可能是宿主塞的控件，前景色管不着它。
+        var button = new ForgeHeaderButton { Icon = ForgeIcons.MoreVertical, IsEnabled = false };
+        Show(button);
+
+        Assert.Equal(0.4, button.Opacity);
+    }
+
+    [AvaloniaFact]
+    public void 可用时不压暗()
+    {
+        var button = new ForgeHeaderButton { Icon = ForgeIcons.MoreVertical };
+        Show(button);
+
+        Assert.Equal(1, button.Opacity);
+    }
+
     private static void Show(ForgeHeaderButton button)
     {
         var window = new Window { Width = 200, Height = 100, Content = button };
