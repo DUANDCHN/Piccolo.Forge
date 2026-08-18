@@ -69,7 +69,7 @@ public sealed class ForgeContentTabStrip : TabStrip
     public ForgeContentTabStrip()
     {
         ItemsPanel = new FuncTemplate<Panel?>(() => new HeaderTabsPanel());
-        Template = CreateTemplateWithDropBar();
+        Template = ForgeTabStripTemplate.Create<ForgeContentTabStrip>();
         AddHandler(PointerPressedEvent, OnPointerPressed, RoutingStrategies.Tunnel);
 
         // 拖着换次序：与文档标签同一套手感（越过目标就换位），只是这里不跨容器 ——
@@ -117,7 +117,7 @@ public sealed class ForgeContentTabStrip : TabStrip
 
         var gap = GapAt(position);
         _dropIndex = gap;
-        ShowDropBar(gap);
+        ShowDragPreview(position, gap);
     }
 
     /// <summary>松手：落到画出来的那条缝上。</summary>
@@ -133,13 +133,10 @@ public sealed class ForgeContentTabStrip : TabStrip
 
     private void EndDrag()
     {
+        ClearDragPreview();
         _dragId = null;
         _dragging = false;
         _dropIndex = null;
-        if (_dropBar is not null)
-        {
-            _dropBar.IsVisible = false;
-        }
     }
 
     /// <summary>指针落在第几条缝里（0 = 最前面，ItemCount = 最后面）。</summary>
@@ -162,63 +159,67 @@ public sealed class ForgeContentTabStrip : TabStrip
         return ItemCount;
     }
 
-    /// <summary>把竖条摆到那条缝上。</summary>
-    private void ShowDropBar(int gap)
+    /// <summary>
+    /// 拖动中的样子：被拖的那一块**半透明跟手**，行内在落点处留一个**空档**。
+    /// </summary>
+    /// <remarks>
+    /// 与文档标签同一套（<c>HeaderTabsPanel.DraggedChild / DraggedX / DropIndex</c>，
+    /// 对位上游 <c>JBTabsImpl.kt:2280-2294 · moveDraggedTabLabel</c>）——
+    /// 两条 tab 行在同一个界面里，插入提示不该是两种语言。
+    /// <para>
+    /// 早先这里画的是一条插入竖条：单看没问题，但与文档标签那套摆在一起就是两套设计。
+    /// </para>
+    /// </remarks>
+    private void ShowDragPreview(Point position, int gap)
     {
-        if (_dropBar is null)
+        if (ItemsPanelRoot is not HeaderTabsPanel panel
+            || _dragId is not { } id
+            || IndexOf(id) is not { } index
+            || ContainerFromIndex(index) is not ForgeContentTab tab)
         {
             return;
         }
 
-        double x;
-        if (gap < ItemCount && ContainerFromIndex(gap) is ForgeContentTab next)
-        {
-            x = next.Bounds.X;
-        }
-        else if (ItemCount > 0 && ContainerFromIndex(ItemCount - 1) is ForgeContentTab last)
-        {
-            x = last.Bounds.Right;
-        }
-        else
-        {
-            return;
-        }
-
-        // 竖条骑在缝上：左移半个宽度，看着才是"插在两块中间"而不是"压住右边那块"
-        _dropBar.Margin = new Thickness(Math.Max(0, x - (DropBarWidth / 2)), 0, 0, 0);
-        _dropBar.Background = new global::Avalonia.Media.SolidColorBrush(Palette.HeaderTabUnderline);
-        _dropBar.IsVisible = true;
+        panel.DraggedChild = tab;
+        panel.DraggedX = position.X - (tab.Bounds.Width / 2);
+        panel.DropIndex = gap > index ? gap - 1 : gap;   // 空档按"除它之外"的次序算
+        panel.InvalidateArrange();
     }
 
-    /// <summary>插入竖条的宽度 2 —— 1 太细（暗色下几乎看不见），3 又开始像一块东西。</summary>
-    private const double DropBarWidth = 2;
-
-    private Border? _dropBar;
-
-    /// <summary>模板 = 标签行 + 一条插入竖条（竖条画在标签**之上**，否则会被标签的底盖住）。</summary>
-    private FuncControlTemplate<ForgeContentTabStrip> CreateTemplateWithDropBar()
-        => new((control, scope) =>
+    /// <summary>收掉拖动中的样子。</summary>
+    private void ClearDragPreview()
+    {
+        if (ItemsPanelRoot is not HeaderTabsPanel panel)
         {
-            var presenter = new ItemsPresenter
-            {
-                Name = "PART_ItemsPresenter",
-                ItemsPanel = control.ItemsPanel,
-            };
-            scope.Register("PART_ItemsPresenter", presenter);
+            return;
+        }
 
-            var bar = new Border
-            {
-                Name = "PART_DropBar",
-                Width = DropBarWidth,
-                HorizontalAlignment = global::Avalonia.Layout.HorizontalAlignment.Left,
-                IsVisible = false,
-                IsHitTestVisible = false,
-            };
-            scope.Register("PART_DropBar", bar);
-            control._dropBar = bar;
+        if (panel.DraggedChild is { } dragged)
+        {
+            dragged.Opacity = 1;
+            dragged.ZIndex = 0;
+        }
 
-            return new Panel { Children = { presenter, bar } };
-        });
+        panel.DraggedChild = null;
+        panel.DropIndex = null;
+        panel.InvalidateArrange();
+    }
+
+    /// <summary>这一块在当前次序里排第几。</summary>
+    private int? IndexOf(string id)
+    {
+        for (var i = 0; i < ItemCount; i++)
+        {
+            if (ContainerFromIndex(i) is ForgeContentTab tab
+                && tab.DataContext is ToolWindowContent content
+                && string.Equals(content.Id, id, StringComparison.Ordinal))
+            {
+                return i;
+            }
+        }
+
+        return null;
+    }
 
     internal ForgePalette Palette { get; set; } = ForgePalette.ExpUiDark;
     internal bool IsWindowActive { get; set; }

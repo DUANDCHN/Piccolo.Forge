@@ -41,6 +41,24 @@ public class HeaderTabsPanel : Panel
     public double DraggedX { get; set; }
 
     /// <summary>
+    /// 空档占位落在第几个位置（0 = 最前面）；<see langword="null"/> 表示不留空档。
+    /// </summary>
+    /// <remarks>
+    /// 上游拖动中是**当场 reallocate**，其余标签跟着让位、空出来的那一格就是"松手会落在哪"
+    /// （<c>JBTabsImpl.kt:3331</c>）。本仓的模型变更**推迟到松手**（拖动中改模型会让
+    /// TabStrip 回收/换父当前容器，那正是"拖影卡住、标签变空白"那一串 bug 的来源），
+    /// 所以改成排布这一层留空档：视觉上与上游一致，模型不动。
+    /// <para>
+    /// 索引按**除被拖那一个之外**的次序算 —— 被拖的那一个此刻是浮在上面跟手的，
+    /// 不占行内位置。
+    /// </para>
+    /// </remarks>
+    public int? DropIndex { get; set; }
+
+    /// <summary>被拖那一个的不透明度 <b>0.7</b> —— 让它看着是"影子"，底下那条空档才读得出来。</summary>
+    public const double DraggedOpacity = 0.7;
+
+    /// <summary>
     /// 放不下就<b>换行</b>，一个都不藏。
     /// </summary>
     /// <remarks>
@@ -149,9 +167,31 @@ public class HeaderTabsPanel : Panel
         var laying = Children.Where(c => c.IsVisible).ToList();
         var reachedBounds = false;
 
+        var placed = 0;
+        var gapWidth = DraggedChild is { } dragged && DropIndex is not null ? WidthOf(dragged) : 0;
+
         foreach (var child in laying)
         {
             var width = WidthOf(child);
+
+            // 被拖的那一个浮在上面跟手，不占行内位置；它原来那一格由 DropIndex 处的空档接手
+            if (ReferenceEquals(child, DraggedChild) && DropIndex is not null)
+            {
+                var floating = new Rect(DraggedX, 0, width, finalSize.Height);
+                _slots[child] = floating;
+                child.ZIndex = 1;
+                child.Opacity = DraggedOpacity;
+                child.Arrange(floating);
+                continue;
+            }
+
+            // 轮到空档了：先空出一格再放这一个
+            if (DropIndex == placed && gapWidth > 0)
+            {
+                x += gapWidth;
+            }
+
+            placed++;
 
             if (x + width >= finalSize.Width)
             {
@@ -180,15 +220,23 @@ public class HeaderTabsPanel : Panel
             if (ReferenceEquals(child, DraggedChild))
             {
                 child.ZIndex = 1;
+                child.Opacity = DraggedOpacity;
                 child.Arrange(slot.WithX(DraggedX));
             }
             else
             {
                 child.ZIndex = 0;
+                child.Opacity = 1;
                 child.Arrange(slot);
             }
 
             x += width;
+        }
+
+        // 空档在最后一格：上面的循环没机会加，这里补上（否则拖到行尾看不到落点）
+        if (DropIndex == placed && gapWidth > 0)
+        {
+            x += gapWidth;
         }
 
         HiddenTabCount = hidden;

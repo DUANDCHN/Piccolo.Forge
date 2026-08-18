@@ -1533,7 +1533,14 @@ public class ForgeEditorControl : TemplatedControl
             // 行内拖动，再把模型身份交给独立 DragSession。
             var session = new EditorDockDragSession(
                 _dragPointer!, group, _dragId, _holdDelta, origin.Size, ForgeDragOverlay.CaptureThumb(control));
+            if (strip.DraggedChild is { } floating)
+            {
+                floating.Opacity = 1;
+                floating.ZIndex = 0;
+            }
+
             strip.DraggedChild = null;
+            strip.DropIndex = null;
             strip.InvalidateArrange();
             ClearInlineDrag(releasePointer: false);
             _dockDrag = session;
@@ -1562,6 +1569,14 @@ public class ForgeEditorControl : TemplatedControl
 
         strip.DraggedChild = control;
         strip.DraggedX = dragRec.X;
+
+        // 落点处留一个**空档**（模型不动，只在排布这一层让位）——
+        // 上游拖动中是当场 reallocate、其余标签跟着让开，我们把模型变更推迟到松手，
+        // 于是靠这个空档把"松手会落在哪"说清楚。索引按"除被拖那一个之外"的次序算。
+        var source = order.IndexOf(control);
+        strip.DropIndex = target >= 0
+            ? (target > source ? target - 1 : target)
+            : (source >= 0 ? source : null);
         strip.InvalidateArrange();
     }
 
@@ -1769,7 +1784,14 @@ public class ForgeEditorControl : TemplatedControl
         if (_groupStrips.TryGetValue(group, out var stripControl)
             && stripControl.ItemsPanelRoot is HeaderTabsPanel strip)
         {
+            if (strip.DraggedChild is { } dragged)
+            {
+                dragged.Opacity = 1;   // 拖动中压到 0.7 当影子（HeaderTabsPanel.DraggedOpacity）
+                dragged.ZIndex = 0;
+            }
+
             strip.DraggedChild = null;
+            strip.DropIndex = null;
             strip.InvalidateArrange();
         }
 

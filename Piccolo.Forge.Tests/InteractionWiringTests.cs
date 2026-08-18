@@ -756,15 +756,19 @@ public class ForgeContentTabReorderTests
         window.MouseMove(to);
         Dispatcher.UIThread.RunJobs();
 
-        // 拖动中**先不落位**，只画出"会插到哪条缝"
+        // 拖动中**先不落位**，只给出"松手会落在哪"的样子：
+        // 被拖的那块半透明跟手，行内在落点处留一个空档（与文档标签同一套）
         Assert.Equal(["a", "b", "c"], panel.Contents.Contents.Select(x => x.Id));
-        var bar = strip.GetVisualDescendants().OfType<Border>().Single(x => x.Name == "PART_DropBar");
-        Assert.True(bar.IsVisible, "拖动中应当画出插入竖条");
+        var row = strip.GetVisualDescendants().OfType<HeaderTabsPanel>().Single();
+        Assert.NotNull(row.DraggedChild);
+        Assert.NotNull(row.DropIndex);
+        Assert.Equal(HeaderTabsPanel.DraggedOpacity, row.DraggedChild!.Opacity);
 
         window.MouseUp(to, MouseButton.Left);
         Dispatcher.UIThread.RunJobs();
 
-        Assert.False(bar.IsVisible, "松手后竖条该收掉");
+        Assert.Null(row.DraggedChild);          // 收掉了
+        Assert.Null(row.DropIndex);
         Assert.Equal(["b", "c", "a"], panel.Contents.Contents.Select(x => x.Id));
         Assert.Equal("a", panel.Contents.SelectedContent?.Id);   // 选中跟着**那一块**走，不是跟着位置
     }
