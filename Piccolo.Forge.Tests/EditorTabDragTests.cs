@@ -178,28 +178,24 @@ public class EditorTabDragTests
     }
 
     [AvaloniaFact]
-    public void 被拖的标签跟着光标走_不被夹在标签行里()
+    public void 被拖的标签横向连续跟手_但不跑出标签行()
     {
-        // ★ 分工：**拖的那个不吸附，落点那块投影才吸附。**
-        // 回归：早先被拖的标签被 MoveToFit 夹在行内、纵向又钉在格子上 ——
-        // 往下带就顶住不动，人的感受是"被吸住了"。
+        // ★ 分工：**被拖的那个横向连续跟手（不吸到光标中间、不在格位间跳），
+        //   落点那块投影才吸附到格位。**
+        // 两条硬边界（都在实机上撞过）：行外是命令栏/菜单栏，画过去会被祖先裁掉一半；
+        // 纵向放开则人往上一带，拖影直接跑到软件窗口外面。所以行内这一段只走 x、且夹在行里。
         var (editor, window, _, a, _) = Shown();
         _ = editor;
 
         var press = GrabPoint(a, window);
         window.MouseDown(press, MouseButton.Left);
-        window.MouseMove(new Point(press.X + 30, press.Y + 9));   // 往下带一点（还没出这一行）
+        window.MouseMove(new Point(press.X + 30, press.Y));
         Dispatcher.UIThread.RunJobs();
 
         var row = window.GetVisualDescendants().OfType<HeaderTabsPanel>().First();
         Assert.NotNull(row.DraggedChild);
-        Assert.False(double.IsNaN(row.DraggedY), "纵向应当跟手，而不是钉在格子的 y 上");
-        Assert.True(row.DraggedY > 0, "往下带了就该往下走");
-
-        window.MouseUp(new Point(press.X + 30, press.Y + 9), MouseButton.Left);
-        Dispatcher.UIThread.RunJobs();
-
-        Assert.True(double.IsNaN(row.DraggedY), "手势结束要还原");
+        Assert.True(double.IsNaN(row.DraggedY), "纵向不该跟手 —— 越过这一行是另一套（拖出会话）");
+        Assert.InRange(row.DraggedX, 0, row.Bounds.Width - row.DraggedChild!.Bounds.Width);
     }
 
     [AvaloniaFact]

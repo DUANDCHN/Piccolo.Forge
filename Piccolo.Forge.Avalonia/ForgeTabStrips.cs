@@ -205,9 +205,12 @@ public sealed class ForgeContentTabStrip : TabStrip
             return;
         }
 
+        // 横向连续跟手（保持按下时的抓握偏移，不吸到光标中间），**夹在这条行里**：
+        // 行外面是标题条的标题与按钮，画过去会被裁掉一半；纵向同理，所以不动 y。
+        // 跳来跳去的是落点投影，不是它 —— 两者的分工见 HeaderTabsPanel.DraggedY。
+        var maxX = Math.Max(0, Bounds.Width - tab.Bounds.Width);
         panel.DraggedChild = tab;
-        panel.DraggedX = position.X - _grabOffset;
-        panel.DraggedY = position.Y - _grabOffsetY;   // 纵向也跟手 —— 吸附的是投影，不是它
+        panel.DraggedX = Math.Clamp(position.X - _grabOffset, 0, maxX);
 
         // 空档按"除它之外"的次序算；gap 为 null = 拖到行外，没有落点（只跟手，不画投影）
         panel.DropIndex = gap is { } value ? (value > index ? value - 1 : value) : null;

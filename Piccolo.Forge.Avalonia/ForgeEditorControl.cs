@@ -1550,14 +1550,16 @@ public class ForgeEditorControl : TemplatedControl
             return;
         }
 
-        // ⚠ **不夹进标签行**：被拖的那一个跟着光标自由走（横竖都是），
-        //   吸附的是落点那块投影（HeaderTabsPanel.DropRect）。
-        //   早先这里套了一层 MoveToFit 把它夹在行内 —— 拖到行边上就顶住不动，
-        //   人的感受是"被吸住了、拖不动"。上游那条 moveDraggedTabLabel 只改 x，
-        //   是给"只在行内换序"定的；这里的手势还要往下带去分屏，钉住反而挡路。
-        //   落点判定仍用**夹过的**那个矩形（ResolveTarget 要的是行内坐标）。
-        var freeRec = new Rect(point.X - _holdDelta.X, point.Y - _holdDelta.Y, origin.Width, origin.Height);
-        var dragRec = ForgeEditorTabDragTarget.MoveToFit(freeRec, new Rect(strip.Bounds.Size));
+        // ★ **行内这一段：只在行里跟着光标横向走，夹在行内。** ★
+        //
+        // 这不是"吸附"—— 它是连续跟手的，不会在格位之间跳（跳的是投影）。夹住有两个硬理由：
+        //   · 标签行外面是别的控件（命令栏 / 菜单栏），画过去会被祖先裁掉一半 —— 实机见过；
+        //   · 纵向放开之后，人往上一带就越过整个窗口，拖影跑到软件外面去了。
+        // 真要"带出去"是**另一套**：越过这一行就切到拖出会话，由浮窗拖影接管（下面那段）。
+        // 曾经把这里改成横竖自由走 —— 上面两个症状当场复现，已退回。
+        var dragRec = ForgeEditorTabDragTarget.MoveToFit(
+            new Rect(point.X - _holdDelta.X, point.Y - _holdDelta.Y, origin.Width, origin.Height),
+            new Rect(strip.Bounds.Size));
 
         var order = Enumerable.Range(0, group.Tabs.Count)
             .Select(i => stripControl.ContainerFromIndex(i) as ForgeEditorTab)
@@ -1574,8 +1576,7 @@ public class ForgeEditorControl : TemplatedControl
         }
 
         strip.DraggedChild = control;
-        strip.DraggedX = freeRec.X;
-        strip.DraggedY = freeRec.Y;
+        strip.DraggedX = dragRec.X;
 
         // 落点处留一个**空档**（模型不动，只在排布这一层让位）——
         // 上游拖动中是当场 reallocate、其余标签跟着让开，我们把模型变更推迟到松手，
