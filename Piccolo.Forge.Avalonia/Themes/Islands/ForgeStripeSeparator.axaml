@@ -2,7 +2,7 @@
       占位 32×11，线本身 24×1；位置照抄原来的算式（见 LineMargin 的注释，
       那个 y = 高/2 差半像素是上游的画法，别"修正"）。
 
-      共同的规矩见同目录 ForgeTheme.axaml 的开头。  -->
+      共同的规矩见本目录 Theme.axaml 的开头。  -->
 <ResourceDictionary
     xmlns="https://github.com/avaloniaui"
     xmlns:forge="clr-namespace:Piccolo.Forge.Avalonia"
@@ -13,7 +13,7 @@
             <ControlTemplate TargetType="forge:ForgeStripeSeparator">
                 <Panel>
                     <Border
-                        Background="{DynamicResource Forge.ExpUi.StripeSeparator}"
+                        Background="{DynamicResource Forge.Islands.StripeSeparator}"
                         HorizontalAlignment="Left"
                         Height="1"
                         Margin="{TemplateBinding LineMargin}"
@@ -25,13 +25,6 @@
         </Setter>
 
         <Style Selector="^:drag-and-drop /template/ Border#PART_Line">
-            <Setter Property="Background" Value="{DynamicResource Forge.ExpUi.StripeSeparatorDragAndDrop}" />
-        </Style>
-        <Style Selector="^:islands /template/ Border#PART_Line">
-            <Setter Property="Background" Value="{DynamicResource Forge.Islands.StripeSeparator}" />
-        </Style>
-        <Style Selector="^:islands:drag-and-drop /template/ Border#PART_Line">
             <Setter Property="Background" Value="{DynamicResource Forge.Islands.StripeSeparatorDragAndDrop}" />
-        </Style>
-    </ControlTheme>
+        </Style>    </ControlTheme>
 </ResourceDictionary>

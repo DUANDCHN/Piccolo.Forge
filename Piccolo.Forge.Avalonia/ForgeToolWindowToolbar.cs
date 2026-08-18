@@ -59,9 +59,6 @@ public class ForgeToolWindowToolbar : TemplatedControl
             PaletteProperty, SideProperty, TransparentBackdropProperty,
             StripeBackgroundBrushProperty, StripeBorderBrushProperty);
 
-        // 族写进伪类，ControlTheme 据此换一套颜色键（REQ-067）
-        PaletteProperty.Changed.AddClassHandler<ForgeToolWindowToolbar>(
-            (x, _) => x.PseudoClasses.Set(":islands", x.Palette.Island is not null));
         AffectsMeasure<ForgeToolWindowToolbar>(CustomWidthProperty, BorderOverlaysContentProperty);
     }
 

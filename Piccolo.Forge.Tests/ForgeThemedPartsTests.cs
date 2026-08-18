@@ -39,11 +39,23 @@ public class ForgeThemedPartsTests
         Relayout(window);
         Assert.Equal(ForgePalette.ExpUiDark.StripeSeparatorDragAndDrop, LineColor(separator));
 
-        separator.Palette = ForgePalette.IslandsDark;
-        Relayout(window);
-        Assert.Equal(ForgePalette.IslandsDark.StripeSeparatorDragAndDrop, LineColor(separator));
-
         window.Close();
+
+        // ★ 换族 = 换一套主题单元 + **新建**控件（REQ-068）。
+        //   拆成两套完整主题之后，"换族"不再是给同一个控件换伪类：换单元不会让已挂树的控件
+        //   重取 ControlTheme（实测 ThemeSwapSpikeTests），所以这里必须重新建一个。
+        using var theme = ForgeThemeScope.Use(ForgeThemeFamily.Islands);
+        var islands = new ForgeStripeSeparator
+        {
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top,
+            IsDragAndDrop = true,
+            Palette = ForgePalette.IslandsDark,
+        };
+
+        var islandsWindow = Host(islands, ThemeVariant.Dark);
+        Assert.Equal(ForgePalette.IslandsDark.StripeSeparatorDragAndDrop, LineColor(islands));
+        islandsWindow.Close();
     }
 
     /// <summary>
@@ -96,12 +108,20 @@ public class ForgeThemedPartsTests
             ForgePalette.ExpUiDark.ButtonHoverBackground,
             (button.HoverBackgroundBrush as ISolidColorBrush)?.Color);
 
-        // 换族换一套键
-        button.Palette = ForgePalette.IslandsDark;
-        Relayout(window);
-        Assert.Equal(ForgePalette.IslandsDark.ButtonForeground, ((ISolidColorBrush)button.Foreground!).Color);
-
         window.Close();
+
+        // 换族换一套键 —— 换单元 + 新建控件（REQ-068，同上）
+        using var theme = ForgeThemeScope.Use(ForgeThemeFamily.Islands);
+        var islands = new ForgeHeaderButton
+        {
+            Palette = ForgePalette.IslandsDark,
+            Width = 24,
+            Height = 24,
+        };
+
+        var islandsWindow = Host(islands, ThemeVariant.Dark);
+        Assert.Equal(ForgePalette.IslandsDark.ButtonForeground, ((ISolidColorBrush)islands.Foreground!).Color);
+        islandsWindow.Close();
     }
 
     private static Color? LineColor(ForgeStripeSeparator separator)

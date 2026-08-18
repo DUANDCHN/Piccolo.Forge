@@ -1,4 +1,4 @@
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
@@ -63,6 +63,7 @@ public class IslandDecorTests
     [InlineData(true)]
     public void The_transparent_backdrop_only_stops_painting_the_sea(bool transparent)
     {
+        using var theme = ForgeThemeScope.Use(ForgeThemeFamily.Islands);
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
         var frame = new ForgeControl
         {
@@ -111,6 +112,7 @@ public class IslandDecorTests
     [AvaloniaFact]
     public void 岛的描边来自主题键且宿主能覆盖()
     {
+        using var theme = ForgeThemeScope.Use(ForgeThemeFamily.Islands);
         var editor = new ForgeEditorControl { Palette = ForgePalette.IslandsDark };
         var window = new Window
         {

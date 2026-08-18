@@ -19,12 +19,12 @@ public static class TestAppBuilder
             .UseSkia()
             // 关掉 headless 的假绘制，走真正的 Skia，这样能把窗口渲成 PNG 看
             .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
-            // Forge 的主题：模板化之后**不加这句控件就没有模板**（Avalonia 按实际类型找
-            // ControlTheme，宿主主题里给 Button 的那份落不到子类头上）。不报错，只是什么都不画
-            //——用例里表现为"尺寸对、颜色全无"。宿主侧同样要加，见 REQ-067。
-            .AfterSetup(builder => builder.Instance!.Styles.Add(
-                new global::Avalonia.Markup.Xaml.Styling.StyleInclude((System.Uri?)null)
-                {
-                    Source = new System.Uri("avares://Piccolo.Forge.Avalonia/Themes/ForgeTheme.axaml"),
-                }));
+            // Forge 的主题：**不装控件就没有模板**（Avalonia 按实际类型找 ControlTheme，
+            // 宿主主题里给 Button 的那份落不到子类头上）。不报错，只是什么都不画
+            //——用例里表现为"尺寸对、颜色全无"。宿主侧同样要装，见 REQ-067 / REQ-068。
+            //
+            // 默认装经典那套；要在用例里换族用 ForgeThemeScope.Use(...)，
+            // ⚠ 且必须**先换族再新建控件**（换单元不会让已挂树的控件重取主题，见 ThemeSwapSpikeTests）。
+            .AfterSetup(builder => global::Piccolo.Forge.Avalonia.ForgeThemeManager.Apply(
+                builder.Instance!, global::Piccolo.Forge.Themes.ForgeThemeFamily.ExpUi));
 }

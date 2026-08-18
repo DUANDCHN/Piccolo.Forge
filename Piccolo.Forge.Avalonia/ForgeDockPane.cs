@@ -24,6 +24,7 @@ namespace Piccolo.Forge.Avalonia;
 /// 所有下发的权重都先过 <see cref="ForgeMetrics.NormalizeWeight"/>（<c>:85-90</c>）。
 /// </para>
 /// </remarks>
+[ForgeThemeless("纯布局面板：只排子元素的位置，不画、不取色。")]
 public class ForgeDockPane : Panel
 {
     /// <summary><see cref="IsWideScreen"/> 的属性定义。</summary>

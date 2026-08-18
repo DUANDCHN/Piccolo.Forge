@@ -1,0 +1,58 @@
+<!--  ★ 面板标题条。★ **真模板**：底、下边那条 1px 线、标题文字都在模板里，
+      标签条与右侧那排按钮住在 PART_Content 这个槽中。
+
+      ⚠ 槽**不自己算布局**：它回头问标题条（ForgeHeaderContentHost → MeasureContent /
+        ArrangeContent），那套「按钮靠右、标签排在标题与按钮之间」的算式一个数都没动 ——
+        这是需求「不做」边界里写死的：模板化不等于放弃自定义布局。
+
+      ⚠ 标题的**测量**仍走 FormattedText（ComputeTabsStart 要它的宽度才知道标签从哪开始），
+        **绘制**归模板里的 TextBlock —— 两边字号/字重/字体同源。
+        这就是需求开头「风险 1：布局算式依赖测出来的文字宽度」的答案。
+
+      共同的规矩见本目录 Theme.axaml 的开头。  -->
+<ResourceDictionary
+    xmlns="https://github.com/avaloniaui"
+    xmlns:forge="clr-namespace:Piccolo.Forge.Avalonia"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ControlTheme TargetType="forge:ForgeToolWindowHeader" x:Key="{x:Type forge:ForgeToolWindowHeader}">
+        <Setter Property="Foreground" Value="{DynamicResource Forge.Islands.Foreground}" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="forge:ForgeToolWindowHeader">
+                <!--  次序 = 原先 Render 里的画序：底 → 下边线 → 标题；槽最后，压在最上面  -->
+                <Panel Background="Transparent">
+                    <Border
+                        Background="{TemplateBinding HeaderBackgroundBrush}"
+                        CornerRadius="{TemplateBinding HeaderCornerRadius}"
+                        Name="PART_Background" />
+
+                    <!--  下边一条 1px 分隔线  -->
+                    <Border
+                        Background="{TemplateBinding HeaderBorderBrush}"
+                        Height="1"
+                        HorizontalAlignment="Stretch"
+                        Name="PART_Border"
+                        VerticalAlignment="Bottom" />
+
+                    <!--  标题：⚠ 宽度是**测出来的**（MeasureTitle），字号/字重必须与那里同源。
+                          UseLayoutRounding="False" 的理由同两个标签：竖直居中会落在半像素上。  -->
+                    <TextBlock
+                        FontSize="{TemplateBinding TitleFontSize}"
+                        FontWeight="{TemplateBinding TitleFontWeight}"
+                        Foreground="{TemplateBinding Foreground}"
+                        HorizontalAlignment="Left"
+                        Margin="{TemplateBinding TitleMargin}"
+                        Name="PART_Title"
+                        Text="{TemplateBinding Title}"
+                        UseLayoutRounding="False"
+                        VerticalAlignment="Center" />
+
+                    <!--  标签条 + 右侧那排按钮的槽（布局仍由标题条算，见类型注释）  -->
+                    <forge:ForgeHeaderContentHost Name="PART_Content" />
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+        <Setter Property="HeaderBackgroundBrush" Value="{DynamicResource Forge.Islands.HeaderBackground}" />
+        <Setter Property="HeaderBorderBrush" Value="{DynamicResource Forge.Islands.HeaderBorder}" />
+    </ControlTheme>
+</ResourceDictionary>

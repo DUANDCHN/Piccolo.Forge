@@ -274,6 +274,48 @@ public class ForgeDragFeedbackTests
         Assert.NotEqual(moved, after[^1]);      // 而不是"还在最后"
     }
 
+    /// <summary>
+    /// 下组：指针不动，落点就不该自己跑掉。
+    /// </summary>
+    /// <remarks>
+    /// 回归。下组是**贴底**排布（<c>ForgeToolWindowToolbar</c> 里的 <c>Dock.Bottom</c>），
+    /// 一留空槽整组就被往上顶一个按钮高。当时算落点用的是这一组**当时的顶边**，
+    /// 于是"没槽"那一帧和"有槽"那一帧的换算基准差了一个按钮高——
+    /// 同一个指针位置，前后两帧解出两个格子。表现为下组落点恒偏一格，
+    /// 且在格子边界上来回翻（翻一次就重排一次，也是拖动发卡的一份）。
+    /// <para>
+    /// 现在换算基准是「**去掉空槽之后**那条序列的顶」（<c>ForgeControl.ApplyDropOffset</c>），
+    /// 与 <see cref="StripeItemsPanel.DropOffset"/> 的口径对齐，指针不动结果就不动。
+    /// </para>
+    /// </remarks>
+    [AvaloniaFact]
+    public void The_bottom_group_keeps_the_same_slot_when_the_pointer_does_not_move()
+    {
+        var (frame, window) = Show();
+        var group = frame.LeftToolbar.BottomGroup;
+        var buttons = group.Children.OfType<ForgeStripeButton>().ToList();
+        Assert.True(buttons.Count >= 3, "默认布局的下组至少要有三个按钮，否则这条用例证明不了什么");
+
+        var from = buttons[^1].TranslatePoint(new Point(18, 20), frame)!.Value;
+        var to = buttons[1].TranslatePoint(new Point(18, 20), frame)!.Value;
+
+        window.MouseDown(from, MouseButton.Left);
+        window.MouseMove(to);
+        Dispatcher.UIThread.RunJobs();
+
+        var first = group.DropIndex;
+        Assert.True(first >= 0, "指针落在下组里，就该有空槽");
+
+        // 同一个点再来一次 —— 这一次这一组**已经留着空槽**（顶边被顶高了）
+        window.MouseMove(to);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(first, group.DropIndex);
+
+        window.MouseUp(to, MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+    }
+
     [AvaloniaFact]
     public void Dragging_a_stripe_button_shows_the_drop_feedback()
     {
@@ -694,6 +736,7 @@ public class ForgeContentTabFamilyTests
     [InlineData(ForgeThemeFamily.Islands, false)]
     public void 选中态的下划线只属于_expUI(ForgeThemeFamily family, bool expectUnderline)
     {
+        using var theme = ForgeThemeScope.Use(family);
         var (window, tab) = Build(family);
         _ = window;
 
@@ -718,9 +761,10 @@ public class ForgeContentTabFamilyTests
         panel.Contents.Add(new ToolWindowContent("two", "二", IsCloseable: false));
         shell.Manager.Activate("A");
 
-        var frame = new ForgeControl();
+        // ⚠ 族在**建控件之前**就定下：两个开关必须同族（挂树时核对），
+        //   而且换单元不会让已挂树的控件重取模板（REQ-068）。
+        var frame = new ForgeControl { Appearance = ForgeAppearance.Default with { Family = family } };
         frame.Attach(shell);
-        frame.Appearance = frame.Appearance with { Family = family };
 
         var window = new Window { Width = 800, Height = 500, Content = frame };
         window.Show();

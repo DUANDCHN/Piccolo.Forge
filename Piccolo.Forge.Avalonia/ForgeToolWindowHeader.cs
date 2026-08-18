@@ -200,9 +200,6 @@ public class ForgeToolWindowHeader : TemplatedControl
         ContentUiTypeProperty.Changed.AddClassHandler<ForgeToolWindowHeader>((h, _) => h.InvalidateMeasure());
         AffectsRender<ForgeToolWindowHeader>(HeaderBackgroundBrushProperty, HeaderBorderBrushProperty);
 
-        // 族写进伪类，ControlTheme 据此换一套颜色键（REQ-067）
-        PaletteProperty.Changed.AddClassHandler<ForgeToolWindowHeader>(
-            (h, _) => h.PseudoClasses.Set(":islands", h.Palette.Island is not null));
 
         // 上面两个角跟着岛磨圆，下面两个角照旧是方的 —— 模板里那层 Border 拿 HeaderCornerRadius
         TopCornerRadiusProperty.Changed.AddClassHandler<ForgeToolWindowHeader>(

@@ -182,12 +182,6 @@ public class ForgeEditorTab : TabStripItem
         //   画面全由模板子元素出：画刷变化经 OnPropertyChanged → SyncDecoration 传给模板，
         //   下划线那两个直接被模板绑着 —— 那串已经不起作用（REQ-067）。
 
-        // 状态与族写进伪类，模板据此决定下划线出不出、图标画哪个（REQ-067）。
-        // ⚠ 底与描边**不由伪类选**：那是 5 态 × 2 族，判定留在 ResolveColors 里
-        //   （每一档带上游出处），模板只绑它算好的画刷 —— 这是需求里记过的一个明确取舍。
-        // （`:selected` / `:pointerover` 由 TabStripItem 与 InputElement 自带，不必在这里设。）
-        PaletteProperty.Changed.AddClassHandler<ForgeEditorTab>(
-            (x, _) => x.PseudoClasses.Set(":islands", x.Palette.Island is not null));
         IsGroupActiveProperty.Changed.AddClassHandler<ForgeEditorTab>(
             (x, e) => x.PseudoClasses.Set(":group-active", e.GetNewValue<bool>()));
         IsPinnedProperty.Changed.AddClassHandler<ForgeEditorTab>(
@@ -627,8 +621,8 @@ public class ForgeEditorTab : TabStripItem
     /// Islands **完全不画下划线**（<c>IslandsTabPainter.kt:109</c> 把 <c>underlineHeight</c>
     /// 覆盖成 0、<c>:150 · paintUnderline</c> 是空实现），改画
     /// <see cref="IslandsBlockRect"/> 那个内缩圆角块 —— 这两条现在由模板里那一层
-    /// <c>Border</c> 的 <c>Margin</c> / <c>CornerRadius</c> 与下划线的
-    /// <c>:islands</c> 选择器表达。
+    /// <c>Border</c> 的 <c>Margin</c> / <c>CornerRadius</c> 表达 ——
+    /// REQ-068 之后两族是两套主题文件，Islands 那份**根本没有**让下划线显示的样式。
     /// </para>
     /// </remarks>
     public override void Render(DrawingContext context)

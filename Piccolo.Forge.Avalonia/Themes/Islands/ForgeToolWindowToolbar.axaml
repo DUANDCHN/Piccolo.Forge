@@ -11,15 +11,15 @@
       ⚠ 模板根必须是 Background="Transparent" 的 Panel：条带空白处有右键菜单，
         不铺就收不到鼠标。透底时只收起底色那层 Border，不能连根一起收。
 
-      共同的规矩见同目录 ForgeTheme.axaml 的开头。  -->
+      共同的规矩见本目录 Theme.axaml 的开头。  -->
 <ResourceDictionary
     xmlns="https://github.com/avaloniaui"
     xmlns:forge="clr-namespace:Piccolo.Forge.Avalonia"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <ControlTheme TargetType="forge:ForgeToolWindowToolbar" x:Key="{x:Type forge:ForgeToolWindowToolbar}">
-        <Setter Property="StripeBackgroundBrush" Value="{DynamicResource Forge.ExpUi.StripeBackground}" />
-        <Setter Property="StripeBorderBrush" Value="{DynamicResource Forge.ExpUi.StripeBorder}" />
+        <Setter Property="StripeBackgroundBrush" Value="{DynamicResource Forge.Islands.StripeBackground}" />
+        <Setter Property="StripeBorderBrush" Value="{DynamicResource Forge.Islands.StripeBorder}" />
         <Setter Property="Template">
             <ControlTemplate TargetType="forge:ForgeToolWindowToolbar">
                 <Panel Background="Transparent">
@@ -52,11 +52,6 @@
         <!--  线压在内容上：槽不再让出那 1px（宿主自己定宽度时用，见 BorderOverlaysContent）  -->
         <Style Selector="^:border-overlay /template/ Decorator#PART_Groups">
             <Setter Property="Margin" Value="0" />
-        </Style>
-
-        <Style Selector="^:islands">
-            <Setter Property="StripeBackgroundBrush" Value="{DynamicResource Forge.Islands.StripeBackground}" />
-            <Setter Property="StripeBorderBrush" Value="{DynamicResource Forge.Islands.StripeBorder}" />
         </Style>
     </ControlTheme>
 </ResourceDictionary>

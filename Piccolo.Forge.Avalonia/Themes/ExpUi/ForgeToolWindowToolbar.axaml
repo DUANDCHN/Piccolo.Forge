@@ -1,0 +1,57 @@
+<!--  ★ 条带（工具窗口按钮那一条）。★ **真模板**
+
+      两组按钮住在 PART_Groups 这个槽里，由控件在 OnApplyTemplate 塞进去 ——
+      早先把这个控件挡在模板之外的正是"ApplyTemplate 会清空 VisualChildren"，
+      改成槽之后那条不再成立。
+
+      ⚠ 内侧那条 1px 线**占宽**：槽的 Margin 给它让出位置（左条带右让 1、右条带左让 1），
+        于是模板根量出来的就是「两组按钮 + 1」—— 控件的 MeasureOverride 因此只剩
+        "要不要用 CustomWidth" 这一件事，算式没变，只是换了谁在算。
+
+      ⚠ 模板根必须是 Background="Transparent" 的 Panel：条带空白处有右键菜单，
+        不铺就收不到鼠标。透底时只收起底色那层 Border，不能连根一起收。
+
+      共同的规矩见本目录 Theme.axaml 的开头。  -->
+<ResourceDictionary
+    xmlns="https://github.com/avaloniaui"
+    xmlns:forge="clr-namespace:Piccolo.Forge.Avalonia"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ControlTheme TargetType="forge:ForgeToolWindowToolbar" x:Key="{x:Type forge:ForgeToolWindowToolbar}">
+        <Setter Property="StripeBackgroundBrush" Value="{DynamicResource Forge.ExpUi.StripeBackground}" />
+        <Setter Property="StripeBorderBrush" Value="{DynamicResource Forge.ExpUi.StripeBorder}" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="forge:ForgeToolWindowToolbar">
+                <Panel Background="Transparent">
+                    <Border Background="{TemplateBinding StripeBackgroundBrush}" Name="PART_Background" />
+
+                    <!--  左条带的线在右缘（右条带由 :right-side 换到左缘）  -->
+                    <Border
+                        Background="{TemplateBinding StripeBorderBrush}"
+                        HorizontalAlignment="Right"
+                        Name="PART_Border"
+                        Width="1" />
+
+                    <!--  两组按钮的槽：Margin 给那条线让出 1px  -->
+                    <Decorator Margin="0,0,1,0" Name="PART_Groups" />
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+
+        <Style Selector="^:transparent-backdrop /template/ Border#PART_Background">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+
+        <Style Selector="^:right-side /template/ Border#PART_Border">
+            <Setter Property="HorizontalAlignment" Value="Left" />
+        </Style>
+        <Style Selector="^:right-side /template/ Decorator#PART_Groups">
+            <Setter Property="Margin" Value="1,0,0,0" />
+        </Style>
+
+        <!--  线压在内容上：槽不再让出那 1px（宿主自己定宽度时用，见 BorderOverlaysContent）  -->
+        <Style Selector="^:border-overlay /template/ Decorator#PART_Groups">
+            <Setter Property="Margin" Value="0" />
+        </Style>
+    </ControlTheme>
+</ResourceDictionary>

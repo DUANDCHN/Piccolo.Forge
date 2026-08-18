@@ -41,9 +41,6 @@ public class ForgeHeaderButton : Button
     {
         AffectsRender<ForgeHeaderButton>(PaletteProperty, IconProperty, IsPointerOverProperty, IsPressedProperty);
 
-        // 族写进伪类，模板据此换一套颜色键（REQ-067）
-        PaletteProperty.Changed.AddClassHandler<ForgeHeaderButton>(
-            (x, _) => x.PseudoClasses.Set(":islands", x.Palette.Island is not null));
         AffectsRender<ForgeHeaderButton>(HoverBackgroundBrushProperty);
         IconContentProperty.Changed.AddClassHandler<ForgeHeaderButton>((x, _) => x.SyncIconSlot());
     }

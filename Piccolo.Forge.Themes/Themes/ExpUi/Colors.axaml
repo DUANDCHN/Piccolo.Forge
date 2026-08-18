@@ -1,0 +1,94 @@
+<!--  ★ 经典（expUI）主题的全部颜色。★  REQ-068 从 ForgeColors.axaml 拆出。
+
+      这份只属于**经典一族**：只被 Themes/ExpUi/Theme.axaml 引，
+      Islands 那套在 Themes/Islands/Colors.axaml，两边各改各的、不共用文件。
+
+      ⚠ **这个文件是从 ForgePalette 转写出来的，别手改数值。**
+        转写有一处会静默出错：上游 / ForgeColor.Parse 是 #RRGGBBAA（alpha 在后），
+        而 Avalonia 的 Color 是 #AARRGGBB（alpha 在前）——**顺序相反**。
+        原样抄会把 #0000001D（黑 11%）读成 alpha=0，那个状态的颜色整个消失且不报错。
+        每个 8 位的值后面都注了上游原文；真正的守护是 ForgeThemeDictionaryTests，
+        它逐键断言这里的值 == ForgePalette 对应字段（并做过反证：注入字节序错误当场红）。
+
+      族（expUI / Islands）仍然进**键名**，明暗进 **ThemeDictionaries**：
+      键名前缀是宿主按族覆盖的抬头（REQ-068 “不做”边界里写死了不改）。
+      宿主要覆盖，就在自己的 ThemeDictionaries 里重定义同名键。  -->
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+            <!--  按钮 / 条带  -->
+            <Color x:Key="Forge.ExpUi.ButtonForeground">#5A5D6B</Color>
+            <Color x:Key="Forge.ExpUi.ButtonSelectedForeground">#FFFFFF</Color>
+            <Color x:Key="Forge.ExpUi.ButtonSelectedBackground">#3574F0</Color>
+            <Color x:Key="Forge.ExpUi.ButtonPressedBackground">#1D000000</Color>  <!-- 上游 #0000001D -->
+            <Color x:Key="Forge.ExpUi.ButtonHoverBackground">#12000000</Color>  <!-- 上游 #00000012 -->
+            <Color x:Key="Forge.ExpUi.StripeSeparator">#C9CCD6</Color>
+            <Color x:Key="Forge.ExpUi.StripeSeparatorDragAndDrop">#709CF5</Color>
+            <Color x:Key="Forge.ExpUi.StripeBackground">#F7F8FA</Color>
+            <Color x:Key="Forge.ExpUi.StripeBorder">#EBECF0</Color>
+
+            <!--  拖拽反馈  -->
+            <Color x:Key="Forge.ExpUi.ButtonDropBackground">#D4E2FF</Color>
+            <Color x:Key="Forge.ExpUi.ButtonDropBorder">#709CF5</Color>
+            <Color x:Key="Forge.ExpUi.DragAreaBackground">#4DA0BDF8</Color>  <!-- 上游 #A0BDF84D -->
+
+            <!--  面板标题条  -->
+            <Color x:Key="Forge.ExpUi.Foreground">#000000</Color>
+            <Color x:Key="Forge.ExpUi.HeaderBackground">#F7F8FA</Color>
+            <Color x:Key="Forge.ExpUi.HeaderBorder">#EBECF0</Color>
+            <Color x:Key="Forge.ExpUi.HeaderTabHoverBackground">#EBECF0</Color>
+            <Color x:Key="Forge.ExpUi.HeaderTabUnderline">#3574F0</Color>
+            <Color x:Key="Forge.ExpUi.HeaderTabInactiveUnderline">#A8ADBD</Color>
+
+            <!--  岛（Islands 那层外框；expUI 不参与绘制）  -->
+            <Color x:Key="Forge.ExpUi.IslandBorder">#F7F8FA</Color>
+
+            <!--  编辑区  -->
+            <Color x:Key="Forge.ExpUi.EditorBackground">#FFFFFF</Color>  <!-- Gray14 -->
+            <Color x:Key="Forge.ExpUi.EditorTabsBorder">#EBECF0</Color>
+            <Color x:Key="Forge.ExpUi.EditorTabHoverBackground">#00FFFFFF</Color>  <!-- 上游 #FFFFFF00 -->
+            <Color x:Key="Forge.ExpUi.EditorTabSelectedBackground">#FFFFFF</Color>
+            <Color x:Key="Forge.ExpUi.EditorTabSelectedBorder">#00000000</Color>  <!-- 上游 #00000000 -->
+            <Color x:Key="Forge.ExpUi.EditorTabInactiveSelectedBackground">#FFFFFF</Color>
+            <Color x:Key="Forge.ExpUi.EditorTabInactiveSelectedBorder">#00000000</Color>  <!-- 上游 #00000000 -->
+        </ResourceDictionary>
+
+        <ResourceDictionary x:Key="Dark">
+            <!--  按钮 / 条带  -->
+            <Color x:Key="Forge.ExpUi.ButtonForeground">#9DA0A8</Color>
+            <Color x:Key="Forge.ExpUi.ButtonSelectedForeground">#FFFFFF</Color>
+            <Color x:Key="Forge.ExpUi.ButtonSelectedBackground">#3574F0</Color>
+            <Color x:Key="Forge.ExpUi.ButtonPressedBackground">#26FFFFFF</Color>  <!-- 上游 #FFFFFF26 -->
+            <Color x:Key="Forge.ExpUi.ButtonHoverBackground">#16FFFFFF</Color>  <!-- 上游 #FFFFFF16 -->
+            <Color x:Key="Forge.ExpUi.StripeSeparator">#43454A</Color>
+            <Color x:Key="Forge.ExpUi.StripeSeparatorDragAndDrop">#548AF7</Color>
+            <Color x:Key="Forge.ExpUi.StripeBackground">#2B2D30</Color>
+            <Color x:Key="Forge.ExpUi.StripeBorder">#1E1F22</Color>
+
+            <!--  拖拽反馈  -->
+            <Color x:Key="Forge.ExpUi.ButtonDropBackground">#9935538F</Color>  <!-- 上游 #35538F99 -->
+            <Color x:Key="Forge.ExpUi.ButtonDropBorder">#548AF7</Color>
+            <Color x:Key="Forge.ExpUi.DragAreaBackground">#4D366ACF</Color>  <!-- 上游 #366ACF4D -->
+
+            <!--  面板标题条  -->
+            <Color x:Key="Forge.ExpUi.Foreground">#DFE1E5</Color>
+            <Color x:Key="Forge.ExpUi.HeaderBackground">#2B2D30</Color>
+            <Color x:Key="Forge.ExpUi.HeaderBorder">#1E1F22</Color>
+            <Color x:Key="Forge.ExpUi.HeaderTabHoverBackground">#393B40</Color>
+            <Color x:Key="Forge.ExpUi.HeaderTabUnderline">#3574F0</Color>
+            <Color x:Key="Forge.ExpUi.HeaderTabInactiveUnderline">#5A5D63</Color>
+
+            <!--  岛（Islands 那层外框；expUI 不参与绘制）  -->
+            <Color x:Key="Forge.ExpUi.IslandBorder">#2B2D30</Color>
+
+            <!--  编辑区  -->
+            <Color x:Key="Forge.ExpUi.EditorBackground">#1E1F22</Color>  <!-- Gray1 -->
+            <Color x:Key="Forge.ExpUi.EditorTabsBorder">#393B40</Color>
+            <Color x:Key="Forge.ExpUi.EditorTabHoverBackground">#001E1F22</Color>  <!-- 上游 #1E1F2200 -->
+            <Color x:Key="Forge.ExpUi.EditorTabSelectedBackground">#1E1F22</Color>
+            <Color x:Key="Forge.ExpUi.EditorTabSelectedBorder">#00000000</Color>  <!-- 上游 #00000000 -->
+            <Color x:Key="Forge.ExpUi.EditorTabInactiveSelectedBackground">#1E1F22</Color>
+            <Color x:Key="Forge.ExpUi.EditorTabInactiveSelectedBorder">#00000000</Color>  <!-- 上游 #00000000 -->
+        </ResourceDictionary>
+    </ResourceDictionary.ThemeDictionaries>
+</ResourceDictionary>

@@ -9,7 +9,7 @@
         **绘制**归模板里的 TextBlock —— 两边字号/字重/字体同源。
         这就是需求开头「风险 1：布局算式依赖测出来的文字宽度」的答案。
 
-      共同的规矩见同目录 ForgeTheme.axaml 的开头。  -->
+      共同的规矩见本目录 Theme.axaml 的开头。  -->
 <ResourceDictionary
     xmlns="https://github.com/avaloniaui"
     xmlns:forge="clr-namespace:Piccolo.Forge.Avalonia"
@@ -54,11 +54,5 @@
         </Setter>
         <Setter Property="HeaderBackgroundBrush" Value="{DynamicResource Forge.ExpUi.HeaderBackground}" />
         <Setter Property="HeaderBorderBrush" Value="{DynamicResource Forge.ExpUi.HeaderBorder}" />
-
-        <Style Selector="^:islands">
-            <Setter Property="Foreground" Value="{DynamicResource Forge.Islands.Foreground}" />
-            <Setter Property="HeaderBackgroundBrush" Value="{DynamicResource Forge.Islands.HeaderBackground}" />
-            <Setter Property="HeaderBorderBrush" Value="{DynamicResource Forge.Islands.HeaderBorder}" />
-        </Style>
     </ControlTheme>
 </ResourceDictionary>

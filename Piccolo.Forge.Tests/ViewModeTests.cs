@@ -363,13 +363,13 @@ public class ViewModeTests
     [InlineData(ForgeThemeFamily.Islands)]
     public void 取消停靠能拖大小且画分界线(ForgeThemeFamily family)
     {
-        var (window, frame, shell, editor) = Build();
+        using var theme = ForgeThemeScope.Use(family);
+        var (window, frame, shell, editor) = Build(family: family);
 
         // 按宿主的真实配置来：岛形态下面板有外边距和圆角，配色也是另一套
         //（回归：Islands 的 WindowBorder 是全透明，用它画线等于没画）
         frame.Appearance = frame.Appearance with
         {
-            Family = family,
             IslandMetrics = ForgeIslandMetrics.Default with { BorderWidth = 3 },
         };
         Pump(window);
@@ -555,6 +555,7 @@ public class ViewModeTests
             new() { Id = "底", Anchor = ToolWindowAnchor.Bottom, Order = 0, IsVisible = true, Weight = 0.3f },
         };
 
+        using var theme = ForgeThemeScope.Use(ForgeThemeFamily.Islands);
         var metrics = ForgeIslandMetrics.Default with { BorderWidth = 3 };
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(new DesktopLayout(infos)));
         var editor = new Border();
@@ -838,8 +839,14 @@ public class ViewModeTests
     }
 
     /// <param name="headerHeight">宿主指定的标题条高度；NaN = 不指定，走上游默认。</param>
+    /// <summary>建一棵挂好的外壳树。</summary>
+    /// <remarks>
+    /// ⚠ 族要在**建控件之前**定下（REQ-068）：两个开关（装了哪套主题单元、Appearance.Family）
+    /// 必须同族，控件挂树时会核对；且换单元不会让已挂树的控件重取模板。
+    /// </remarks>
     private static (Window Window, ForgeControl Frame, ToolWindowShellViewModel Shell, Border Editor) Build(
-        double headerHeight = double.NaN)
+        double headerHeight = double.NaN,
+        ForgeThemeFamily family = ForgeThemeScope.Default)
     {
         var infos = new List<WindowInfo>
         {
@@ -851,7 +858,7 @@ public class ViewModeTests
         var frame = new ForgeControl
         {
             EditorContent = editor,
-            Appearance = ForgeAppearance.Default with { HeaderHeight = headerHeight },
+            Appearance = ForgeAppearance.Default with { HeaderHeight = headerHeight, Family = family },
         };
         frame.Attach(shell);
 

@@ -60,12 +60,12 @@ public abstract class ForgeSquareButtonBase : Button
         IconSizeOverrideProperty.Changed.AddClassHandler<ForgeSquareButtonBase>((b, _) => b.UpdateGeometry());
     }
 
-    /// <summary>族或密度变了：几何要重算，族还要写进伪类（模板按 <c>:islands</c> 选另一套颜色键）。</summary>
-    private void OnFamilyOrDensityChanged()
-    {
-        PseudoClasses.Set(":islands", Palette.Island is not null);
-        UpdateGeometry();
-    }
+    /// <summary>族或密度变了：几何要重算。</summary>
+    /// <remarks>
+    /// 族**不再写进伪类**（REQ-068）：两族已经是两套完整主题，一套主题里只有一族，
+    /// 颜色键直接写死在各自的 <c>ControlTheme</c> 里，没有可选的分支了。
+    /// </remarks>
+    private void OnFamilyOrDensityChanged() => UpdateGeometry();
 
     /// <summary>
     /// 背景高亮的矩形：**按钮矩形去掉图标内边距**。

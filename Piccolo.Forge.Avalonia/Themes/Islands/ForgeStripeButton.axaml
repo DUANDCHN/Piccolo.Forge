@@ -1,0 +1,83 @@
+<!--  ★ 条带上的工具窗口按钮（REQ-067）。★ **真模板**：底色、图标、名字全在模板里。
+
+      共同的规矩写在本目录 Theme.axaml 的开头（取色怎么走、为什么不能在构造里赋
+      Template、"搬进模板必须一次搬干净"是怎么回事），这里只记这个控件自己的事。  -->
+<ResourceDictionary
+    xmlns="https://github.com/avaloniaui"
+    xmlns:forge="clr-namespace:Piccolo.Forge.Avalonia"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ControlTheme TargetType="forge:ForgeStripeButton" x:Key="{x:Type forge:ForgeStripeButton}">
+        <Setter Property="Background" Value="Transparent" />
+
+        <!--  前景：图标与名字都用它。宿主塞进来的图标控件（Material.Icons 那类）默认**继承**
+              Foreground，所以这一条同时管住了自绘图标、名字文字、和宿主的图标控件三者。
+              漏了它的表现很难猜：浅色主题下一排看不见的白图标，而库自绘那套却是好的。  -->
+        <Setter Property="Foreground" Value="{DynamicResource Forge.Islands.ButtonForeground}" />
+        <Setter Property="HoverBackgroundBrush" Value="{DynamicResource Forge.Islands.ButtonHoverBackground}" />
+        <Setter Property="PressedBackgroundBrush" Value="{DynamicResource Forge.Islands.ButtonPressedBackground}" />
+        <Setter Property="SelectedBackgroundBrush" Value="{DynamicResource Forge.Islands.ButtonSelectedBackground}" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="forge:ForgeStripeButton">
+                <!--  ★ 这个按钮的 Render 已经不画任何内容了（图标进了槽、名字是下面这个
+                      TextBlock），所以底色可以回到模板里 —— 结构因此**真的可换**：
+                      宿主重写这份模板就能改底色的形状、层次，甚至重排图标与文字。  -->
+                <Panel Background="Transparent">
+                    <!--  默认（上游那种矩形高亮）：按 Margin 铺满。
+                          宿主收窄了按钮时走 :square-background 那条 —— 换成
+                          「显式边长 + 居中 + 零边距」，理由见 UpdateGeometry 的注释。  -->
+                    <Border
+                        Background="{TemplateBinding BackgroundBrush}"
+                        CornerRadius="{TemplateBinding ArcCornerRadius}"
+                        Margin="{TemplateBinding BackgroundInsets}"
+                        Name="PART_Background" />
+
+                    <!--  图标：宿主给的控件、或画 Geometry 的子元素，位置都由槽按 IconRect 安排  -->
+                    <forge:ForgeIconHost Name="PART_Icon" />
+
+                    <!--  名字：**按宽度折行**，行数不限 —— 条带窄、中文名字里又没有空格，
+                          上游那条「按第一个空格拆两段」的规则单独用不够（"相机参数配置"会被截断）。
+                          ⚠ 从前这里**不许**开 TextWrapping，理由是"行数与量出来的高度对不上" ——
+                            那个理由已经不成立：按钮的高度现在是**问这个 TextBlock 本人量的**
+                            （见 ForgeStripeButton.MeasureNameHeight），折几行就有多高。  -->
+                    <!--  ⚠ VerticalAlignment="Stretch"（不是 Top）：这样名字排出来的高度
+                          由"按钮高 − 上边距"决定，**不依赖它自己的 DesiredSize** ——
+                          那个值一旦是旧的（见 MeasureNameHeight 里那段缓存的注释），
+                          Top 对齐会把它缩成 2px、一个字都看不见。
+                      ⚠ **不设 LineHeight**：它是行盒的高度，小于字体的自然行高时
+                          Avalonia 会把字剪掉 —— 实机就是"名字只剩上半截"。
+                          行距因此走字体的自然行高，而按钮的高度由 MeasureOverride
+                          **问这个 TextBlock 本人**要（见那里），两边同源、剪不着。  -->
+                    <TextBlock
+                        FontSize="{TemplateBinding NameFontSize}"
+                        FontWeight="{TemplateBinding NameFontWeight}"
+                        Foreground="{TemplateBinding Foreground}"
+                        HorizontalAlignment="Stretch"
+                        Margin="{TemplateBinding NameMargin}"
+                        Name="PART_Name"
+                        Text="{TemplateBinding NameText}"
+                        TextAlignment="Center"
+                        TextWrapping="Wrap"
+                        VerticalAlignment="Stretch" />
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+
+        <!--  方底那一档：显式边长 + 居中（其余情况 BackgroundSize 是 NaN，这条不参与）  -->
+        <Style Selector="^:square-background /template/ Border#PART_Background">
+            <Setter Property="Width" Value="{TemplateBinding BackgroundSize}" />
+            <Setter Property="Height" Value="{TemplateBinding BackgroundSize}" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <!--  三档底色的**优先级不在这里定**（焦点 > 窗口可见 > 悬停 > 无，
+              SquareStripeButton.kt:208-219），而在 ResolveBackgroundBrush 里 ——
+              这里只负责把三个画刷各自喂进去。  -->
+
+        <!--  激活时前景换一档（ToolWindow.Button.selectedForeground）  -->
+        <Style Selector="^:toolwindow-active">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Islands.ButtonSelectedForeground}" />
+        </Style>
+    </ControlTheme>
+</ResourceDictionary>

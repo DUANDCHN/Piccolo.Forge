@@ -1,70 +1,27 @@
-using System;
-using System.Collections.Generic;
-using Avalonia;
+﻿using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
-using System.Linq;
-using Avalonia.Styling;
 using Piccolo.Forge.Avalonia;
 using Xunit;
 
 namespace Piccolo.Forge.Tests;
 
 /// <summary>
-/// 主题入口 <c>Themes/ForgeTheme.axaml</c> 把**每一个**控件主题都挂上了（REQ-067）。
+/// 两个标签都不许落回 Avalonia 自带的那份模板。
 /// </summary>
 /// <remarks>
-/// ★ 这条守的是"一个控件一份 axaml"之后唯一新增的失手方式：
-/// <b>加了文件、忘了在入口里 <c>ResourceInclude</c></b>。
-/// 后果与漏一个颜色键同类 —— **不报错**，那个控件只是没有 <c>ControlTheme</c>、
-/// 什么都不画；而它多半藏在某个不常开的面板里，人眼比对也未必翻得到。
-/// <para>
-/// 判据取的是"能不能按类型找到 <c>ControlTheme</c>"，即 Avalonia 自己找模板时走的那条路
-/// （按控件的**实际类型**作键），不是"文件在不在磁盘上"。
-/// </para>
+/// ★ REQ-068 之后，"每个控件都有 ControlTheme"这条由
+/// <see cref="ForgeThemeCompletenessTests"/> 守（它反射扫控件、两套主题都查），
+/// 这里**不再维护那份手工清单** —— 两份清单必然有一份先过期，而过期的那份只会漏报。
+/// 留在这里的是它测不到的另一件事：落回兜底模板。
 /// </remarks>
 public class ForgeThemeEntryTests
 {
-    /// <summary>十个控件（与需求里那张现状表一一对应），外加两个"岛的宿主"。</summary>
-    private static readonly Type[] Themed =
-    [
-        typeof(ForgeStripeButton),
-        typeof(ForgeStripeSeparator),
-        typeof(ForgeMoreButton),
-        typeof(ForgeHeaderButton),
-        typeof(ForgeContentTab),
-        typeof(ForgeEditorTab),
-        typeof(ForgeToolWindowToolbar),
-        typeof(ForgeToolWindowHeader),
-        typeof(ForgeEditorSplitter),
-        typeof(ForgeDragOverlay),
-
-        // 两个"岛的宿主"：不是那 10 个控件之一，但同样有一份只喂画刷的 ControlTheme
-        // —— 漏挂它们的症状是岛那圈描边回落到配色里的默认值（REQ-067 收尾项）
-        typeof(ForgeControl),
-        typeof(ForgeEditorControl),
-    ];
-
-    [AvaloniaFact]
-    public void 每个控件的主题都挂进了入口()
-    {
-        var missing = new List<string>();
-
-        foreach (var type in Themed)
-        {
-            if (!Application.Current!.TryFindResource(type, out var found) || found is not ControlTheme)
-            {
-                missing.Add(type.Name);
-            }
-        }
-
-        Assert.Empty(missing);
-    }
-
     /// <summary>
     /// 两个标签都不许落回 Avalonia 自带的那份模板。
     /// </summary>

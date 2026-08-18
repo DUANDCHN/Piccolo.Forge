@@ -22,6 +22,7 @@ namespace Piccolo.Forge.Avalonia;
 /// <b>公开的</b>：它出现在 <c>ControlTheme</c> 的模板里（XAML 只认得到公开类型）。宿主不该直接 new 它。
 /// </para>
 /// </remarks>
+[ForgeThemeless("标题条里的**槽**：只回头问标题条要布局，不画、不取色。")]
 public sealed class ForgeHeaderContentHost : Panel
 {
     /// <inheritdoc />

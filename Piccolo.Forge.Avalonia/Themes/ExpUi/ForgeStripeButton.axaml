@@ -1,6 +1,6 @@
 <!--  ★ 条带上的工具窗口按钮（REQ-067）。★ **真模板**：底色、图标、名字全在模板里。
 
-      共同的规矩写在同目录 ForgeTheme.axaml 的开头（取色怎么走、为什么不能在构造里赋
+      共同的规矩写在本目录 Theme.axaml 的开头（取色怎么走、为什么不能在构造里赋
       Template、"搬进模板必须一次搬干净"是怎么回事），这里只记这个控件自己的事。  -->
 <ResourceDictionary
     xmlns="https://github.com/avaloniaui"
@@ -78,19 +78,6 @@
         <!--  激活时前景换一档（ToolWindow.Button.selectedForeground）  -->
         <Style Selector="^:toolwindow-active">
             <Setter Property="Foreground" Value="{DynamicResource Forge.ExpUi.ButtonSelectedForeground}" />
-        </Style>
-
-        <!--  ── Islands 族：同样几档，换另一套键 ──  -->
-        <Style Selector="^:islands">
-            <Setter Property="Foreground" Value="{DynamicResource Forge.Islands.ButtonForeground}" />
-        </Style>
-        <Style Selector="^:islands:toolwindow-active">
-            <Setter Property="Foreground" Value="{DynamicResource Forge.Islands.ButtonSelectedForeground}" />
-        </Style>
-        <Style Selector="^:islands">
-            <Setter Property="HoverBackgroundBrush" Value="{DynamicResource Forge.Islands.ButtonHoverBackground}" />
-            <Setter Property="PressedBackgroundBrush" Value="{DynamicResource Forge.Islands.ButtonPressedBackground}" />
-            <Setter Property="SelectedBackgroundBrush" Value="{DynamicResource Forge.Islands.ButtonSelectedBackground}" />
         </Style>
     </ControlTheme>
 </ResourceDictionary>

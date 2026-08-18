@@ -71,6 +71,7 @@ internal sealed class ForgeEditorTabStrip : TabStrip
 }
 
 /// <summary>A tool-window content tab row backed by Avalonia's item-container lifecycle.</summary>
+[ForgeThemeless("它只是标签的**容器**：自己不画任何东西，长相全在 ForgeContentTab 上。")]
 public sealed class ForgeContentTabStrip : TabStrip
 {
     /// <summary>Creates a self-templated content tab row.</summary>

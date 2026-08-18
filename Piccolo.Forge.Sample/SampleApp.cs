@@ -16,7 +16,14 @@ internal sealed class SampleApp : Application
 {
     private static readonly ForgePalette Palette = ForgePalette.ExpUiDark;
 
-    public override void Initialize() => Styles.Add(new FluentTheme());
+    public override void Initialize()
+    {
+        Styles.Add(new FluentTheme());
+
+        // Forge 的主题：**唯一入口**，装的是哪族由这一句定（REQ-068）。
+        // 不装控件就没有模板 —— 不报错，只是什么都不画。换族要重启（见 ForgeThemeManager）。
+        ForgeThemeManager.Apply(this, ForgeThemeFamily.ExpUi);
+    }
 
     public override void OnFrameworkInitializationCompleted()
     {

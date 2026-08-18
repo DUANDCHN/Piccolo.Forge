@@ -54,24 +54,31 @@ public class ForgeStripeButtonThemeTests
         window.Close();
     }
 
-    /// <summary>Islands 走另一套键 —— 族由伪类选，不由 ThemeDictionaries（它只认明暗）。</summary>
+    /// <summary>Islands 走另一套键 —— 一族一套完整主题，换族 = 换单元 + 新建控件（REQ-068）。</summary>
+    /// <remarks>
+    /// ⚠ 不能像从前那样"给同一个控件换 <c>Palette</c> 再重排一次"：族已经不由伪类表达，
+    /// 而换掉 Styles 单元**不会**让已挂树的控件重取 ControlTheme（实测 <see cref="ThemeSwapSpikeTests"/>）。
+    /// 顺序反了不报错，只是断言莫名其妙地不成立。
+    /// </remarks>
     [AvaloniaFact]
     public void 换族就换一套键()
     {
         var (window, button) = Host(ThemeVariant.Dark);
-
         Assert.Equal(ForgePalette.ExpUiDark.ButtonSelectedBackground, ColorOf(button.SelectedBackgroundBrush));
+        window.Close();
 
-        button.Palette = ForgePalette.IslandsDark;
-        Relayout(window);
-        Assert.Equal(ForgePalette.IslandsDark.ButtonSelectedBackground, ColorOf(button.SelectedBackgroundBrush));
+        using var theme = ForgeThemeScope.Use(ForgeThemeFamily.Islands);
+        var (islandsWindow, islands) = Host(ThemeVariant.Dark);
+        islands.Palette = ForgePalette.IslandsDark;
+        Relayout(islandsWindow);
+        Assert.Equal(ForgePalette.IslandsDark.ButtonSelectedBackground, ColorOf(islands.SelectedBackgroundBrush));
 
         // 两族的选中色本来就不同，否则这条用例没有判别力
         Assert.NotEqual(
             ForgePalette.ExpUiDark.ButtonSelectedBackground,
             ForgePalette.IslandsDark.ButtonSelectedBackground);
 
-        window.Close();
+        islandsWindow.Close();
     }
 
     /// <summary>

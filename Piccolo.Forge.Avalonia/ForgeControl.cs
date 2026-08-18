@@ -113,9 +113,6 @@ public class ForgeControl : TemplatedControl
     {
         PaletteProperty.Changed.AddClassHandler<ForgeControl>((f, _) => f.Sync());
 
-        // 族写进伪类，ControlTheme 据此给岛描边选哪一套键（REQ-067）
-        PaletteProperty.Changed.AddClassHandler<ForgeControl>(
-            (f, _) => f.PseudoClasses.Set(":islands", f.Palette.Island is not null));
         IslandBorderBrushProperty.Changed.AddClassHandler<ForgeControl>((f, _) => f.Sync());
 
         // 外观换了一份：重跑取色（可能换了族或取色回调），再同步一遍（岛几何、字重、行高都在里面）。
@@ -270,6 +267,11 @@ public class ForgeControl : TemplatedControl
 
     private void ApplyThemeVariant()
     {
+        // ★ 两个开关必须同族（REQ-068 R2）：装进 Application.Styles 的是哪套主题、
+        //   这份 Appearance 说的是哪族。不一致的症状是**局部**长相不对（模板画 Islands 的圆角块，
+        //   而 C# 侧按 expUI 算几何取色），肉眼极难归因 —— Debug 下当场炸成一句可读的话。
+        ForgeThemeManager.AssertConsistent(Appearance.Family);
+
         if (!Appearance.FollowThemeVariant)
         {
             return;

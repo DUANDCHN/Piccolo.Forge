@@ -1,4 +1,4 @@
-﻿<!--  ★ 面板标题条上的内容标签（工具窗口模型.md §13.1）。★ **真模板**
+<!--  ★ 面板标题条上的内容标签（工具窗口模型.md §13.1）。★ **真模板**
       悬停底铺满整块；选中时底边一条下划线，高 3、圆角直径 4（折半给 Avalonia）。
       窗口失焦时下划线换成 inactive 那档（ToolWindowTabPainter）。
       位置由 UnderlineMargin 给 —— 值仍出自 ComputeUnderlineRect，那里记着
@@ -8,7 +8,7 @@
         右边那个关闭 / 图钉图标走 IconBrush（ToolWindow.Button.foreground）。
         模板化之前 Foreground 喂的是图标，标题的颜色**根本没经过主题**。
 
-      共同的规矩见同目录 ForgeTheme.axaml 的开头。  -->
+      共同的规矩见本目录 Theme.axaml 的开头。  -->
 <ResourceDictionary
     xmlns="https://github.com/avaloniaui"
     xmlns:forge="clr-namespace:Piccolo.Forge.Avalonia"
@@ -97,43 +97,5 @@
             <Setter Property="Foreground" Value="{DynamicResource Forge.ExpUi.HeaderTabUnderline}" />
         </Style>
 
-        <!--  ── Islands 族：同样几档，换另一套键。⚠ 次序弱→强，后面的赢 ──  -->
-        <Style Selector="^:islands">
-            <Setter Property="Foreground" Value="{DynamicResource Forge.Islands.Foreground}" />
-            <Setter Property="IconBrush" Value="{DynamicResource Forge.Islands.ButtonForeground}" />
-            <Setter Property="HoverBackgroundBrush" Value="{DynamicResource Forge.Islands.HeaderTabHoverBackground}" />
-            <Setter Property="UnderlineBrush" Value="{DynamicResource Forge.Islands.HeaderTabUnderline}" />
-            <Setter Property="InactiveUnderlineBrush" Value="{DynamicResource Forge.Islands.HeaderTabInactiveUnderline}" />
-        </Style>
-        <Style Selector="^:islands:selected:not(:sole-content)">
-            <Setter Property="Foreground" Value="{DynamicResource Forge.Islands.HeaderTabUnderline}" />
-        </Style>
-
-        <!--  ★ Islands 的**选中形态**：一块圆角实底，不是下划线。★
-              两族的选中态本来就不是同一个形状 —— 文档标签那边早就这么分了
-              （ForgeEditorTab：`^:selected:not(:islands)` 才画下划线，Islands 走圆角块）。
-              内容 tab 这边先前只在 :islands 里换了**颜色**，形状没换，于是 Islands 下
-              标题条上的 tab 还是下划线、而同屏的文档标签已经是圆角块 —— 一个界面两套语言。
-
-              ⚠ 次序：这三条必须排在上面那条 `^:selected /template/ Border#PART_Underline`
-                之后（同一份 ControlTheme 里后面的赢），否则下划线照样冒出来。
-              颜色取**与文档标签同一个键**，形状取同一个圆角（12 折半 = 6，
-              同 ForgeMetrics.IslandsEditorTabArc；这里直接写半径，与标题条按钮那处同一个写法）。  -->
-        <Style Selector="^:islands">
-            <Setter Property="SelectedBackgroundBrush" Value="{DynamicResource Forge.Islands.EditorTabSelectedBackground}" />
-        </Style>
-        <Style Selector="^:islands:selected /template/ Border#PART_Underline">
-            <Setter Property="IsVisible" Value="False" />
-        </Style>
-        <Style Selector="^:islands:selected /template/ Border#PART_Background">
-            <Setter Property="IsVisible" Value="True" />
-            <Setter Property="Background" Value="{TemplateBinding SelectedBackgroundBrush}" />
-            <Setter Property="CornerRadius" Value="6" />
-            <Setter Property="Margin" Value="0,4" />
-        </Style>
-        <Style Selector="^:islands:pointerover:not(:selected) /template/ Border#PART_Background">
-            <Setter Property="CornerRadius" Value="6" />
-            <Setter Property="Margin" Value="0,4" />
-        </Style>
     </ControlTheme>
 </ResourceDictionary>

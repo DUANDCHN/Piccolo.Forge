@@ -1,4 +1,4 @@
-using Avalonia.Controls;
+﻿using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Media;
 using Avalonia.Styling;
@@ -133,6 +133,9 @@ public class ThemeVariantTests
     [AvaloniaFact]
     public void Switching_the_family_at_runtime_repaints_and_keeps_following_the_variant()
     {
+        // 两个开关要一起换（REQ-068）：这里换的是 C# 侧的配色传播，主题单元跟着走，
+        // 否则 ForgeThemeManager.AssertConsistent 会当场炸 —— 那正是它要拦的写法。
+        using var theme = ForgeThemeScope.Use(ForgeThemeScope.Default);
         var frame = NewFrame();
         var editor = new ForgeEditorControl();
         editor.Attach(new EditorAreaViewModel());
@@ -145,6 +148,7 @@ public class ThemeVariantTests
 
         // 只设外框 —— 编辑区是它的 EditorContent，外观从树上继承下来（ForgeChrome.AppearanceProperty）。
         // 早先这里要两边各设一遍，漏一边就是「四边是岛、中间还是方角」。
+        theme.SwitchTo(ForgeThemeFamily.Islands);
         frame.Appearance = frame.Appearance with { Family = ForgeThemeFamily.Islands };
 
         Assert.Same(ForgePalette.IslandsDark, frame.Palette);
@@ -157,6 +161,7 @@ public class ThemeVariantTests
         Assert.Same(ForgePalette.IslandsLight, editor.Palette);
 
         // 换回去也要成立（不是单向的）
+        theme.SwitchTo(ForgeThemeFamily.ExpUi);
         frame.Appearance = frame.Appearance with { Family = ForgeThemeFamily.ExpUi };
         Assert.Same(ForgePalette.ExpUiLight, frame.Palette);
     }
@@ -173,6 +178,7 @@ public class ThemeVariantTests
     [AvaloniaFact]
     public void Switching_the_family_works_even_when_it_was_set_in_the_initializer()
     {
+        using var theme = ForgeThemeScope.Use(ForgeThemeFamily.Islands);
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
         var frame = new ForgeControl { Appearance = ForgeAppearance.Default with { Family = ForgeThemeFamily.Islands } };
         frame.Attach(shell);
@@ -183,6 +189,7 @@ public class ThemeVariantTests
         Assert.Same(ForgePalette.IslandsLight, frame.Palette);
 
         // 设置里切成经典 —— 旧代码在这里纹丝不动
+        theme.SwitchTo(ForgeThemeFamily.ExpUi);
         frame.Appearance = frame.Appearance with { Family = ForgeThemeFamily.ExpUi };
         Assert.Same(ForgePalette.ExpUiLight, frame.Palette);
 
@@ -217,6 +224,7 @@ public class ThemeVariantTests
     [AvaloniaFact]
     public void 编辑区从外框继承整份外观()
     {
+        using var theme = ForgeThemeScope.Use(ForgeThemeScope.Default);
         var frame = NewFrame();
         var editor = new ForgeEditorControl();
         editor.Attach(new EditorAreaViewModel());
@@ -225,7 +233,8 @@ public class ThemeVariantTests
         var window = new Window { Content = frame, RequestedThemeVariant = ThemeVariant.Dark };
         window.Show();
 
-        // 只设外框
+        // 只设外框（换族 = 两个开关一起换，见 REQ-068）
+        theme.SwitchTo(ForgeThemeFamily.Islands);
         var metrics = ForgeIslandMetrics.Default with { BorderWidth = 3 };
         frame.Appearance = frame.Appearance with
         {
@@ -251,6 +260,7 @@ public class ThemeVariantTests
     [AvaloniaFact]
     public void 浮出去的编辑区拿到同一份外观()
     {
+        using var theme = ForgeThemeScope.Use(ForgeThemeScope.Default);
         var frame = NewFrame();
         var vm = new EditorAreaViewModel();
         var editor = new ForgeEditorControl();
@@ -268,6 +278,7 @@ public class ThemeVariantTests
         {
             IslandBorder = ForgeColor.Parse("#2E3237"),
         };
+        theme.SwitchTo(ForgeThemeFamily.Islands);
         frame.Appearance = frame.Appearance with
         {
             Family = ForgeThemeFamily.Islands,

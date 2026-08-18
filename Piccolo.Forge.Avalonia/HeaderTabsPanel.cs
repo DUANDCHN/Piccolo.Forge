@@ -14,6 +14,7 @@ namespace Piccolo.Forge.Avalonia;
 /// 「放不下就压成 0 宽、改从『更多』弹窗里选」是上游的原话
 /// （<c>:161</c> 用 <c>tab.getWidth() == 0</c> 挑出被藏起来的 tab）。
 /// </remarks>
+[ForgeThemeless("纯布局面板：只把标签排成一行。")]
 public class HeaderTabsPanel : Panel
 {
     /// <summary>

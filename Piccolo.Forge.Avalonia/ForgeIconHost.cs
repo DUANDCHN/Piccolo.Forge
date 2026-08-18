@@ -29,6 +29,7 @@ namespace Piccolo.Forge.Avalonia;
 /// <b>公开的</b>：它出现在 <c>ControlTheme</c> 的模板里（XAML 只认得到公开类型），
 /// 用例也要靠它判断「图标槽里有没有东西」。宿主不该直接 new 它。
 /// </remarks>
+[ForgeThemeless("按钮里的图标**槽**：只按 IconRect 摆位置，长相归宿主给的图标控件。")]
 public sealed class ForgeIconHost : Control
 {
     private Control? _icon;

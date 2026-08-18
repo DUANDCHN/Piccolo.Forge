@@ -21,6 +21,7 @@ namespace Piccolo.Forge.Avalonia;
 /// <c>AbstractDroppableStripe.kt</c> 的做法，不是额外发明的效果。
 /// </para>
 /// </remarks>
+[ForgeThemeless("纯布局面板：只排条带上的按钮与拖拽空槽。")]
 public class StripeItemsPanel : Panel
 {
     /// <summary><see cref="DraggedChild"/> 的属性定义。</summary>

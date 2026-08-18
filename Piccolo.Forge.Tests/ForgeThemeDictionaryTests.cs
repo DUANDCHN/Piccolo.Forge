@@ -31,7 +31,12 @@ namespace Piccolo.Forge.Tests;
 public class ForgeThemeDictionaryTests
 {
     /// <summary>键名后缀 → 从一份配色里取哪个字段。</summary>
-    private static readonly (string Suffix, Func<ForgePalette, Color> Field)[] Entries =
+    /// <remarks>
+    /// ★ 这是**颜色键的单一真相**：<see cref="ForgeThemeCompletenessTests"/> 也从这里取清单，
+    /// 断言每套主题都给每个键给了值（REQ-068 R3：不许出现第二份手工清单）。
+    /// 加一个键就在这里加一行。
+    /// </remarks>
+    internal static readonly (string Suffix, Func<ForgePalette, Color> Field)[] Entries =
     [
         ("IslandBorder", p => p.IslandBorder),
         ("ButtonForeground", p => p.ButtonForeground),
@@ -69,7 +74,7 @@ public class ForgeThemeDictionaryTests
     public void 主题字典里的每个颜色都等于对应配色的字段(string prefix, ForgeThemeFamily family, bool dark)
     {
         var variant = dark ? ThemeVariant.Dark : ThemeVariant.Light;
-        var (window, probe) = Build(variant);
+        var (window, probe) = Build(variant, family);
         var palette = ForgePalette.ForTheme(family, variant);
 
         var missing = new List<string>();
@@ -105,7 +110,7 @@ public class ForgeThemeDictionaryTests
     [AvaloniaFact]
     public void 宿主覆盖同名键并且明暗各走各的()
     {
-        var (window, probe) = Build(ThemeVariant.Dark);
+        var (window, probe) = Build(ThemeVariant.Dark, ForgeThemeFamily.Islands);
 
         // 宿主那份：只重定义一个键，两个变体给不同的值
         window.Resources.ThemeDictionaries[ThemeVariant.Dark] = new ResourceDictionary
@@ -135,12 +140,12 @@ public class ForgeThemeDictionaryTests
 
     private static string Describe(Color c) => $"#{c.A:X2}{c.R:X2}{c.G:X2}{c.B:X2}(AARRGGBB)";
 
-    /// <summary>建一个挂了库自带主题字典的窗口。</summary>
+    /// <summary>建一个挂了某一族颜色字典的窗口（REQ-068 之后一族一份）。</summary>
     /// <remarks>
     /// ⚠ 必须 <c>Show()</c> 之后才查得到资源——控件没挂进可视树时 <c>TryFindResource</c> 取不到，
     /// 见 <see cref="ThemeResourceSpikeTests"/>。
     /// </remarks>
-    private static (Window Window, Border Probe) Build(ThemeVariant variant)
+    private static (Window Window, Border Probe) Build(ThemeVariant variant, ForgeThemeFamily family)
     {
         var window = new Window { Width = 200, Height = 100, RequestedThemeVariant = variant };
         window.Styles.Add(new global::Avalonia.Styling.Styles
@@ -151,7 +156,7 @@ public class ForgeThemeDictionaryTests
                 {
                     new ResourceInclude((Uri?)null)
                     {
-                        Source = new Uri("avares://Piccolo.Forge.Themes/Themes/ForgeColors.axaml"),
+                        Source = new Uri($"avares://Piccolo.Forge.Themes/Themes/{family}/Colors.axaml"),
                     },
                 },
             },

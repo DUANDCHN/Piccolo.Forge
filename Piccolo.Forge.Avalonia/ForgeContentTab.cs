@@ -62,8 +62,6 @@ public class ForgeContentTab : TabStripItem
             (x, e) => x.PseudoClasses.Set(":closeable", e.GetNewValue<bool>()));
         IsPinnedProperty.Changed.AddClassHandler<ForgeContentTab>(
             (x, e) => x.PseudoClasses.Set(":pinned", e.GetNewValue<bool>()));
-        PaletteProperty.Changed.AddClassHandler<ForgeContentTab>(
-            (x, _) => x.PseudoClasses.Set(":islands", x.Palette.Island is not null));
     }
 
     /// <summary>配色。</summary>
@@ -342,8 +340,9 @@ public class ForgeContentTab : TabStripItem
     /// <remarks>
     /// 两族的选中态形状本来就不同：expUI 是一条下划线，Islands 是一块圆角实底
     /// （文档标签那边同理，见 <see cref="ForgeEditorTab"/> 的 <c>DecorationBrush</c>）。
-    /// 早先内容 tab 的 <c>:islands</c> 分支只换了**颜色**、没换形状，于是 Islands 下
-    /// 标题条上的 tab 还是下划线，而同屏的文档标签已经是圆角块 —— 一个界面两套语言。
+    /// 早先两族共用一份主题、靠 <c>:islands</c> 分支区分，内容 tab 这边只换了**颜色**、
+    /// 没换形状，于是 Islands 下标题条上的 tab 还是下划线，而同屏的文档标签已经是圆角块
+    /// —— 一个界面两套语言。REQ-068 拆成两套完整主题正是为了根治这类"改一族漏一族"。
     /// <para>颜色取的与文档标签同一个键（<c>Forge.Islands.EditorTabSelectedBackground</c>），
     /// 所以两处天然一致，不用各调各的。</para>
     /// </remarks>

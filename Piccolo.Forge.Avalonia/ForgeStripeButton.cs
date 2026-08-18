@@ -556,7 +556,7 @@ public class ForgeStripeButton : ForgeSquareButtonBase
     /// 自绘部分（Geometry 图标、名字）该用的画刷。
     /// </summary>
     /// <remarks>
-    /// ★ 前景**由模板给**（REQ-067）：<c>ControlTheme</c> 按 <c>:toolwindow-active</c> / <c>:islands</c>
+    /// ★ 前景**由模板给**（REQ-067）：<c>ControlTheme</c> 按 <c>:toolwindow-active</c>
     /// 从资源键选色，写在 <see cref="TemplatedControl.Foreground"/> 上。这里只是拿来用。
     /// <para>
     /// 宿主塞进来的图标控件（Material.Icons 那类）默认**继承** <c>Foreground</c>，
@@ -691,8 +691,6 @@ public class ForgeStripeSeparator : TemplatedControl
         // 拖拽态写进伪类，模板据此换色（ToolWindow.Stripe.separatorDragAndDropColor）
         IsDragAndDropProperty.Changed.AddClassHandler<ForgeStripeSeparator>(
             (x, e) => x.PseudoClasses.Set(":drag-and-drop", e.GetNewValue<bool>()));
-        PaletteProperty.Changed.AddClassHandler<ForgeStripeSeparator>(
-            (x, _) => x.PseudoClasses.Set(":islands", x.Palette.Island is not null));
     }
 
     /// <summary>

@@ -116,9 +116,6 @@ public class ForgeEditorControl : TemplatedControl
         // ⚠ 这些都是**纯外观**，不要走 Sync（那会重建整棵树，见 RefreshAppearance 的说明）
         PaletteProperty.Changed.AddClassHandler<ForgeEditorControl>((x, _) => x.RefreshAppearance());
 
-        // 族写进伪类，ControlTheme 据此给岛描边选哪一套键（REQ-067）
-        PaletteProperty.Changed.AddClassHandler<ForgeEditorControl>(
-            (x, _) => x.PseudoClasses.Set(":islands", x.Palette.Island is not null));
         IslandBorderBrushProperty.Changed.AddClassHandler<ForgeEditorControl>((x, _) => x.RefreshAppearance());
         EditorBackgroundBrushProperty.Changed.AddClassHandler<ForgeEditorControl>((x, _) => x.RefreshAppearance());
         ShowTabActionsProperty.Changed.AddClassHandler<ForgeEditorControl>((x, _) => x.Sync());

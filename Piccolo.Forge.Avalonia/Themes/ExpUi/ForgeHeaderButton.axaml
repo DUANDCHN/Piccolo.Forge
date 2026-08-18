@@ -1,10 +1,10 @@
-﻿<!--  ★ 标题条右侧那排小按钮（⿴ 停靠 / ⋮ 选项 / — 收起）。★ **真模板**
+<!--  ★ 标题条右侧那排小按钮（⿴ 停靠 / ⋮ 选项 / — 收起）。★ **真模板**
       悬停与按下同一个底色（ActionButton.hoverBackground）。
       ⚠ 圆角这里直接用 ForgeMetrics.HeaderButtonArc = 4 当**半径**，
         与条带按钮那边"Arc 是直径、要折半"的规矩不一致——照抄原实现，不在本需求里"顺手修正"，
         改它会改变现有观感，该单独判定对错。
 
-      共同的规矩见同目录 ForgeTheme.axaml 的开头。  -->
+      共同的规矩见本目录 Theme.axaml 的开头。  -->
 <ResourceDictionary
     xmlns="https://github.com/avaloniaui"
     xmlns:forge="clr-namespace:Piccolo.Forge.Avalonia"
@@ -46,11 +46,6 @@
         </Style>
         <Style Selector="^:pressed /template/ Border#PART_Background">
             <Setter Property="IsVisible" Value="True" />
-        </Style>
-
-        <Style Selector="^:islands">
-            <Setter Property="Foreground" Value="{DynamicResource Forge.Islands.ButtonForeground}" />
-            <Setter Property="HoverBackgroundBrush" Value="{DynamicResource Forge.Islands.ButtonHoverBackground}" />
         </Style>
 
         <!--  ★ 禁用态：整颗压到 40%。★

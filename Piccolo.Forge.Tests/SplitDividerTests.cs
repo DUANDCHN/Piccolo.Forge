@@ -22,10 +22,16 @@ namespace Piccolo.Forge.Tests;
 /// </remarks>
 public class SplitDividerTests
 {
-    private static (ForgeControl Frame, ToolWindowShellViewModel Shell) Show()
+    /// <summary>建一棵挂好的外壳树。</summary>
+    /// <remarks>
+    /// ⚠ 族要在**建控件之前**定下（REQ-068）：两个开关（装了哪套主题单元、Appearance.Family）
+    /// 必须同族，控件挂树时会核对；且换单元不会让已挂树的控件重取模板。
+    /// </remarks>
+    private static (ForgeControl Frame, ToolWindowShellViewModel Shell) Show(
+        ForgeThemeFamily family = ForgeThemeScope.Default)
     {
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
-        var frame = new ForgeControl();
+        var frame = new ForgeControl { Appearance = ForgeAppearance.Default with { Family = family } };
         frame.Attach(shell);
 
         var window = new Window { Width = 900, Height = 600, Content = frame };
@@ -87,8 +93,8 @@ public class SplitDividerTests
         // 上游那条是 OnePixelSplitter（ToolWindowPane.kt:617）——**看得见的一条线**。
         // 岛配色例外：两座岛之间本来就有缝，再画一条等于把缝糊死。
         // 回归：expUI 下这条线一直没画，实机表现是"下面左右两个面板打开时中间没有分割线"。
-        var (frame, shell) = Show();
-        frame.Appearance = frame.Appearance with { Family = family };
+        using var theme = ForgeThemeScope.Use(family);
+        var (frame, shell) = Show(family);
 
         var ids = shell.ToolWindows.Select(x => x.Id).ToList();
         shell.Manager.MoveTo(ids[0], ToolWindowAnchor.Bottom, -1, isSplit: false);

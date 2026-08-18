@@ -19,6 +19,7 @@ namespace Piccolo.Forge.Avalonia;
 /// 并夹在 <c>ide.mainSplitter.min.size</c>（30，<c>registry.properties:160</c>）之内。
 /// </para>
 /// </remarks>
+[ForgeThemeless("只是一块透明的拖拽热区（分界线由 ForgeControl 自己画）。")]
 public class ForgeDockResizer : Control
 {
     private bool _dragging;

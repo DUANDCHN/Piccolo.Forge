@@ -66,9 +66,6 @@ public class ForgeDragOverlay : Control
             DropBorderBrushProperty,
             DropAreaBrushProperty);
 
-        // 族写进伪类，ControlTheme 据此换一套颜色键（REQ-067）
-        PaletteProperty.Changed.AddClassHandler<ForgeDragOverlay>(
-            (x, _) => x.PseudoClasses.Set(":islands", x.Palette.Island is not null));
     }
 
     /// <summary>

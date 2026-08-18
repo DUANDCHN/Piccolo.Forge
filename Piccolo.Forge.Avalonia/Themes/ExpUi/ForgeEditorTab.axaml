@@ -13,7 +13,7 @@
         由此的规矩：**删构造里的 Template，必须同时在 ControlTheme 里补一份，哪怕是空的。**
         守护用例：标签不会落回Avalonia自带的模板。
 
-      共同的规矩见同目录 ForgeTheme.axaml 的开头。  -->
+      共同的规矩见本目录 Theme.axaml 的开头。  -->
 <ResourceDictionary
     xmlns="https://github.com/avaloniaui"
     xmlns:forge="clr-namespace:Piccolo.Forge.Avalonia"
@@ -37,9 +37,9 @@
                         Margin="{TemplateBinding DecorationMargin}"
                         Name="PART_Decoration" />
 
-                    <!--  下划线：**expUI 专有**。Islands 完全不画
+                    <!--  下划线：**本族专有**。Islands 那套整个不画
                           （IslandsTabPainter.kt:109 把 underlineHeight 覆盖成 0、:150 是空实现），
-                          由下面那条 :islands 选择器挡掉。  -->
+                          所以 Islands/ForgeEditorTab.axaml 里没有让它显示的样式。  -->
                     <Border
                         Background="{TemplateBinding UnderlineBrush}"
                         CornerRadius="{TemplateBinding UnderlineCornerRadius}"
@@ -113,7 +113,7 @@
         <Setter Property="InactiveUnderlineBrush" Value="{DynamicResource Forge.ExpUi.HeaderTabInactiveUnderline}" />
 
         <!--  下划线：选中才出，且 Islands 一族根本不画；失焦组换一档颜色  -->
-        <Style Selector="^:selected:not(:islands) /template/ Border#PART_Underline">
+        <Style Selector="^:selected /template/ Border#PART_Underline">
             <Setter Property="IsVisible" Value="True" />
         </Style>
         <Style Selector="^:not(:group-active) /template/ Border#PART_Underline">
@@ -130,17 +130,6 @@
         </Style>
         <Style Selector="^:icon-hover /template/ Border#PART_TabIconBackground">
             <Setter Property="IsVisible" Value="True" />
-        </Style>
-
-        <Style Selector="^:islands">
-            <Setter Property="Foreground" Value="{DynamicResource Forge.Islands.Foreground}" />
-            <Setter Property="SelectedBackgroundBrush" Value="{DynamicResource Forge.Islands.EditorTabSelectedBackground}" />
-            <Setter Property="SelectedBorderBrush" Value="{DynamicResource Forge.Islands.EditorTabSelectedBorder}" />
-            <Setter Property="HoverBackgroundBrush" Value="{DynamicResource Forge.Islands.EditorTabHoverBackground}" />
-            <Setter Property="InactiveSelectedBackgroundBrush" Value="{DynamicResource Forge.Islands.EditorTabInactiveSelectedBackground}" />
-            <Setter Property="InactiveSelectedBorderBrush" Value="{DynamicResource Forge.Islands.EditorTabInactiveSelectedBorder}" />
-            <Setter Property="UnderlineBrush" Value="{DynamicResource Forge.Islands.HeaderTabUnderline}" />
-            <Setter Property="InactiveUnderlineBrush" Value="{DynamicResource Forge.Islands.HeaderTabInactiveUnderline}" />
         </Style>
     </ControlTheme>
 </ResourceDictionary>

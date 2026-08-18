@@ -20,6 +20,7 @@ namespace Piccolo.Forge.Avalonia;
 /// 缩放、居中、填充/描边的取舍分毫不变，于是"搬家"不会顺带改变长相。
 /// </para>
 /// </remarks>
+[ForgeThemeless("图标的画刷与尺寸由**用它的那份模板**喂，它自己没有族差。")]
 public sealed class ForgeGeometryIcon : Control
 {
     /// <summary><see cref="Icon"/> 的属性定义。</summary>
