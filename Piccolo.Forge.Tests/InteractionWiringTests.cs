@@ -641,3 +641,41 @@ public class ForgeHeaderButtonIconTests
         Dispatcher.UIThread.RunJobs();
     }
 }
+
+/// <summary>
+/// 标题条上那排**内容 tab**（上游 ContentManager；Rider 工具窗口标题条上那排）。
+/// </summary>
+public class ForgeContentTabClickTests
+{
+    [AvaloniaFact]
+    public void 点一下就切过去_并且高亮跟着走()
+    {
+        // 回归：点 tab 只改模型（Select），而 e.Handled=true 让 TabStrip 自带的选中逻辑不跑；
+        // 早先没人把模型的变化刷回视图 —— 实机表现是"点了没反应"（模型其实已经切了）。
+        var shell = new ToolWindowShellViewModel();
+        var panel = shell.Add("A", "甲", ToolWindowAnchor.Bottom, false);
+        panel.Contents.Add(new ToolWindowContent("one", "一", IsCloseable: false));
+        panel.Contents.Add(new ToolWindowContent("two", "二", IsCloseable: false));
+        shell.Manager.Activate("A");
+
+        var frame = new ForgeControl();
+        frame.Attach(shell);
+        var window = new Window { Width = 800, Height = 500, Content = frame };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        var strip = frame.GetVisualDescendants().OfType<ForgeContentTabStrip>().First();
+        var second = Enumerable.Range(0, strip.ItemCount)
+            .Select(i => strip.ContainerFromIndex(i))
+            .OfType<ForgeContentTab>()
+            .Single(x => x.Title == "二");
+
+        var point = second.TranslatePoint(new Point(4, second.Bounds.Height / 2), window)!.Value;
+        window.MouseDown(point, MouseButton.Left);
+        window.MouseUp(point, MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal("two", panel.Contents.SelectedContent?.Id);   // 模型切了
+        Assert.True(second.IsSelected);                            // 视图也跟着走了
+    }
+}
