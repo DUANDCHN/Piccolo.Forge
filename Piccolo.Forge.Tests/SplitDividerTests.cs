@@ -1,5 +1,6 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Media;
 using Avalonia.Headless.XUnit;
 using Piccolo.Forge.Avalonia;
 using Piccolo.Forge.Model;
@@ -98,5 +99,13 @@ public class SplitDividerTests
 
         var divider = Assert.Single(SplitDividers(frame));
         Assert.Equal(expectLine, divider.LineBrush is not null);
+
+        // 颜色必须是**面板四周那圈边**的同一个键（WindowBorder / 上游 Borders.color）——
+        // 取成 EditorTabsBorder 会明显偏浅，实机一眼看得出"这条是灰的、旁边那些是黑的"。
+        if (expectLine)
+        {
+            var expected = ForgePalette.ForTheme(family, frame.ActualThemeVariant).WindowBorder;
+            Assert.Equal(expected, Assert.IsType<SolidColorBrush>(divider.LineBrush).Color);
+        }
     }
 }
