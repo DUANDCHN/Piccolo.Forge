@@ -69,7 +69,7 @@ public sealed class ForgeContentTabStrip : TabStrip
     public ForgeContentTabStrip()
     {
         ItemsPanel = new FuncTemplate<Panel?>(() => new HeaderTabsPanel());
-        Template = ForgeTabStripTemplate.Create<ForgeContentTabStrip>();
+        Template = CreateTemplateWithDropBar();
         AddHandler(PointerPressedEvent, OnPointerPressed, RoutingStrategies.Tunnel);
 
         // 拖着换次序：与文档标签同一套手感（越过目标就换位），只是这里不跨容器 ——
@@ -82,21 +82,23 @@ public sealed class ForgeContentTabStrip : TabStrip
     private string? _dragId;
     private Point _dragOrigin;
     private bool _dragging;
+    private int? _dropIndex;
 
     /// <summary>
-    /// 拖到哪算换位 —— 指针进了另一块 tab 就换。
+    /// 拖动中：画出**要插到哪条缝**，不当场换位。
     /// </summary>
     /// <remarks>
-    /// 起拖有个死区（<see cref="ForgeMetrics.StripeButtonDragStartDeadzone"/> = 7）：
-    /// 按下时手抖几像素不该被当成拖 —— 条带按钮那次"有时要点两下"就是死区没设好。
+    /// ★ <b>这是有意偏离上游</b>：上游 expUI 拖着就直接换位、不画任何提示
+    /// （<c>JBTabsImpl.kt:3331 · reallocate</c>）。实机反馈是"不直观" ——
+    /// 边拖边跳位时，眼睛要在动来动去的一排里找自己那块；画一条缝则先说清"松手会落在哪"。
     /// <para>
-    /// 换位的语义在模型里（<c>ToolWindowContentManager.Reorder</c>）：先取目标索引再移除源，
-    /// 两个方向都是"越过目标"。这里只负责认出"指针现在压在谁身上"。
+    /// 起拖死区 <see cref="ForgeMetrics.StripeButtonDragStartDeadzone"/> = 7：
+    /// 按下时手抖几像素不该被当成拖（条带按钮那次"有时要点两下"就是死区没设好）。
     /// </para>
     /// </remarks>
     private void OnPointerMoved(object? sender, PointerEventArgs e)
     {
-        if (_dragId is null || Manager is not { } manager)
+        if (_dragId is null)
         {
             return;
         }
@@ -113,42 +115,110 @@ public sealed class ForgeContentTabStrip : TabStrip
             _dragging = true;
         }
 
-        if (TabAt(position) is not { } target || string.Equals(target, _dragId, StringComparison.Ordinal))
-        {
-            return;
-        }
-
-        manager.Reorder(_dragId, target);
+        var gap = GapAt(position);
+        _dropIndex = gap;
+        ShowDropBar(gap);
     }
 
-    private void OnPointerReleased(object? sender, PointerReleasedEventArgs e) => EndDrag();
+    /// <summary>松手：落到画出来的那条缝上。</summary>
+    private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        if (_dragging && _dragId is { } id && _dropIndex is { } index && Manager is { } manager)
+        {
+            manager.MoveTo(id, index);
+        }
+
+        EndDrag();
+    }
 
     private void EndDrag()
     {
         _dragId = null;
         _dragging = false;
+        _dropIndex = null;
+        if (_dropBar is not null)
+        {
+            _dropBar.IsVisible = false;
+        }
     }
 
-    /// <summary>指针底下压着哪一块 tab（没有就 <see langword="null"/>）。</summary>
-    private string? TabAt(Point position)
+    /// <summary>指针落在第几条缝里（0 = 最前面，ItemCount = 最后面）。</summary>
+    /// <remarks>按每块 tab 的**中线**分界：过了中线就算落到它后面 —— 与画出来的竖条同一个判据。</remarks>
+    private int GapAt(Point position)
     {
         for (var i = 0; i < ItemCount; i++)
         {
-            if (ContainerFromIndex(i) is not ForgeContentTab tab
-                || tab.DataContext is not ToolWindowContent content)
+            if (ContainerFromIndex(i) is not ForgeContentTab tab)
             {
                 continue;
             }
 
-            var bounds = tab.Bounds;
-            if (position.X >= bounds.X && position.X <= bounds.Right)
+            if (position.X < tab.Bounds.Center.X)
             {
-                return content.Id;
+                return i;
             }
         }
 
-        return null;
+        return ItemCount;
     }
+
+    /// <summary>把竖条摆到那条缝上。</summary>
+    private void ShowDropBar(int gap)
+    {
+        if (_dropBar is null)
+        {
+            return;
+        }
+
+        double x;
+        if (gap < ItemCount && ContainerFromIndex(gap) is ForgeContentTab next)
+        {
+            x = next.Bounds.X;
+        }
+        else if (ItemCount > 0 && ContainerFromIndex(ItemCount - 1) is ForgeContentTab last)
+        {
+            x = last.Bounds.Right;
+        }
+        else
+        {
+            return;
+        }
+
+        // 竖条骑在缝上：左移半个宽度，看着才是"插在两块中间"而不是"压住右边那块"
+        _dropBar.Margin = new Thickness(Math.Max(0, x - (DropBarWidth / 2)), 0, 0, 0);
+        _dropBar.Background = new global::Avalonia.Media.SolidColorBrush(Palette.HeaderTabUnderline);
+        _dropBar.IsVisible = true;
+    }
+
+    /// <summary>插入竖条的宽度 2 —— 1 太细（暗色下几乎看不见），3 又开始像一块东西。</summary>
+    private const double DropBarWidth = 2;
+
+    private Border? _dropBar;
+
+    /// <summary>模板 = 标签行 + 一条插入竖条（竖条画在标签**之上**，否则会被标签的底盖住）。</summary>
+    private FuncControlTemplate<ForgeContentTabStrip> CreateTemplateWithDropBar()
+        => new((control, scope) =>
+        {
+            var presenter = new ItemsPresenter
+            {
+                Name = "PART_ItemsPresenter",
+                ItemsPanel = control.ItemsPanel,
+            };
+            scope.Register("PART_ItemsPresenter", presenter);
+
+            var bar = new Border
+            {
+                Name = "PART_DropBar",
+                Width = DropBarWidth,
+                HorizontalAlignment = global::Avalonia.Layout.HorizontalAlignment.Left,
+                IsVisible = false,
+                IsHitTestVisible = false,
+            };
+            scope.Register("PART_DropBar", bar);
+            control._dropBar = bar;
+
+            return new Panel { Children = { presenter, bar } };
+        });
 
     internal ForgePalette Palette { get; set; } = ForgePalette.ExpUiDark;
     internal bool IsWindowActive { get; set; }
@@ -279,6 +349,7 @@ public sealed class ForgeContentTabStrip : TabStrip
             _dragId = content.Id;
             _dragOrigin = e.GetPosition(this);
             _dragging = false;
+            _dropIndex = null;
         }
 
         e.Handled = true;

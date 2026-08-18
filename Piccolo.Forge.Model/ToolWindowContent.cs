@@ -201,6 +201,55 @@ public sealed class ToolWindowContentManager
         return true;
     }
 
+    /// <summary>
+    /// 把一块内容挪到某条**插入缝**上。
+    /// </summary>
+    /// <remarks>
+    /// 与 <see cref="Reorder"/> 的区别是"拖到谁身上" vs "拖到哪条缝里"：
+    /// 界面上画的是缝（两块之间那条竖线），落位就该按缝算，两者才对得上。
+    /// <para>
+    /// <paramref name="insertionIndex"/> 是**当前列表**里的缝：0 = 最前面，
+    /// <c>Count</c> = 最后面。源自己被移除会让它右边的缝各左移一格，这个调整**在这里做** ——
+    /// 放到调用方去做，等于让每个界面各算一遍同一件事（算错就是"往右拖永远差一格"）。
+    /// </para>
+    /// </remarks>
+    /// <param name="id">被拖的那一块。</param>
+    /// <param name="insertionIndex">插到哪条缝里。</param>
+    /// <returns>确实挪动了则为 <see langword="true"/>。</returns>
+    public bool MoveTo(string id, int insertionIndex)
+    {
+        var sourceIndex = _contents.FindIndex(x => string.Equals(x.Id, id, StringComparison.Ordinal));
+        if (sourceIndex < 0)
+        {
+            return false;
+        }
+
+        var target = Math.Clamp(insertionIndex, 0, _contents.Count);
+        if (sourceIndex < target)
+        {
+            target--;   // 移除源之后，它右边的缝各左移一格
+        }
+
+        if (target == sourceIndex)
+        {
+            return false;
+        }
+
+        var selectedId = SelectedContent?.Id;
+
+        var source = _contents[sourceIndex];
+        _contents.RemoveAt(sourceIndex);
+        _contents.Insert(target, source);
+
+        if (selectedId is not null)
+        {
+            _selectedIndex = _contents.FindIndex(x => string.Equals(x.Id, selectedId, StringComparison.Ordinal));
+        }
+
+        Reordered?.Invoke(this, EventArgs.Empty);
+        return true;
+    }
+
     /// <summary>次序变了（重排）。</summary>
     /// <remarks>与 <see cref="SelectionChanged"/> 分开：重排不改选中，视图要做的事也不一样。</remarks>
     public event EventHandler? Reordered;
