@@ -40,8 +40,19 @@ public static class ForgeIcons
     /// 标题条与标签条右端那个按钮用它（新 UI 里是**竖**的 ⋮；条带末尾那个"还有几个工具窗口"
     /// 用的是横的 <see cref="More"/>，两处不是一回事，别混用）。
     /// </remarks>
+    /// <remarks>
+    /// <b>纵向墨迹 12（y 2→14），比上游那版（10，y 3→13）大一档。</b>
+    /// 由来：宿主会在同一排里放**图标包**的图标（字体形态的字形几乎撑满 em 盒，墨迹 ≈0.83），
+    /// 上游这版摆在旁边明显小一圈。
+    /// <para>
+    /// ⚠ <b>大是靠改坐标拿到的，不是靠缩放。</b>这套路径是按 16 网格的**整数**坐标画的，
+    /// 1.0 倍画进 16×16 的图标位时每条边正好压在像素边界上；乘一个非整数系数（试过 1.15）
+    /// 会把 2px 的方点推到半像素上，抗锯齿摊成两行 —— 实机看就是"发虚"。
+    /// 要再大就继续改这里的坐标（保持整数），别去缩放。
+    /// </para>
+    /// </remarks>
     public static Geometry MoreVertical { get; } = Parse(
-        "M 7,3 L 9,3 L 9,5 L 7,5 Z M 7,7 L 9,7 L 9,9 L 7,9 Z M 7,11 L 9,11 L 9,13 L 7,13 Z");
+        "M 7,2 L 9,2 L 9,4 L 7,4 Z M 7,7 L 9,7 L 9,9 L 7,9 Z M 7,12 L 9,12 L 9,14 L 7,14 Z");
 
     /// <summary>
     /// 停靠回去：一个方框 + 指进左下角的箭头。
@@ -60,8 +71,12 @@ public static class ForgeIcons
     /// 对应上游标题条的 <c>HideAction</c>（<c>ToolWindowHeader.kt:119</c>）。
     /// 上游用的是 <c>AllIcons.General.HideToolWindow</c>（JetBrains 的美术资产，Forge 不带），
     /// 新 UI 里它就是一条短横 —— 与"最小化"同义，一眼认得出。
+    /// <para>
+    /// <b>长 12（x 2→14），比上游那版（9）长一档</b>，理由同 <see cref="MoreVertical"/>：
+    /// 与图标包的图标并排时不能明显小一圈。端点仍是整数坐标 —— 换成缩放就会发虚。
+    /// </para>
     /// </remarks>
-    public static Geometry Hide { get; } = Parse("M 3.5,8 L 12.5,8");
+    public static Geometry Hide { get; } = Parse("M 2,8 L 14,8");
 
     /// <summary>竖着切一刀（上下两块）。</summary>
     public static Geometry SplitVertical { get; } = Parse("M 2,2 L 14,2 L 14,14 L 2,14 Z M 2,8 L 14,8");
