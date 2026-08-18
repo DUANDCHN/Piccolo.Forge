@@ -312,7 +312,11 @@ public class ForgeEditorControl : TemplatedControl
         // ★ 幽灵窗**全程在**（起拖那一刻就有）：拖影就是它，"拖动中的小窗口"。
         //   曾经窗内画覆盖层缩略图、出窗才换幽灵窗 —— 两副长相，切换那一下还跳一帧；
         //   幽灵窗是置顶真窗口，画在窗内窗外都不会被裁，干脆全程用它。
-        session.Ghost ??= Open(new ForgeDragGhost(session.Thumb, Palette));
+        session.Ghost ??= Open(new ForgeDragGhost(session.Thumb, Palette, session.WindowThumb));
+
+        // 拖影的样子 = 松手会发生什么：有人接（行内换位 / 分屏并组 / 并进别的窗）→ 标签样；
+        // 谁都不接 → 会浮出窗口 → 小窗口预览。先切形态再挪位置（形态换了尺寸跟着变）。
+        session.Ghost.SetFloatPreview(!session.OverSourceRow && session.Target is null && external is null);
         session.Ghost.MoveTo(screen, session.HoldDelta);
 
         static ForgeDragGhost Open(ForgeDragGhost ghost)
@@ -1455,6 +1459,9 @@ public class ForgeEditorControl : TemplatedControl
 
         /// <summary>区域一里算出的换位目标；<see langword="null"/> = 原地放下。</summary>
         public string? ReorderTargetId { get; set; }
+
+        /// <summary>源组整块（标签行 + 内容）的快照 —— 幽灵窗的浮动预览形态用。</summary>
+        public global::Avalonia.Media.Imaging.RenderTargetBitmap? WindowThumb { get; init; }
     }
 
     /// <summary>
@@ -1528,6 +1535,11 @@ public class ForgeEditorControl : TemplatedControl
             SourcePanel = strip,
             SourceTabControl = control,
             OriginalRec = origin,
+
+            // 整块快照要在**摘起之前**拍（摘起后标签被排成空，拍出来缺一行）
+            WindowThumb = _groupHosts.TryGetValue(group, out var groupHost)
+                ? ForgeDragOverlay.CaptureThumb(groupHost)
+                : null,
         };
 
         // 把源标签"摘起来"：排布跳过它（缝由 DropIndex 表达）、自己被摆成空，视觉交给拖影
