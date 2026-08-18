@@ -860,6 +860,9 @@ public class ForgeControl : TemplatedControl
     // 否则就会有"拖出来的浮动"和"点出来的浮动"两套行为，早晚对不齐。
 
     private string? _headerDragId;
+    private ForgeToolWindowHeader? _headerDragHeader;
+    private ForgeDragGhost? _headerGhost;
+    private Point _headerGhostGrab;
     private Point _headerDragStart;
     private Point _headerDragGrab;
     private bool _headerDragging;
@@ -880,11 +883,14 @@ public class ForgeControl : TemplatedControl
                 _headerDragId = id;
                 _headerDragging = false;
                 _headerDragStart = e.GetPosition(this);
+                _headerDragHeader = header;
 
-                // 抓在面板的哪个位置 —— 浮出来之后要让同一个点待在光标下，不然会"跳"一下
+                // 抓握点两份：面板系的（松手浮出时让同一个点待在光标下）
+                // 与标题条系的（幽灵窗紧凑形态的抓握）
                 _headerDragGrab = _panelHosts.TryGetValue(id, out var host)
                     ? e.GetPosition(host)
                     : default;
+                _headerGhostGrab = e.GetPosition(header);
             },
             RoutingStrategies.Tunnel | RoutingStrategies.Bubble,
             handledEventsToo: true);
@@ -901,19 +907,39 @@ public class ForgeControl : TemplatedControl
         if (!_headerDragging)
         {
             var moved = Math.Sqrt(Math.Pow(point.X - _headerDragStart.X, 2) + Math.Pow(point.Y - _headerDragStart.Y, 2));
-            if (moved < ForgeMetrics.StripeButtonDragStartDeadzone)
+
+            // ★ 死区用标题条自己的 100（HeaderDragStartDeadzone），**不是**条带按钮那 7：
+            //   标题条上全是常点的按钮和双击区，7px 一抖就起拖、面板飞出去 —— 误触太多
+            //  （实机反馈）。上游注册表本来就是两档分开的。
+            if (moved < ForgeMetrics.HeaderDragStartDeadzone)
             {
                 return;
             }
 
             _headerDragging = true;
-            shell.Manager.SetType(id, ToolWindowType.Floating);
 
-            // 拖出去之后指针还得归我们，不然一出主窗口就收不到移动了
+            // ★ 拖动中**不真的浮出**（曾经起拖即 SetType(Floating)、真窗口跟手）：
+            //   面板原地不动，跟手的是幽灵窗 —— 紧凑形态（标题条快照）表示"还在挑落点"，
+            //   出了本面板换成浮窗缩略图（与编辑区同一套形态语言）。松手才真正落位/浮出。
+            if (_headerDragHeader is { } hdr && _panelHosts.TryGetValue(id, out var host))
+            {
+                _headerGhost = new ForgeDragGhost(
+                    ForgeDragOverlay.CaptureThumb(hdr), Palette, ForgeDragOverlay.CaptureThumb(host));
+                _headerGhost.Show();
+            }
+
+            // 指针归我们，不然一出主窗口就收不到移动了
             e.Pointer.Capture(this);
         }
 
-        FollowPointer(id, point);
+        // 幽灵窗跟手：本面板内 = 紧凑形态（还在挑落点）；出了本面板 = 浮窗缩略图（松手会浮出）
+        if (_headerGhost is { } ghost)
+        {
+            var outsideSource = !_panelHosts.TryGetValue(id, out var sourceHost)
+                                || !new Rect(sourceHost.Bounds.Size).Contains(e.GetPosition(sourceHost));
+            ghost.SetFloatPreview(outsideSource);
+            ghost.MoveTo(this.PointToScreen(point), new Vector(_headerGhostGrab.X, _headerGhostGrab.Y));
+        }
 
         // 落点反馈与拖条带按钮**同一套**：条带上让出插入槽、画高亮。
         // 拖回条带上松手 = 重新停靠（见 OnHeaderPointerReleased）。
@@ -934,33 +960,36 @@ public class ForgeControl : TemplatedControl
         // ⚠ 顺序同拖条带按钮那条：**先算落点，再清拖拽态** ——
         //   落点判定靠 DraggedButton（读 _headerDragId）把自己排除在外。
         var target = ResolveDropTarget(point);
+        var insideSource = _panelHosts.TryGetValue(id, out var sourceHost)
+                           && new Rect(sourceHost.Bounds.Size).Contains(e.GetPosition(sourceHost));
 
+        _headerGhost?.Close();
+        _headerGhost = null;
+        _headerDragHeader = null;
         _overlay.Clear();
         _headerDragId = null;
         _headerDragging = false;
         ClearDragLayout();
 
-        if (target is not { } t)
+        if (target is { } t)
         {
-            // 松手不在条带上 → 就停在浮动状态，位置已经跟着光标了
+            // 落回条带 = 停靠到那一格：先回内部形态（模型记着上次是固定还是不固定）再搬 ——
+            // 次序不能反，浮着的时候搬位置，落点那格的互斥判定看不到它
+            shell.Manager.SetType(id, shell.Manager.ResolveInternalType(id));
+            shell.Manager.MoveTo(id, t.Anchor, t.Order, t.IsSplit);
             return;
         }
 
-        // 落回条带 = 重新停靠：先回内部形态（模型记着上次是停靠固定还是不固定），
-        // 再搬到落点那一格。次序不能反 —— 还浮着的时候搬位置，落点那格的互斥判定看不到它。
-        shell.Manager.SetType(id, shell.Manager.ResolveInternalType(id));
-        shell.Manager.MoveTo(id, t.Anchor, t.Order, t.IsSplit);
-    }
-
-    /// <summary>让浮出来的窗口跟着光标走，抓点保持在按下时的那个位置。</summary>
-    private void FollowPointer(string id, Point point)
-    {
-        if (!_externalWindows.TryGetValue(id, out var external))
+        // 本面板之内松手 = 取消（紧凑形态全程都在说"还没挑好落点"）—— 什么都不变
+        if (insideSource)
         {
             return;
         }
 
-        if (this.PointToScreen(point - _headerDragGrab) is { } origin)
+        // 面板外松手 = 这一刻才真正浮出；窗口摆到光标处（按下的抓握点对齐）
+        shell.Manager.SetType(id, ToolWindowType.Floating);
+        if (_externalWindows.TryGetValue(id, out var external)
+            && this.PointToScreen(point - _headerDragGrab) is { } origin)
         {
             external.Window.Position = origin;
         }

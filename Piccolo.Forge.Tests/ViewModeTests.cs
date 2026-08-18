@@ -648,17 +648,44 @@ public class ViewModeTests
 
         Press(header, header);
 
-        // 抖一下不算：还在死区里
-        Move(frame, new Point(3, 3));
+        // 死区是标题条自己的 100（不是条带按钮那 7）：标题条上全是常点的按钮，
+        // 手抖十来个像素就把面板拖飞才是事故（实机反馈"避免误触"）
+        Move(frame, new Point(60, 40));
         Assert.Equal(ToolWindowType.Docked, shell.Manager.Layout.GetInfo("相机列表")!.Type);
         Assert.Empty(frame.ExternalWindows);
 
-        // 拖出去
-        Move(frame, new Point(200, 160));
+        // 过了死区、拖出面板之外 —— **拖动中仍不浮出**（跟手的是幽灵窗，松手才落位）。
+        // ⚠ 点取编辑区中央偏上：条带的落点区比条带本身宽得多（左右各扩一个面板宽、
+        //   底部一整条带），取太靠边/靠下会命中停靠区，松手就变成"落回条带"而不是浮出。
+        Move(frame, new Point(450, 60));
+        Pump(window);
+        Assert.Equal(ToolWindowType.Docked, shell.Manager.Layout.GetInfo("相机列表")!.Type);
+        Assert.Empty(frame.ExternalWindows);
+
+        // 面板外松手 = 这一刻才浮出
+        Release(frame, new Point(450, 60));
         Pump(window);
 
         Assert.Equal(ToolWindowType.Floating, shell.Manager.Layout.GetInfo("相机列表")!.Type);
         Assert.Single(frame.ExternalWindows);
+
+        window.Close();
+    }
+
+    /// <summary>在本面板之内松手 = 取消 —— 紧凑形态全程都在说"还没挑好落点"。</summary>
+    [AvaloniaFact]
+    public void 没拖出本面板就松手_什么都不变()
+    {
+        var (window, frame, shell, _) = Build();
+        var header = frame.GetVisualDescendants().OfType<ForgeToolWindowHeader>().Single();
+
+        Press(header, header);
+        Move(frame, new Point(120, 180));   // 过了死区，但还在面板（约 225 宽）之内
+        Release(frame, new Point(120, 180));
+        Pump(window);
+
+        Assert.Equal(ToolWindowType.Docked, shell.Manager.Layout.GetInfo("相机列表")!.Type);
+        Assert.Empty(frame.ExternalWindows);
 
         window.Close();
     }
@@ -677,9 +704,10 @@ public class ViewModeTests
         var header = frame.GetVisualDescendants().OfType<ForgeToolWindowHeader>().Single();
 
         Press(header, header);
-        Move(frame, new Point(300, 200));
+        Move(frame, new Point(400, 300));
         Pump(window);
-        Assert.Equal(ToolWindowType.Floating, shell.Manager.Layout.GetInfo("相机列表")!.Type);
+        // 拖动中不浮出（幽灵窗跟手），落位在松手那一刻
+        Assert.Equal(ToolWindowType.Docked, shell.Manager.Layout.GetInfo("相机列表")!.Type);
 
         // 拖回右边条带上松手
         var stripe = frame.GetVisualDescendants().OfType<ForgeToolWindowToolbar>()
