@@ -1,5 +1,6 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Media;
 using Piccolo.Forge.Themes;
 
 namespace Piccolo.Forge.Avalonia;
@@ -55,8 +56,23 @@ public class HeaderTabsPanel : Panel
     /// </remarks>
     public int? DropIndex { get; set; }
 
-    /// <summary>被拖那一个的不透明度 <b>0.7</b> —— 让它看着是"影子"，底下那条空档才读得出来。</summary>
+    /// <summary>被拖那一个的不透明度 <b>0.7</b> —— 让它看着是"影子"，底下那块投影才读得出来。</summary>
     public const double DraggedOpacity = 0.7;
+
+    /// <summary>
+    /// 落点那块**投影矩形**在哪（排布时算出来）；<see langword="null"/> 表示此刻没有落点。
+    /// </summary>
+    /// <remarks>
+    /// 分工是这样的：<b>被拖的那一个跟着光标自由走（不吸附）</b>，
+    /// <b>投影矩形吸附到格位上</b> —— 一个说"我现在拿着它"，一个说"松手会落在这儿"。
+    /// 两个都吸附就没法瞄准，两个都不吸附就说不清落点。
+    /// <para>
+    /// ⚠ <b>画它的是外面那层 TabStrip，不是本面板</b>：<c>Panel.Render</c> 是密封的。
+    /// 好在 <c>Control.Render</c> 画在模板子元素之下 —— 那块地方此刻正好是空的（空档），
+    /// 被拖的那个影子浮在上面，两者不打架。
+    /// </para>
+    /// </remarks>
+    public Rect? DropRect { get; private set; }
 
     /// <summary>
     /// 放不下就<b>换行</b>，一个都不藏。
@@ -169,6 +185,7 @@ public class HeaderTabsPanel : Panel
 
         var placed = 0;
         var gapWidth = DraggedChild is { } dragged && DropIndex is not null ? WidthOf(dragged) : 0;
+        DropRect = null;
 
         foreach (var child in laying)
         {
@@ -185,9 +202,10 @@ public class HeaderTabsPanel : Panel
                 continue;
             }
 
-            // 轮到空档了：先空出一格再放这一个
+            // 轮到空档了：先空出一格再放这一个（那一格就是投影矩形的位置）
             if (DropIndex == placed && gapWidth > 0)
             {
+                DropRect = new Rect(x, 0, gapWidth, finalSize.Height);
                 x += gapWidth;
             }
 
@@ -236,6 +254,7 @@ public class HeaderTabsPanel : Panel
         // 空档在最后一格：上面的循环没机会加，这里补上（否则拖到行尾看不到落点）
         if (DropIndex == placed && gapWidth > 0)
         {
+            DropRect = new Rect(x, 0, gapWidth, finalSize.Height);
             x += gapWidth;
         }
 

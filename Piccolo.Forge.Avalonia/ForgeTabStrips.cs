@@ -1,5 +1,6 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Media;
 using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
@@ -15,6 +16,13 @@ namespace Piccolo.Forge.Avalonia;
 /// <summary>A Forge editor tab row backed by Avalonia's item-container lifecycle.</summary>
 internal sealed class ForgeEditorTabStrip : TabStrip
 {
+    /// <inheritdoc />
+    public override void Render(DrawingContext context)
+    {
+        base.Render(context);
+        TabDropIndicator.Draw(context, ItemsPanelRoot, Palette.HeaderTabUnderline);
+    }
+
     public ForgeEditorTabStrip()
     {
         // 文档标签放不下就**换行**，一个都不藏：文档是用户自己开的，
@@ -83,6 +91,7 @@ public sealed class ForgeContentTabStrip : TabStrip
     private Point _dragOrigin;
     private bool _dragging;
     private int? _dropIndex;
+    private double _grabOffset;
 
     /// <summary>
     /// 拖动中：画出**要插到哪条缝**，不当场换位。
@@ -181,9 +190,10 @@ public sealed class ForgeContentTabStrip : TabStrip
         }
 
         panel.DraggedChild = tab;
-        panel.DraggedX = position.X - (tab.Bounds.Width / 2);
+        panel.DraggedX = position.X - _grabOffset;
         panel.DropIndex = gap > index ? gap - 1 : gap;   // 空档按"除它之外"的次序算
         panel.InvalidateArrange();
+        InvalidateVisual();   // 投影是本控件画的（见 Render）
     }
 
     /// <summary>收掉拖动中的样子。</summary>
@@ -203,6 +213,7 @@ public sealed class ForgeContentTabStrip : TabStrip
         panel.DraggedChild = null;
         panel.DropIndex = null;
         panel.InvalidateArrange();
+        InvalidateVisual();
     }
 
     /// <summary>这一块在当前次序里排第几。</summary>
@@ -223,6 +234,13 @@ public sealed class ForgeContentTabStrip : TabStrip
 
     internal ForgePalette Palette { get; set; } = ForgePalette.ExpUiDark;
     internal bool IsWindowActive { get; set; }
+
+    /// <inheritdoc />
+    public override void Render(DrawingContext context)
+    {
+        base.Render(context);
+        TabDropIndicator.Draw(context, ItemsPanelRoot, Palette.HeaderTabUnderline);
+    }
 
     /// <summary>
     /// 这条 tab 行背后的内容管理器。
@@ -351,6 +369,12 @@ public sealed class ForgeContentTabStrip : TabStrip
             _dragOrigin = e.GetPosition(this);
             _dragging = false;
             _dropIndex = null;
+
+            // ⚠ **抓握偏移**（上游 DragHelper.java:178 · myHoldDelta）：
+            //   按在这块 tab 的哪个位置，整个拖动过程就保持那个相对位置。
+            //   少了它，一起拖标签就"吸"到光标中间跳一下 —— 拖的那个不该吸附，
+            //   吸附的是落点那块投影（HeaderTabsPanel.DropRect）。
+            _grabOffset = e.GetPosition(this).X - tab.Bounds.X;
         }
 
         e.Handled = true;
@@ -370,4 +394,33 @@ internal static class ForgeTabStripTemplate
             scope.Register("PART_ItemsPresenter", presenter);
             return presenter;
         });
+}
+
+/// <summary>两条 tab 行共用：把"松手会落在这儿"那块投影画出来。</summary>
+/// <remarks>
+/// 画在 <c>Control.Render</c> 里（模板子元素之下）—— 落点那一格此刻是空的，
+/// 所以画得出来；被拖的那个影子浮在上层，不会被这块盖住。
+/// <para><c>Panel.Render</c> 是密封的，所以这件事只能由外面这层控件做。</para>
+/// </remarks>
+internal static class TabDropIndicator
+{
+    /// <summary>投影的底色透明度 0.22 —— 看得见"有块地方留着"，又不至于像多了一个标签。</summary>
+    private const double FillOpacity = 0.22;
+
+    /// <summary>画一次。</summary>
+    /// <param name="context">绘制上下文。</param>
+    /// <param name="panel">这条行的排布面板（投影位置由它算）。</param>
+    /// <param name="color">取当前配色里的强调色。</param>
+    public static void Draw(DrawingContext context, Panel? panel, Color color)
+    {
+        if (panel is not HeaderTabsPanel { DropRect: { } rect })
+        {
+            return;
+        }
+
+        // 上下各收 3：投影比标签本身矮一点，看着是"放进去的位置"而不是又一个标签
+        var inset = rect.Deflate(new Thickness(0, 3));
+        var fill = new SolidColorBrush(color, FillOpacity);
+        context.DrawRectangle(fill, new Pen(new SolidColorBrush(color), 1), inset, 4, 4);
+    }
 }

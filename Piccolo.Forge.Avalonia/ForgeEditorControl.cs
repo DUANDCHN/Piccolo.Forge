@@ -1578,6 +1578,7 @@ public class ForgeEditorControl : TemplatedControl
             ? (target > source ? target - 1 : target)
             : (source >= 0 ? source : null);
         strip.InvalidateArrange();
+        stripControl.InvalidateVisual();   // 投影由 TabStrip 画（Panel.Render 是密封的）
     }
 
     /// <summary>
@@ -1793,6 +1794,7 @@ public class ForgeEditorControl : TemplatedControl
             strip.DraggedChild = null;
             strip.DropIndex = null;
             strip.InvalidateArrange();
+            stripControl.InvalidateVisual();
         }
 
         if (_dragId is { } sourceId && _reorderTargetId is { } targetId)
