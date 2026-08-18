@@ -1100,8 +1100,13 @@ public class ForgeControl : TemplatedControl
     /// <summary>按下那一刻，被按的条带按钮在框架坐标系里的矩形（松手落回它里面 = 没搬家）。</summary>
     private Rect _dragButtonBounds;
 
-    /// <summary>上一次算出来的空槽落点：哪一组、第几个之前。</summary>
-    private (StripeItemsPanel Panel, int Index)? _lastDropSlot;
+    /// <summary>
+    /// 当前留着空槽的那一组；落点不在任何条带上、或没在拖，就是 <see langword="null"/>。
+    /// </summary>
+    /// <remarks>
+    /// 插到第几个**不记在这儿**——那是排布算的，见 <see cref="StripeItemsPanel.DropIndex"/>。
+    /// </remarks>
+    private StripeItemsPanel? _dropPanel;
 
     /// <summary>
     /// 正在被拖走的那个条带按钮；没在拖就是 <see langword="null"/>。
@@ -1182,17 +1187,59 @@ public class ForgeControl : TemplatedControl
     /// </remarks>
     private void ClearDragLayout()
     {
+        SetDropPanel(null);
+
         foreach (var panel in StripePanels())
         {
             panel.DraggedChild = null;
-            panel.DropIndex = -1;
         }
 
-        _lastDropSlot = null;
         _lastZone = null;
         _dragThumb?.Dispose();
         _dragThumb = null;
     }
+
+    /// <summary>
+    /// 换一组留空槽：别的组撤掉，这一组留着。
+    /// </summary>
+    /// <remarks>
+    /// 顺带管着 <c>LayoutUpdated</c> 的订阅——蓝框的位置只能在**排布之后**
+    /// 才读得到（<see cref="StripeItemsPanel.DropSlotRect"/> 是排布期算的），
+    /// 所以拖拽期间挂一下这个事件、排完再去校正，而不是反过来为了读它强制排布。
+    /// 不拖的时候不留订阅。
+    /// </remarks>
+    /// <param name="panel">要留空槽的那一组；<see langword="null"/> 表示都撤掉。</param>
+    private void SetDropPanel(StripeItemsPanel? panel)
+    {
+        foreach (var other in StripePanels())
+        {
+            if (!ReferenceEquals(other, panel) && other.DropOffset is not null)
+            {
+                other.DropOffset = null;
+            }
+        }
+
+        if (ReferenceEquals(_dropPanel, panel))
+        {
+            return;
+        }
+
+        if (_dropPanel is null)
+        {
+            LayoutUpdated += OnDragLayoutUpdated;
+        }
+        else if (panel is null)
+        {
+            LayoutUpdated -= OnDragLayoutUpdated;
+            _overlay.DropRect = null;
+            _overlay.SplitBoxRect = null;
+        }
+
+        _dropPanel = panel;
+    }
+
+    /// <summary>排布落定了，把蓝框挪到那个空槽上。</summary>
+    private void OnDragLayoutUpdated(object? sender, EventArgs e) => UpdateDropIndicator();
 
     private void Toggle(string id)
     {
@@ -1206,10 +1253,6 @@ public class ForgeControl : TemplatedControl
         }
     }
 
-    /// <summary>
-    /// 松手时落在哪根条带的哪一组、插到第几个。
-    /// </summary>
-    /// <remarks>落点判定见 <see cref="StripeDropResolver"/>；不在任何条带上就返回 null（本阶段不做浮动）。</remarks>
     /// <summary>紧凑与否是按钮级的属性，从条带上现有的按钮读一个。</summary>
     /// <returns>当前是不是紧凑模式。</returns>
     private bool ResolveCompact()
@@ -1222,6 +1265,20 @@ public class ForgeControl : TemplatedControl
     /// 出处见 <see cref="ForgeDragOverlay"/>。落点方块按上游
     /// <c>AbstractDroppableStripe.kt:634-642</c> 去掉图标 padding，
     /// 所以它比按钮小一圈、正好是图标那块地。
+    /// <para>
+    /// ★ <b>这里一次排布都不强制。</b> 每个指针事件只做两件事：把落点交给目标组
+    /// （<see cref="StripeItemsPanel.DropOffset"/>）、把虚影挪一下（只影响绘制）。
+    /// 让位、插入位置、空槽矩形都交给下一帧的排布去算，蓝框由
+    /// <see cref="OnDragLayoutUpdated"/> 在排完之后校正。
+    /// 与上游 <c>processDropButton</c> 只 <c>revalidate(); repaint()</c> 同形
+    /// （<c>AbstractDroppableStripe.kt:197-223</c>）。
+    /// </para>
+    /// <para>
+    /// ⚠ 曾经是反过来的：先在排布之外算出插入位置、写回去、**同步 <c>UpdateLayout()</c>**、
+    /// 再把空槽矩形读回来画框。那句同步排布在 Avalonia 是整棵可视树的事，
+    /// 于是鼠标每动一下整个停靠区（相机画面、日志、图表）就跟着重量一遍 ——
+    /// 用户报的「拖动很卡」就是它。别再把"读一眼排布结果"写进指针事件里。
+    /// </para>
     /// </remarks>
     /// <param name="point">当前指针位置（相对本控件）。</param>
     private void UpdateDragFeedback(Point point)
@@ -1230,7 +1287,6 @@ public class ForgeControl : TemplatedControl
         _overlay.IsCompact = ResolveCompact();
 
         var metrics = ForgeStripeButtonMetrics.ForTheme(Palette.Family, _overlay.IsCompact);
-        var buttonHeight = metrics.Height;
 
         // 被拖的那个从**每一组**的排布里拿掉——它可能正被拖去另一根条带，
         // 只清源组的话，目标组那边仍会把它算进去。
@@ -1238,8 +1294,7 @@ public class ForgeControl : TemplatedControl
         foreach (var panel in StripePanels())
         {
             panel.DraggedChild = dragged;
-            panel.DropIndex = -1;
-            panel.DropSlotHeight = buttonHeight;
+            panel.DropSlotHeight = metrics.Height;
         }
 
         // 跟随光标的虚影：抓取点始终待在光标下。画的是拖拽开始时拍的快照，
@@ -1250,55 +1305,70 @@ public class ForgeControl : TemplatedControl
             _overlay.ThumbRect = new Rect(point - _dragGrab, _dragThumb.Size);
         }
 
-        _lastDropSlot = null;
-        if (ResolveDropTarget(point) is not { } target)
+        _lastZone = ResolveDropZone(point);
+        if (_lastZone is not { } zone || PanelOf(zone) is not { } target || !ApplyDropOffset(target, zone, point))
         {
+            SetDropPanel(null);
             _overlay.Clear();
             return;
         }
 
-        // ⚠ 左右一律从**落在哪根条带**推导，不能看 target.Anchor ——
-        //    下组的 anchor 恒为 BOTTOM，拿它判会让右条带下组用成左条带的内边距，
-        //    落点方块整体偏 3px（用户报的「右下角的投影不居中」）。
-        //    四个角表现不一致，根子就是同一件事在不同地方分别从 side 和 anchor 推。
-        var side = _lastZone?.Side ?? (target.Anchor == ToolWindowAnchor.Right ? StripeSide.Right : StripeSide.Left);
-        var toolbar = side == StripeSide.Right ? _right : _left;
-        var padding = metrics.IconPadding(side == StripeSide.Left, ShowToolWindowNames);
+        SetDropPanel(target);
 
-        // 让目标组真的空出一格：后面的按钮跟着让位（layoutDragButton 推进 eachY 的等价物）。
-        // 必须立刻 UpdateLayout —— DropSlotRect 是 Arrange 期算的，不排一次读到的还是上一帧。
-        if (_lastDropSlot is { } slot)
+        // ⚠ 左右一律从**落在哪根条带**推导，不能看 anchor —— 下组的 anchor 恒为 BOTTOM，
+        //    拿它判会让右条带下组用成左条带的内边距，落点方块整体偏 3px
+        //    （用户报的「右下角的投影不居中」）。四个角表现不一致，根子就是
+        //    同一件事在不同地方分别从 side 和 anchor 推。
+        var toolbar = zone.Side == StripeSide.Right ? _right : _left;
+
+        // 高亮那片用的是上一帧排布定下的插入位置：这一帧的还没排出来。
+        // 差一帧只在刚进这一组时看得见，下一帧自己就对了。
+        var drop = ResolveTargetFrom(target, zone)
+                   ?? StripeDropResolver.Resolve(zone.Side, zone.Group, isAfterSeparator: false, order: -1);
+
+        _overlay.AreaRect = ResolveDropAreaRect(drop.Anchor, toolbar, drop.IsSplit);
+        UpdateDropIndicator();
+    }
+
+    /// <summary>
+    /// 蓝色落点方块与「另一半」虚线框：画在排布让出来的那个空槽上。
+    /// </summary>
+    /// <remarks>
+    /// 只读排布结果，不触发排布。落点方块按上游
+    /// <c>AbstractDroppableStripe.kt:634-642</c> 去掉图标 padding。
+    /// </remarks>
+    private void UpdateDropIndicator()
+    {
+        if (_dropPanel is not { } panel
+            || _lastZone is not { } zone
+            || panel.DropSlotRect is not { } rect
+            || panel.TranslatePoint(rect.Position, this) is not { } origin)
         {
-            slot.Panel.DropIndex = slot.Index;
-            slot.Panel.UpdateLayout();
-
-            // 蓝框画在**那个空槽**上，不另算一遍位置。
-            // 原先是「钉在指针那一行」——与真正的插入位置各算各的，于是必然出现
-            // 「框提示的位置和松手后落到的位置不一致」。
-            if (slot.Panel.DropSlotRect is { } rect
-                && slot.Panel.TranslatePoint(rect.Position, this) is { } origin)
-            {
-                _overlay.DropRect = new Rect(
-                    origin.X + padding.Left,
-                    origin.Y + padding.Top,
-                    Math.Max(0, slot.Panel.Bounds.Width - padding.Horizontal),
-                    Math.Max(0, rect.Height - padding.Vertical));
-
-                // 「另一半」：30 见方的虚线框，贴着落点方块下面。
-                // ⚠ 条件是**该组里真的有那条分组分隔符**（AbstractDroppableStripe.kt:644-654
-                //    「只在竖条带、且分隔器可见时画」），不是 target.IsSplit ——
-                //    下组的 IsSplit 只表示"落在右条带"，右下角于是永远多一个虚线框。
-                _overlay.SplitBoxRect = HasSeparator(slot.Panel)
-                    ? new Rect(
-                        origin.X + ((slot.Panel.Bounds.Width - ForgeMetrics.StripeSplitDropBoxSize) / 2),
-                        origin.Y + rect.Height,
-                        ForgeMetrics.StripeSplitDropBoxSize,
-                        ForgeMetrics.StripeSplitDropBoxSize)
-                    : null;
-            }
+            _overlay.DropRect = null;
+            _overlay.SplitBoxRect = null;
+            return;
         }
 
-        _overlay.AreaRect = ResolveDropAreaRect(target.Anchor, toolbar, target.IsSplit);
+        var metrics = ForgeStripeButtonMetrics.ForTheme(Palette.Family, _overlay.IsCompact);
+        var padding = metrics.IconPadding(zone.Side == StripeSide.Left, ShowToolWindowNames);
+
+        _overlay.DropRect = new Rect(
+            origin.X + padding.Left,
+            origin.Y + padding.Top,
+            Math.Max(0, panel.Bounds.Width - padding.Horizontal),
+            Math.Max(0, rect.Height - padding.Vertical));
+
+        // 「另一半」：30 见方的虚线框，贴着落点方块下面。
+        // ⚠ 条件是**该组里真的有那条分组分隔符**（AbstractDroppableStripe.kt:644-654
+        //    「只在竖条带、且分隔器可见时画」），不是落点的 IsSplit ——
+        //    下组的 IsSplit 只表示"落在右条带"，右下角于是永远多一个虚线框。
+        _overlay.SplitBoxRect = HasSeparator(panel)
+            ? new Rect(
+                origin.X + ((panel.Bounds.Width - ForgeMetrics.StripeSplitDropBoxSize) / 2),
+                origin.Y + rect.Height,
+                ForgeMetrics.StripeSplitDropBoxSize,
+                ForgeMetrics.StripeSplitDropBoxSize)
+            : null;
     }
 
     /// <summary>
@@ -1425,86 +1495,162 @@ public class ForgeControl : TemplatedControl
         return ForgeMetrics.DropAreaFallbackSize;
     }
 
-    private StripeDropTarget? ResolveDropTarget(Point point)
+    /// <summary>某一组落区对应的按钮组。</summary>
+    private StripeItemsPanel PanelOf((StripeSide Side, StripeGroup Group) zone)
     {
-        _lastZone = null;
-        if (ResolveDropZone(point) is { } zone)
+        var toolbar = zone.Side == StripeSide.Left ? _left : _right;
+        return zone.Group == StripeGroup.Top ? toolbar.TopGroup : toolbar.BottomGroup;
+    }
+
+    /// <summary>
+    /// 把落点换算成组内偏移交给那一组；插到第几个由它自己在排布期算。
+    /// </summary>
+    /// <remarks>
+    /// ⚠ 换算的基准是「**去掉被拖项、也不含空槽**那条序列的顶」，不是这一组当前的顶边。
+    /// 下组贴底排布（<c>ForgeToolWindowToolbar</c> 的 <c>Dock.Bottom</c>），**顶边会动**：
+    /// 摘掉被拖的那个往下掉一格、留出空槽又往上顶一格。拿顶边换算，
+    /// 同一个指针位置在相邻两帧会解出两个格子——表现为下组落点偏一格、
+    /// 且在格子边界上来回翻（翻一次重排一次，也是拖动发卡的一份）。
+    /// <para>
+    /// 所以下组一律从**底边**倒推：底边是稳的，序列高当场按同一条口径算
+    /// （<see cref="SequenceHeight"/>），跟上一帧排的是什么无关。
+    /// 上组是 <c>Dock.Top</c>，顶边本来就不动，直接用。
+    /// </para>
+    /// </remarks>
+    /// <param name="panel">目标组。</param>
+    /// <param name="zone">落在哪根条带的哪一组。</param>
+    /// <param name="point">当前指针位置（相对本控件）。</param>
+    /// <returns>换算成功没有（拿不到坐标就是没有）。</returns>
+    private bool ApplyDropOffset(StripeItemsPanel panel, (StripeSide Side, StripeGroup Group) zone, Point point)
+    {
+        // Bounds 是相对父级的，逐级换算容易差 1px，直接问 Avalonia 要绝对位置
+        if (panel.TranslatePoint(default, this) is not { } origin)
         {
-            _lastZone = zone;
-            var side = zone.Side;
-            var group = zone.Group;
-            var toolbar = side == StripeSide.Left ? _left : _right;
+            return false;
+        }
 
+        var top = zone.Group == StripeGroup.Bottom
+            ? origin.Y + panel.Bounds.Height - SequenceHeight(panel)
+            : origin.Y;
+
+        panel.DropOffset = point.Y - top;
+        return true;
+    }
+
+    /// <summary>
+    /// 一组里参与排布的那条序列有多高（去掉被拖项、不含空槽）。
+    /// </summary>
+    /// <remarks>
+    /// 口径必须与 <see cref="StripeItemsPanel.ArrangeOverride"/> 一致：每一项算上它后面那道缝。
+    /// </remarks>
+    private double SequenceHeight(StripeItemsPanel panel)
+    {
+        var dragged = DraggedButton;
+        var total = 0.0;
+
+        foreach (var child in panel.Children)
+        {
+            if (child.IsVisible && !ReferenceEquals(child, dragged))
             {
-                var panel = group == StripeGroup.Top ? toolbar.TopGroup : toolbar.BottomGroup;
-
-                // Bounds 是相对父级的，逐级换算容易差 1px，直接问 Avalonia 要绝对位置
-                if (panel.TranslatePoint(default, this) is not { } origin)
-                {
-                    return null;
-                }
-
-                var panelBounds = new Rect(origin, panel.Bounds.Size);
-
-                var offset = point.Y - panelBounds.Y;
-
-                // ⚠ **被拖的那个不参与**（AbstractDroppableStripe.kt:601 的 tools.remove(dragButton)）。
-                // 它还挂在树上、Bounds 也还在，但排布时当它不存在；算落点时一并排除，
-                // 否则它后面每一项的累计坐标都多算一个按钮高，判定整体偏一格。
-                var dragged = DraggedButton;
-                var sizes = new List<double>();
-                // 与 sizes 平行：该位置是哪个按钮的 order；分隔符占一格但没有 order，记 null
-                var orders = new List<int?>();
-                var separatorIndex = int.MaxValue;
-
-                foreach (var child in panel.Children)
-                {
-                    if (!child.IsVisible || ReferenceEquals(child, dragged))
-                    {
-                        continue;
-                    }
-
-                    if (child is ForgeStripeSeparator)
-                    {
-                        separatorIndex = sizes.Count;
-                        orders.Add(null);
-                    }
-                    else if (child is ForgeStripeButton b && OrderOf(b) is { } o)
-                    {
-                        orders.Add(o);
-                    }
-                    else
-                    {
-                        orders.Add(null);
-                    }
-
-                    sizes.Add(child.DesiredSize.Height);
-                }
-
-                var index = StripeDropResolver.ResolveInsertIndex(offset, sizes);
-
-                // 序号 → order：插在第 index 个之前，就是取从它起第一个真按钮的 order；
-                // 后面全是分隔符（或没有了）就接末尾。**不能拿 index 直接索引按钮列表**——
-                // 分隔符也占一格，两者对不上。
-                var order = -1;
-                for (var i = index; i < orders.Count; i++)
-                {
-                    if (orders[i] is { } found)
-                    {
-                        order = found;
-                        break;
-                    }
-                }
-
-                var target = StripeDropResolver.Resolve(side, group, index > separatorIndex, order);
-                _lastDropSlot = (panel, index);
-                return StripeDropResolver.AdjustForReversedBottomGroup(target);
+                total += child.DesiredSize.Height + ForgeMetrics.StripeButtonGap;
             }
         }
 
+        return total;
+    }
+
+    /// <summary>
+    /// 把排布定下的插入位置翻成落点（anchor + order + 另一半）。
+    /// </summary>
+    /// <remarks>
+    /// 序号是**排布**的事，order 是**模型**的事，两者在"被拖那个已从序列里拿掉"之后不再一一对应，
+    /// 所以要靠一张与排布同序的 order 表把序号翻过去。
+    /// </remarks>
+    /// <param name="panel">留着空槽的那一组。</param>
+    /// <param name="zone">落在哪根条带的哪一组。</param>
+    /// <returns>落点；这一组还没排出空槽就是 <see langword="null"/>。</returns>
+    private StripeDropTarget? ResolveTargetFrom(StripeItemsPanel panel, (StripeSide Side, StripeGroup Group) zone)
+    {
+        var index = panel.DropIndex;
+        if (index < 0)
+        {
+            return null;
+        }
+
+        // ⚠ 这里的枚举必须与 StripeItemsPanel 排布时的一模一样（可见、且不是被拖的那个），
+        // 否则序号对不上位。被拖那个不参与是上游 AbstractDroppableStripe.kt:601 的
+        // tools.remove(dragButton)。
+        var dragged = DraggedButton;
+        // 与排布序列平行：该位置是哪个按钮的 order；分隔符占一格但没有 order，记 null
+        var orders = new List<int?>();
+        var separatorIndex = int.MaxValue;
+
+        foreach (var child in panel.Children)
+        {
+            if (!child.IsVisible || ReferenceEquals(child, dragged))
+            {
+                continue;
+            }
+
+            if (child is ForgeStripeSeparator)
+            {
+                separatorIndex = orders.Count;
+                orders.Add(null);
+            }
+            else if (child is ForgeStripeButton b && OrderOf(b) is { } o)
+            {
+                orders.Add(o);
+            }
+            else
+            {
+                orders.Add(null);
+            }
+        }
+
+        // 序号 → order：插在第 index 个之前，就是取从它起第一个真按钮的 order；
+        // 后面全是分隔符（或没有了）就接末尾。**不能拿 index 直接索引按钮列表**——
+        // 分隔符也占一格，两者对不上。
+        var order = -1;
+        for (var i = index; i < orders.Count; i++)
+        {
+            if (orders[i] is { } found)
+            {
+                order = found;
+                break;
+            }
+        }
+
+        var target = StripeDropResolver.Resolve(zone.Side, zone.Group, index > separatorIndex, order);
+        return StripeDropResolver.AdjustForReversedBottomGroup(target);
+    }
+
+    /// <summary>
+    /// 松手时落在哪根条带的哪一组、插到第几个。
+    /// </summary>
+    /// <remarks>
+    /// **只有松手这一次**才强制排布：要拿的是"用户看见的那个空槽"落到哪，
+    /// 而它是排布算的。拖动过程中不能这么干（那正是拖动发卡的来源，
+    /// 见 <see cref="UpdateDragFeedback"/>）。
+    /// </remarks>
+    private StripeDropTarget? ResolveDropTarget(Point point)
+    {
+        _lastZone = ResolveDropZone(point);
+
         // 落区都不中 —— 上游此时 getStripeFor 返回 null，就是「这里不能放」。
         // 别再兜一个默认组：那正是「点落在第一个图标上方就变成上停靠」的来源。
-        return null;
+        if (_lastZone is not { } zone)
+        {
+            return null;
+        }
+
+        var panel = PanelOf(zone);
+        if (!ApplyDropOffset(panel, zone, point))
+        {
+            return null;
+        }
+
+        panel.UpdateLayout();
+        return ResolveTargetFrom(panel, zone);
     }
 
     /// <summary>

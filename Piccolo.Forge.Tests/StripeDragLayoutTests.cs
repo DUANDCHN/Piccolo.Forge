@@ -46,10 +46,11 @@ public class StripeDragLayoutTests
         panel.DraggedChild = items[0];
         panel.DropSlotHeight = ItemHeight;
 
-        // 空槽插在剩下两个的中间
-        panel.DropIndex = 1;
+        // 落点在剩下两个的中间：给的是**落点**，插到第几个由排布自己解
+        panel.DropOffset = ItemHeight;
         Layout(panel);
 
+        Assert.Equal(1, panel.DropIndex);
         Assert.Equal(0, items[1].Bounds.Y);          // 空槽之前，不动
         Assert.NotNull(panel.DropSlotRect);
         Assert.Equal(ItemHeight, panel.DropSlotRect!.Value.Y);
@@ -62,15 +63,16 @@ public class StripeDragLayoutTests
         var panel = NewPanel(out var items);
         panel.DraggedChild = items[0];
         panel.DropSlotHeight = ItemHeight;
-        panel.DropIndex = 2;   // 剩两个，插在末尾
+        panel.DropOffset = ItemHeight * 2;   // 剩两个，落在它们下面 = 接末尾
         Layout(panel);
 
+        Assert.Equal(2, panel.DropIndex);
         Assert.NotNull(panel.DropSlotRect);
         Assert.Equal(ItemHeight * 2, panel.DropSlotRect!.Value.Y);
     }
 
     /// <summary>
-    /// 没在拖的时候不留槽——<see cref="StripeItemsPanel.DropIndex"/> 的默认值是 -1。
+    /// 没在拖的时候不留槽——<see cref="StripeItemsPanel.DropOffset"/> 的默认值是 <see langword="null"/>。
     /// </summary>
     [AvaloniaFact]
     public void No_slot_when_nothing_is_being_dragged()
@@ -78,7 +80,33 @@ public class StripeDragLayoutTests
         var panel = NewPanel(out _);
         Layout(panel);
 
+        Assert.Equal(-1, panel.DropIndex);
         Assert.Null(panel.DropSlotRect);
+    }
+
+    /// <summary>
+    /// 空槽的高度只在"有没有"上改变整组尺寸，插在第几个不改变。
+    /// </summary>
+    /// <remarks>
+    /// 这条撑着拖动不卡：落点每动一下只重排本组，**不会**因为期望尺寸变了而一路往上传。
+    /// 往上传播只发生在进出这一组的那两次。
+    /// </remarks>
+    [AvaloniaFact]
+    public void Moving_the_drop_point_within_a_group_does_not_change_its_desired_size()
+    {
+        var panel = NewPanel(out var items);
+        panel.DraggedChild = items[0];
+        panel.DropSlotHeight = ItemHeight;
+
+        panel.DropOffset = 0;
+        Layout(panel);
+        var atFirst = panel.DesiredSize;
+
+        panel.DropOffset = ItemHeight * 2;
+        Layout(panel);
+
+        Assert.Equal(2, panel.DropIndex);   // 落点确实换到了另一格
+        Assert.Equal(atFirst, panel.DesiredSize);
     }
 
     private static StripeItemsPanel NewPanel(out List<Control> items)
