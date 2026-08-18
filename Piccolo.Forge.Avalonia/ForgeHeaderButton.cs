@@ -45,6 +45,7 @@ public class ForgeHeaderButton : Button
         PaletteProperty.Changed.AddClassHandler<ForgeHeaderButton>(
             (x, _) => x.PseudoClasses.Set(":islands", x.Palette.Island is not null));
         AffectsRender<ForgeHeaderButton>(HoverBackgroundBrushProperty);
+        IconContentProperty.Changed.AddClassHandler<ForgeHeaderButton>((x, _) => x.SyncIconSlot());
     }
 
     /// <summary>建一个标题条按钮。</summary>
@@ -79,6 +80,30 @@ public class ForgeHeaderButton : Button
     {
         get => GetValue(IconProperty);
         set => SetValue(IconProperty, value);
+    }
+
+    /// <summary><see cref="IconContent"/> 的属性定义。</summary>
+    public static readonly StyledProperty<Control?> IconContentProperty =
+        AvaloniaProperty.Register<ForgeHeaderButton, Control?>(nameof(IconContent));
+
+    /// <summary>
+    /// 用**一个控件**当图标 —— 给了它就压过 <see cref="Icon"/> 那条（两条路互不影响）。
+    /// </summary>
+    /// <remarks>
+    /// 宿主的图标未必是 <see cref="Geometry"/>：图标包给的多是**字体或控件形态**
+    /// （FluentIcons 的 <c>SymbolIcon</c>、Material 的 <c>MaterialIcon</c> 都是），
+    /// 只收 Geometry 就等于逼宿主去手抄路径 —— 而手抄一次就要处理一次"路径的设计网格
+    /// 与库这边的 16 视框对不对得上"（对不上就是整排图标大一圈）。
+    /// <para>
+    /// 库自带的那三个按钮（⿴ / ⋮ / —）仍走 <see cref="Icon"/>。
+    /// 颜色不用宿主操心：模板里那个图标位就在按钮内，<c>Foreground</c> 照常继承下去，
+    /// 明暗与族切换都跟着 <c>ControlTheme</c> 走。
+    /// </para>
+    /// </remarks>
+    public Control? IconContent
+    {
+        get => GetValue(IconContentProperty);
+        set => SetValue(IconContentProperty, value);
     }
 
     /// <summary>图标是实心的还是描边的；圆点类实心、线条类描边。</summary>
@@ -120,6 +145,16 @@ public class ForgeHeaderButton : Button
     }
 
     private readonly ForgeGeometryIcon _geometryIcon = new();
+    private ContentPresenter? _iconSlot;
+
+    /// <summary>图标位里放谁：宿主给了控件就放它，否则放画 Geometry 的那个。</summary>
+    private void SyncIconSlot()
+    {
+        if (_iconSlot is { } slot)
+        {
+            slot.Content = IconContent ?? (object)_geometryIcon;
+        }
+    }
 
     /// <inheritdoc />
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
@@ -127,11 +162,8 @@ public class ForgeHeaderButton : Button
         base.OnApplyTemplate(e);
 
         // 模板里那个图标位：16×16 居中（HeaderButtonIconSize），由模板自己摆
-        if (e.NameScope.Find<ContentPresenter>("PART_Icon") is { } slot)
-        {
-            slot.Content = _geometryIcon;
-        }
-
+        _iconSlot = e.NameScope.Find<ContentPresenter>("PART_Icon");
+        SyncIconSlot();
         SyncIcon();
     }
 
