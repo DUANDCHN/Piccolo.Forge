@@ -1566,6 +1566,74 @@ public class ForgeEditorControl : TemplatedControl
     }
 
     /// <summary>
+    /// 拖出去之后又拖回源标签行 —— 收掉拖出会话，回到行内重排。
+    /// </summary>
+    /// <remarks>
+    /// ★ <b>两种模式按位置来回切，不是单向闩。</b>★
+    /// 早先照 <c>MouseDragHelper.java:207-217 · myDetachingMode</c> 做成了**一去不回**：
+    /// 往下拖一次就永远是分屏，再拖回标签行也换不了序 —— 实机反馈"拖下去可以、拖上去就不行"。
+    /// 而上游的实际手感是分区域的：**指针在标签行里就是换序，出了这一行才是分屏**，
+    /// 来回移动就在两种模式间来回切。
+    /// <para>
+    /// 余量与出去时同一个 <see cref="DragOutMargin"/> —— 出与回用同一条线，
+    /// 否则会出现"出去了但回不来"的死区（两条线之间那一带）。
+    /// </para>
+    /// </remarks>
+    /// <param name="session">当前的拖出会话。</param>
+    /// <param name="e">指针事件。</param>
+    /// <returns>已经回到行内则为 <see langword="true"/>（调用方就此收手）。</returns>
+    private bool TryReturnToInlineDrag(EditorDockDragSession session, PointerEventArgs e)
+    {
+        if (!_groupStrips.TryGetValue(session.Source, out var stripControl)
+            || stripControl.ItemsPanelRoot is not HeaderTabsPanel strip)
+        {
+            return false;
+        }
+
+        var point = e.GetPosition(stripControl);
+        var rect = new Rect(stripControl.Bounds.Size);
+        var inside = point.X >= 0
+                     && point.X <= rect.Width
+                     && point.Y >= -DragOutMargin
+                     && point.Y <= rect.Height + DragOutMargin;
+        if (!inside)
+        {
+            return false;
+        }
+
+        // 那一页的容器要还在（拖出期间它一直留在源组里，没被搬走）
+        var index = session.Source.Tabs.ToList().FindIndex(x => string.Equals(x.Id, session.TabId, StringComparison.Ordinal));
+        if (index < 0 || stripControl.ContainerFromIndex(index) is not ForgeEditorTab control
+            || strip.SlotOf(control) is not { } origin)
+        {
+            return false;
+        }
+
+        // 收掉拖出会话（不提交任何落点），但**不要放掉指针捕获** —— 手势还没结束
+        session.Ghost?.Close();
+        session.Ghost = null;
+        session.ExternalTarget?.ClearDropHint();
+        session.ExternalTarget = null;
+        _dockDrag = null;
+        _overlay.Clear();
+        _overlay.IsVisible = false;
+        _overlay.InvalidateVisual();
+
+        // 回到行内：拖拽已经在进行中，所以 _dragStarted 直接置真（不再过死区）
+        _dragGroup = session.Source;
+        _dragTab = control;
+        _dragPointer = session.Pointer;
+        _dragId = session.TabId;
+        _dragStarted = true;
+        _holdDelta = session.HoldDelta;
+        _dragOriginalRec = origin;
+        _pressPoint = e.GetPosition(strip);
+
+        DragTo(session.Source, control, e);
+        return true;
+    }
+
+    /// <summary>
     /// 拖出状态下：光标底下是哪一组、落在哪一侧、该高亮哪一块。
     /// </summary>
     /// <remarks>
@@ -1575,6 +1643,12 @@ public class ForgeEditorControl : TemplatedControl
     /// </remarks>
     private void UpdateDockDrag(EditorDockDragSession session, PointerEventArgs e)
     {
+        // 拖回源标签行 → **回到行内重排**（见 TryReturnToInlineDrag）
+        if (TryReturnToInlineDrag(session, e))
+        {
+            return;
+        }
+
         _overlay.IsVisible = true;
         var here = e.GetPosition(this);
 

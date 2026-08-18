@@ -153,6 +153,31 @@ public class EditorTabDragTests
     }
 
     [AvaloniaFact]
+    public void 拖下去再拖回标签行_还是换序不是分屏()
+    {
+        // 回归：两种模式曾经是**单向闩**（照 MouseDragHelper 的 myDetachingMode 做的）——
+        // 往下拖一次就永远是分屏，再拖回标签行也换不了序。
+        // 实机反馈"拖下去可以、拖上去就不行"，而上游是按区域来回切的。
+        var (editor, window, _, a, b) = Shown();
+
+        var press = GrabPoint(a, window);
+        window.MouseDown(press, MouseButton.Left);
+
+        // ① 先拖到标签行下面（进入分屏那条路）
+        window.MouseMove(new Point(press.X + 40, press.Y + 120));
+        Dispatcher.UIThread.RunJobs();
+
+        // ② 再拖回标签行里，越过邻居
+        var back = new Point(press.X + b.Bounds.Width + 5, press.Y);
+        window.MouseMove(back);
+        window.MouseUp(back, MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Single(editor.Area.Groups);                     // 没分屏
+        Assert.Equal(["b", "a", "c"], Order(editor));          // 换序生效了
+    }
+
+    [AvaloniaFact]
     public void Dragging_a_tab_past_its_neighbour_actually_reorders_it()
     {
         var (editor, window, _, a, b) = Shown();
