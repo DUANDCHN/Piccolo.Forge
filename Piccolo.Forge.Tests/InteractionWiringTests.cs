@@ -598,6 +598,23 @@ public class ForgeHeaderButtonIconTests
     }
 
     [AvaloniaFact]
+    public void 图标位比库自带的图标大一圈_给宿主的字体图标留余量()
+    {
+        // 由来：宿主塞进来的多是字体形态的图标，字形的推进宽度不保证正好 1 em ——
+        // 格子与字号等大时右边会被切掉一两个像素（实机撞过两次：条带一次、标题条一次）。
+        // 库自带的 Geometry 不跟着放大：那套路径按 16 网格画，1:1 才锐利。
+        Assert.Equal(20, ForgeMetrics.HeaderButtonIconSlot);
+        Assert.Equal(16, ForgeMetrics.HeaderButtonIconSize);
+        Assert.True(ForgeMetrics.HeaderButtonIconSlot < ForgeMetrics.HeaderButtonSize, "图标位不能大过按钮本身");
+
+        var button = new ForgeHeaderButton { Icon = ForgeIcons.MoreVertical };
+        Show(button);
+
+        var icon = button.GetVisualDescendants().OfType<ForgeGeometryIcon>().Single();
+        Assert.Equal(new Size(16, 16), icon.Bounds.Size);
+    }
+
+    [AvaloniaFact]
     public void 禁用时整颗压暗()
     {
         // 标题条上的动作按钮是纯图标、没有文字的，"能不能用"只剩深浅这一条线索。

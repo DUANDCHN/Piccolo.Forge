@@ -138,8 +138,24 @@ public static class ForgeMetrics
     /// <summary>浮动 / 独立窗口量不到停靠尺寸时的兜底高度，理由同 <see cref="DefaultExternalWidth"/>。</summary>
     public const double DefaultExternalHeight = 360;
 
-    /// <summary>标题条按钮里图标的边长 16（新 UI 的动作图标标准尺寸）。</summary>
+    /// <summary>标题条按钮里**库自带 Geometry** 画多大：边长 16（新 UI 的动作图标标准尺寸）。</summary>
+    /// <remarks>
+    /// 这套路径就是按 16 网格画的，1:1 落进 16 的框才逐像素锐利 —— 别拿
+    /// <see cref="HeaderButtonIconSlot"/> 去缩放它（非整数缩放会把 2px 的方点推到半像素上）。
+    /// </remarks>
     public const double HeaderButtonIconSize = 16;
+
+    /// <summary>标题条按钮里那一格**放东西的地方**：边长 20。</summary>
+    /// <remarks>
+    /// 比 <see cref="HeaderButtonIconSize"/> 大一圈是**给宿主的图标留的余量**：
+    /// 宿主塞进来的多是**字体形态**的图标（图标包给的 <c>SymbolIcon</c> 这类），
+    /// 而字形的推进宽度不保证正好 1 em —— 格子与字号等大时**右边会被切掉一两个像素**（实机撞过）。
+    /// <para>
+    /// 库自带的 ⿴ / ⋮ / — 不受影响：它们仍按 <see cref="HeaderButtonIconSize"/> 画，
+    /// 只是在这一格里居中。20 仍小于按钮本身（<see cref="HeaderButtonSize"/> = 24），四周还留得下。
+    /// </para>
+    /// </remarks>
+    public const double HeaderButtonIconSlot = 20;
 
     /// <summary>标题条按钮悬停底的圆角 4（<c>JBUI.CurrentTheme.ActionButton</c> 那一档，比条带按钮的 12 小）。</summary>
     public const double HeaderButtonArc = 4;

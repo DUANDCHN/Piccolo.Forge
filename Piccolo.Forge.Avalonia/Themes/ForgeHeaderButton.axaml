@@ -1,4 +1,4 @@
-<!--  ★ 标题条右侧那排小按钮（⿴ 停靠 / ⋮ 选项 / — 收起）。★ **真模板**
+﻿<!--  ★ 标题条右侧那排小按钮（⿴ 停靠 / ⋮ 选项 / — 收起）。★ **真模板**
       悬停与按下同一个底色（ActionButton.hoverBackground）。
       ⚠ 圆角这里直接用 ForgeMetrics.HeaderButtonArc = 4 当**半径**，
         与条带按钮那边"Arc 是直径、要折半"的规矩不一致——照抄原实现，不在本需求里"顺手修正"，
@@ -26,13 +26,16 @@
                         IsVisible="False"
                         Name="PART_Background" />
 
-                    <!--  图标位：16×16 居中（ForgeMetrics.HeaderButtonIconSize）  -->
+                    <!--  图标位：20×20 居中（ForgeMetrics.HeaderButtonIconSlot）。
+                          ⚠ 比库自带 Geometry 的 16 大一圈是**给宿主的图标留余量**：
+                            字体形态的图标推进宽度不保证正好 1 em，格子与字号等大就切右边（撞过）。
+                            库自带那几个仍按 16 画（ForgeHeaderButton 给了固定尺寸），观感不变。  -->
                     <ContentPresenter
-                        Height="16"
+                        Height="20"
                         HorizontalAlignment="Center"
                         Name="PART_Icon"
                         VerticalAlignment="Center"
-                        Width="16" />
+                        Width="20" />
                 </Panel>
             </ControlTemplate>
         </Setter>

@@ -164,7 +164,16 @@ public class ForgeHeaderButton : Button
         _geometryIcon.InkScale = IconInkScale;
     }
 
-    private readonly ForgeGeometryIcon _geometryIcon = new();
+    /// <remarks>
+    /// 固定 16（<see cref="ForgeMetrics.HeaderButtonIconSize"/>）而不是跟着图标位走：
+    /// 这套路径按 16 网格画，1:1 才锐利；图标位放大到 20 是给**宿主的**字体图标留余量，
+    /// 库自带的跟着放大只会被非整数缩放弄虚。
+    /// </remarks>
+    private readonly ForgeGeometryIcon _geometryIcon = new()
+    {
+        Width = ForgeMetrics.HeaderButtonIconSize,
+        Height = ForgeMetrics.HeaderButtonIconSize,
+    };
     private ContentPresenter? _iconSlot;
 
     /// <summary>图标位里放谁：宿主给了控件就放它，否则放画 Geometry 的那个。</summary>
