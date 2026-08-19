@@ -82,6 +82,7 @@ net8.0 / Avalonia 12.1.1，`TreatWarningsAsErrors` 与 `GenerateDocumentationFil
 - 右键菜单、「更多」弹窗、浮动窗口淡出定时器
 - Alt 双击并按住临时浮出条带的状态机（键盘钩子留给宿主接）
 - **编辑区**：标签页（选中/固定/关闭/上限淘汰）、二叉分屏树、关闭后选谁的完整规则
+- 编辑区背板：一张文档都没开时露出来的那一层（宿主给工厂，分屏后每个叶子各一份）
 - 宿主接入：`ToolWindowShellViewModel` + `frame.Attach(shell)`，
   面板内容塞 `object`，视图由宿主自己的 ViewLocator / DataTemplate 解析；
   **开关面板不会重建任何已有控件**（有用例数构造次数钉住）

@@ -31,6 +31,12 @@ public class ForgeEditorControl : TemplatedControl
     /// <summary>标签条底下那条 1px 线（**压在内容上、不占高度**，见建它的地方）。</summary>
     private readonly Dictionary<EditorGroupViewModel, Border> _groupStripLines = [];
     private readonly Dictionary<EditorGroupViewModel, ContentControl> _groupBodies = [];
+
+    /// <summary>正文层：<c>[背板 | 正文]</c> 叠在一起的那个 Panel（见 <see cref="BackplateFactory"/>）。</summary>
+    private readonly Dictionary<EditorGroupViewModel, Panel> _groupBodyLayers = [];
+
+    /// <summary>各组当前那份背板（工厂没给就没有这一项）。</summary>
+    private readonly Dictionary<EditorGroupViewModel, Control> _groupBackplates = [];
     private readonly Dictionary<EditorGroupViewModel, StackPanel> _groupActions = [];
     // IntelliJ/Rider 的整个文档区是一座连续的 editor island；分屏叶子只是
     // 这座岛内部的 EditorWindow，不能各自再套 Margin/圆角，否则拆分后会
@@ -263,6 +269,69 @@ public class ForgeEditorControl : TemplatedControl
     // 对位上游 DockManagerImpl / DockableEditorTabbedContainer：把标签拖离所有容器，
     // 就新开一个窗口装着它；拖到别的容器上，就交给那个容器。
     // 浮窗里是**一整个编辑区**（能再开标签、能分屏），不是"单文档窗口"。
+
+    private Func<Control>? _backplateFactory;
+
+    /// <summary>
+    /// 背板内容：编辑区**空着的时候**露出来的那一层（宿主的软件图标 / 水印那类）。
+    /// </summary>
+    /// <remarks>
+    /// 是个**工厂**而不是一个控件：分屏之后每个叶子都要一份，而一个控件只能有一个父。
+    /// <para>
+    /// ⚠ <b>只在这一组一张文档都没开时才画。</b>直觉上背板该一直铺着、开了文档自然被盖住 ——
+    /// 但**文档内容允许透明底**：编辑区底色本来就是给它们当底用的（<see cref="EditorBackgroundBrush"/>
+    /// 的说明写着这件事），宿主的文档页普遍不自己画底。一直画的话背板会从正文底下透出来，
+    /// 表现为"图像四周一圈水印"。
+    /// </para>
+    /// <para>
+    /// 可以在控件接上 <see cref="Editor"/> **之后**再配（同 <see cref="ExternalWindowFactory"/>：
+    /// 宿主的外观都是建好控件才补的），已经建出来的那些组会当场跟上。
+    /// </para>
+    /// </remarks>
+    public Func<Control>? BackplateFactory
+    {
+        get => _backplateFactory;
+        set
+        {
+            if (ReferenceEquals(_backplateFactory, value))
+            {
+                return;
+            }
+
+            _backplateFactory = value;
+            foreach (var vm in _groupBodyLayers.Keys.ToList())
+            {
+                ApplyBackplate(vm);
+            }
+        }
+    }
+
+    /// <summary>把当前工厂的背板换到某一组的正文层上（工厂为空 = 摘掉）。</summary>
+    private void ApplyBackplate(EditorGroupViewModel vm)
+    {
+        if (!_groupBodyLayers.TryGetValue(vm, out var layer))
+        {
+            return;
+        }
+
+        if (_groupBackplates.Remove(vm, out var previous))
+        {
+            layer.Children.Remove(previous);
+        }
+
+        if (_backplateFactory?.Invoke() is not { } backplate)
+        {
+            return;
+        }
+
+        // 背板不接鼠标：点在编辑区空白处仍然只是"点进编辑区"（见 OnEditorPointerPressed）。
+        backplate.IsHitTestVisible = false;
+        backplate.IsVisible = vm.Tabs.Count == 0;
+
+        // 插在最前 = 画在正文之下。
+        layer.Children.Insert(0, backplate);
+        _groupBackplates[vm] = backplate;
+    }
 
     private readonly Dictionary<Window, ForgeEditorControl> _floatingWindows = [];
     private ForgeEditorControl? _floatingOwner;
@@ -832,6 +901,8 @@ public class ForgeEditorControl : TemplatedControl
             _groupStripHosts.Remove(group);
             _groupStripLines.Remove(group);
             _groupBodies.Remove(group);
+            _groupBodyLayers.Remove(group);
+            _groupBackplates.Remove(group);
             _groupActions.Remove(group);
         }
     }
@@ -1061,9 +1132,15 @@ public class ForgeEditorControl : TemplatedControl
             var body = new ContentControl();
             _groupBodies[vm] = body;
 
+            // 正文层 = [背板 | 正文]。背板在下，见 BackplateFactory。
+            var bodyLayer = new Panel();
+            bodyLayer.Children.Add(body);
+            _groupBodyLayers[vm] = bodyLayer;
+            ApplyBackplate(vm);
+
             var panel = new DockPanel();
             panel.Children.Add(stripHost);
-            panel.Children.Add(body);
+            panel.Children.Add(bodyLayer);
 
             // Dock.Avalonia 的 DocumentControl 把整个 PART_DockPanel 设成透明 DropArea。
             // Border 默认无背景时，正文空白处可能根本命不中视觉元素，
@@ -1087,6 +1164,12 @@ public class ForgeEditorControl : TemplatedControl
 
         // 选中的那一页的内容挂到组的正文槽上
         _groupBodies[vm].Content = vm.Selected is { } selected ? GetContentHost(vm, selected) : null;
+
+        // 背板只在这一组一张文档都没开时露出来（理由见 BackplateFactory）
+        if (_groupBackplates.TryGetValue(vm, out var backplate))
+        {
+            backplate.IsVisible = vm.Tabs.Count == 0;
+        }
 
         // 就地摘：调用方（Grid 或 _root）马上就要收养它。理由见 Detach 的说明。
         Detach(host);
