@@ -1,3 +1,5 @@
+﻿using System.Collections.Generic;
+
 namespace Piccolo.Forge.Model;
 
 /// <summary>
@@ -85,6 +87,18 @@ public sealed record WindowInfo
 
     /// <summary>浮动时的位置与尺寸；<see langword="null"/> 表示未定义（<c>WindowInfoImpl.kt:52-53</c>）。</summary>
     public FloatingBounds? FloatingBounds { get; init; }
+
+    /// <summary>
+    /// 标题条上那排内容 tab 的**顺序**（内容 id，从左到右）；空 = 没有内容 tab / 没排过。
+    /// </summary>
+    /// <remarks>
+    /// 内容本身（有哪几块、叫什么）是宿主在登记时给的，不进存档；这里只存**用户拖出来的顺序**。
+    /// 恢复时按这份把已登记的内容重排，存档里有、当前没有的 id 直接跳过
+    /// （宿主改过内容集合，比如换版本删了一块）。
+    /// <para>⚠ 与其它字段不同，这一支不是 <c>WindowInfo</c> 自己变出来的：
+    /// 它由外壳在存盘前从各面板的 <c>Contents</c> 抓一次（见 <c>ToolWindowShellViewModel.SaveLayout</c>）。</para>
+    /// </remarks>
+    public IReadOnlyList<string> ContentOrder { get; init; } = [];
 
     /// <summary>是否来自持久化设置，不参与持久化（<c>WindowInfoImpl.kt:102-104</c>，<c>@Transient</c>）。</summary>
     public bool IsFromPersistentSettings { get; init; } = true;

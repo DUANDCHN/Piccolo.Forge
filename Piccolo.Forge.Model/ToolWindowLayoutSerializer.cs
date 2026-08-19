@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using System.Linq;
 using System.Xml.Linq;
 
 namespace Piccolo.Forge.Model;
@@ -127,6 +128,12 @@ public static class ToolWindowLayoutSerializer
         Set(element, "toolWindowPaneId",
             !string.Equals(info.PaneId, WindowInfo.DefaultPaneId, StringComparison.Ordinal), () => info.PaneId);
 
+        // 标题条上那排内容 tab 的顺序：逗号分隔的内容 id。没有内容 tab 的面板不写这一项。
+        // ⚠ 内容 id 由宿主定，理论上可能带逗号 —— 真带了就不存（宁可丢顺序，也不写一份读回来是错的）。
+        Set(element, "content_order",
+            info.ContentOrder.Count > 0 && !info.ContentOrder.Any(id => id.Contains(',', StringComparison.Ordinal)),
+            () => string.Join(',', info.ContentOrder));
+
         // floatingBounds 是扁平展开的四个属性（WindowInfoImpl.kt:52-53）
         if (info.FloatingBounds is { } bounds)
         {
@@ -161,10 +168,19 @@ public static class ToolWindowLayoutSerializer
             SideWeight = Single(element, "sideWeight", 0.5f),
             Order = (int)Single(element, "order", -1),
             FloatingBounds = ReadBounds(element),
+            ContentOrder = ReadContentOrder(element),
         };
 
         return info;
     }
+
+    /// <summary>读回内容 tab 的顺序；没有这一项就是空表。</summary>
+    /// <param name="element">面板那个元素。</param>
+    /// <returns>内容 id，从左到右。</returns>
+    private static IReadOnlyList<string> ReadContentOrder(XElement element)
+        => (string?)element.Attribute("content_order") is { Length: > 0 } raw
+            ? raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            : [];
 
     private static FloatingBounds? ReadBounds(XElement element)
     {
