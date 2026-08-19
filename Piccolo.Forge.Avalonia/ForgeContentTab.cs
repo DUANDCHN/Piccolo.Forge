@@ -45,7 +45,8 @@ public class ForgeContentTab : TabStripItem
 
     static ForgeContentTab()
     {
-        AffectsMeasure<ForgeContentTab>(TitleProperty, CanBeClosedProperty, TitleFontSizeProperty, IconSizeProperty);
+        AffectsMeasure<ForgeContentTab>(
+            TitleProperty, CanBeClosedProperty, TitleFontSizeProperty, TitleFontWeightProperty, IconSizeProperty);
 
         // ⚠ 这里原来还有一串 AffectsRender（Palette / Title / IsSelected / …）。
         //   现在 Render 只剩铺命中区，画面全由模板子元素出，重画由**伪类变化触发样式重算**驱动，
@@ -134,6 +135,14 @@ public class ForgeContentTab : TabStripItem
     public static readonly StyledProperty<double> TitleFontSizeProperty =
         AvaloniaProperty.Register<ForgeContentTab, double>(nameof(TitleFontSize), 12);
 
+    /// <summary><see cref="TitleFontWeight"/> 的属性定义。</summary>
+    /// <remarks>
+    /// 默认 <see cref="FontWeight.Normal"/>（上游那一档）；由 <c>ForgeContentTabStrip.TitleFontWeight</c>
+    /// 统一给值，与文档标签（<c>ForgeEditorTab</c>）的那支同源，两处标签才不会一粗一细。
+    /// </remarks>
+    public static readonly StyledProperty<FontWeight> TitleFontWeightProperty =
+        AvaloniaProperty.Register<ForgeContentTab, FontWeight>(nameof(TitleFontWeight), FontWeight.Normal);
+
     /// <summary><see cref="TitleMargin"/> 的属性定义。</summary>
     public static readonly StyledProperty<Thickness> TitleMarginProperty =
         AvaloniaProperty.Register<ForgeContentTab, Thickness>(
@@ -171,6 +180,17 @@ public class ForgeContentTab : TabStripItem
     {
         get => GetValue(TitleFontSizeProperty);
         set => SetValue(TitleFontSizeProperty, value);
+    }
+
+    /// <summary>标题字重。</summary>
+    /// <remarks>
+    /// 与 <see cref="TitleFontSize"/> 同一条约束：**量宽度用的字形必须和画出来的一致**
+    /// （<see cref="MeasureTitle"/> 与模板里那个 <c>TextBlock</c>），否则 tab 宽与字对不上。
+    /// </remarks>
+    public FontWeight TitleFontWeight
+    {
+        get => GetValue(TitleFontWeightProperty);
+        set => SetValue(TitleFontWeightProperty, value);
     }
 
     /// <summary>标题相对 tab 的位置：左边留 <see cref="Inset"/>，竖直居中。</summary>
@@ -396,7 +416,7 @@ public class ForgeContentTab : TabStripItem
             Title,
             System.Globalization.CultureInfo.CurrentCulture,
             FlowDirection.LeftToRight,
-            ResolveTypeface(),
+            ResolveTypeface(TitleFontWeight),
             TitleFontSize,
             Brushes.Transparent);
     }

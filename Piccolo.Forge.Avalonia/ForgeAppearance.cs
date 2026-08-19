@@ -96,6 +96,15 @@ public sealed record ForgeAppearance
     public FontWeight HeaderTitleFontWeight { get; init; } = FontWeight.Normal;
 
     /// <summary>
+    /// 面板标题条上那行**面板名**的字号；<see cref="double.NaN"/> = 不覆盖，走控件默认（12）。
+    /// </summary>
+    /// <remarks>
+    /// ⚠ 只管**面板名**。标题条上的内容标签（<c>ForgeContentTab</c>）与文档标签
+    /// （<c>ForgeEditorTab</c>）各有各的字号，不吃这一支 —— 三者本来就允许不一样大。
+    /// </remarks>
+    public double HeaderTitleFontSize { get; init; } = double.NaN;
+
+    /// <summary>
     /// 停靠着的面板标题条多高；<see cref="double.NaN"/> = 不指定，走上游那两档（紧凑 31 / 常规 41）。
     /// </summary>
     /// <remarks>

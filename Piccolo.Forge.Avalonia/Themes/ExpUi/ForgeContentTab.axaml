@@ -1,4 +1,4 @@
-<!--  ★ 面板标题条上的内容标签（工具窗口模型.md §13.1）。★ **真模板**
+﻿<!--  ★ 面板标题条上的内容标签（工具窗口模型.md §13.1）。★ **真模板**
       悬停底铺满整块；选中时底边一条下划线，高 3、圆角直径 4（折半给 Avalonia）。
       窗口失焦时下划线换成 inactive 那档（ToolWindowTabPainter）。
       位置由 UnderlineMargin 给 —— 值仍出自 ComputeUnderlineRect，那里记着
@@ -46,6 +46,7 @@
                             与分隔线那半个像素同一类（见 ForgeStripeSeparator.LineMargin）。  -->
                     <TextBlock
                         FontSize="{TemplateBinding TitleFontSize}"
+                        FontWeight="{TemplateBinding TitleFontWeight}"
                         Foreground="{TemplateBinding Foreground}"
                         HorizontalAlignment="Left"
                         Margin="{TemplateBinding TitleMargin}"

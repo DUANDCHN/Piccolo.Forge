@@ -2203,6 +2203,15 @@ public class ForgeControl : TemplatedControl
         header.Title = vm.Title;
         header.TitleFontWeight = Appearance.HeaderTitleFontWeight;
 
+        // 面板名的字号：宿主没给（NaN）就保持控件默认，别把 NaN 写进去。
+        if (!double.IsNaN(Appearance.HeaderTitleFontSize))
+        {
+            header.TitleFontSize = Appearance.HeaderTitleFontSize;
+        }
+
+        // 标题条上的内容标签与文档标签共用同一支字重（宿主要的是"两处标签一样粗"）。
+        header.Tabs.TitleFontWeight = Appearance.TabTitleFontWeight;
+
         // 标题条坐在岛顶上：跟着岛磨圆上面两个角，否则它会把那两段弧盖掉（见 TopCornerRadius）。
         // 减掉描边自己占的 1px —— 内圆角比外圆角小这一圈。
         header.TopCornerRadius = (Appearance.IslandMetrics ?? Palette.Island) is { } island && Palette.Island is not null

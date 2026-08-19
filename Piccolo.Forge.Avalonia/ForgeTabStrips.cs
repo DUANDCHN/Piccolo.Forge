@@ -271,6 +271,32 @@ public sealed class ForgeContentTabStrip : TabStrip
     }
 
     internal ForgePalette Palette { get; set; } = ForgePalette.ExpUiDark;
+
+    /// <summary>标签标题的字重 —— 宿主经 <c>ForgeAppearance.TabTitleFontWeight</c> 给，与文档标签同一支。</summary>
+    /// <remarks>
+    /// 赋值时**连已经造出来的标签一起刷**：宿主是在同步外观时给这个值的，那时容器往往已经建好，
+    /// 只写字段的话要等下一次重新绑定才生效（表现为"重启才变粗"）。
+    /// </remarks>
+    internal FontWeight TitleFontWeight
+    {
+        get;
+        set
+        {
+            if (field == value)
+            {
+                return;
+            }
+
+            field = value;
+            for (var i = 0; i < ItemCount; i++)
+            {
+                if (ContainerFromIndex(i) is ForgeContentTab tab)
+                {
+                    tab.TitleFontWeight = value;
+                }
+            }
+        }
+    } = FontWeight.Normal;
     internal bool IsWindowActive { get; set; }
 
     /// <inheritdoc />
@@ -371,6 +397,7 @@ public sealed class ForgeContentTabStrip : TabStrip
         {
             tab.Palette = Palette;
             tab.Title = content.DisplayName;
+            tab.TitleFontWeight = TitleFontWeight;
             tab.IsSelected = manager.SelectedContent?.Id == content.Id;
             tab.IsWindowActive = IsWindowActive;
             tab.IsSoleContent = manager.IsSoleContent;
