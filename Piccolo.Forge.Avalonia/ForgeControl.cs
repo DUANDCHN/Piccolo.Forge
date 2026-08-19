@@ -2240,7 +2240,10 @@ public class ForgeControl : TemplatedControl
             return;
         }
 
-        var menu = ForgeMenuBuilder.ForHeaderOptions(shell.Manager, id, HeaderMenuExtension, SupportedViewModes);
+        // 把这块面板的内容（标题条上那排 tab）一并交给菜单：⋮ 是"这块面板还能干什么"的兜底入口，
+        // 面板窄到 tab 排不下时，那里就是唯一还能切块的地方。只有一块时菜单侧自己不出。
+        var contents = shell.ToolWindows.FirstOrDefault(x => string.Equals(x.Id, id, StringComparison.Ordinal))?.Contents;
+        var menu = ForgeMenuBuilder.ForHeaderOptions(shell.Manager, id, HeaderMenuExtension, SupportedViewModes, contents);
 
         // 挂在 ⋮ 那个按钮上弹，位置才对得上（挂在整条标题条上会从鼠标处弹）
         menu.PlacementTarget = header.OptionsButton;

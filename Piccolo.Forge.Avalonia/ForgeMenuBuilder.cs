@@ -56,12 +56,17 @@ public static class ForgeMenuBuilder
     /// 「视图模式」里列哪几种；不给就只列停靠固定。视图层应当只给它**画得出来**的那些
     /// （<c>ForgeControl.SupportedViewModes</c>）。
     /// </param>
+    /// <param name="contents">
+    /// 这个工具窗口装的几块内容。给了且**多于一块**时，菜单最前面排出那几块（单选带 ✓）+ 一条分隔线，
+    /// 让 ⋮ 也能切块 —— 标题条上那排 tab 在面板窄的时候会被挤掉。只有一块或不给就不出这一段。
+    /// </param>
     /// <returns>菜单。</returns>
     public static ContextMenu ForHeaderOptions(
         ToolWindowManager manager,
         string id,
         Action<ContextMenu, string>? extend = null,
-        IReadOnlyList<ToolWindowViewMode>? viewModes = null)
+        IReadOnlyList<ToolWindowViewMode>? viewModes = null,
+        ToolWindowContentManager? contents = null)
     {
         ArgumentNullException.ThrowIfNull(manager);
         ArgumentNullException.ThrowIfNull(id);
@@ -69,8 +74,50 @@ public static class ForgeMenuBuilder
         var menu = Build(
             ToolWindowContextMenu.ForHeaderOptions(viewModes ?? [ToolWindowViewMode.DockPinned]),
             manager, id, static () => { }, showNames: false);
+        PrependContents(menu, contents);
         extend?.Invoke(menu, id);
         return menu;
+    }
+
+    /// <summary>
+    /// 装了多块内容的工具窗口，把那几块排在菜单**最前面** + 一条分隔线。
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>为什么补这一段。</b>标题条上那排 tab 在面板窄的时候会被挤掉一部分，
+    /// 而 ⋮ 菜单是"这块面板还能干什么"的兜底入口 —— 它原先只列布局相关的三项
+    /// （视图模式 / 移至 / 从边栏中移除），**唯独没有"切到哪一块"**。
+    /// 编辑区那边的标签菜单一直是有的，两处形态不一致。
+    /// </para>
+    /// <para>
+    /// <b>只有一块时不出</b>：那时"切到哪一块"没有选项可言，多一条分隔线只是噪音。
+    /// </para>
+    /// <para>
+    /// 位置在最前、且在宿主的 <c>extend</c> 之前跑 —— 宿主若也要插到最前
+    /// （<c>Insert(0, …)</c>），它的项会排在内容之前。这与上游 <c>additionalGearActions</c>
+    /// 的位置一致：宿主的动作最优先，其次才是"这个面板的几块内容"。
+    /// </para>
+    /// </remarks>
+    private static void PrependContents(ContextMenu menu, ToolWindowContentManager? contents)
+    {
+        if (contents is null || contents.Contents.Count <= 1)
+        {
+            return;
+        }
+
+        var index = 0;
+        foreach (var content in contents.Contents)
+        {
+            var contentId = content.Id;
+            var item = Item(content.DisplayName, () => contents.Select(contentId));
+
+            // 单选带 ✓：与「视图模式」那组同一形态 —— 它们都是"当前是哪一个"。
+            item.ToggleType = MenuItemToggleType.Radio;
+            item.IsChecked = contents.SelectedContent?.Id == contentId;
+            menu.Items.Insert(index++, item);
+        }
+
+        menu.Items.Insert(index, new Separator());
     }
 
     /// <summary>

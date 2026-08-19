@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Piccolo.Forge.Avalonia;
@@ -215,6 +216,81 @@ public class HeaderButtonsTests
             shell.Manager, "相机列表", (m, _) => m.Items.Insert(0, new MenuItem { Header = "从编辑器自动滚动" }));
         Assert.Equal("从编辑器自动滚动", (prepended.Items[0] as MenuItem)?.Header);
 
+        window.Close();
+    }
+
+    /// <summary>
+    /// 装了多块内容的面板，⋮ 菜单**最前面**排出那几块 + 一条分隔线。
+    /// </summary>
+    /// <remarks>
+    /// 由来：标题条上那排 tab 在面板窄的时候会被挤掉一部分，而 ⋮ 是"这块面板还能干什么"的
+    /// 兜底入口 —— 它原先只有布局三项，**唯独没有"切到哪一块"**，而编辑区那边的标签菜单一直有。
+    /// 两处形态不一致，用户会以为这块面板就只有当前这一块内容。
+    /// </remarks>
+    [AvaloniaFact]
+    public void 多块内容时菜单最前面列出那几块()
+    {
+        var (window, _, shell) = Build();
+
+        var contents = new ToolWindowContentManager();
+        contents.Add(new ToolWindowContent("basic", "基础统计", IsCloseable: false));
+        contents.Add(new ToolWindowContent("quality", "质量指标", IsCloseable: false));
+        contents.Select("quality");
+
+        var menu = ForgeMenuBuilder.ForHeaderOptions(
+            shell.Manager, "相机列表", viewModes: ForgeControl.SupportedViewModes, contents: contents);
+
+        var headers = menu.Items.OfType<MenuItem>().Select(x => x.Header as string).ToList();
+        Assert.Equal(["基础统计", "质量指标", "视图模式", "移至", "从边栏中移除"], headers);
+
+        // 分隔线把"内容"和"布局"分开：第 3 项（下标 2）就是它
+        Assert.IsType<Separator>(menu.Items[2]);
+
+        // 单选带 ✓，且勾的是当前选中那块
+        var checkedItems = menu.Items.OfType<MenuItem>().Where(x => x.IsChecked).ToList();
+        Assert.Single(checkedItems);
+        Assert.Equal("质量指标", checkedItems[0].Header);
+
+        window.Close();
+    }
+
+    /// <summary>
+    /// 只有一块内容时不出这一段 —— 那时"切到哪一块"没有选项可言，多一条分隔线只是噪音。
+    /// </summary>
+    [AvaloniaFact]
+    public void 只有一块内容时不列()
+    {
+        var (window, _, shell) = Build();
+
+        var contents = new ToolWindowContentManager();
+        contents.Add(new ToolWindowContent("only", "唯一一块", IsCloseable: false));
+
+        var headers = ForgeMenuBuilder.ForHeaderOptions(shell.Manager, "相机列表", contents: contents)
+            .Items.OfType<MenuItem>()
+            .Select(x => x.Header as string)
+            .ToList();
+
+        Assert.Equal(["视图模式", "移至", "从边栏中移除"], headers);
+        window.Close();
+    }
+
+    /// <summary>点菜单里的一块内容 = 切到那一块。</summary>
+    [AvaloniaFact]
+    public void 点菜单里的内容会切过去()
+    {
+        var (window, _, shell) = Build();
+
+        var contents = new ToolWindowContentManager();
+        contents.Add(new ToolWindowContent("basic", "基础统计", IsCloseable: false));
+        contents.Add(new ToolWindowContent("frame", "帧信息", IsCloseable: false));
+        contents.Select("basic");
+
+        var menu = ForgeMenuBuilder.ForHeaderOptions(shell.Manager, "相机列表", contents: contents);
+        // 菜单项挂的是 Click（ForgeMenuBuilder.Item），不是 Command —— 直接触发点击
+        var frame = menu.Items.OfType<MenuItem>().First(x => (string?)x.Header == "帧信息");
+        frame.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+
+        Assert.Equal("frame", contents.SelectedContent?.Id);
         window.Close();
     }
 
