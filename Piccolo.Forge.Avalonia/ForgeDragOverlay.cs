@@ -1,5 +1,6 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
 using Avalonia.Media;
 using Piccolo.Forge.Themes;
 
@@ -129,8 +130,18 @@ public class ForgeDragOverlay : Control
     /// 尺寸取整：<see cref="global::Avalonia.Media.Imaging.RenderTargetBitmap"/> 要像素尺寸。
     /// </remarks>
     /// <param name="control">要拍的控件。</param>
+    /// <param name="foreground">
+    /// 拍这一张时临时改用的前景；<see langword="null"/> = 用它此刻本来的颜色。
+    /// <para>
+    /// 条带图标要用它：**开着的**那个面板，它的按钮是激活态、图标是白的
+    /// （<c>ToolWindow.Button.selectedForeground</c>，四套主题都是 <c>#FFFFFF</c>），
+    /// 而拖影的背板是**悬停**那一档底色 —— 白图标落在浅色主题的浅灰背板上几乎看不见
+    /// （用户实机提的）。拖影画的是"这颗按钮被拎起来"的常规样子，不是它的激活态，
+    /// 所以前景该跟着背板一起退回常规那一档（<c>ForgeSquareButtonBase.IdleForeground</c>）。
+    /// </para>
+    /// </param>
     /// <returns>位图；控件小于 1px 时为 <see langword="null"/>。</returns>
-    public static global::Avalonia.Media.Imaging.RenderTargetBitmap? CaptureThumb(Control control)
+    public static global::Avalonia.Media.Imaging.RenderTargetBitmap? CaptureThumb(Control control, IBrush? foreground = null)
     {
         ArgumentNullException.ThrowIfNull(control);
 
@@ -143,15 +154,51 @@ public class ForgeDragOverlay : Control
         var bitmap = new global::Avalonia.Media.Imaging.RenderTargetBitmap(
             new PixelSize((int)Math.Ceiling(size.Width), (int)Math.Ceiling(size.Height)));
 
-        // ⚠ 先清一次再画：新建的位图**不保证是透明的**（实测拿到的是黑底）。
-        //   拍整颗按钮时看不出来——它自己画了底；拍一个只有笔画的图标就露馅：
-        //   图标周围一圈黑块（用户实机提的）。CreateDrawingContext 会把表面清空。
-        using (bitmap.CreateDrawingContext())
+        // ⚠ 拍之前把文本渲染改成**灰度**抗锯齿。
+        //   字体图标（条带上的 SymbolIcon 就是）默认走 LCD 子像素抗锯齿，那套算法**假定目标
+        //   有一层不透明的底**；画进这张透明位图里，笔画有一部分会落成**不透明纯黑**——
+        //   实测一个 24×24 的图标里 60 个像素是 (0,0,0,255)。屏幕上看不出来（窗口底是实的），
+        //   一进拖影就露馅：图标带一圈黑块（用户实机提的）。灰度抗锯齿不依赖底色，实测归零。
+        // ⚠ 这里**曾经**是「先 CreateDrawingContext 清空一次」，按的是"新建位图不透明"那个猜测。
+        //   那段是无效代码：RenderTargetBitmap.Render 自己就会清空目标——实测先填成纯白，
+        //   Render 之后白也没了，而黑像素照旧。底色从来不是这件事的原因。
+        // 拍完把整份 TextOptions 原样写回（它是一个结构，取回来的就是这颗控件此刻生效的那份）。
+        var oldOptions = TextOptions.GetTextOptions(control);
+        TextOptions.SetTextRenderingMode(control, TextRenderingMode.Antialias);
+
+        // 前景同理：改成局部值拍一张，拍完撤回去 —— 撤成"没设过"而不是写回旧值，
+        // 因为它本来是**继承**按钮的（宿主给的图标控件自己不设色），写回会把继承钉死。
+        var hadForeground = control.IsSet(TextElement.ForegroundProperty);
+        var oldForeground = TextElement.GetForeground(control);
+
+        if (foreground is not null)
         {
-            // 只为清空，什么都不画
+            // 写下就能拍：属性继承是当场往下传的，不用再排一次布局（实测 SymbolIcon 上
+            // 加不加 UpdateLayout 拍出来一样）——拖动起手这一帧本来就紧，能不排就不排。
+            TextElement.SetForeground(control, foreground);
         }
 
-        bitmap.Render(control);
+        try
+        {
+            bitmap.Render(control);
+        }
+        finally
+        {
+            TextOptions.SetTextOptions(control, oldOptions);
+
+            if (foreground is not null)
+            {
+                if (hadForeground)
+                {
+                    TextElement.SetForeground(control, oldForeground);
+                }
+                else
+                {
+                    control.ClearValue(TextElement.ForegroundProperty);
+                }
+            }
+        }
+
         return bitmap;
     }
 

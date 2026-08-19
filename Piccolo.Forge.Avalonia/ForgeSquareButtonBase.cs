@@ -576,6 +576,22 @@ public abstract class ForgeSquareButtonBase : Button
     /// <returns>前景色。</returns>
     public virtual Color ResolveForeground() => Palette.ButtonForeground;
 
+    /// <summary>
+    /// 常规（没被激活、没被悬停）那一档前景。
+    /// </summary>
+    /// <remarks>
+    /// 给拖影用（<c>ForgeDragOverlay.CaptureThumb</c> 的 <c>foreground</c>）：跟手的那块图标
+    /// 画的是"这颗按钮被拎起来"的常规样子——背板取的是悬停底色，前景就该取同一档，
+    /// 否则开着的面板拖起来是**激活态的白图标**落在浅灰背板上，浅色主题里几乎看不见
+    /// （用户实机提的）。
+    /// <para>
+    /// 与 <see cref="ResolveForeground"/> 分开而不是让它加参数：那个方法回答的是
+    /// "此刻该画什么颜色"（子类按激活态翻档），这个回答的是"常规那一档是什么颜色"，
+    /// 两个问题不同，合并会让子类的覆写语义变模糊。
+    /// </para>
+    /// </remarks>
+    public Color IdleForeground => Palette.ButtonForeground;
+
     /// <inheritdoc />
     protected override Size MeasureOverride(Size availableSize) => new(ButtonWidth, ButtonHeight);
 
