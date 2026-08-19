@@ -1,4 +1,5 @@
 ﻿using Avalonia;
+using Avalonia.Threading;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Media;
@@ -120,6 +121,32 @@ public class ForgeDragOverlay : Control
     {
         get => GetValue(IsCompactProperty);
         set => SetValue(IsCompactProperty, value);
+    }
+
+    /// <summary>
+    /// 放掉一张拖影快照 —— <see cref="CaptureThumb"/> 的对手戏。
+    /// </summary>
+    /// <remarks>
+    /// ⚠ **不能当场 Dispose**。快照是拖影窗口 <c>Image.Source</c> 上挂着的那张，
+    /// 而 <c>Window.Close()</c> 并不保证这一刻之后再没有一次绘制：平台那边还会回来敲一次
+    /// <c>Paint</c>，这时候位图已经没了 ——
+    /// <c>ObjectDisposedException: Ref&lt;IRenderTargetBitmapImpl&gt;</c>，
+    /// 从原生 Paint 回调**同步**抛出，绕过 <c>Dispatcher.UIThread.UnhandledException</c>
+    /// 那类兜底，直接把进程干掉（用户实机：拖侧边栏图标换位，松手即崩）。
+    /// <para>
+    /// 优先级必须**低于** <see cref="DispatcherPriority.Render"/>：默认的 Normal 比 Render 高，
+    /// 「延后一拍」反而排在这一帧绘制之前，等于没延后。
+    /// </para>
+    /// </remarks>
+    /// <param name="bitmap">要放掉的快照；<see langword="null"/> 直接返回。</param>
+    public static void ReleaseThumb(global::Avalonia.Media.Imaging.RenderTargetBitmap? bitmap)
+    {
+        if (bitmap is null)
+        {
+            return;
+        }
+
+        Dispatcher.UIThread.Post(bitmap.Dispose, DispatcherPriority.Background);
     }
 
     /// <summary>

@@ -52,6 +52,21 @@ internal sealed class ForgeDragGhost : Window
     private readonly CornerRadius _tileCorner;
     private bool _floating;
 
+    /// <summary>
+    /// 关掉拖影，并先把快照从可视树上摘下来。
+    /// </summary>
+    /// <remarks>
+    /// 关窗之后平台那边还可能回来敲一次 <c>Paint</c>；此时 <c>Image.Source</c> 上要是还挂着
+    /// 一张随后被销毁的 <c>RenderTargetBitmap</c>，那一次绘制就会解引用已释放的位图，
+    /// 直接终止进程。所以摘 Source 与销毁位图是两件必须都做、且**先摘后销**的事
+    /// （销毁那半边见 <see cref="ForgeDragOverlay.ReleaseThumb"/>）。
+    /// </remarks>
+    public void CloseAndDetach()
+    {
+        _thumb.Source = null;
+        Close();
+    }
+
     /// <summary>建一个示意窗口。</summary>
     /// <param name="thumb">被拖那一项（标签）的快照；没有就只画一个空框。</param>
     /// <param name="palette">配色 —— 边框与底色跟着它走。</param>
@@ -99,6 +114,12 @@ internal sealed class ForgeDragGhost : Window
         WindowDecorations = WindowDecorations.None;
         ShowInTaskbar = false;
         Topmost = true;
+
+        // ⚠ 拖影**不能抢激活**：它是拖到一半才 Show 出来的，一旦把键盘焦点从主窗口拽走，
+        //    主窗口当场丢掉指针捕获 → ForgeControl.OnStripePointerCaptureLost 把这次拖拽
+        //    按「被打断」收尾。表现是「拖影一出现，拖拽就停在那儿动不了了」（用户实机，macOS）。
+        //    IsHitTestVisible=false 只挡鼠标命中，挡不住 Show 带来的激活，两条都要。
+        ShowActivated = false;
         CanResize = false;
         Background = Brushes.Transparent;
 

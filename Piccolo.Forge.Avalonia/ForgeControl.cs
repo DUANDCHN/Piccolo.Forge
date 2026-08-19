@@ -220,6 +220,7 @@ public class ForgeControl : TemplatedControl
         AddHandler(PointerMovedEvent, OnStripePointerMoved, gestureRoutes, handledEventsToo: true);
         AddHandler(PointerReleasedEvent, OnStripePointerReleased, gestureRoutes, handledEventsToo: true);
         AddHandler(PointerCaptureLostEvent, OnStripePointerCaptureLost, gestureRoutes, handledEventsToo: true);
+        AddHandler(KeyDownEvent, OnStripeKeyDown, gestureRoutes, handledEventsToo: true);
 
         // 标题条拖出去 = 浮动（见 WireHeaderDrag）
         AddHandler(PointerMovedEvent, OnHeaderPointerMoved, gestureRoutes, handledEventsToo: true);
@@ -1153,9 +1154,66 @@ public class ForgeControl : TemplatedControl
     private void OnStripePointerReleased(object? sender, PointerReleasedEventArgs e)
         => EndStripeGesture(e.GetPosition(this), commit: true);
 
-    /// <summary>捕获丢了（窗口失活、别处抢走…）：拖到一半被打断，按取消收尾。</summary>
+    /// <summary>
+    /// 捕获丢了：**先试着抢回来**，抢不回来才按取消收尾。
+    /// </summary>
+    /// <remarks>
+    /// ⚠ 这个信号在两个平台上语义不一样，不能直接当成「用户取消了拖拽」：
+    /// <list type="bullet">
+    /// <item>Windows 的捕获是 OS 级的（<c>SetCapture</c>），丢了基本就是真被打断；</item>
+    /// <item>macOS 没有对应 API，Avalonia 的 mac 后端在**主窗口不再是 key window** 时就会发它
+    /// —— 拖拽期间任何一扇窗口浮出来（我们自己的拖影就是一扇）都可能触发。</item>
+    /// </list>
+    /// 把它一律当打断，等于把 Windows 的语义写死进业务逻辑，mac 上表现为
+    /// 「拖影一出现，拖拽就停在那儿动不了」（用户实机）。
+    /// <para>
+    /// 所以这里只把它当作「可能有麻烦」：重新捕获一次，成了就继续拖。真正终止拖拽的权威信号
+    /// 是<b>松手</b>（<see cref="OnStripePointerReleased"/>）与 <b>Esc</b>
+    /// （<see cref="OnStripeKeyDown"/>）—— 手势的存活由本类的状态机说了算，不由平台信号说了算。
+    /// </para>
+    /// </remarks>
     private void OnStripePointerCaptureLost(object? sender, PointerCaptureLostEventArgs e)
-        => EndStripeGesture(_dragStart, commit: false);
+    {
+        if (_dragId is not null && TryRecapture(e.Pointer))
+        {
+            return;
+        }
+
+        EndStripeGesture(_dragStart, commit: false);
+    }
+
+    /// <summary>把指针重新捕回本控件；平台不给就返回 <see langword="false"/>。</summary>
+    private bool TryRecapture(IPointer pointer)
+    {
+        try
+        {
+            pointer.Capture(this);
+        }
+        catch (InvalidOperationException)
+        {
+            // 指针已经不在了（设备拔了 / 触摸抬起）：没得抢，按打断收尾。
+            return false;
+        }
+
+        return ReferenceEquals(pointer.Captured, this);
+    }
+
+    /// <summary>Esc 取消拖拽 —— 与松手并列的另一个权威终止信号。</summary>
+    /// <remarks>
+    /// 上游 <c>ToolWindowDragHelper.kt</c> 同样把 Esc 当取消。补这一条也是为了兜住
+    /// <see cref="OnStripePointerCaptureLost"/> 那边的新策略：既然捕获丢失不再终止拖拽，
+    /// 就得留一条用户随时能用的出路，免得极端情况下拖拽态卡着下不来。
+    /// </remarks>
+    private void OnStripeKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (_dragId is null || e.Key != Key.Escape)
+        {
+            return;
+        }
+
+        EndStripeGesture(_dragStart, commit: false);
+        e.Handled = true;
+    }
 
     /// <summary>
     /// 手势收尾：只管「搬没搬家」，<b>点击不归这里</b>（那是 <c>Button.Click</c>）。
@@ -1379,11 +1437,14 @@ public class ForgeControl : TemplatedControl
 
         _lastZone = null;
 
-        _dragGhost?.Close();
+        // ⚠ 顺序与延后都要紧：快照是拖影窗口 Image.Source 上挂着的那张，
+        //    先让拖影松开它（CloseAndDetach），再把销毁排到这一帧绘制之后（ReleaseThumb）。
+        //    当场 Dispose 会在窗口关闭后的那次 Paint 上炸掉整个进程 —— 见 ReleaseThumb 的注释。
+        _dragGhost?.CloseAndDetach();
         _dragGhost = null;
-        _dragThumb?.Dispose();
+        ForgeDragOverlay.ReleaseThumb(_dragThumb);
         _dragThumb = null;
-        _dragPanelThumb?.Dispose();
+        ForgeDragOverlay.ReleaseThumb(_dragPanelThumb);
         _dragPanelThumb = null;
     }
 
