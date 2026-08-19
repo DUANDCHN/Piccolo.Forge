@@ -1,4 +1,4 @@
-<!--  ★ Islands 主题的全部颜色。★  REQ-068 从 ForgeColors.axaml 拆出。
+﻿<!--  ★ Islands 主题的全部颜色。★  REQ-068 从 ForgeColors.axaml 拆出。
 
       这份只属于** Islands 一族**：只被 Themes/Islands/Theme.axaml 引，
       经典那套在 Themes/ExpUi/Colors.axaml，两边各改各的、不共用文件。
@@ -43,6 +43,10 @@
             <!--  岛（Islands 那层外框；expUI 不参与绘制）  -->
             <Color x:Key="Forge.Islands.IslandBorder">#FFFFFF</Color>
 
+            <!--  同一条边上两块面板之间那条 1px 线（ForgeControl.DockDividerBrush 取它）。
+                  值 = ForgePalette.IslandsLight.WindowBorder（上游 transparent）；归成资源键是为了让宿主能覆盖，见那个属性的说明。  -->
+            <Color x:Key="Forge.Islands.WindowBorder">#00000000</Color>
+
             <!--  编辑区  -->
             <Color x:Key="Forge.Islands.EditorBackground">#FFFFFF</Color>  <!-- editor-bg -->
             <Color x:Key="Forge.Islands.EditorTabsBorder">#E9EAEE</Color>
@@ -80,6 +84,10 @@
 
             <!--  岛（Islands 那层外框；expUI 不参与绘制）  -->
             <Color x:Key="Forge.Islands.IslandBorder">#191A1C</Color>
+
+            <!--  同一条边上两块面板之间那条 1px 线（ForgeControl.DockDividerBrush 取它）。
+                  值 = ForgePalette.IslandsDark.WindowBorder（上游 transparent）；归成资源键是为了让宿主能覆盖，见那个属性的说明。  -->
+            <Color x:Key="Forge.Islands.WindowBorder">#00000000</Color>
 
             <!--  编辑区  -->
             <Color x:Key="Forge.Islands.EditorBackground">#191A1C</Color>  <!-- editor-bg -->

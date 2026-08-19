@@ -419,7 +419,7 @@ public class ViewModeTests
         }
         else
         {
-            var line = Assert.IsType<SolidColorBrush>(resizer.LineBrush);
+            var line = Assert.IsAssignableFrom<ISolidColorBrush>(resizer.LineBrush);
             Assert.True(line.Color.A > 0, "分界线是透明的，等于没画");
         }
 
@@ -444,9 +444,22 @@ public class ViewModeTests
             shell.Manager.Layout.GetInfo("相机列表")!.IsVisible,
             "按在拖手上就把面板收了，等于抓不住");
 
+        // 切回停靠：**这条线现在仍然画**（REQ-070 ⑮ 起）。
+        // 原先这里断言 null —— 那是照上游 expUI 的"停靠时不画线、靠面板底与编辑区底的色差分区"。
+        // 但宿主一旦把编辑区底覆盖成与面板同色（本软件就是这么做的：内容常是一整块空画布，
+        // 上游那"深一档"会读成黑洞），色差就没了，实机表现是**区域之间几乎看不出边界**。
+        // 岛档仍然不画（两座岛之间本来就有缝）。
         shell.Manager.SetType("相机列表", ToolWindowType.Docked);
         Pump(window);
-        Assert.Null(resizer.LineBrush);
+        if (family == ForgeThemeFamily.Islands)
+        {
+            Assert.Null(resizer.LineBrush);
+        }
+        else
+        {
+            var docked = Assert.IsAssignableFrom<ISolidColorBrush>(resizer.LineBrush);
+            Assert.True(docked.Color.A > 0, "停靠态的分区线是透明的，等于没画");
+        }
 
         window.Close();
     }

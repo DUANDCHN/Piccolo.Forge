@@ -1,4 +1,4 @@
-<!--  ★ 两个"岛的宿主"：外框（ForgeControl）与编辑区（ForgeEditorControl）。★
+﻿<!--  ★ 两个"岛的宿主"：外框（ForgeControl）与编辑区（ForgeEditorControl）。★
 
       它们**不套模板**（各自在代码里建整棵树），这里只做一件事：
       把岛那圈描边的画刷从资源键喂进去，由 ForgeIslandDecor 画。
@@ -17,6 +17,9 @@
 
     <ControlTheme TargetType="forge:ForgeControl" x:Key="{x:Type forge:ForgeControl}">
         <Setter Property="IslandBorderBrush" Value="{DynamicResource Forge.Islands.IslandBorder}" />
+        <!--  同一条边上两块面板之间那条 1px 线。归键的理由见 ForgeControl.DockDividerBrush：
+              它原先直接取 Palette.WindowBorder，而那个值没有资源键，宿主够不着。  -->
+        <Setter Property="DockDividerBrush" Value="{DynamicResource Forge.Islands.WindowBorder}" />
     </ControlTheme>
 
     <!--  编辑区比外框多一样：**它自己的底色**。归了键之后，宿主想让编辑区与面板同色

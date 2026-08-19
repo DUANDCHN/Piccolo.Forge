@@ -120,13 +120,19 @@ public class ForgeDockResizer : Control
     }
 
     /// <summary>
-    /// 画一条 1px 的分界线；<see langword="null"/> 表示不画（停靠边界本来就不画线）。
+    /// 分隔线的画刷；<see langword="null"/> = 这条边不画线。线宽固定 1px（上游 OnePixelSplitter）。
     /// </summary>
     /// <remarks>
-    /// 停靠的面板与编辑区之间不需要线：两块颜色本来就不同，上游那条分隔器可见宽度是 0
-    /// （<c>ToolWindowPane.kt:197</c>）。**覆盖层（SLIDING）要**：它浮在编辑区上面，
-    /// 不画线就分不出哪儿是面板、哪儿是被盖住的内容 —— 上游为此单给 SLIDING 加了一条 divider
-    /// （<c>InternalDecoratorImpl.kt:599-612</c>，按 anchor 加在 EAST/WEST/NORTH/SOUTH）。
+    /// 由 <c>ForgeControl</c> 按形态给：
+    /// <list type="bullet">
+    /// <item><b>覆盖层（SLIDING）</b>：必须有 —— 它浮在编辑区上面，不画线就分不出哪儿是面板、
+    /// 哪儿是被盖住的内容。上游为此单给 SLIDING 加了一条 divider
+    /// （<c>InternalDecoratorImpl.kt:599-612</c>，按 anchor 加在 EAST/WEST/NORTH/SOUTH）。</item>
+    /// <item><b>常规停靠</b>：上游**不画**（<c>ToolWindowPane.kt:197</c> 分隔器可见宽度是 0），
+    /// 靠"面板底与编辑区底的色差"分区。但宿主一旦把编辑区底覆盖成与面板同色，那点色差就没了 ——
+    /// 所以非岛档现在画（自觉偏离上游）。不想要就把 <c>ForgeControl.DockDividerBrush</c> 设成透明。</item>
+    /// <item><b>岛（Islands）</b>：一律不画 —— 两座岛之间本来就有缝，再画一条等于把缝糊死。</item>
+    /// </list>
     /// </remarks>
     public IBrush? LineBrush
     {

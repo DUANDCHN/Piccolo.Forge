@@ -89,6 +89,34 @@ public class ForgeControl : TemplatedControl
         set => SetValue(IslandBorderBrushProperty, value);
     }
 
+    /// <summary><see cref="DockDividerBrush"/> 的属性定义。</summary>
+    public static readonly StyledProperty<IBrush?> DockDividerBrushProperty =
+        AvaloniaProperty.Register<ForgeControl, IBrush?>(nameof(DockDividerBrush));
+
+    /// <summary>
+    /// 同一条边上**两块面板之间**那条 1px 分割线的画刷，由 <c>ControlTheme</c> 从资源键给。
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 与 <see cref="IslandBorderBrush"/> 同一条路子（REQ-067 把颜色从 C# 归到资源键）：
+    /// 之前这条线直接取 <c>Palette.WindowBorder</c>，而 <c>WindowBorder</c> 没有对应的资源键，
+    /// **宿主想调深一点根本够不着** —— 只能去改库里从上游转写来的调色板，那会把保真度一起改掉。
+    /// 归了键之后宿主重定义 <c>Forge.ExpUi.WindowBorder</c> 即可，明暗各盖各的。
+    /// </para>
+    /// <para>
+    /// 为 <see langword="null"/> 时回落到 <c>Palette.WindowBorder</c>（上游值），行为与改造前一致。
+    /// </para>
+    /// <para>
+    /// 岛（Islands）档**不画这条线**：两座岛之间本来就有缝，再画一条等于把缝糊死 ——
+    /// 这条判据在画的地方，不在这里。
+    /// </para>
+    /// </remarks>
+    public IBrush? DockDividerBrush
+    {
+        get => GetValue(DockDividerBrushProperty);
+        set => SetValue(DockDividerBrushProperty, value);
+    }
+
     /// <summary>
     /// <see cref="Shell"/> 的属性定义。
     /// </summary>
@@ -130,6 +158,8 @@ public class ForgeControl : TemplatedControl
         PaletteProperty.Changed.AddClassHandler<ForgeControl>((f, _) => f.Sync());
 
         IslandBorderBrushProperty.Changed.AddClassHandler<ForgeControl>((f, _) => f.Sync());
+
+        DockDividerBrushProperty.Changed.AddClassHandler<ForgeControl>((f, _) => f.Sync());
 
         // 外观换了一份：重跑取色（可能换了族或取色回调），再同步一遍（岛几何、字重、行高都在里面）。
         // ⚠ **不要在这里把 _variantApplied 归零**（曾经这么写过，是个双重 bug）：
@@ -2323,7 +2353,19 @@ public class ForgeControl : TemplatedControl
             // 形态由**配色族**决定，与宿主给的岛几何无关 —— 同 ForgeIslandDecor.Apply 的判据
             var isIsland = Palette.Island is not null;
 
-            resizer.LineBrush = overlay && !isIsland ? new SolidColorBrush(Palette.EditorTabsBorder) : null;
+            // 覆盖层那条照上游：分的是"面板与被盖住的编辑区"，用 EditorTabsBorder。
+            //
+            // ★ 常规停靠这条是**自觉偏离上游**（REQ-070 ⑮）。★
+            //   上游 expUI 不画它，靠"面板底 #F7F8FA vs 编辑区底 #FFFFFF"这点差别分区 ——
+            //   而宿主一旦把编辑区底覆盖成与面板同色（本软件就是：内容常是一整块空画布，
+            //   上游那"深一档"会读成黑洞），这点差别就没了，实机表现是**区域之间几乎看不出边界**。
+            //   所以非岛档补上这条线；岛档不补，两座岛之间本来就有缝。
+            //   宿主不想要就把 DockDividerBrush 设成 Transparent。
+            resizer.LineBrush = isIsland
+                ? null
+                : overlay
+                    ? new SolidColorBrush(Palette.EditorTabsBorder)
+                    : DockDividerBrush ?? new SolidColorBrush(Palette.WindowBorder);
 
             yield return resizer;
         }
@@ -2358,7 +2400,10 @@ public class ForgeControl : TemplatedControl
             //   （覆盖层那条 divider 仍用 EditorTabsBorder：它分的是**面板与被盖住的编辑区**，
             //    是"内容与内容之间"，上游也确实是另一条键。）
             //   "WindowBorder 在岛配色里是全透明"这一条不构成问题：岛档本来就不画这条线。
-            split.LineBrush = Palette.Island is not null ? null : new SolidColorBrush(Palette.WindowBorder);
+            // 画刷优先用宿主给的（DockDividerBrush，走资源键）；没给才回落到上游的 WindowBorder。
+            split.LineBrush = Palette.Island is not null
+                ? null
+                : DockDividerBrush ?? new SolidColorBrush(Palette.WindowBorder);
 
             yield return split;
         }

@@ -1,4 +1,4 @@
-<!--  ★ 经典（expUI）主题的全部颜色。★  REQ-068 从 ForgeColors.axaml 拆出。
+﻿<!--  ★ 经典（expUI）主题的全部颜色。★  REQ-068 从 ForgeColors.axaml 拆出。
 
       这份只属于**经典一族**：只被 Themes/ExpUi/Theme.axaml 引，
       Islands 那套在 Themes/Islands/Colors.axaml，两边各改各的、不共用文件。
@@ -43,6 +43,10 @@
             <!--  岛（Islands 那层外框；expUI 不参与绘制）  -->
             <Color x:Key="Forge.ExpUi.IslandBorder">#F7F8FA</Color>
 
+            <!--  同一条边上两块面板之间那条 1px 线（ForgeControl.DockDividerBrush 取它）。
+                  值 = ForgePalette.ExpUiLight.WindowBorder；归成资源键是为了让宿主能覆盖，见那个属性的说明。  -->
+            <Color x:Key="Forge.ExpUi.WindowBorder">#EBECF0</Color>
+
             <!--  编辑区  -->
             <Color x:Key="Forge.ExpUi.EditorBackground">#FFFFFF</Color>  <!-- Gray14 -->
             <Color x:Key="Forge.ExpUi.EditorTabsBorder">#EBECF0</Color>
@@ -80,6 +84,10 @@
 
             <!--  岛（Islands 那层外框；expUI 不参与绘制）  -->
             <Color x:Key="Forge.ExpUi.IslandBorder">#2B2D30</Color>
+
+            <!--  同一条边上两块面板之间那条 1px 线（ForgeControl.DockDividerBrush 取它）。
+                  值 = ForgePalette.ExpUiDark.WindowBorder；归成资源键是为了让宿主能覆盖，见那个属性的说明。  -->
+            <Color x:Key="Forge.ExpUi.WindowBorder">#1E1F22</Color>
 
             <!--  编辑区  -->
             <Color x:Key="Forge.ExpUi.EditorBackground">#1E1F22</Color>  <!-- Gray1 -->
