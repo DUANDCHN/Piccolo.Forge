@@ -369,31 +369,53 @@ public class ForgeDockPane : Panel
     // overlayWeight 有值时这条边站着一块覆盖层（SLIDING）：边界不在停靠尺寸上，
     // 而在覆盖层自己那块的内沿 —— 上游同样给 SLIDING 配了 resizer
     //（ToolWindowPane.kt:565-607 · Resizer.LayeredPane.Left/Right/Top/Bottom）。
-    private static Rect ResizerRect(Size paneSize, DockSizes sizes, ToolWindowAnchor anchor, (double Weight, Thickness Margin)? overlay)
+    private static Rect ResizerRect(
+        Size paneSize,
+        DockSizes sizes,
+        ToolWindowAnchor anchor,
+        (double Weight, Thickness Margin)? overlay,
+        double verticalBandX,
+        double verticalBandWidth,
+        double horizontalBandY,
+        double horizontalBandHeight)
+    {
+        // 骑在**看得见的**那条边上：岛让出的缝里没有东西可抓，
+        // 抓手对准几何边界的话，一半落在缝里、一半落在编辑区上，就是不在面板边上。
+        var slot = overlay is { } o
+            ? OverlayRect(paneSize, anchor, o.Weight).Deflate(o.Margin)
+            : SlotRect(paneSize, sizes, anchor, verticalBandX, verticalBandWidth, horizontalBandY, horizontalBandHeight);
+
+        return EdgeZone(slot, anchor);
+    }
+
+    /// <summary>
+    /// 骑在一块矩形朝编辑区那条内沿上的热区：中心对准边界，**长度取这块矩形自己**。
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 长度跟着矩形而不是铺满整条边，是本方法存在的理由。非宽屏档下 LEFT/RIGHT
+    /// 只占中间那段（上下被 TOP/BOTTOM 夹着），旧写法用 <c>paneSize.Height</c> 铺满，
+    /// 热区会比面板本人长出上下两截 —— 摸到 BOTTOM 面板那一截左边界，拖的却是
+    /// LEFT 面板的宽度。它平时不发作，只是因为那截上面正好压着别的面板把命中挡掎了 ——
+    /// 而遮挡关系取决于 ZIndex 与子控件顺序，那是两件不相干的事。靠遮挡换来的正确不算正确。
+    /// </para>
+    /// <para>
+    /// 合并停靠与覆盖层两条分支：两者只在“该骑在哪块矩形上”上不同（一个是自己那格，
+    /// 一个是滑出来那块），“怎么骑”是同一条规则。旧代码把规则写了两遍，
+    /// 于是只修其中一遍的人会把另一遍留在原地。
+    /// </para>
+    /// </remarks>
+    private static Rect EdgeZone(Rect slot, ToolWindowAnchor anchor)
     {
         var zone = ForgeMetrics.SplitterMouseZone;
         var half = zone / 2;
 
-        if (overlay is { } o)
-        {
-            // 骑在**看得见的**那条边上：岛让出的缝里没有东西可抓，
-            // 抓手对准几何边界的话，一半落在缝里、一半落在编辑区上，就是不在面板边上。
-            var rect = OverlayRect(paneSize, anchor, o.Weight).Deflate(o.Margin);
-            return anchor switch
-            {
-                ToolWindowAnchor.Left => new Rect(rect.Right - half, 0, zone, paneSize.Height),
-                ToolWindowAnchor.Right => new Rect(rect.X - half, 0, zone, paneSize.Height),
-                ToolWindowAnchor.Top => new Rect(0, rect.Bottom - half, paneSize.Width, zone),
-                _ => new Rect(0, rect.Y - half, paneSize.Width, zone),
-            };
-        }
-
         return anchor switch
         {
-            ToolWindowAnchor.Left => new Rect(sizes.Left - half, 0, zone, paneSize.Height),
-            ToolWindowAnchor.Right => new Rect(paneSize.Width - sizes.Right - half, 0, zone, paneSize.Height),
-            ToolWindowAnchor.Top => new Rect(0, sizes.Top - half, paneSize.Width, zone),
-            _ => new Rect(0, paneSize.Height - sizes.Bottom - half, paneSize.Width, zone),
+            ToolWindowAnchor.Left => new Rect(slot.Right - half, slot.Y, zone, slot.Height),
+            ToolWindowAnchor.Right => new Rect(slot.X - half, slot.Y, zone, slot.Height),
+            ToolWindowAnchor.Top => new Rect(slot.X, slot.Bottom - half, slot.Width, zone),
+            _ => new Rect(slot.X, slot.Y - half, slot.Width, zone),
         };
     }
 
@@ -558,7 +580,9 @@ public class ForgeDockPane : Panel
 
                 // 覆盖层盖在编辑区上（ZIndex 1），它的 resizer 得再高一层才抓得到
                 child.ZIndex = overlay is null ? 0 : 2;
-                result.Add((child, ResizerRect(paneSize, sizes, resizerAnchor, overlay)));
+                result.Add((child, ResizerRect(
+                    paneSize, sizes, resizerAnchor, overlay,
+                    verticalBandX, verticalBandWidth, horizontalBandY, horizontalBandHeight)));
                 continue;
             }
 
