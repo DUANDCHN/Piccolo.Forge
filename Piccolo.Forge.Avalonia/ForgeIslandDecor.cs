@@ -68,6 +68,11 @@ public static class ForgeIslandDecor
     /// 内容常常是一整块空画布（不像 IDE 那样满屏文字）时，那一档差会读成一个黑洞。
     /// </para>
     /// </param>
+    /// <param name="dockBorderBrush">
+    /// **非岛档**那条朝向编辑区的 1px 边线用的画刷（走宿主的资源键）；
+    /// <see langword="null"/> 回落到 <c>palette.WindowBorder</c>（上游值）。
+    /// 岛档不用它 —— 岛的描边走 <paramref name="borderBrush"/>。
+    /// </param>
     public static void Apply(
         Border host,
         ForgePalette palette,
@@ -75,7 +80,8 @@ public static class ForgeIslandDecor
         ForgeIslandMetrics? metricsOverride = null,
         Color? background = null,
         IBrush? borderBrush = null,
-        IBrush? backgroundBrush = null)
+        IBrush? backgroundBrush = null,
+        IBrush? dockBorderBrush = null)
     {
         ArgumentNullException.ThrowIfNull(host);
         ArgumentNullException.ThrowIfNull(palette);
@@ -89,7 +95,10 @@ public static class ForgeIslandDecor
             // expUI：贴死、方角，边框只画朝向编辑区的那一条
             host.Margin = default;
             host.CornerRadius = default;
-            host.BorderBrush = new SolidColorBrush(palette.WindowBorder);
+            // 宿主给了就用宿主的（资源键 Forge.<族>.WindowBorder），没给回落上游值。
+            // ★ 这条就是经典档看得见的「面板与编辑区之间那条线」—— 调深要调这里，
+            //   不是去 resizer 上补一条（那会多画一条，且横跨整条边）。
+            host.BorderBrush = dockBorderBrush ?? new SolidColorBrush(palette.WindowBorder);
             host.BorderThickness = anchor is { } a ? EdgeThickness(a) : default;
             return;
         }

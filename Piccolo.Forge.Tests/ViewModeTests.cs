@@ -444,22 +444,14 @@ public class ViewModeTests
             shell.Manager.Layout.GetInfo("相机列表")!.IsVisible,
             "按在拖手上就把面板收了，等于抓不住");
 
-        // 切回停靠：**这条线现在仍然画**（REQ-070 ⑮ 起）。
-        // 原先这里断言 null —— 那是照上游 expUI 的"停靠时不画线、靠面板底与编辑区底的色差分区"。
-        // 但宿主一旦把编辑区底覆盖成与面板同色（本软件就是这么做的：内容常是一整块空画布，
-        // 上游那"深一档"会读成黑洞），色差就没了，实机表现是**区域之间几乎看不出边界**。
-        // 岛档仍然不画（两座岛之间本来就有缝）。
+        // 切回停靠：resizer **不画线**。
+        // ⚠ 这不等于"停靠时没有边线" —— 那条线由**面板自己**画（ForgeIslandDecor 非岛分支
+        //   给 host 加朝向编辑区那一侧的 1px 边框）。曾经在这儿也补了一条，结果是**两条**：
+        //   resizer 横跨整条边，而面板只占其中一段，多出来的那截穿进了别人的地盘
+        //   （实机："下半部分还能看到上半部分的边缘的线"）。线归面板，抓手归 resizer。
         shell.Manager.SetType("相机列表", ToolWindowType.Docked);
         Pump(window);
-        if (family == ForgeThemeFamily.Islands)
-        {
-            Assert.Null(resizer.LineBrush);
-        }
-        else
-        {
-            var docked = Assert.IsAssignableFrom<ISolidColorBrush>(resizer.LineBrush);
-            Assert.True(docked.Color.A > 0, "停靠态的分区线是透明的，等于没画");
-        }
+        Assert.Null(resizer.LineBrush);
 
         window.Close();
     }

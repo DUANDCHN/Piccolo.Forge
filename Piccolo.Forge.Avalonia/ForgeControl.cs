@@ -991,7 +991,11 @@ public class ForgeControl : TemplatedControl
                 var icon = button?.FindDescendantOfType<ForgeIconHost>()?.Icon;
 
                 _headerGhost = new ForgeDragGhost(
-                    icon is not null ? ForgeDragOverlay.CaptureThumb(icon) : null,
+                    icon is not null
+                        ? ForgeDragOverlay.CaptureThumb(
+                            icon,
+                            new SolidColorBrush(button?.IdleForeground ?? Palette.ButtonForeground))
+                        : null,
                     Palette,
                     ForgeDragOverlay.CaptureThumb(host),
                     button?.HighlightRect(button.Bounds.Size).Size ?? default,
@@ -1121,8 +1125,11 @@ public class ForgeControl : TemplatedControl
             //    且图标在槽里是按 IconPlacement 摆的（左右条带的内边距不一样），
             //    拍整个槽再"居中"，居中的是**槽**、不是图标，看着就是偏的（用户实机提的）。
             //    拍图标本身得到的是贴边位图，摆进背板才真的居中。
+            // 前景退回常规那一档：开着的面板，按钮是激活态、图标是白的，
+            // 而拖影背板取的是悬停底色 —— 白图标落在浅色主题的浅灰背板上看不见（用户实机提的）。
             _dragThumb ??= button.FindDescendantOfType<ForgeIconHost>()?.Icon is { } icon
-                ? ForgeDragOverlay.CaptureThumb(icon) ?? ForgeDragOverlay.CaptureThumb(button)
+                ? ForgeDragOverlay.CaptureThumb(icon, new SolidColorBrush(button.IdleForeground))
+                    ?? ForgeDragOverlay.CaptureThumb(button)
                 : ForgeDragOverlay.CaptureThumb(button);
 
             // 背板 = 这颗按钮的**背板**（悬停高亮那块 30×30），不是它占的整格 ——
@@ -2184,7 +2191,12 @@ public class ForgeControl : TemplatedControl
     {
         var info = _shell!.Manager.Layout.GetInfo(vm.Id)!;
 
-        ForgeIslandDecor.Apply(host, Palette, info.Anchor, Appearance.IslandMetrics, borderBrush: IslandBorderBrush);
+        ForgeIslandDecor.Apply(
+            host, Palette, info.Anchor, Appearance.IslandMetrics,
+            borderBrush: IslandBorderBrush,
+            // 非岛档那条朝向编辑区的边线：宿主给了就用宿主的（DockDividerBrush，走资源键），
+            // 没给回落 Palette.WindowBorder。这条线才是经典档「面板之间那条线」的真身。
+            dockBorderBrush: DockDividerBrush);
 
         var header = _panelHeaders[vm.Id];
         header.Palette = Palette;
@@ -2353,19 +2365,16 @@ public class ForgeControl : TemplatedControl
             // 形态由**配色族**决定，与宿主给的岛几何无关 —— 同 ForgeIslandDecor.Apply 的判据
             var isIsland = Palette.Island is not null;
 
-            // 覆盖层那条照上游：分的是"面板与被盖住的编辑区"，用 EditorTabsBorder。
+            // 覆盖层才画：分的是"面板与被盖住的编辑区"，用 EditorTabsBorder
+            //（InternalDecoratorImpl.kt:599-612）。
             //
-            // ★ 常规停靠这条是**自觉偏离上游**（REQ-070 ⑮）。★
-            //   上游 expUI 不画它，靠"面板底 #F7F8FA vs 编辑区底 #FFFFFF"这点差别分区 ——
-            //   而宿主一旦把编辑区底覆盖成与面板同色（本软件就是：内容常是一整块空画布，
-            //   上游那"深一档"会读成黑洞），这点差别就没了，实机表现是**区域之间几乎看不出边界**。
-            //   所以非岛档补上这条线；岛档不补，两座岛之间本来就有缝。
-            //   宿主不想要就把 DockDividerBrush 设成 Transparent。
-            resizer.LineBrush = isIsland
-                ? null
-                : overlay
-                    ? new SolidColorBrush(Palette.EditorTabsBorder)
-                    : DockDividerBrush ?? new SolidColorBrush(Palette.WindowBorder);
+            // ⚠ **常规停靠不要在这里画。** 那条边线本来就有 —— 由**面板自己**画
+            //   （ForgeIslandDecor 非岛分支给 host 加朝向编辑区那一侧的 1px 边框）。
+            //   在 resizer 上再画一条会得到**第二条**，而 resizer 横跨整条边的长度、
+            //   面板只占其中一段：面板短于那条边时（比如底边还开着一块通栏面板），
+            //   多出来的那截会一路穿过别人的地盘。实机反馈"下半部分还能看到上半部分的边缘的线"
+            //   就是这么来的。颜色浅要调的是 WindowBorder，不是在这儿补线。
+            resizer.LineBrush = overlay && !isIsland ? new SolidColorBrush(Palette.EditorTabsBorder) : null;
 
             yield return resizer;
         }
