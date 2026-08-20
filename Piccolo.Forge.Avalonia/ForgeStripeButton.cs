@@ -53,6 +53,27 @@ public class ForgeStripeButton : ForgeSquareButtonBase
             ShowNameProperty, StripeWidthProperty, TitleProperty,
             NameFontSizeOverrideProperty, NameFontWeightOverrideProperty, NamedContentInsetProperty);
 
+        // 名字进气泡提示 —— **条带按钮默认只有一颗 20px 的图标，不看提示根本不知道它是什么**。
+        // 对位上游 SquareStripeButton.updateHelpTooltip()：它装的 HelpTooltip 是
+        // 「名字 + 快捷键」，我们没有快捷键，就只有名字。
+        // 「显示名字」开着时也照给：名字画在图标下面，但按第一个空格拆成最多两行、
+        // 还受条带宽度裁剪（见 SplitTitle），提示里那份才是完整的。
+        //
+        // ⚠ 样式走宿主的默认提示样式，**不另做一套**。上游那个 HelpTooltip 是自成一套配色的
+        //   （深底亮字 + 快捷键弱化一档），2026-08-20 照着做过一版：给 ForgePalette 加了三支
+        //   ToolTip 颜色、两族各一份键控 ControlTheme、按钮挂树时按键取主题。
+        //   代码路径全部验通了（用例断言主题确实解析到，反证也红过），**但实机看上去没变**——
+        //   说明卡在更下游的某处（多半是 ToolTip 弹出层不吃这份 ControlTheme）。
+        //   查不动就整套撤了，别再照那条路重试一遍。要做的话先解决"模板到底生效没有"，
+        //   而不是从调色板那头开始铺。
+        // ⚠ 顺带一条查出来的事实，省得下次再考古：**默认气泡本来就是反相的**，且是 Semi 明写的 ——
+        //   Semi.Avalonia 的 Themes/Light/Tooltip.axaml 给 ToolTipForeground = SemiColorWhite、
+        //   Dark 给 SemiColorBlack，底色两档同取 SemiColorTertiaryActive(SemiGrey7)，
+        //   而那支灰本身在两档里就是反的（浅档 #41464C / 深档 #C6CACD）。
+        //   所以"浅色主题却是深气泡"不是缺陷，上游 IntelliJ 的 HelpTooltip 同样如此
+        //   （expUI 浅色档底色 Gray2 = #27282E）。
+        TitleProperty.Changed.AddClassHandler<ForgeStripeButton>((b, _) => b.SyncToolTip());
+
         // 两个状态写进伪类，模板据此选底色（见 Themes/ForgeStripeButton.axaml）。
         // 用伪类而不是样式类：它们是控件自己的状态，不该让宿主用 Classes 去改。
         IsToolWindowVisibleProperty.Changed.AddClassHandler<ForgeStripeButton>(
@@ -112,12 +133,18 @@ public class ForgeStripeButton : ForgeSquareButtonBase
         set => SetValue(ShowNameProperty, value);
     }
 
-    /// <summary>工具窗口的名字，<see cref="ShowName"/> 打开时画在图标下面。</summary>
+    /// <summary>
+    /// 工具窗口的名字：<see cref="ShowName"/> 打开时画在图标下面，**任何时候都进气泡提示**。
+    /// </summary>
     public string? Title
     {
         get => GetValue(TitleProperty);
         set => SetValue(TitleProperty, value);
     }
+
+    /// <summary>把名字同步进气泡提示。空名字就把提示摘掉，别留一个空气泡。</summary>
+    private void SyncToolTip()
+        => ToolTip.SetTip(this, string.IsNullOrWhiteSpace(Title) ? null : Title);
 
     /// <summary>条带的自定义宽度；<c>0</c> 表示按按钮自身尺寸走。</summary>
     public double StripeWidth
