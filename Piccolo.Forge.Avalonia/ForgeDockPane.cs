@@ -103,6 +103,27 @@ public class ForgeDockPane : Panel
     }
 
     /// <summary>
+    /// 左右两条边**默认多宽**（像素）；<see cref="double.NaN"/>（默认）= 按 <c>weight</c> 算。
+    /// </summary>
+    /// <remarks>
+    /// 只在这条边**还没有像素记录、且它的 weight 就是那个默认值**时起作用 ——
+    /// 也就是"用户从没拉过、也没有存档"的那一份。用户拉过或读了档，走的都是台账里的实际值，
+    /// 这个默认宽度不会把它盖掉。
+    /// <para>
+    /// 上下两条边不受影响：那儿的默认高度仍按 <c>weight</c> 来（宿主没有提过要改）。
+    /// </para>
+    /// </remarks>
+    public static readonly StyledProperty<double> DefaultAnchorWidthProperty =
+        AvaloniaProperty.Register<ForgeDockPane, double>(nameof(DefaultAnchorWidth), double.NaN);
+
+    /// <summary>见 <see cref="DefaultAnchorWidthProperty"/>。</summary>
+    public double DefaultAnchorWidth
+    {
+        get => GetValue(DefaultAnchorWidthProperty);
+        set => SetValue(DefaultAnchorWidthProperty, value);
+    }
+
+    /// <summary>
     /// 某条边的尺寸被本控件改成了新的像素值——请宿主按当前 pane 反算成 weight 写回台账。
     /// </summary>
     /// <remarks>
@@ -137,6 +158,15 @@ public class ForgeDockPane : Panel
 
         _pixels[anchor] = Math.Max(0, pixels);
         InvalidateMeasure();
+    }
+
+    /// <summary>这条边上那块面板的 <c>weight</c>（播种判据用）；没有就当默认值。</summary>
+    /// <param name="anchor">哪条边。</param>
+    /// <returns>权重。</returns>
+    private double GetSeedWeight(ToolWindowAnchor anchor)
+    {
+        var panel = Children.FirstOrDefault(x => x.IsVisible && GetAnchor(x) == anchor);
+        return panel is null ? WindowInfo.DefaultWeight : GetWeight(panel);
     }
 
     /// <summary>
@@ -366,8 +396,17 @@ public class ForgeDockPane : Panel
 
         if (!_pixels.TryGetValue(anchor, out var pixels))
         {
-            _pixels[anchor] = byWeight;
-            return byWeight;
+            // 播种：宿主给了默认宽度就用它（竖边才有），否则按 weight 算。
+            // 台账里存过用户自己拉的宽度时，读档已经把 weight 改成对应值，播出来就是那个宽度 ——
+            // 默认宽度只在"从没拉过"的那份默认 weight 上起作用。
+            var seed = !anchor.IsHorizontal()
+                && !double.IsNaN(DefaultAnchorWidth)
+                && Math.Abs(GetSeedWeight(anchor) - WindowInfo.DefaultWeight) < 0.0005
+                    ? Math.Min(DefaultAnchorWidth, total)
+                    : byWeight;
+
+            _pixels[anchor] = seed;
+            return seed;
         }
 
         // 夹在 pane 之内：窗口缩到比面板还窄时面板跟着缩，不然编辑区会被挤成负数。

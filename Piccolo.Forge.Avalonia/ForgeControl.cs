@@ -504,6 +504,16 @@ public class ForgeControl : TemplatedControl
     /// <summary>停靠区。</summary>
     public ForgeDockPane DockPane => _pane;
 
+    /// <summary>
+    /// 左右两条边**默认多宽**（像素）；<see cref="double.NaN"/>（默认）= 按 <c>weight</c> 算。
+    /// </summary>
+    /// <remarks>转发给 <see cref="ForgeDockPane.DefaultAnchorWidth"/>，生效条件见那儿。</remarks>
+    public double DefaultAnchorWidth
+    {
+        get => _pane.DefaultAnchorWidth;
+        set => _pane.DefaultAnchorWidth = value;
+    }
+
     /// <summary>拖拽反馈那一层 —— 盖在所有控件之上，只画不吃鼠标。</summary>
     public ForgeDragOverlay DragOverlay => _overlay;
 

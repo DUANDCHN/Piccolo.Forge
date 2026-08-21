@@ -1,3 +1,4 @@
+using System;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
@@ -86,6 +87,44 @@ public class DockPaneFixedSizeTests
 
         LayoutAt(pane, 2000, 500);
         Assert.Equal(250, panel.Bounds.Width);
+    }
+
+    /// <summary>宿主可以直接用像素定"左右两边默认多宽"，不必换算成比例。</summary>
+    [AvaloniaFact]
+    public void 宿主给的默认宽度只盖默认那一份()
+    {
+        var (pane, panel, _) = Build();
+        pane.DefaultAnchorWidth = 350;
+
+        // 这块面板的 weight 是宿主自己设过的 0.25 —— 有主的值，默认宽度不许盖
+        LayoutAt(pane, 1000, 500);
+        Assert.Equal(250, panel.Bounds.Width);
+
+        // 换成"从没拉过"的那份默认 weight：这时才轮到默认宽度说话
+        ForgeDockPane.SetWeight(panel, WindowInfo.DefaultWeight);
+        pane.InvalidateAnchorSizes();
+        LayoutAt(pane, 1000, 500);
+        Assert.Equal(350, panel.Bounds.Width);
+
+        // 定的是像素，所以窗口多大都是这个数
+        pane.InvalidateAnchorSizes();
+        LayoutAt(pane, 2000, 500);
+        Assert.Equal(350, panel.Bounds.Width);
+    }
+
+    /// <summary>上下两条边不受"默认宽度"影响 —— 那是给竖边的。</summary>
+    [AvaloniaFact]
+    public void 默认宽度不碰横边()
+    {
+        var (pane, panel, _) = Build();
+        ForgeDockPane.SetAnchor(panel, ToolWindowAnchor.Bottom);
+        ForgeDockPane.SetWeight(panel, WindowInfo.DefaultWeight);
+        pane.DefaultAnchorWidth = 350;
+
+        LayoutAt(pane, 1000, 600);
+
+        // 横边按 weight 走：0.33 × 600
+        Assert.Equal(Math.Floor(600 * WindowInfo.DefaultWeight), panel.Bounds.Height);
     }
 
     [AvaloniaFact]
