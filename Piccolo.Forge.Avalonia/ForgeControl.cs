@@ -201,6 +201,11 @@ public class ForgeControl : TemplatedControl
         _root.Children.Add(_left);
         _root.Children.Add(_right);
         _root.Children.Add(_pane);
+
+        // 像素锁定（宿主开了 KeepAnchorSizeOnResize 时）让台账里的 weight 跟不上窗口尺寸，
+        // 停靠区反算出等价值回抛给这里写回去 —— 与用户拖拖手是同一条写入路径。
+        _pane.AnchorWeightRebased += OnResizerWeightChanged;
+
         VisualChildren.Add(_root);
         LogicalChildren.Add(_root);
 
@@ -498,6 +503,19 @@ public class ForgeControl : TemplatedControl
 
     /// <summary>停靠区。</summary>
     public ForgeDockPane DockPane => _pane;
+
+    /// <summary>
+    /// 窗口尺寸变化时，各条边保持**像素宽度**（多出来的地方全归编辑区）。
+    /// </summary>
+    /// <remarks>
+    /// 转发给 <see cref="ForgeDockPane.KeepAnchorSizeOnResize"/>，取舍与代价见那儿。
+    /// 默认 <see langword="false"/> = 上游那套按比例缩放。
+    /// </remarks>
+    public bool KeepAnchorSizeOnResize
+    {
+        get => _pane.KeepAnchorSizeOnResize;
+        set => _pane.KeepAnchorSizeOnResize = value;
+    }
 
     /// <summary>拖拽反馈那一层 —— 盖在所有控件之上，只画不吃鼠标。</summary>
     public ForgeDragOverlay DragOverlay => _overlay;
