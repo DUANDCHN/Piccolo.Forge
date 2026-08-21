@@ -1800,7 +1800,7 @@ public class ForgeControl : TemplatedControl
             var stripe = new Rect(origin, toolbar.Bounds.Size);
 
             var top = StripeDropResolver.ResolveTopZone(
-                stripe, side == StripeSide.Right, FirstVisibleToolWindowSize(horizontal: true));
+                stripe, side == StripeSide.Right, FirstVisibleToolWindowSize(new StripePlacement(side, StripeGroup.Top)));
             if (top.Contains(point))
             {
                 return (side, StripeGroup.Top);
@@ -1814,7 +1814,7 @@ public class ForgeControl : TemplatedControl
             var bottom = StripeDropResolver.ResolveBottomZone(
                 Bounds.Size,
                 toolbar.BottomGroup.Bounds.Height,
-                FirstVisibleToolWindowSize(horizontal: false),
+                FirstVisibleToolWindowSize(new StripePlacement(side, StripeGroup.Bottom)),
                 isSplit: side == StripeSide.Right);
 
             if (bottom.Contains(point))
@@ -1827,14 +1827,26 @@ public class ForgeControl : TemplatedControl
     }
 
     /// <summary>
-    /// 第一个可见工具窗口占多大；一个都没开就用兜底 350。
+    /// **这根条带的这一组**里第一个可见工具窗口占多大；一个都没开就用兜底 350。
     /// </summary>
-    /// <remarks>对应 <c>ToolWindowToolbar.kt:290-301 · getFirstVisibleToolWindowSize</c>。</remarks>
-    private double FirstVisibleToolWindowSize(bool horizontal)
+    /// <remarks>
+    /// 对应 <c>ToolWindowToolbar.kt:261-272 · getFirstVisibleToolWindowSize</c>：
+    /// 上游遍历的是 <c>getButtons()</c>——**本条带自己的按钮**，下组只会看到 BOTTOM 窗口。
+    /// <para>
+    /// ⚠ 曾经遍历的是全部工具窗口：下方一个没开、左侧开着一个 weight 0.2 的，
+    /// 下组落区就被算成 0.2 × 窗高而不是兜底 350，比上游矮一半多 ——
+    /// 用户报的「要拖到很下面才命中下停靠」就是它。上组同理会拿下方窗口的 weight 去乘窗宽。
+    /// </para>
+    /// </remarks>
+    /// <param name="placement">哪根条带的哪一组。</param>
+    private double FirstVisibleToolWindowSize(StripePlacement placement)
     {
+        var horizontal = placement.Group == StripeGroup.Top;
         foreach (var vm in _shell!.ToolWindows)
         {
-            if (!vm.IsOpen || _shell.Manager.Layout.GetInfo(vm.Id) is not { } info)
+            if (!vm.IsOpen
+                || _shell.Manager.Layout.GetInfo(vm.Id) is not { } info
+                || StripePlacementResolver.Resolve(info.Anchor, info.IsSplit) != placement)
             {
                 continue;
             }
