@@ -351,17 +351,31 @@ public class ForgeDockPane : Panel
     };
 
     /// <summary>覆盖层面板贴边的矩形：按自己的 weight 算厚度，沿边铺满。</summary>
+    /// <remarks>
+    /// ⚠ **厚度与贴的那条边都落在整像素上**，规则与停靠分支的 <see cref="ComputeSizes"/> 同一条
+    /// （那边是 <c>Math.Floor</c>）。停靠区自己的宽高由外层 <c>DockPanel</c> 分，带小数是常态：
+    /// 不取整的话覆盖层的外沿就停在半个像素上，绘制时糊进**隔壁条带的第一列**，
+    /// 而条带内缘那条 1px 分隔线正好住在那一列 —— 表现为"取消停靠时条带与面板之间那条线没了"，
+    /// 且只在某些 weight 下发作（边界恰好落回整数时线又回来）。
+    /// 两条分支各自取整只会让"停靠时对、滑出时错"这种事再来一次，所以规则写死在同一处语义上。
+    /// </remarks>
     private static Rect OverlayRect(Size paneSize, ToolWindowAnchor anchor, double weight)
     {
         var w = Math.Clamp(weight, 0.05, 0.95);
 
+        // 贴边的那条外沿：停靠区自己的右 / 下边界也要先落到整像素上，
+        // 否则厚度取了整、外沿仍然带半格，照样糊到隔壁。
+        var right = Math.Floor(paneSize.Width);
+        var bottom = Math.Floor(paneSize.Height);
+        var thicknessX = Math.Floor(paneSize.Width * w);
+        var thicknessY = Math.Floor(paneSize.Height * w);
+
         return anchor switch
         {
-            ToolWindowAnchor.Top => new Rect(0, 0, paneSize.Width, paneSize.Height * w),
-            ToolWindowAnchor.Bottom => new Rect(
-                0, paneSize.Height * (1 - w), paneSize.Width, paneSize.Height * w),
-            ToolWindowAnchor.Left => new Rect(0, 0, paneSize.Width * w, paneSize.Height),
-            _ => new Rect(paneSize.Width * (1 - w), 0, paneSize.Width * w, paneSize.Height),
+            ToolWindowAnchor.Top => new Rect(0, 0, right, thicknessY),
+            ToolWindowAnchor.Bottom => new Rect(0, bottom - thicknessY, right, thicknessY),
+            ToolWindowAnchor.Left => new Rect(0, 0, thicknessX, bottom),
+            _ => new Rect(right - thicknessX, 0, thicknessX, bottom),
         };
     }
 

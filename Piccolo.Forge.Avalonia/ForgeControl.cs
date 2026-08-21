@@ -2417,34 +2417,19 @@ public class ForgeControl : TemplatedControl
                 _resizers[anchor] = resizer;
             }
 
-            // 覆盖层（取消停靠）浮在编辑区上，得有东西把它和被盖住的内容分开。
-            // **两套配色的分法不一样，照上游走**：
-            //   · 非岛（expUI）：面板与编辑区贴死，靠一条 1px 的 divider
-            //     （InternalDecoratorImpl.kt:599-612，专给 SLIDING 加的那条）。
-            //     颜色取 EditorTabsBorder（"内容与内容之间那条线"，分屏那条也是它）——
-            //     不能用 WindowBorder，它在岛配色里是 #00000000，画了等于没画。
-            //   · 岛（Islands）：面板本来就是一座岛 —— 圆角、四周留缝，缝里透出下面的编辑区
-            //     （XNextRoundedBorder.kt:38-47：arc 35、outerInsets 5~6，
-            //     且那圈是用 withEditorBackground 画的）。**这时不画线**，
-            //     画了就等于在岛外面又糊一条边，反而把"透底"糊死。
-            var overlay = _shell.ToolWindows.Any(x =>
-                x.IsOpen
-                && x.Anchor == anchor
-                && _shell.Manager.Layout.GetInfo(x.Id)?.Type == ToolWindowType.Sliding);
-
-            // 形态由**配色族**决定，与宿主给的岛几何无关 —— 同 ForgeIslandDecor.Apply 的判据
-            var isIsland = Palette.Island is not null;
-
-            // 覆盖层才画：分的是"面板与被盖住的编辑区"，用 EditorTabsBorder
-            //（InternalDecoratorImpl.kt:599-612）。
+            // ⚠ **分隔线一条都不在这儿画** —— 停靠也好、取消停靠（覆盖层）也好，
+            //   面板与被它盖住 / 挨着的内容之间那条 1px，统统由**面板自己**画
+            //   （ForgeIslandDecor 非岛分支给 host 加朝向编辑区那一侧的 1px 边框；
+            //   岛档不画线，靠圆角留缝分隔，那是配色族定的形态）。
             //
-            // ⚠ **常规停靠不要在这里画。** 那条边线本来就有 —— 由**面板自己**画
-            //   （ForgeIslandDecor 非岛分支给 host 加朝向编辑区那一侧的 1px 边框）。
-            //   在 resizer 上再画一条会得到**第二条**，而 resizer 横跨整条边的长度、
-            //   面板只占其中一段：面板短于那条边时（比如底边还开着一块通栏面板），
-            //   多出来的那截会一路穿过别人的地盘。实机反馈"下半部分还能看到上半部分的边缘的线"
-            //   就是这么来的。颜色浅要调的是 WindowBorder，不是在这儿补线。
-            resizer.LineBrush = overlay && !isIsland ? new SolidColorBrush(Palette.EditorTabsBorder) : null;
+            //   早先这里给覆盖层单独补过一条（对位 InternalDecoratorImpl.kt:599-612），
+            //   结果是**两条叠在一起**：面板那条照画不误，于是取消停靠时那条边线有 2px，
+            //   比停靠时粗一倍（实测非岛暗色档 #383E47 两列）。
+            //   线归面板画还有一个好处：长度天然等于面板本人。resizer 横跨整条边，
+            //   面板只占其中一段时（比如底边还开着一块通栏面板），多出来的那截会一路
+            //   穿过别人的地盘 —— 实机反馈"下半部分还能看到上半部分的边缘的线"就是那么来的。
+            //   颜色要调，调的是 WindowBorder（宿主的 DockDividerBrush），不是在这儿补线。
+            resizer.LineBrush = null;
 
             yield return resizer;
         }

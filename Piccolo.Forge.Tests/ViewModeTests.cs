@@ -419,8 +419,19 @@ public class ViewModeTests
         }
         else
         {
-            var line = Assert.IsAssignableFrom<ISolidColorBrush>(resizer.LineBrush);
+            // ★ 线归**面板自己**画（ForgeIslandDecor 非岛分支给 host 加的那条 EdgeThickness），
+            //   resizer 上**不再补第二条** —— 两条同色叠在一起就是 2px，比停靠时粗一倍
+            //   （实机量到 #383E47 连着两列）。左锚的面板，线在它右侧。
+            Assert.Null(resizer.LineBrush);
+            Assert.Equal(new Thickness(0, 0, 1, 0), panel.BorderThickness);
+
+            var line = Assert.IsAssignableFrom<ISolidColorBrush>(panel.BorderBrush);
             Assert.True(line.Color.A > 0, "分界线是透明的，等于没画");
+
+            // ★ 覆盖层的外沿必须落在**整像素**上（OverlayRect 与停靠分支同一条取整规则）：
+            //   停在半格上时会糊进隔壁条带的第一列，而条带内缘那条 1px 分隔线正好住在那儿 ——
+            //   表现就是「取消停靠时条带与面板之间那条线没了」，且只在某些 weight 下发作。
+            Assert.Equal(Math.Floor(panel.Bounds.Right), panel.Bounds.Right);
         }
 
         // 真的抓得到：命中测试必须落在拖手上，而不是被覆盖层或编辑区吃掉
