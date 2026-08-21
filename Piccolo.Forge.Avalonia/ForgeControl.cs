@@ -504,19 +504,6 @@ public class ForgeControl : TemplatedControl
     /// <summary>停靠区。</summary>
     public ForgeDockPane DockPane => _pane;
 
-    /// <summary>
-    /// 窗口尺寸变化时，各条边保持**像素宽度**（多出来的地方全归编辑区）。
-    /// </summary>
-    /// <remarks>
-    /// 转发给 <see cref="ForgeDockPane.KeepAnchorSizeOnResize"/>，取舍与代价见那儿。
-    /// 默认 <see langword="false"/> = 上游那套按比例缩放。
-    /// </remarks>
-    public bool KeepAnchorSizeOnResize
-    {
-        get => _pane.KeepAnchorSizeOnResize;
-        set => _pane.KeepAnchorSizeOnResize = value;
-    }
-
     /// <summary>拖拽反馈那一层 —— 盖在所有控件之上，只画不吃鼠标。</summary>
     public ForgeDragOverlay DragOverlay => _overlay;
 
@@ -628,6 +615,11 @@ public class ForgeControl : TemplatedControl
 
         // 读档走的也是这条（RestoreLayout → StateChanged），所以掰形态放在这儿
         NormalizeViewModes();
+
+        // ★ 布局意图真的换了（读档 / 恢复默认布局 / 换边 / 开合）—— 停靠区记着的那份像素作废，
+        //   下一轮按台账里的 weight 重新播种。**窗口改大小、以及把像素反算回 weight 写台账**
+        //   都不走这条路，那正是"面板按像素固定"要守住的东西。
+        _pane.InvalidateAnchorSizes();
         Sync();
     }
 
@@ -2516,6 +2508,11 @@ public class ForgeControl : TemplatedControl
             Sync();
             return;
         }
+
+        // ★ 排布的真值是**像素**：拖出来的像素直接落到停靠区上，不经过 weight 往返 ——
+        //   一来一回的量化误差在窄尺寸下足够让边界每帧跳一格（"标题栏一跳一跳"）。
+        //   下面写台账的 weight 只为存档，写回来不会反过来改像素（见 ForgeDockPane）。
+        _pane.SetAnchorSize(e.Anchor, e.Pixels);
 
         // 新 UI 默认走统一权重：拖一条边等于改这条边的统一权重（§4）
         layout.SetUnifiedAnchorWeight(e.Anchor, e.Weight);

@@ -103,61 +103,62 @@ public class ForgeDockPane : Panel
     }
 
     /// <summary>
-    /// 窗口尺寸变化时，各条边**保持像素宽度**——多出来的地方全归编辑区。
+    /// 某条边的尺寸被本控件改成了新的像素值——请宿主按当前 pane 反算成 weight 写回台账。
     /// </summary>
     /// <remarks>
-    /// 默认 <see langword="false"/>，即上游那套：<c>weight</c> 是**占这条边的比例**，
-    /// 窗口一变宽，两侧面板跟着按比例变宽，中间那块的占比原地不动
-    /// （<c>ToolWindowPane.kt:315-355 · setWeight</c>）。
-    /// <para>
-    /// 打开这个开关之后，真值变成**像素**：面板拉成多宽就一直多宽，窗口放大 / 全屏时
-    /// 增加的宽度全部给中间。这是宿主的产品取舍——内容是一幅要尽量大的图像时，
-    /// "面板跟着一起长"就是在浪费屏幕（VS / VSCode 也是像素固定这一档）。
-    /// </para>
-    /// <para>
-    /// <b>台账里存的仍然是 weight</b>（存档格式不变）：像素锁定之后，本控件会按当前 pane
-    /// 尺寸反算出等价的 weight，通过 <see cref="AnchorWeightRebased"/> 回抛给宿主写回去，
-    /// 于是"关窗时看到多宽、下次开起来还是多宽"。
-    /// </para>
-    /// </remarks>
-    public static readonly StyledProperty<bool> KeepAnchorSizeOnResizeProperty =
-        AvaloniaProperty.Register<ForgeDockPane, bool>(nameof(KeepAnchorSizeOnResize));
-
-    /// <summary>见 <see cref="KeepAnchorSizeOnResizeProperty"/>。</summary>
-    public bool KeepAnchorSizeOnResize
-    {
-        get => GetValue(KeepAnchorSizeOnResizeProperty);
-        set => SetValue(KeepAnchorSizeOnResizeProperty, value);
-    }
-
-    /// <summary>
-    /// 像素锁定使某条边的等价 weight 变了——请宿主把这个新值写回台账。
-    /// </summary>
-    /// <remarks>
-    /// 只在 <see cref="KeepAnchorSizeOnResize"/> 打开时发，且**异步**发（排到下一轮消息）：
-    /// 布局过程中改台账会当场再触发一次布局，那是重入。
+    /// **异步**发（排到下一轮消息）：布局过程中改台账会当场再触发一次布局，那是重入。
+    /// 宿主写回去只是为了存档（格式仍是 weight），写回来的值**不会**反过来改本控件的像素 ——
+    /// 那条回路正是"拖动时边界每帧跳一格"的来源。
     /// </remarks>
     public event EventHandler<DockWeightChangedEventArgs>? AnchorWeightRebased;
 
-    /// <summary>各条边当前锁定的像素尺寸（仅 <see cref="KeepAnchorSizeOnResize"/> 打开时有值）。</summary>
-    private readonly Dictionary<ToolWindowAnchor, double> _lockedPixels = [];
+    /// <summary>
+    /// 四条边当前的像素尺寸 —— <b>排布的真值</b>。
+    /// </summary>
+    /// <remarks>
+    /// 没有记录的边，下一轮按它的 <c>weight</c> 播种一次（首次布局、读档、恢复默认布局都是这条路）。
+    /// </remarks>
+    private readonly Dictionary<ToolWindowAnchor, double> _pixels = [];
 
     /// <summary>已经排队等着回写的边，避免同一条边连发多次。</summary>
     private readonly HashSet<ToolWindowAnchor> _rebasePending = [];
 
+    /// <summary>
+    /// 直接给某条边定一个像素尺寸（拖分隔条走这儿）。
+    /// </summary>
+    /// <param name="anchor">哪条边。</param>
+    /// <param name="pixels">新尺寸，像素。</param>
+    public void SetAnchorSize(ToolWindowAnchor anchor, double pixels)
+    {
+        if (double.IsNaN(pixels))
+        {
+            return;
+        }
+
+        _pixels[anchor] = Math.Max(0, pixels);
+        InvalidateMeasure();
+    }
+
+    /// <summary>
+    /// 丢掉记着的像素尺寸，下一轮按各边的 <c>weight</c> 重新播种。
+    /// </summary>
+    /// <remarks>
+    /// 只在**布局意图真的换了**的时候调：读档、恢复默认布局、面板换边 / 开合
+    /// （宿主在 <c>ForgeControl</c> 的状态变更那一处调）。
+    /// 窗口改大小、以及把像素反算成 weight 写回台账，都**不**走这儿 ——
+    /// 那正是像素固定要守住的东西。
+    /// </remarks>
+    public void InvalidateAnchorSizes()
+    {
+        _pixels.Clear();
+        InvalidateMeasure();
+    }
+
     static ForgeDockPane()
     {
-        AffectsMeasure<ForgeDockPane>(IsWideScreenProperty, KeepAnchorSizeOnResizeProperty);
+        AffectsMeasure<ForgeDockPane>(IsWideScreenProperty);
         AnchorProperty.Changed.AddClassHandler<Control>((c, _) => (c.Parent as ForgeDockPane)?.InvalidateMeasure());
-        WeightProperty.Changed.AddClassHandler<Control>((c, _) =>
-        {
-            if (c.Parent is not ForgeDockPane pane) return;
-
-            // weight 被外面改了（用户拖了拖手 / 读档 / 恢复默认布局）——锁作废，
-            // 下一轮按新 weight 重新算一次像素再锁上。
-            if (GetAnchor(c) is { } anchor) pane._lockedPixels.Remove(anchor);
-            pane.InvalidateMeasure();
-        });
+        WeightProperty.Changed.AddClassHandler<Control>((c, _) => (c.Parent as ForgeDockPane)?.InvalidateMeasure());
         IsSplitProperty.Changed.AddClassHandler<Control>((c, _) => (c.Parent as ForgeDockPane)?.InvalidateMeasure());
         SideWeightProperty.Changed.AddClassHandler<Control>((c, _) => (c.Parent as ForgeDockPane)?.InvalidateMeasure());
         IsOverlayProperty.Changed.AddClassHandler<Control>((c, _) => (c.Parent as ForgeDockPane)?.InvalidateMeasure());
@@ -301,43 +302,35 @@ public class ForgeDockPane : Panel
     }
 
     /// <summary>
-    /// 把按 weight 算出来的边尺寸换成**锁定的像素**（<see cref="KeepAnchorSizeOnResize"/>）。
+    /// 四条边此刻各自的厚度：**像素是真值**，按 weight 算出来的那份只当播种用。
     /// </summary>
     /// <remarks>
-    /// 第一次遇到某条边时按 weight 算一次并锁上；之后 pane 尺寸再变，这条边都用锁着的像素，
-    /// 增减的空间全落到编辑区身上。锁只在两处解除：weight 被外面改了（拖手 / 读档 /
-    /// 恢复默认布局，见静态构造里的 <c>WeightProperty.Changed</c>），或这条边根本没有可见面板。
+    /// 第一次遇到某条边时按 weight 播一次种，之后这条边就一直用记着的像素 ——
+    /// 窗口增减的空间全落到编辑区身上。记录只在 <see cref="InvalidateAnchorSizes"/> 时丢掉
+    /// （读档 / 恢复默认布局 / 面板换边或开合），拖分隔条则直接改记录（<see cref="SetAnchorSize"/>）。
     /// <para>
     /// 仍然夹在 pane 之内：窗口缩到比面板还窄时，面板跟着缩（不然编辑区会被挤成负数）。
-    /// 上限用与按比例那条路同一个常量（<see cref="ForgeMetrics.NormalizeWeight"/> 的封顶值），
-    /// 免得两条路对"最多能占多少"给出两种答案。
     /// </para>
     /// </remarks>
     /// <param name="paneSize">整个 pane 的尺寸。</param>
-    /// <param name="weights">每条边的权重。</param>
-    /// <param name="byWeight">按权重算出来的尺寸。</param>
+    /// <param name="weights">每条边的权重（只在播种时用）。</param>
+    /// <param name="byWeight">按权重算出来的尺寸（同上）。</param>
     /// <returns>实际要用的尺寸。</returns>
-    private DockSizes LockPixels(
+    private DockSizes ResolveSizes(
         Size paneSize,
         IReadOnlyDictionary<ToolWindowAnchor, double> weights,
         DockSizes byWeight)
     {
-        if (!KeepAnchorSizeOnResize)
-        {
-            return byWeight;
-        }
-
         double Resolve(ToolWindowAnchor anchor, double fromWeight, double total)
         {
             if (!weights.ContainsKey(anchor))
             {
-                // 这条边此刻没有占位的面板：锁没有意义，留到它下次露面再按 weight 锁一次。
-                // ⚠ 覆盖层（取消停靠）不在 weights 里，它走 LockThickness 那条路自己锁 ——
-                //   所以这儿别顺手把锁删了，否则滑出的面板每帧都在按比例重算。
+                // 这条边此刻没有占位的面板。覆盖层（取消停靠）不在 weights 里，它自己走
+                // OverlayRect → Thickness，所以这儿也别动记录，否则滑出的面板每帧重新播种。
                 return fromWeight;
             }
 
-            return LockThickness(anchor, fromWeight, total);
+            return Thickness(anchor, fromWeight, total);
         }
 
         return new DockSizes(
@@ -348,37 +341,43 @@ public class ForgeDockPane : Panel
     }
 
     /// <summary>
-    /// 一条边此刻实际要用的厚度：第一次按 weight 算并锁上，之后一直用锁着的像素。
+    /// 一条边此刻的厚度：**像素是真值**，没有记录时才按 weight 播种一次。
     /// </summary>
     /// <remarks>
-    /// 停靠（<see cref="LockPixels"/>）与取消停靠（覆盖层，<see cref="OverlayRect"/>）走同一处 ——
-    /// **这两种形态共用同一把锁**，所以面板切成取消停靠再切回来，宽度不会自己变一次。
-    /// 关掉 <see cref="KeepAnchorSizeOnResize"/> 时原样返回按比例那份。
+    /// 停靠（<see cref="ResolveSizes"/>）与取消停靠（覆盖层，<see cref="OverlayRect"/>）走同一处，
+    /// 两种形态共用同一份记录 —— 面板切成取消停靠再切回来，宽度不会自己变一次。
+    /// <para>
+    /// ⚠ <b>算尺寸只有这一条路。</b>weight 只在两处露面：没有记录时播一次种，以及反算回去写台账
+    /// （存档格式仍是 weight）。<b>排布过程中绝不再经过 weight</b> —— 像素→weight→floor 回像素
+    /// 的那一来一回带着量化误差，窄尺寸下足够让边界每帧跳一格，实机表现就是
+    /// "拖到小一点时标题栏一跳一跳，拖过某个宽度就好了"。
+    /// </para>
     /// </remarks>
     /// <param name="anchor">哪条边。</param>
-    /// <param name="byWeight">按 weight 算出来的厚度。</param>
+    /// <param name="byWeight">按 weight 算出来的厚度（只在播种时用）。</param>
     /// <param name="total">这条边的换算基数（横边取高、竖边取宽）。</param>
     /// <returns>实际厚度。</returns>
-    private double LockThickness(ToolWindowAnchor anchor, double byWeight, double total)
+    private double Thickness(ToolWindowAnchor anchor, double byWeight, double total)
     {
-        if (!KeepAnchorSizeOnResize || total <= 0)
+        if (total <= 0)
         {
             return byWeight;
         }
 
-        if (!_lockedPixels.TryGetValue(anchor, out var locked))
+        if (!_pixels.TryGetValue(anchor, out var pixels))
         {
-            _lockedPixels[anchor] = byWeight;
+            _pixels[anchor] = byWeight;
             return byWeight;
         }
 
-        // 仍然夹在 pane 之内：窗口缩到比面板还窄时面板跟着缩，不然编辑区会被挤成负数。
-        var pixels = Math.Clamp(locked, 0, Math.Floor(total * ForgeMetrics.NormalizeWeight(1f)));
+        // 夹在 pane 之内：窗口缩到比面板还窄时面板跟着缩，不然编辑区会被挤成负数。
+        // ⚠ 夹出来的结果**不写回记录**：窗口再拉大时，面板要回到用户拉的那个宽度。
+        var used = Math.Clamp(pixels, 0, Math.Floor(total * ForgeMetrics.NormalizeWeight(1f)));
 
-        // 台账里那份 weight 已经跟不上了（窗口变了尺寸）——请宿主按当前 pane 反算着写回去，
-        // 否则关窗存下的还是旧比例，下次开起来面板宽度又变了。
-        RequestRebase(anchor, pixels, total);
-        return pixels;
+        // 台账里那份 weight 跟不上了（窗口改了大小）——请宿主按当前 pane 反算着写回去，
+        // 否则关窗存下的还是旧比例，下次开起来宽度又变了。
+        RequestRebase(anchor, used, total);
+        return used;
     }
 
     /// <summary>锁定的像素与台账里的 weight 对不上时，异步请宿主写回新 weight。</summary>
@@ -533,13 +532,13 @@ public class ForgeDockPane : Panel
         var right = Math.Floor(paneSize.Width);
         var bottom = Math.Floor(paneSize.Height);
 
-        // 厚度与停靠那条路同一把锁（KeepAnchorSizeOnResize）：滑出的面板同样是"拉多宽就多宽"，
-        // 窗口放大时多出来的地方归编辑区。关着这个开关时它就是原来的按比例。
+        // 厚度与停靠那条路同一份记录：滑出的面板同样是"拉多宽就多宽"，
+        // 窗口放大时多出来的地方归编辑区。
         // ⚠ 换算基数**按这条边的朝向取一次**（横边取高、竖边取宽，同 ComputeSizes）：
         //   两个方向各算一次会拿同一把锁存两个不相干的数，互相盖来盖去 ——
         //   实机表现是滑出的面板宽度在两个值之间来回跳，还把回写的 weight 一起带偏。
         var total = anchor.IsHorizontal() ? paneSize.Height : paneSize.Width;
-        var thickness = LockThickness(anchor, Math.Floor(total * w), total);
+        var thickness = Thickness(anchor, Math.Floor(total * w), total);
 
         return anchor switch
         {
@@ -733,7 +732,7 @@ public class ForgeDockPane : Panel
             }
         }
 
-        var sizes = LockPixels(paneSize, weights, ComputeSizes(paneSize, weights));
+        var sizes = ResolveSizes(paneSize, weights, ComputeSizes(paneSize, weights));
         var result = new List<(Control, Rect)>(Children.Count);
 
         // 默认（非宽屏）：竖分隔器在外 —— TOP/BOTTOM 通栏，LEFT/RIGHT 夹在中间

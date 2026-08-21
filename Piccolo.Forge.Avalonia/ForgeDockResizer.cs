@@ -110,13 +110,24 @@ public class ForgeDockResizer : Control
             return WindowInfo.DefaultWeight;
         }
 
-        var min = ForgeMetrics.MainSplitterMinSize;
-        var clamped = Math.Clamp(partSize, min, Math.Max(min, totalSize - min));
+        var clamped = ClampPart(partSize, totalSize);
 
         var ratio = clamped / totalSize;
         ratio += (((clamped + direction) / totalSize) - ratio) / 2;
 
         return ForgeMetrics.NormalizeWeight((float)ratio);
+    }
+
+    /// <summary>
+    /// 把拖到的像素夹进可用范围：两端各留 <c>ide.mainSplitter.min.size</c>=30。
+    /// </summary>
+    /// <param name="partSize">这条边占的像素。</param>
+    /// <param name="totalSize">整个 pane 的对应边长。</param>
+    /// <returns>夹过的像素。</returns>
+    public static double ClampPart(double partSize, double totalSize)
+    {
+        var min = ForgeMetrics.MainSplitterMinSize;
+        return Math.Clamp(partSize, min, Math.Max(min, totalSize - min));
     }
 
     /// <summary>
@@ -224,7 +235,14 @@ public class ForgeDockResizer : Control
             _ => (bounds.Height - point.Y, bounds.Height),
         };
 
-        WeightChanged?.Invoke(this, new DockWeightChangedEventArgs(Anchor, ComputeWeight(part, total)));
+        // ★ 拖出来的是**像素**，不是比例：停靠区的边尺寸真值就是像素（见 ForgeDockPane）。
+        //   权重一起给，但它只用于写进台账（存档格式仍是 weight）——排布不看它。
+        //   早先这里只给 weight，排布再 floor 回像素，一来一回的量化误差在窄尺寸下
+        //   足够让边界每帧跳一格，表现就是"拖到小一点时标题栏一跳一跳"。
+        var pixels = ClampPart(part, total);
+        WeightChanged?.Invoke(
+            this,
+            new DockWeightChangedEventArgs(Anchor, ComputeWeight(part, total), pixels: pixels));
         e.Handled = true;
     }
 
@@ -243,9 +261,20 @@ public class ForgeDockResizer : Control
 /// <param name="anchor">被拖的是哪条边。</param>
 /// <param name="weight">新的权重。</param>
 /// <param name="isSideWeight">拖的是不是格内那条分割线（改 <c>sideWeight</c>）。</param>
-public sealed class DockWeightChangedEventArgs(ToolWindowAnchor anchor, float weight, bool isSideWeight = false)
+/// <param name="pixels">这条边的新尺寸，像素；格内分割线那条不给（<see cref="double.NaN"/>）。</param>
+public sealed class DockWeightChangedEventArgs(
+    ToolWindowAnchor anchor,
+    float weight,
+    bool isSideWeight = false,
+    double pixels = double.NaN)
     : EventArgs
 {
+    /// <summary>
+    /// 这条边的新尺寸，像素。<see cref="double.NaN"/> = 没给（格内分割线那条，改的是比例）。
+    /// </summary>
+    /// <remarks>排布的真值是它；<see cref="Weight"/> 只是写台账用的等价换算。</remarks>
+    public double Pixels { get; } = pixels;
+
     /// <summary>被拖的是哪条边。</summary>
     public ToolWindowAnchor Anchor { get; } = anchor;
 
