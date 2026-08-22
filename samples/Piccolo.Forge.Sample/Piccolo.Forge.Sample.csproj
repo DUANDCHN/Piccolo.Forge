@@ -4,6 +4,8 @@
     <RootNamespace>Piccolo.Forge.Sample</RootNamespace>
     <OutputType>WinExe</OutputType>
     <IsPackable>false</IsPackable>
+    <TargetFrameworks></TargetFrameworks>
+    <TargetFramework>net8.0</TargetFramework>
     <!-- 不是对外 API，不强制 XML 注释 -->
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <ApplicationManifest>app.manifest</ApplicationManifest>

@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <RootNamespace>Piccolo.Forge.Mvvm.CommunityToolkit</RootNamespace>
-    <Description>Forge 面板基类的 CommunityToolkit.Mvvm 绑定：宿主继承它就能继续用 [ObservableProperty]。</Description>
+    <Description>CommunityToolkit.Mvvm binding for Piccolo.Forge panel base classes: inherit and keep using [ObservableProperty].</Description>
   </PropertyGroup>
 
   <ItemGroup>

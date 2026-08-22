@@ -1,22 +1,7 @@
 <Project>
-
   <!--
-    ★ 这个文件存在的唯一目的：**挡住仓库根目录的 Directory.Build.targets**。★
-
-    MSBuild 找 Directory.Build.props / .targets 是**从工程目录往上走、遇到第一个就停**。
-    forge/ 底下已经有自己的 Directory.Build.props（net8.0、警告即错误、集中包版本），
-    但如果这里不放一个 .targets，Forge 各工程就会一路往上找到仓库根那份 ——
-    于是 LDVision 的约定会漏进来：
-
-    · 根 .targets 常开 AOT / 裁剪 / 单文件分析器（REQ-057）。Forge 是通用 UI 库，
-      没做过 AOT 审计，而它自己又开着 TreatWarningsAsErrors —— 两者一撞，
-      Forge 会因为一堆 IL2xxx 直接编不过。
-    · 根 .targets 还带相机 SDK 的留痕与 publish 硬闸（REQ-048）。那些都条件在
-      $(LdvConsumesSdk) 上，Forge 不声明就不会触发，但没有理由让它们参与进来。
-
-    Forge 在这里是**寄居**：源码原样来自 Piccolo.Forge 仓，改完稳定之后要整棵子树搬回去
-    单独发布。所以它的构建约定必须自成一套，别和宿主仓缠在一起 ——
-    缠上了，将来搬回去就得再拆一遍。
+    本仓作为 git submodule 嵌在宿主仓（如 LDVision.Studio）里时，这个文件挡住宿主仓根目录的
+    Directory.Build.targets：MSBuild 从工程目录往上找、遇到第一个就停。
+    宿主的 AOT / 裁剪分析器、发布闸门等约定不该漏进一个通用 UI 库。
   -->
-
 </Project>

@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <RootNamespace>Piccolo.Forge.Avalonia</RootNamespace>
+    <Description>Piccolo.Forge for Avalonia: IntelliJ-style tool-window stripes, dock panes, headers, editor tabs and drag/drop. Add one theme package (Piccolo.Forge.Themes.ExpUi or .Islands).</Description>
   </PropertyGroup>
 
   <ItemGroup>

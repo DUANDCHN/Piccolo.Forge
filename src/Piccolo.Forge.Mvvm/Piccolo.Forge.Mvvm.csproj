@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <RootNamespace>Piccolo.Forge.Mvvm</RootNamespace>
-    <Description>Forge 的可观察包装：工具窗口与内容的 VM。只依赖模型层，不引 Avalonia，也不引任何 MVVM 框架。</Description>
+    <Description>Piccolo.Forge view-models for tool windows and editor content. Depends only on the model; no Avalonia, no MVVM framework.</Description>
   </PropertyGroup>
 
   <ItemGroup>

@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <RootNamespace>Piccolo.Forge.Model</RootNamespace>
+    <Description>Piccolo.Forge core model: tool-window anchors, docking layout, editor groups and tab moves. No UI dependency.</Description>
   </PropertyGroup>
 
 </Project>

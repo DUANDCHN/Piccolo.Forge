@@ -35,3 +35,20 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+## IntelliJ Platform
+
+Forge 的工具窗口模型（anchor + isSplit、条带 / 停靠区 / 标题条的布局规则）、度量常量与 expUI /
+Islands 两族的配色，按 IntelliJ Platform 的源码与行为重做（见 `docs/upstream/`）。
+C# 代码为独立实现，未复制 Java/Kotlin 源文件；度量、键名与颜色值取自上游。
+
+- Project: IntelliJ Platform (intellij-community)
+- Repository: https://github.com/JetBrains/intellij-community
+- License: Apache License 2.0
+- Copyright 2000-2026 JetBrains s.r.o.
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use the referenced
+material except in compliance with the License. You may obtain a copy of the License at
+http://www.apache.org/licenses/LICENSE-2.0. Unless required by applicable law or agreed to in
+writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
