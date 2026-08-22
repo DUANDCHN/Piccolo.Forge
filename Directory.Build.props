@@ -40,7 +40,11 @@
     <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
   </PropertyGroup>
 
-  <!-- 公开 API 有账本：改了 PublicAPI.*.txt 之外的公开面，RS0016/RS0017 当场报错 -->
+  <!-- 公开 API 有账本：改了 PublicAPI.*.txt 之外的公开面，RS0016/RS0017 当场报错。
+       RS0026/RS0027（可选参数的多重载）是 Roslyn 团队自己的约定，本库用可选参数做渐进式重载，关掉。 -->
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);RS0026;RS0027</NoWarn>
+  </PropertyGroup>
   <ItemGroup Condition="'$(IsPackable)' != 'false'">
     <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
     <AdditionalFiles Include="PublicAPI.Shipped.txt" />
