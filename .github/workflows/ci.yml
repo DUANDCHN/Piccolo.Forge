@@ -1,10 +1,10 @@
 name: CI
 
+# 仅在发布时运行：推送 v* 标签触发；日常提交不消耗 CI 配额，测试在本机跑。
 on:
   push:
-    branches: [master]
     tags: ['v*']
-  pull_request:
+  workflow_dispatch:
 
 jobs:
   test:
