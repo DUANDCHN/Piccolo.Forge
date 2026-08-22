@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <IsAotCompatible>true</IsAotCompatible>
     <RootNamespace>Piccolo.Forge.Themes.ExpUi</RootNamespace>
     <Description>Piccolo.Forge ExpUi theme: ControlThemes and colours for the tool-window shell. Reference this package (or Piccolo.Forge.Themes.Islands) and add the theme to Application.Styles.</Description>
   </PropertyGroup>

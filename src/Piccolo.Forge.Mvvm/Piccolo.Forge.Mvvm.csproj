@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <IsAotCompatible>true</IsAotCompatible>
     <RootNamespace>Piccolo.Forge.Mvvm</RootNamespace>
     <Description>Piccolo.Forge view-models for tool windows and editor content. Depends only on the model; no Avalonia, no MVVM framework.</Description>
   </PropertyGroup>

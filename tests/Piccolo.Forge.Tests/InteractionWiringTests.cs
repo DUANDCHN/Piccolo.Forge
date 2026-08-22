@@ -1133,8 +1133,7 @@ public class ForgeLocaleTests
     {
         static HashSet<string> Keys(string locale)
         {
-            var dict = (global::Avalonia.Controls.ResourceDictionary)global::Avalonia.Markup.Xaml.AvaloniaXamlLoader.Load(
-                new Uri($"avares://Piccolo.Forge.Avalonia/Locales/{locale}.axaml"));
+            var dict = Piccolo.Forge.Avalonia.Locales.ForgeLocales.Factories[locale]();
             return dict.Keys.Select(k => k.ToString()!).ToHashSet();
         }
 
@@ -1165,8 +1164,8 @@ public class ForgeLocaleTests
             ForgeThemeManager.ApplyLocale(app, "en-US");
             Assert.Equal("View Mode", ForgeStrings.Current.ViewMode);
             Assert.Single(
-                app.Resources.MergedDictionaries.OfType<global::Avalonia.Markup.Xaml.Styling.ResourceInclude>(),
-                r => r.Source?.ToString().Contains("/Locales/") == true);   // 换语言是替换，不是越堆越多
+                app.Resources.MergedDictionaries,
+                r => r.GetType().Namespace == "Piccolo.Forge.Avalonia.Locales");   // 换语言是替换，不是越堆越多
         }
         finally
         {

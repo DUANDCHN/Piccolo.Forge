@@ -1,5 +1,6 @@
 <!--  Forge 文案：한국어（ko-KR）。键与 en-US.axaml 一一对应，缺键由英文回落。  -->
-<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    x:Class="Piccolo.Forge.Avalonia.Locales.ForgeLocale_ko_KR">
     <x:String x:Key="Forge.Strings.MoveTo">이동</x:String>
     <x:String x:Key="Forge.Strings.ViewMode">보기 모드</x:String>
     <x:String x:Key="Forge.Strings.RemoveFromSidebar">사이드바에서 제거</x:String>

@@ -1,7 +1,8 @@
 <!--  Forge 文案：简体中文。
       键名 Forge.Strings.*，与颜色键同一套机制：控件 / 菜单按键取值，宿主在自己的资源里重定义同名键即可覆盖。
       由 ForgeThemeManager.ApplyLocale 按 CultureInfo 挑一份挂进 Application.Resources.MergedDictionaries。  -->
-<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    x:Class="Piccolo.Forge.Avalonia.Locales.ForgeLocale_zh_CN">
     <x:String x:Key="Forge.Strings.MoveTo">移至</x:String>
     <x:String x:Key="Forge.Strings.ViewMode">视图模式</x:String>
     <x:String x:Key="Forge.Strings.RemoveFromSidebar">从边栏中移除</x:String>

@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <IsAotCompatible>true</IsAotCompatible>
     <RootNamespace>Piccolo.Forge.Mvvm.CommunityToolkit</RootNamespace>
     <Description>CommunityToolkit.Mvvm binding for Piccolo.Forge panel base classes: inherit and keep using [ObservableProperty].</Description>
   </PropertyGroup>

@@ -1,9 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <IsAotCompatible>true</IsAotCompatible>
     <RootNamespace>Piccolo.Forge.Avalonia</RootNamespace>
     <Description>Piccolo.Forge for Avalonia: IntelliJ-style tool-window stripes, dock panes, headers, editor tabs and drag/drop. Add one theme package (Piccolo.Forge.Themes.ExpUi or .Islands).</Description>
   </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Piccolo.Forge.Tests" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Avalonia" />

@@ -1,5 +1,6 @@
 <!--  Forge 文案：Русский（ru-RU）。键与 en-US.axaml 一一对应，缺键由英文回落。  -->
-<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    x:Class="Piccolo.Forge.Avalonia.Locales.ForgeLocale_ru_RU">
     <x:String x:Key="Forge.Strings.MoveTo">Переместить в</x:String>
     <x:String x:Key="Forge.Strings.ViewMode">Режим отображения</x:String>
     <x:String x:Key="Forge.Strings.RemoveFromSidebar">Убрать с боковой панели</x:String>

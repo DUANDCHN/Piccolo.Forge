@@ -1,5 +1,6 @@
 <!--  Forge 文案：Italiano（it-IT）。键与 en-US.axaml 一一对应，缺键由英文回落。  -->
-<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    x:Class="Piccolo.Forge.Avalonia.Locales.ForgeLocale_it_IT">
     <x:String x:Key="Forge.Strings.MoveTo">Sposta in</x:String>
     <x:String x:Key="Forge.Strings.ViewMode">Modalità di visualizzazione</x:String>
     <x:String x:Key="Forge.Strings.RemoveFromSidebar">Rimuovi dalla barra laterale</x:String>

@@ -89,7 +89,7 @@ public static class ForgeThemeManager
         return null;
     }
 
-    private static ResourceInclude? _locale;
+    private static ResourceDictionary? _locale;
 
     /// <summary>当前装着的语言字典（给 <see cref="ForgeStrings"/> 判断要不要重读）。</summary>
     internal static object? InstalledLocale => _locale;
@@ -125,12 +125,9 @@ public static class ForgeThemeManager
             application.Resources.MergedDictionaries.Remove(_locale);
         }
 
-        var include = new ResourceInclude((Uri?)null)
-        {
-            Source = new Uri($"avares://Piccolo.Forge.Avalonia/Locales/{name}.axaml"),
-        };
-        application.Resources.MergedDictionaries.Add(include);
-        _locale = include;
+        var dictionary = Locales.ForgeLocales.Factories[name]();
+        application.Resources.MergedDictionaries.Add(dictionary);
+        _locale = dictionary;
         CurrentLocale = name;
     }
 
@@ -145,11 +142,7 @@ public static class ForgeThemeManager
     /// 自带的语言字典（<c>Locales/*.axaml</c>），与 Semi.Avalonia 的语言集合对齐：
     /// 英、简中、繁中、日、韩、德、法、西、意、荷、波、俄、乌。
     /// </summary>
-    public static IReadOnlyList<string> SupportedLocales { get; } =
-    [
-        "en-US", "zh-CN", "zh-Hant", "ja-JP", "ko-KR", "de-DE", "fr-FR",
-        "es-ES", "it-IT", "nl-NL", "pl-PL", "ru-RU", "uk-UA",
-    ];
+    public static IReadOnlyList<string> SupportedLocales { get; } = [.. Locales.ForgeLocales.Factories.Keys];
 
     /// <summary>文化名（如 <c>zh-TW</c>、<c>de-AT</c>）→ 资源文件名。与 <see cref="ResolveLocale(CultureInfo)"/> 同一规则，给不能造 CultureInfo 的环境（不变文化模式）用。</summary>
     /// <remarks>
