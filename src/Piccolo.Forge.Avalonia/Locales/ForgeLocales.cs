@@ -29,91 +29,91 @@ internal static class ForgeLocales
 }
 
 /// <summary>en-US 文案字典（编译期 XAML，AOT / 裁剪安全）。</summary>
-public sealed class ForgeLocale_en_US : ResourceDictionary
+internal sealed class ForgeLocale_en_US : ResourceDictionary
 {
     /// <summary>装载 XAML。</summary>
     public ForgeLocale_en_US() => AvaloniaXamlLoader.Load(this);
 }
 
 /// <summary>zh-CN 文案字典（编译期 XAML，AOT / 裁剪安全）。</summary>
-public sealed class ForgeLocale_zh_CN : ResourceDictionary
+internal sealed class ForgeLocale_zh_CN : ResourceDictionary
 {
     /// <summary>装载 XAML。</summary>
     public ForgeLocale_zh_CN() => AvaloniaXamlLoader.Load(this);
 }
 
 /// <summary>zh-Hant 文案字典（编译期 XAML，AOT / 裁剪安全）。</summary>
-public sealed class ForgeLocale_zh_Hant : ResourceDictionary
+internal sealed class ForgeLocale_zh_Hant : ResourceDictionary
 {
     /// <summary>装载 XAML。</summary>
     public ForgeLocale_zh_Hant() => AvaloniaXamlLoader.Load(this);
 }
 
 /// <summary>ja-JP 文案字典（编译期 XAML，AOT / 裁剪安全）。</summary>
-public sealed class ForgeLocale_ja_JP : ResourceDictionary
+internal sealed class ForgeLocale_ja_JP : ResourceDictionary
 {
     /// <summary>装载 XAML。</summary>
     public ForgeLocale_ja_JP() => AvaloniaXamlLoader.Load(this);
 }
 
 /// <summary>ko-KR 文案字典（编译期 XAML，AOT / 裁剪安全）。</summary>
-public sealed class ForgeLocale_ko_KR : ResourceDictionary
+internal sealed class ForgeLocale_ko_KR : ResourceDictionary
 {
     /// <summary>装载 XAML。</summary>
     public ForgeLocale_ko_KR() => AvaloniaXamlLoader.Load(this);
 }
 
 /// <summary>de-DE 文案字典（编译期 XAML，AOT / 裁剪安全）。</summary>
-public sealed class ForgeLocale_de_DE : ResourceDictionary
+internal sealed class ForgeLocale_de_DE : ResourceDictionary
 {
     /// <summary>装载 XAML。</summary>
     public ForgeLocale_de_DE() => AvaloniaXamlLoader.Load(this);
 }
 
 /// <summary>fr-FR 文案字典（编译期 XAML，AOT / 裁剪安全）。</summary>
-public sealed class ForgeLocale_fr_FR : ResourceDictionary
+internal sealed class ForgeLocale_fr_FR : ResourceDictionary
 {
     /// <summary>装载 XAML。</summary>
     public ForgeLocale_fr_FR() => AvaloniaXamlLoader.Load(this);
 }
 
 /// <summary>es-ES 文案字典（编译期 XAML，AOT / 裁剪安全）。</summary>
-public sealed class ForgeLocale_es_ES : ResourceDictionary
+internal sealed class ForgeLocale_es_ES : ResourceDictionary
 {
     /// <summary>装载 XAML。</summary>
     public ForgeLocale_es_ES() => AvaloniaXamlLoader.Load(this);
 }
 
 /// <summary>it-IT 文案字典（编译期 XAML，AOT / 裁剪安全）。</summary>
-public sealed class ForgeLocale_it_IT : ResourceDictionary
+internal sealed class ForgeLocale_it_IT : ResourceDictionary
 {
     /// <summary>装载 XAML。</summary>
     public ForgeLocale_it_IT() => AvaloniaXamlLoader.Load(this);
 }
 
 /// <summary>nl-NL 文案字典（编译期 XAML，AOT / 裁剪安全）。</summary>
-public sealed class ForgeLocale_nl_NL : ResourceDictionary
+internal sealed class ForgeLocale_nl_NL : ResourceDictionary
 {
     /// <summary>装载 XAML。</summary>
     public ForgeLocale_nl_NL() => AvaloniaXamlLoader.Load(this);
 }
 
 /// <summary>pl-PL 文案字典（编译期 XAML，AOT / 裁剪安全）。</summary>
-public sealed class ForgeLocale_pl_PL : ResourceDictionary
+internal sealed class ForgeLocale_pl_PL : ResourceDictionary
 {
     /// <summary>装载 XAML。</summary>
     public ForgeLocale_pl_PL() => AvaloniaXamlLoader.Load(this);
 }
 
 /// <summary>ru-RU 文案字典（编译期 XAML，AOT / 裁剪安全）。</summary>
-public sealed class ForgeLocale_ru_RU : ResourceDictionary
+internal sealed class ForgeLocale_ru_RU : ResourceDictionary
 {
     /// <summary>装载 XAML。</summary>
     public ForgeLocale_ru_RU() => AvaloniaXamlLoader.Load(this);
 }
 
 /// <summary>uk-UA 文案字典（编译期 XAML，AOT / 裁剪安全）。</summary>
-public sealed class ForgeLocale_uk_UA : ResourceDictionary
+internal sealed class ForgeLocale_uk_UA : ResourceDictionary
 {
     /// <summary>装载 XAML。</summary>
     public ForgeLocale_uk_UA() => AvaloniaXamlLoader.Load(this);

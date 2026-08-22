@@ -9,7 +9,7 @@ namespace Piccolo.Forge.Themes;
 /// IDE 缩放先改字号，字号再反推倍率（<c>LafManagerImpl.kt:852-880 · patchLafFonts</c>），
 /// 而且两条路最后都会被离散化到 0.25 的整数倍（见 <see cref="Discretize"/>）。
 /// </remarks>
-public static class ForgeScale
+internal static class ForgeScale
 {
     /// <summary>离散化的粒度 0.25（<c>JBUIScale.kt:37 · DISCRETE_SCALE_RESOLUTION</c>）。</summary>
     public const float DiscreteScaleResolution = 0.25f;

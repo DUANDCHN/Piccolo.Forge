@@ -9,7 +9,7 @@ namespace Piccolo.Forge.Avalonia;
 /// <param name="Anchor">落到哪条边。</param>
 /// <param name="Order">插到什么次序；<c>-1</c> 表示末尾。</param>
 /// <param name="IsSplit">落到同一条边的哪一半。</param>
-public readonly record struct StripeDropTarget(ToolWindowAnchor Anchor, int Order, bool IsSplit);
+internal readonly record struct StripeDropTarget(ToolWindowAnchor Anchor, int Order, bool IsSplit);
 
 /// <summary>
 /// 由落点算插入位置。
@@ -18,7 +18,7 @@ public readonly record struct StripeDropTarget(ToolWindowAnchor Anchor, int Orde
 /// 对应 <c>AbstractDroppableStripe.kt:374-401</c> 的逐按钮判定与
 /// <c>:242-258 · finishDrop</c> 的收尾。
 /// </remarks>
-public static class StripeDropResolver
+internal static class StripeDropResolver
 {
     /// <summary>
     /// 落在一组按钮里的第几个之前。

@@ -18,7 +18,7 @@ namespace Piccolo.Forge.Avalonia;
 /// 全是静态纯函数：拿矩形算矩形，不碰控件，好测。
 /// </para>
 /// </remarks>
-public static class ForgeEditorTabDragTarget
+internal static class ForgeEditorTabDragTarget
 {
     /// <summary>
     /// 起拖阈值：按下后要挪够这么多像素才算拖拽，默认 <b>7</b>。

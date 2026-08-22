@@ -15,7 +15,7 @@ namespace Piccolo.Forge.Avalonia;
 /// （<c>:161</c> 用 <c>tab.getWidth() == 0</c> 挑出被藏起来的 tab）。
 /// </remarks>
 [ForgeThemeless("纯布局面板：只把标签排成一行。")]
-public class HeaderTabsPanel : Panel
+internal class HeaderTabsPanel : Panel
 {
     /// <summary>
     /// 有多少个 tab 因为放不下被压成了 0 宽。

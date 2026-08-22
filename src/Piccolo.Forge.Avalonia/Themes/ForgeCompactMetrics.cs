@@ -18,7 +18,7 @@ namespace Piccolo.Forge.Themes;
 /// 它是两条主题链共同的根，所以新 UI 也吃这份值。
 /// </para>
 /// </remarks>
-public static class ForgeCompactMetrics
+internal static class ForgeCompactMetrics
 {
     /// <summary>条带按钮 32×32（`StripeToolbar.Button.size.compact`）。默认 40。</summary>
     public const double StripeButtonSize = 32;

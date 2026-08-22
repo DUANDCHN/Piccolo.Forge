@@ -20,7 +20,7 @@ namespace Piccolo.Forge.Avalonia;
 /// </para>
 /// </remarks>
 [ForgeThemeless("只是一块透明的拖拽热区（分界线由 ForgeControl 自己画）。")]
-public class ForgeDockResizer : Control
+internal class ForgeDockResizer : Control
 {
     private bool _dragging;
 

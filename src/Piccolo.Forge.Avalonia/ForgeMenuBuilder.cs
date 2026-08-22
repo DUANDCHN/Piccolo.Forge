@@ -12,7 +12,7 @@ namespace Piccolo.Forge.Avalonia;
 /// 菜单的内容与语义在模型层（<see cref="ToolWindowContextMenu"/>，出处见
 /// <c>工具窗口模型.md</c> §14.2），这里只负责变成控件。
 /// </remarks>
-public static class ForgeMenuBuilder
+internal static class ForgeMenuBuilder
 {
     /// <summary>
     /// 条带按钮的右键菜单。

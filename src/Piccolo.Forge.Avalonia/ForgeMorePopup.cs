@@ -13,7 +13,7 @@ namespace Piccolo.Forge.Avalonia;
 /// 最小宽 <see cref="ForgeMetrics.MorePopupMinWidth"/>=300，
 /// 弹出位置见 <see cref="ForgeMoreButton.ComputePopupOffset"/>。
 /// </remarks>
-public static class ForgeMorePopup
+internal static class ForgeMorePopup
 {
     /// <summary>
     /// 该在弹窗里列出哪些工具窗口。

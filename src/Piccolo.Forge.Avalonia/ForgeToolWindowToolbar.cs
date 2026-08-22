@@ -166,10 +166,10 @@ public class ForgeToolWindowToolbar : TemplatedControl
     }
 
     /// <summary>上组：放 LEFT / RIGHT 的按钮。</summary>
-    public StripeItemsPanel TopGroup => _topGroup;
+    internal StripeItemsPanel TopGroup => _topGroup;
 
     /// <summary>下组：放 BOTTOM 的按钮。</summary>
-    public StripeItemsPanel BottomGroup => _bottomGroup;
+    internal StripeItemsPanel BottomGroup => _bottomGroup;
 
     /// <summary>
     /// 这根条带上有没有任何按钮。

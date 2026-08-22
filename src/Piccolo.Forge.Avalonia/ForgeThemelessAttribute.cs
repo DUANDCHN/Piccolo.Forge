@@ -19,7 +19,7 @@ namespace Piccolo.Forge.Avalonia;
 /// </remarks>
 /// <param name="reason">为什么它不需要主题 —— 写给下一个看见测试报红的人。</param>
 [AttributeUsage(AttributeTargets.Class, Inherited = false)]
-public sealed class ForgeThemelessAttribute(string reason) : Attribute
+internal sealed class ForgeThemelessAttribute(string reason) : Attribute
 {
     /// <summary>不给主题的理由。</summary>
     public string Reason { get; } = reason;

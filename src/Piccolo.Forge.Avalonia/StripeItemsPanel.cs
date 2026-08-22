@@ -22,7 +22,7 @@ namespace Piccolo.Forge.Avalonia;
 /// </para>
 /// </remarks>
 [ForgeThemeless("纯布局面板：只排条带上的按钮与拖拽空槽。")]
-public class StripeItemsPanel : Panel
+internal class StripeItemsPanel : Panel
 {
     /// <summary><see cref="DraggedChild"/> 的属性定义。</summary>
     public static readonly StyledProperty<Control?> DraggedChildProperty =

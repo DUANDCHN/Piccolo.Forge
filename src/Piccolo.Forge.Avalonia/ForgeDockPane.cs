@@ -315,7 +315,7 @@ public class ForgeDockPane : Panel
     /// <param name="paneSize">整个 pane 的尺寸。</param>
     /// <param name="weights">每条边的权重；没给的边算作 0。</param>
     /// <returns>四条边各自的像素尺寸。</returns>
-    public static DockSizes ComputeSizes(Size paneSize, IReadOnlyDictionary<ToolWindowAnchor, double> weights)
+    internal static DockSizes ComputeSizes(Size paneSize, IReadOnlyDictionary<ToolWindowAnchor, double> weights)
     {
         ArgumentNullException.ThrowIfNull(weights);
 
@@ -859,4 +859,4 @@ public class ForgeDockPane : Panel
 /// <param name="Bottom">下边的高。</param>
 /// <param name="Left">左边的宽。</param>
 /// <param name="Right">右边的宽。</param>
-public readonly record struct DockSizes(double Top, double Bottom, double Left, double Right);
+internal readonly record struct DockSizes(double Top, double Bottom, double Left, double Right);

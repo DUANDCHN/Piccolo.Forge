@@ -14,7 +14,7 @@ namespace Piccolo.Forge.Avalonia;
 /// 激活立刻淡回不透明，失活先等 <see cref="ForgeMetrics.FloatingFadeDelayMs"/> 再淡出。
 /// **默认关闭**（<see cref="ForgeMetrics.FloatingFadeEnabledByDefault"/>）。
 /// </remarks>
-public sealed class ForgeFadeController : IDisposable
+internal sealed class ForgeFadeController : IDisposable
 {
     private readonly Window _window;
     private readonly DispatcherTimer _ticker;
