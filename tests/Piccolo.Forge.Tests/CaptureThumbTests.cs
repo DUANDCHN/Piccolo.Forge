@@ -48,7 +48,8 @@ public class CaptureThumbTests
         var thumb = ForgeDragOverlay.CaptureThumb(icon);
         Assert.NotNull(thumb);
 
-        Assert.True(OpaqueBlackCount(raw) > 0, "对照组不黑：这台机器的文本渲染没走子像素抗锯齿，本用例守不住任何东西");
+        // 对照组不黑（macOS 的 Skia 文本默认就是灰度抗锯齿）：这台机器守不住任何东西，跳过而不是装绿
+        Assert.SkipWhen(OpaqueBlackCount(raw) == 0, "对照组不黑：这台机器的文本渲染没走子像素抗锯齿，本用例在此无意义");
         Assert.Equal(0, OpaqueBlackCount(thumb!));
 
         raw.Dispose();
@@ -136,20 +137,22 @@ public class CaptureThumbTests
         window.Close();
     }
 
-    /// 数纯白像素。
-    private static int WhiteCount(RenderTargetBitmap bitmap) => CountPixels(bitmap, 255, 255, 255);
+    /// 数「看得出是白」的像素：按颜色判，不看覆盖率。
+    /// 位图是预乘 alpha 的，半透明像素的通道值已经乘过 alpha，所以与 alpha 比而不是与 255 比 ——
+    /// 灰度抗锯齿下 16px 字形可能没有一个整像素是满覆盖的（macOS 实测），但颜色这条事实不受覆盖率影响。
+    private static int WhiteCount(RenderTargetBitmap bitmap) => CountPixels(bitmap, (b, g, r, a) => b >= a * 0.8 && g >= a * 0.8 && r >= a * 0.8);
 
-    /// 数纯红像素。
-    private static int RedCount(RenderTargetBitmap bitmap) => CountPixels(bitmap, 0, 0, 255);
+    /// 数「看得出是红」的像素。
+    private static int RedCount(RenderTargetBitmap bitmap) => CountPixels(bitmap, (b, g, r, a) => r >= a * 0.8 && g <= a * 0.2 && b <= a * 0.2);
 
-    private static int CountPixels(RenderTargetBitmap bitmap, byte b, byte g, byte r)
+    private static int CountPixels(RenderTargetBitmap bitmap, Func<byte, byte, byte, byte, bool> match)
     {
         var bytes = ReadPixels(bitmap);
         var count = 0;
 
         for (var i = 0; i < bytes.Length; i += 4)
         {
-            if (bytes[i] == b && bytes[i + 1] == g && bytes[i + 2] == r && bytes[i + 3] == 255)
+            if (bytes[i + 3] >= 32 && match(bytes[i], bytes[i + 1], bytes[i + 2], bytes[i + 3]))
             {
                 count++;
             }
@@ -168,11 +171,41 @@ public class CaptureThumbTests
         return bitmap;
     }
 
-    /// 数一数有多少个像素是「不透明纯黑」。
-    private static int OpaqueBlackCount(RenderTargetBitmap bitmap) => CountPixels(bitmap, 0, 0, 0);
+    /// 数一数有多少个像素是「不透明纯黑」—— 这一条必须精确，它就是黑块本身。
+    private static int OpaqueBlackCount(RenderTargetBitmap bitmap)
+    {
+        var bytes = ReadPixels(bitmap);
+        var count = 0;
+
+        for (var i = 0; i < bytes.Length; i += 4)
+        {
+            if (bytes[i] == 0 && bytes[i + 1] == 0 && bytes[i + 2] == 0 && bytes[i + 3] == 255)
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
 
     /// 把位图读成 Bgra8888 的字节。
+    /// RenderTargetBitmap 的像素格式随平台：Windows 是 Bgra8888，macOS 是 Rgba8888 ——
+    /// 不看 Format 直接按 BGRA 数，红在 mac 上会被数成蓝（曾经的"mac 上恒红两条"就是这个）。
     private static byte[] ReadPixels(RenderTargetBitmap bitmap)
+    {
+        var bytes = ReadRaw(bitmap);
+        if (bitmap.Format == PixelFormat.Rgba8888)
+        {
+            for (var i = 0; i < bytes.Length; i += 4)
+            {
+                (bytes[i], bytes[i + 2]) = (bytes[i + 2], bytes[i]);
+            }
+        }
+
+        return bytes;
+    }
+
+    private static byte[] ReadRaw(RenderTargetBitmap bitmap)
     {
         var w = bitmap.PixelSize.Width;
         var h = bitmap.PixelSize.Height;
