@@ -1,4 +1,5 @@
 ﻿using Avalonia.Controls;
+using Avalonia.Media;
 using Piccolo.Forge.Model;
 using Piccolo.Forge.Mvvm;
 
@@ -147,6 +148,7 @@ public static class ForgeMenuBuilder
         // 而这 8 项本来就是同一件事的取值。
         MenuItem? moveTo = null;
         MenuItem? viewMode = null;
+        ToolWindowAnchor? lastMoveAnchor = null;
 
         foreach (var item in items)
         {
@@ -191,9 +193,20 @@ public static class ForgeMenuBuilder
                         menu.Items.Add(moveTo);
                     }
 
-                    moveTo.Items.Add(Item(
+                    // 按边分组、组间画线：左侧（上 / 下）| 右侧（上 / 下）| 底部（左 / 右）。
+                    // 「左侧·下半」和「底部·左半」最容易混 —— 分组 + 图标把它们拆开。
+                    if (lastMoveAnchor is { } prev && prev != anchor)
+                    {
+                        moveTo.Items.Add(new Separator());
+                    }
+
+                    lastMoveAnchor = anchor;
+
+                    var move = Item(
                         DescribeMove(anchor, split),
-                        () => manager!.MoveTo(id!, anchor, order: -1, isSplit: split)));
+                        () => manager!.MoveTo(id!, anchor, order: -1, isSplit: split));
+                    move.Icon = LocationIcon(anchor, split);
+                    moveTo.Items.Add(move);
                     break;
 
                 case ToolWindowMenuItemKind.ToggleShowNames:
@@ -386,41 +399,54 @@ public static class ForgeMenuBuilder
     /// <returns>菜单项的名字。</returns>
     public static string DescribeMove(ToolWindowAnchor anchor, bool isSplit) => anchor switch
     {
-        ToolWindowAnchor.Left => isSplit ? "左下" : "左上",
-        ToolWindowAnchor.Right => isSplit ? "右下" : "右上",
-        ToolWindowAnchor.Bottom => isSplit ? "下右" : "下左",
-        _ => isSplit ? "上右" : "上左",
+        // 说成「哪条边 · 哪一半」：「左下」与「下左」两个字颠倒就是两个位置，念出来分不清；
+        // 「左侧 · 下半」是左边那条竖栏的下段，「底部 · 左半」是底下那条横栏的左段。
+        ToolWindowAnchor.Left => isSplit ? "左侧 · 下半" : "左侧 · 上半",
+        ToolWindowAnchor.Right => isSplit ? "右侧 · 下半" : "右侧 · 上半",
+        ToolWindowAnchor.Bottom => isSplit ? "底部 · 右半" : "底部 · 左半",
+        _ => isSplit ? "顶部 · 右半" : "顶部 · 左半",
     };
+
+    /// <summary>
+    /// 「移至」菜单项的位置图标：窗口轮廓 + 那条栏的**分界线** + 目标半段实心。对位上游 <c>getLocationIcon</c>（那边是位图，这里按几何画）。
+    /// </summary>
+    /// <remarks>
+    /// 16×14 外框（1px 环）。竖栏：x=6 处一条竖线把左栏分出来，目标块 5×6（高瘦）；
+    /// 横栏：y=9 处一条横线把底栏分出来，目标块 7×4（矮宽）。高瘦 vs 矮宽 + 分界线的走向，
+    /// 「左侧 · 下半」和「底部 · 左半」就不会再混成"左下角一块"。
+    /// 用 <see cref="PathIcon"/>：颜色跟菜单项的 Foreground 走，明暗主题自动对。各子路径互不重叠，按 EvenOdd 都填上。
+    /// </remarks>
+    private static Control LocationIcon(ToolWindowAnchor anchor, bool isSplit)
+    {
+        const string frame = "M0,0 H16 V14 H0 Z M1,1 V13 H15 V1 Z";
+        var (divider, block) = anchor switch
+        {
+            ToolWindowAnchor.Left => ("M6,1 H7 V13 H6 Z", isSplit ? "M1,7 H6 V13 H1 Z" : "M1,1 H6 V7 H1 Z"),
+            ToolWindowAnchor.Right => ("M9,1 H10 V13 H9 Z", isSplit ? "M10,7 H15 V13 H10 Z" : "M10,1 H15 V7 H10 Z"),
+            ToolWindowAnchor.Bottom => ("M1,8 H15 V9 H1 Z", isSplit ? "M8,9 H15 V13 H8 Z" : "M1,9 H8 V13 H1 Z"),
+            _ => ("M1,5 H15 V6 H1 Z", isSplit ? "M8,1 H15 V5 H8 Z" : "M1,1 H8 V5 H1 Z"),
+        };
+
+        return new PathIcon
+        {
+            Data = Geometry.Parse($"{frame} {divider} {block}"),
+            Width = 16,
+            Height = 14,
+        };
+    }
 
     /// <summary>
     /// 拖动时那条落点标签的文案：「移至 左侧 底部」。
     /// </summary>
     /// <remarks>
     /// 对应上游拖影旁边挂的 <c>HelpTooltip</c>（<c>ToolWindowDragHelper.kt:346-352</c>），
-    /// 文案是 <c>"Move to " + anchor</c>。这里比菜单里的 <see cref="DescribeMove"/> 说得开一些
-    /// ——菜单是一列八项、看得见彼此，"左下"两个字够了；拖动时只有孤零零一条，
-    /// 得让人一眼读懂是哪条边的哪一半。
+    /// 文案是 <c>"Move to " + anchor</c>。拖动时只有孤零零一条，得让人一眼读懂是哪条边的哪一半。
     /// </remarks>
     /// <param name="anchor">落到哪条边。</param>
     /// <param name="isSplit">是不是那条边的「另一半」。</param>
     /// <returns>要显示的字。</returns>
     public static string DescribeMoveTarget(ToolWindowAnchor anchor, bool isSplit)
-    {
-        var side = anchor switch
-        {
-            ToolWindowAnchor.Left => "左侧",
-            ToolWindowAnchor.Right => "右侧",
-            ToolWindowAnchor.Bottom => "底部",
-            _ => "顶部",
-        };
-
-        // 竖边分上下，横边分左右
-        var half = anchor is ToolWindowAnchor.Bottom or ToolWindowAnchor.Top
-            ? isSplit ? "右侧" : "左侧"
-            : isSplit ? "底部" : "顶部";
-
-        return $"移至 {side} {half}";
-    }
+        => $"移至 {DescribeMove(anchor, isSplit)}";
 
     private static MenuItem Item(string header, Action action)
     {

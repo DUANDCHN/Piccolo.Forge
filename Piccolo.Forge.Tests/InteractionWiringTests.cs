@@ -19,12 +19,12 @@ namespace Piccolo.Forge.Tests;
 public class ForgeMenuBuilderTests
 {
     [Theory]
-    // 名字取自位置图标：竖边的另一半在下，横边的另一半在右
-    // （ToolWindowManagerImpl.kt:770-786 · getLocationIcon）
-    [InlineData(ToolWindowAnchor.Left, false, "左上")]
-    [InlineData(ToolWindowAnchor.Left, true, "左下")]
-    [InlineData(ToolWindowAnchor.Bottom, false, "下左")]
-    [InlineData(ToolWindowAnchor.Bottom, true, "下右")]
+    // 说成「哪条边 · 哪一半」：竖边的另一半在下，横边的另一半在右（ToolWindowManagerImpl.kt:770-786 · getLocationIcon）。
+    // 不再叫「左下 / 下左」—— 两个字颠倒就是两个位置，念出来分不清（用户实测混淆）。
+    [InlineData(ToolWindowAnchor.Left, false, "左侧 · 上半")]
+    [InlineData(ToolWindowAnchor.Left, true, "左侧 · 下半")]
+    [InlineData(ToolWindowAnchor.Bottom, false, "底部 · 左半")]
+    [InlineData(ToolWindowAnchor.Bottom, true, "底部 · 右半")]
     public void Move_items_are_named_after_the_eight_slots(ToolWindowAnchor anchor, bool split, string expected)
         => Assert.Equal(expected, ForgeMenuBuilder.DescribeMove(anchor, split));
 
@@ -461,15 +461,14 @@ public class ForgeDragFeedbackTests
     /// <remarks>
     /// 拖标题条时跟手的是一块图标（与拖条带图标同一副长相），单靠它分不清会落到哪一格；
     /// 上游在拖影旁边挂的那条 <c>HelpTooltip</c>（<c>ToolWindowDragHelper.kt:346-352</c>）
-    /// 就是干这个的。菜单里那份 <c>DescribeMove</c> 是"左下"两个字——一列八项看得见彼此时够用；
-    /// 拖动时只有孤零零一条，得说开。
+    /// 就是干这个的。文案与菜单里的 <c>DescribeMove</c> 同一份（「哪条边 · 哪一半」），前面加「移至」。
     /// </remarks>
     [AvaloniaTheory]
-    [InlineData(ToolWindowAnchor.Left, false, "移至 左侧 顶部")]
-    [InlineData(ToolWindowAnchor.Left, true, "移至 左侧 底部")]
-    [InlineData(ToolWindowAnchor.Right, true, "移至 右侧 底部")]
-    [InlineData(ToolWindowAnchor.Bottom, false, "移至 底部 左侧")]
-    [InlineData(ToolWindowAnchor.Bottom, true, "移至 底部 右侧")]
+    [InlineData(ToolWindowAnchor.Left, false, "移至 左侧 · 上半")]
+    [InlineData(ToolWindowAnchor.Left, true, "移至 左侧 · 下半")]
+    [InlineData(ToolWindowAnchor.Right, true, "移至 右侧 · 下半")]
+    [InlineData(ToolWindowAnchor.Bottom, false, "移至 底部 · 左半")]
+    [InlineData(ToolWindowAnchor.Bottom, true, "移至 底部 · 右半")]
     public void The_drop_label_spells_out_which_half_of_which_edge(
         ToolWindowAnchor anchor, bool isSplit, string expected)
         => Assert.Equal(expected, ForgeMenuBuilder.DescribeMoveTarget(anchor, isSplit));
