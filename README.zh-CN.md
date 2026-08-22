@@ -104,6 +104,10 @@ dotnet test Piccolo.Forge.slnx
 两个独立的仓，互不引用：Bench 复刻 VS Code 的 workbench，Forge 复刻 IntelliJ 平台。
 配色体系不同（VS Code 的颜色 token vs IntelliJ 的主题键），两种形态本来互斥。
 
+## 发布
+
+见 [docs/conventions/发布.md](docs/conventions/发布.md)：改 `Directory.Build.props` 版本 → 打 `v*` 标签 → push，CI 自动发 NuGet。
+
 ## 许可证
 
 MIT（见 [LICENSE](LICENSE)）。行为与度量参考 IntelliJ Platform（Apache-2.0）、Dock（MIT），声明见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)。

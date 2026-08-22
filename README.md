@@ -102,6 +102,10 @@ xunit v3 + Avalonia headless with Skia render snapshots (`FORGE_SNAPSHOT_DIR` se
 the output folder). Warnings are errors; the public surface is guarded by
 `Microsoft.CodeAnalysis.PublicApiAnalyzers`.
 
+## Releasing
+
+See [docs/conventions/发布.md](docs/conventions/发布.md) (Chinese): bump the version in `Directory.Build.props`, push a `v*` tag, CI publishes via Trusted Publishing.
+
 ## License
 
 MIT — see [LICENSE](LICENSE). Behaviour and metrics are derived from the IntelliJ
