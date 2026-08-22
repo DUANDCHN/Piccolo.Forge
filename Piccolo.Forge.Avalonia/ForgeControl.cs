@@ -772,9 +772,25 @@ public class ForgeControl : TemplatedControl
 
         // 分组分隔符只用在 LEFT/RIGHT 的那一组（AbstractDroppableStripe.kt:99-105）
         var useSeparator = group == StripeGroup.Top;
-        var wantedSplit = useSeparator && windows.Any(x => x.IsSplit) && !windows.All(x => x.IsSplit);
+
+        // 拖拽期（processDrop）：按钮序列里**去掉被拖的那个**再算分隔符（AbstractDroppableStripe.kt:598 tools.remove(dragButton)），
+        // 并且照上游 :600-613 补两条规则——
+        //   ① 分隔符落在最前（剩下的全是 split）：留着，标成拖拽态；
+        //   ② 一条分隔符都没有而组里还有按钮：在末尾临时加一条拖拽态的 ——
+        //      落在它下面 = 下半栏（split）。没有这条，组里还没有 split 按钮时就永远拖不出下半栏。
+        var dragging = _dndSeparatorGroup == (side, group);
+        var dragged = dragging ? DraggedButton : null;
+        var tools = windows.Where(vm => dragged is null || !ReferenceEquals(GetStripeButton(vm, side), dragged)).ToList();
+        var wantedSplit = useSeparator && tools.Any(x => x.IsSplit) && !tools.All(x => x.IsSplit);
+        var separatorAtTop = useSeparator && dragging && tools.Count > 0 && tools.All(x => x.IsSplit);
+        var separatorAtEnd = useSeparator && dragging && tools.Count > 0 && !tools.Any(x => x.IsSplit);
 
         var wanted = new List<Control>();
+        if (separatorAtTop)
+        {
+            wanted.Add(GetSeparator(side, group));
+        }
+
         foreach (var vm in windows)
         {
             if (wantedSplit && vm.IsSplit && wanted.All(x => x is not ForgeStripeSeparator))
@@ -783,6 +799,16 @@ public class ForgeControl : TemplatedControl
             }
 
             wanted.Add(GetStripeButton(vm, side));
+        }
+
+        if (separatorAtEnd)
+        {
+            wanted.Add(GetSeparator(side, group));
+        }
+
+        if (useSeparator)
+        {
+            GetSeparator(side, group).IsDragAndDrop = separatorAtTop || separatorAtEnd;
         }
 
         if (group == StripeGroup.Top)
@@ -838,6 +864,9 @@ public class ForgeControl : TemplatedControl
     }
 
     private readonly Dictionary<(StripeSide, StripeGroup), ForgeStripeSeparator> _separators = [];
+
+    /// <summary>拖拽期间正被当作落点的那一组（只对上组有意义）：它的分隔符按拖拽规则排（见 BuildGroupChildren）。</summary>
+    private (StripeSide, StripeGroup)? _dndSeparatorGroup;
     private readonly Dictionary<StripeSide, ForgeMoreButton> _moreButtons = [];
 
     private ForgeStripeSeparator GetSeparator(StripeSide side, StripeGroup group)
@@ -1052,7 +1081,7 @@ public class ForgeControl : TemplatedControl
             ghost.SetFloatPreview(target is null && !IsOverDockedPanel(point));
             ghost.SetLabel(
                 target is { } t ? ForgeMenuBuilder.DescribeMoveTarget(t.Anchor, t.IsSplit) : null,
-                onRight: target?.Anchor == ToolWindowAnchor.Left);
+                onRight: target is { } tt && LabelOnRight(tt));
             ghost.MoveTo(this.PointToScreen(point), new Vector(_headerGhostGrab.X, _headerGhostGrab.Y));
         }
     }
@@ -1449,6 +1478,11 @@ public class ForgeControl : TemplatedControl
     private void ClearDragLayout()
     {
         SetDropPanel(null);
+        if (_dndSeparatorGroup is not null)
+        {
+            _dndSeparatorGroup = null;
+            SyncStripes();
+        }
 
         foreach (var panel in StripePanels())
         {
@@ -1641,6 +1675,11 @@ public class ForgeControl : TemplatedControl
         if (_lastZone is not { } zone || PanelOf(zone) is not { } target || !ApplyDropOffset(target, zone, point))
         {
             SetDropPanel(null);
+            if (_dndSeparatorGroup is not null)
+            {
+                _dndSeparatorGroup = null;
+                SyncStripes();
+            }
 
             // 只撤落点反馈 —— 拖影要一直跟手，哪怕此刻落不下去（两个落区之间那段空白）。
             _overlay.ClearDropFeedback();
@@ -1648,11 +1687,19 @@ public class ForgeControl : TemplatedControl
             // ★ 硬约束：这儿松手会**浮出一个窗口**，那拖影现在就得长成小窗口的样子。
             //   拖影的样子 = 松手会发生什么；不切的话用户分不清松手是浮动还是换位。
             _dragGhost?.SetFloatPreview(true);
+            _dragGhost?.SetLabel(null);
             MoveGhost(point);
             return;
         }
 
         SetDropPanel(target);
+
+        // 落到哪一组，那一组的分隔符就按拖拽规则排（临时分隔符 / 置顶分隔符）；换组时把上一组收回正常排布。
+        if (_dndSeparatorGroup != zone)
+        {
+            _dndSeparatorGroup = zone;
+            SyncStripes();
+        }
 
         // 有人接得住 → 拖影回到"按钮的样子"。先切形态再挪位置（形态换了尺寸跟着变）。
         _dragGhost?.SetFloatPreview(false);
@@ -1668,6 +1715,13 @@ public class ForgeControl : TemplatedControl
         // 差一帧只在刚进这一组时看得见，下一帧自己就对了。
         var drop = ResolveTargetFrom(target, zone)
                    ?? StripeDropResolver.Resolve(zone.Side, zone.Group, isAfterSeparator: false, order: -1);
+
+        // 「移至 …」标签与拖标题条时同一套（上游 ToolWindowDragHelper 两条路都挂）：
+        // 拖影上写明松手会去哪；标签在左条带时挂到图标右边，免得飘出窗外。标签尺寸变了要再挪一次。
+        _dragGhost?.SetLabel(
+            ForgeMenuBuilder.DescribeMoveTarget(drop.Anchor, drop.IsSplit),
+            onRight: LabelOnRight(drop));
+        MoveGhost(point);
 
         _overlay.AreaRect = ResolveDropAreaRect(drop.Anchor, toolbar, drop.IsSplit);
         UpdateDropIndicator();
@@ -1712,13 +1766,22 @@ public class ForgeControl : TemplatedControl
         // ⚠ 条件是**该组里真的有那条分组分隔符**（AbstractDroppableStripe.kt:644-654
         //    「只在竖条带、且分隔器可见时画」），不是落点的 IsSplit ——
         //    下组的 IsSplit 只表示"落在右条带"，右下角于是永远多一个虚线框。
-        _overlay.SplitBoxRect = HasSeparator(panel)
-            ? new Rect(
-                origin.X + ((panel.Bounds.Width - ForgeMetrics.StripeSplitDropBoxSize) / 2),
-                origin.Y + rect.Height,
-                ForgeMetrics.StripeSplitDropBoxSize,
-                ForgeMetrics.StripeSplitDropBoxSize)
-            : null;
+        // 「另一半」虚线框：**只在分隔符是拖拽期临时加的那条时画**（separator.dndState）—— 组里本来就有下半栏时正常拖放，
+        // 不需要指示；没有下半栏才用虚线框告诉用户"放这儿会出一个"。
+        // 位置**固定在分隔符旁边**，不跟落点方块走（AbstractDroppableStripe.kt paintComponent）——
+        // 分隔符在末尾 / 中间：画在线下方、在一格按钮高度里居中：sep.y + sep.h + (slotH − 30) / 2；
+        // 分隔符置顶：画在线上方：sep.y − (slotH + 30) / 2。
+        // 落点方块仍跟着指针排，排到线下面时两者正好重合 —— 那就是"放这儿 = 下半栏"。
+        var box = ForgeMetrics.StripeSplitDropBoxSize;
+        _overlay.SplitBoxRect = null;
+        if (SeparatorOf(panel) is { IsDragAndDrop: true } sep && sep.TranslatePoint(default, this) is { } sepOrigin)
+        {
+            var atTop = panel.Children.IndexOf(sep) == 0;
+            var boxTop = atTop
+                ? sepOrigin.Y - ((rect.Height + box) / 2)
+                : sepOrigin.Y + sep.Bounds.Height + ((rect.Height - box) / 2);
+            _overlay.SplitBoxRect = new Rect(origin.X + ((panel.Bounds.Width - box) / 2), boxTop, box, box);
+        }
     }
 
     /// <summary>
@@ -1898,6 +1961,26 @@ public class ForgeControl : TemplatedControl
         panel.DropOffset = point.Y - top;
         return true;
     }
+
+    /// <summary>
+    /// 「移至 …」标签挂图标块的右边还是左边：上游按目标名里含不含 "Left" 翻面（ToolWindowDragHelper.kt:361-368），
+    /// 「Left Top / Left Bottom / Bottom Left」都算 —— 即**落在左条带的一律挂右边**（含左条带的底组），其余挂左边。
+    /// 只判 anchor == Left 会漏掉「底部 左侧」，表现是左条带上半标签在右、下半标签却跑到左边。
+    /// </summary>
+    private static bool LabelOnRight(StripeDropTarget target)
+        => StripePlacementResolver.Resolve(target.Anchor, target.IsSplit).Side == StripeSide.Left;
+
+    /// <summary>这一组里可见的那条分隔符；没有就是 null。</summary>
+    private static ForgeStripeSeparator? SeparatorOf(StripeItemsPanel panel)
+    {
+        foreach (var child in panel.Children)
+        {
+            if (child is ForgeStripeSeparator { IsVisible: true } sep) return sep;
+        }
+
+        return null;
+    }
+
 
     /// <summary>
     /// 一组里参与排布的那条序列有多高（去掉被拖项、不含空槽）。
