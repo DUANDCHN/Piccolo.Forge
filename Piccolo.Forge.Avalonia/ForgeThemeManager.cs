@@ -1,6 +1,8 @@
 using System;
 using System.Diagnostics;
+using System.Globalization;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Styling;
 using Piccolo.Forge.Themes;
@@ -76,6 +78,75 @@ public static class ForgeThemeManager
         application.Styles.Add(unit);
         _installed = unit;
         Current = family;
+    }
+
+    private static ResourceInclude? _locale;
+
+    /// <summary>当前装着的语言字典（给 <see cref="ForgeStrings"/> 判断要不要重读）。</summary>
+    internal static object? InstalledLocale => _locale;
+
+    /// <summary>当前装的语言（资源文件名：en-US / zh-CN / zh-Hant）；没装是 null。</summary>
+    public static string? CurrentLocale { get; private set; }
+
+    /// <summary>
+    /// 装一套语言：把 <c>Locales/{name}.axaml</c> 挂进 <c>Application.Resources.MergedDictionaries</c>
+    /// （照 Semi 的 <c>SemiTheme.Locale</c>）。换语言就再调一次，旧的摘掉。
+    /// </summary>
+    /// <remarks>
+    /// 回落链：<c>zh-Hant / zh-TW / zh-HK / zh-MO</c> → zh-Hant；其余 <c>zh*</c> → zh-CN；其它一律 en-US。
+    /// 宿主想覆盖某句，在自己的资源里重定义 <c>Forge.Strings.*</c> 同名键（后加的字典优先）。
+    /// </remarks>
+    /// <param name="application">应用。</param>
+    /// <param name="culture">要用的文化；null = <see cref="CultureInfo.CurrentUICulture"/>。</param>
+    public static void ApplyLocale(Application application, CultureInfo? culture = null)
+        => ApplyLocale(application, (culture ?? CultureInfo.CurrentUICulture).Name);
+
+    /// <summary>按文化名装语言，规则同 <see cref="ApplyLocale(Application, CultureInfo?)"/>。</summary>
+    public static void ApplyLocale(Application application, string cultureName)
+    {
+        ArgumentNullException.ThrowIfNull(application);
+        var name = ResolveLocale(cultureName);
+        if (name == CurrentLocale && _locale is not null && application.Resources.MergedDictionaries.Contains(_locale))
+        {
+            return;
+        }
+
+        if (_locale is not null)
+        {
+            application.Resources.MergedDictionaries.Remove(_locale);
+        }
+
+        var include = new ResourceInclude((Uri?)null)
+        {
+            Source = new Uri($"avares://Piccolo.Forge.Avalonia/Locales/{name}.axaml"),
+        };
+        application.Resources.MergedDictionaries.Add(include);
+        _locale = include;
+        CurrentLocale = name;
+    }
+
+    /// <summary>文化 → 资源文件名。没对应的一律英文。</summary>
+    public static string ResolveLocale(CultureInfo culture)
+    {
+        ArgumentNullException.ThrowIfNull(culture);
+        return ResolveLocale(culture.Name);
+    }
+
+    /// <summary>文化名（如 <c>zh-TW</c>）→ 资源文件名。与 <see cref="ResolveLocale(CultureInfo)"/> 同一规则，给不能造 CultureInfo 的环境（不变文化模式）用。</summary>
+    public static string ResolveLocale(string cultureName)
+    {
+        var n = cultureName ?? string.Empty;
+        if (n.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
+        {
+            return n.Contains("Hant", StringComparison.OrdinalIgnoreCase)
+                   || n.EndsWith("-TW", StringComparison.OrdinalIgnoreCase)
+                   || n.EndsWith("-HK", StringComparison.OrdinalIgnoreCase)
+                   || n.EndsWith("-MO", StringComparison.OrdinalIgnoreCase)
+                ? "zh-Hant"
+                : "zh-CN";
+        }
+
+        return "en-US";
     }
 
     /// <summary>

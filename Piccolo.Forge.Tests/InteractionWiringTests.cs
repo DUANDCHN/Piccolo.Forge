@@ -1086,22 +1086,62 @@ public class ForgeStringsTests
     [Fact]
     public void Default_is_English_and_host_can_swap_or_override()
     {
-        var saved = ForgeStrings.Current;
+        var saved = ForgeStrings.Override;
         try
         {
-            ForgeStrings.Current = ForgeStrings.English;
+            ForgeStrings.Override = ForgeStrings.English;
             Assert.Equal("Move to Left · Bottom", ForgeMenuBuilder.DescribeMoveTarget(ToolWindowAnchor.Left, true));
             Assert.Equal("Bottom · Left", ForgeMenuBuilder.DescribeMove(ToolWindowAnchor.Bottom, false));
 
-            ForgeStrings.Current = ForgeStrings.English with { MoveToFormat = "→ {0}" };
+            ForgeStrings.Override = ForgeStrings.English with { MoveToFormat = "→ {0}" };
             Assert.Equal("→ Right · Top", ForgeMenuBuilder.DescribeMoveTarget(ToolWindowAnchor.Right, false));
 
-            ForgeStrings.Current = ForgeStrings.ChineseTraditional;
+            ForgeStrings.Override = ForgeStrings.ChineseTraditional;
             Assert.Equal("移至 右側 · 下半", ForgeMenuBuilder.DescribeMoveTarget(ToolWindowAnchor.Right, true));
         }
         finally
         {
-            ForgeStrings.Current = saved;
+            ForgeStrings.Override = saved;
+        }
+    }
+}
+
+/// <summary>语言字典：按文化回落、装进应用资源后 <see cref="ForgeStrings.Current"/> 现读。</summary>
+public class ForgeLocaleTests
+{
+    [Theory]
+    [InlineData("zh-CN", "zh-CN")]
+    [InlineData("zh-SG", "zh-CN")]
+    [InlineData("zh-Hans-CN", "zh-CN")]
+    [InlineData("zh-TW", "zh-Hant")]
+    [InlineData("zh-HK", "zh-Hant")]
+    [InlineData("zh-Hant-TW", "zh-Hant")]
+    [InlineData("en-US", "en-US")]
+    [InlineData("de-DE", "en-US")]
+    public void Cultures_fall_back_to_a_shipped_locale(string culture, string expected)
+        => Assert.Equal(expected, ForgeThemeManager.ResolveLocale(culture));   // 测试工程是不变文化模式，按名字判
+
+    [AvaloniaFact]
+    public void Installing_a_locale_dictionary_drives_the_strings_facade()
+    {
+        var saved = ForgeStrings.Override;
+        ForgeStrings.Override = null;   // 本用例要走资源那条路
+        try
+        {
+            var app = Application.Current!;
+            ForgeThemeManager.ApplyLocale(app, "zh-TW");
+            Assert.Equal("zh-Hant", ForgeThemeManager.CurrentLocale);
+            Assert.Equal("檢視模式", ForgeStrings.Current.ViewMode);
+
+            ForgeThemeManager.ApplyLocale(app, "en-US");
+            Assert.Equal("View Mode", ForgeStrings.Current.ViewMode);
+            Assert.Single(
+                app.Resources.MergedDictionaries.OfType<global::Avalonia.Markup.Xaml.Styling.ResourceInclude>(),
+                r => r.Source?.ToString().Contains("/Locales/") == true);   // 换语言是替换，不是越堆越多
+        }
+        finally
+        {
+            ForgeStrings.Override = saved;
         }
     }
 }

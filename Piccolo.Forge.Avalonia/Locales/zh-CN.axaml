@@ -1,0 +1,40 @@
+<!--  Forge 文案：简体中文。
+      键名 Forge.Strings.*，与颜色键同一套机制：控件 / 菜单按键取值，宿主在自己的资源里重定义同名键即可覆盖。
+      由 ForgeThemeManager.ApplyLocale 按 CultureInfo 挑一份挂进 Application.Resources.MergedDictionaries。  -->
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <x:String x:Key="Forge.Strings.MoveTo">移至</x:String>
+    <x:String x:Key="Forge.Strings.ViewMode">视图模式</x:String>
+    <x:String x:Key="Forge.Strings.RemoveFromSidebar">从边栏中移除</x:String>
+    <x:String x:Key="Forge.Strings.ShowToolWindowNames">显示工具窗口名称</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeDockPinned">停靠固定</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeDockUnpinned">停靠不固定</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeUndock">取消停靠</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeFloat">浮动</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeWindow">窗口</x:String>
+    <x:String x:Key="Forge.Strings.SideLeft">左侧</x:String>
+    <x:String x:Key="Forge.Strings.SideRight">右侧</x:String>
+    <x:String x:Key="Forge.Strings.SideBottom">底部</x:String>
+    <x:String x:Key="Forge.Strings.SideTop">顶部</x:String>
+    <x:String x:Key="Forge.Strings.HalfTop">上半</x:String>
+    <x:String x:Key="Forge.Strings.HalfBottom">下半</x:String>
+    <x:String x:Key="Forge.Strings.HalfLeft">左半</x:String>
+    <x:String x:Key="Forge.Strings.HalfRight">右半</x:String>
+    <x:String x:Key="Forge.Strings.LocationFormat">{0} · {1}</x:String>
+    <x:String x:Key="Forge.Strings.MoveToFormat">移至 {0}</x:String>
+    <x:String x:Key="Forge.Strings.CloseTab">关闭</x:String>
+    <x:String x:Key="Forge.Strings.CloseOtherTabs">关闭其他标签页</x:String>
+    <x:String x:Key="Forge.Strings.CloseAllTabs">关闭所有标签页</x:String>
+    <x:String x:Key="Forge.Strings.CloseTabsToTheLeft">关闭左侧标签页</x:String>
+    <x:String x:Key="Forge.Strings.CloseTabsToTheRight">关闭右侧标签页</x:String>
+    <x:String x:Key="Forge.Strings.SplitRight">向右拆分</x:String>
+    <x:String x:Key="Forge.Strings.SplitAndMoveRight">拆分并右移</x:String>
+    <x:String x:Key="Forge.Strings.SplitDown">向下拆分</x:String>
+    <x:String x:Key="Forge.Strings.SplitAndMoveDown">拆分并下移</x:String>
+    <x:String x:Key="Forge.Strings.PinTab">固定标签页</x:String>
+    <x:String x:Key="Forge.Strings.OpenTabInNewWindow">在新窗口中打开标签页</x:String>
+    <x:String x:Key="Forge.Strings.DockButton">停靠</x:String>
+    <x:String x:Key="Forge.Strings.OptionsButton">选项</x:String>
+    <x:String x:Key="Forge.Strings.HideButton">隐藏</x:String>
+    <x:String x:Key="Forge.Strings.MoreToolWindows">更多工具窗口</x:String>
+    <x:String x:Key="Forge.Strings.CloseTabFormat">关闭 {0}</x:String>
+</ResourceDictionary>

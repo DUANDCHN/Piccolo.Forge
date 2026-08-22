@@ -4,23 +4,66 @@ using Piccolo.Forge.Model;
 namespace Piccolo.Forge.Avalonia;
 
 /// <summary>
-/// 库里所有面向用户的文案（右键菜单、视图模式名、「移至」的位置名、拖动时的落点标签）。
+/// 库里所有面向用户的文案（右键菜单、视图模式名、「移至」的位置名、拖动时的落点标签、无障碍名）。
 /// </summary>
 /// <remarks>
-/// <para><b>库不自带语言。</b>默认 <see cref="English"/>；宿主按自己的语言设置换成
-/// <see cref="ChineseSimplified"/> / <see cref="ChineseTraditional"/>，或者 <c>with</c> 出一份自己的。
-/// 换语言后重建菜单即可生效（菜单每次弹出都是现造的）。</para>
-/// <para>做成 <c>record</c> 而不是资源文件：AOT 友好、没有反射、宿主可以只改一两条。</para>
+/// <para><b>真值在资源字典里</b>（<c>Locales/*.axaml</c>，键 <c>Forge.Strings.*</c>），与颜色键同一套机制：
+/// 宿主用 <see cref="ForgeThemeManager.ApplyLocale(global::Avalonia.Application, System.Globalization.CultureInfo?)"/> 按 <c>CultureInfo</c> 挑一份装进
+/// <c>Application.Resources</c>（照 Semi 的 <c>SemiTheme.Locale</c>），想改哪句就重定义同名键。
+/// 模板里的文字走 <c>{DynamicResource}</c> 可即时刷新；C# 造的菜单每次弹出现取。</para>
+/// <para>本类是**类型化门面**：<see cref="Current"/> 按 <c>Application.Current.Resources</c> 现读一份；
+/// 没装任何语言（没跑 Avalonia、或宿主没调 ApplyLocale）时回落到 <see cref="English"/>。
+/// <see cref="Override"/> 给不走 XAML 的宿主与测试：设了就以它为准。</para>
 /// </remarks>
 public sealed record ForgeStrings
 {
-    private static ForgeStrings? _current;
+    /// <summary>不走资源字典、直接整套给的文案；设了就压过资源。测试与纯代码宿主用。</summary>
+    public static ForgeStrings? Override { get; set; }
 
-    /// <summary>当前生效的那套。宿主启动时设一次；没设就是 <see cref="English"/>。</summary>
+    private static ForgeStrings? _cached;
+    private static object? _cachedFrom;
+
+    /// <summary>当前生效的那套：<see cref="Override"/> → 应用资源里的 <c>Forge.Strings.*</c> → <see cref="English"/>。</summary>
     public static ForgeStrings Current
     {
-        get => _current ?? English;
-        set => _current = value;
+        get
+        {
+            if (Override is { } o) return o;
+            var app = global::Avalonia.Application.Current;
+            if (app is null || !app.TryGetResource("Forge.Strings.MoveTo", null, out _)) return English;
+
+            // 资源字典换过就重读（同一份字典时只读一次）
+            var stamp = ForgeThemeManager.InstalledLocale;
+            if (_cached is not null && ReferenceEquals(_cachedFrom, stamp)) return _cached;
+            _cached = FromResources(app);
+            _cachedFrom = stamp;
+            return _cached;
+        }
+    }
+
+    private static ForgeStrings FromResources(global::Avalonia.Application app)
+    {
+        string R(string key, string fallback)
+            => app.TryGetResource("Forge.Strings." + key, null, out var v) && v is string text ? text : fallback;
+
+        var e = English;
+        return new ForgeStrings
+        {
+            MoveTo = R(nameof(MoveTo), e.MoveTo), ViewMode = R(nameof(ViewMode), e.ViewMode),
+            RemoveFromSidebar = R(nameof(RemoveFromSidebar), e.RemoveFromSidebar), ShowToolWindowNames = R(nameof(ShowToolWindowNames), e.ShowToolWindowNames),
+            ViewModeDockPinned = R(nameof(ViewModeDockPinned), e.ViewModeDockPinned), ViewModeDockUnpinned = R(nameof(ViewModeDockUnpinned), e.ViewModeDockUnpinned),
+            ViewModeUndock = R(nameof(ViewModeUndock), e.ViewModeUndock), ViewModeFloat = R(nameof(ViewModeFloat), e.ViewModeFloat), ViewModeWindow = R(nameof(ViewModeWindow), e.ViewModeWindow),
+            SideLeft = R(nameof(SideLeft), e.SideLeft), SideRight = R(nameof(SideRight), e.SideRight), SideBottom = R(nameof(SideBottom), e.SideBottom), SideTop = R(nameof(SideTop), e.SideTop),
+            HalfTop = R(nameof(HalfTop), e.HalfTop), HalfBottom = R(nameof(HalfBottom), e.HalfBottom), HalfLeft = R(nameof(HalfLeft), e.HalfLeft), HalfRight = R(nameof(HalfRight), e.HalfRight),
+            LocationFormat = R(nameof(LocationFormat), e.LocationFormat), MoveToFormat = R(nameof(MoveToFormat), e.MoveToFormat),
+            DockButton = R(nameof(DockButton), e.DockButton), OptionsButton = R(nameof(OptionsButton), e.OptionsButton), HideButton = R(nameof(HideButton), e.HideButton),
+            MoreToolWindows = R(nameof(MoreToolWindows), e.MoreToolWindows), CloseTabFormat = R(nameof(CloseTabFormat), e.CloseTabFormat),
+            CloseTab = R(nameof(CloseTab), e.CloseTab), CloseOtherTabs = R(nameof(CloseOtherTabs), e.CloseOtherTabs), CloseAllTabs = R(nameof(CloseAllTabs), e.CloseAllTabs),
+            CloseTabsToTheLeft = R(nameof(CloseTabsToTheLeft), e.CloseTabsToTheLeft), CloseTabsToTheRight = R(nameof(CloseTabsToTheRight), e.CloseTabsToTheRight),
+            SplitRight = R(nameof(SplitRight), e.SplitRight), SplitAndMoveRight = R(nameof(SplitAndMoveRight), e.SplitAndMoveRight),
+            SplitDown = R(nameof(SplitDown), e.SplitDown), SplitAndMoveDown = R(nameof(SplitAndMoveDown), e.SplitAndMoveDown),
+            PinTab = R(nameof(PinTab), e.PinTab), OpenTabInNewWindow = R(nameof(OpenTabInNewWindow), e.OpenTabInNewWindow),
+        };
     }
 
     // ── 工具窗口右键菜单 ──
@@ -147,7 +190,7 @@ public sealed record ForgeStrings
         _ => mode.ToString(),
     };
 
-    /// <summary>英文（默认）。</summary>
+    /// <summary>英文 —— 既是回落，也是 Locales/en-US.axaml 的同一份内容。</summary>
     public static ForgeStrings English { get; } = new()
     {
         MoveTo = "Move to",
@@ -187,7 +230,7 @@ public sealed record ForgeStrings
         CloseTabFormat = "Close {0}",
     };
 
-    /// <summary>简体中文。</summary>
+    /// <summary>简体中文（与 Locales/zh-CN.axaml 同一份内容；给 <see cref="Override"/> 用）。</summary>
     public static ForgeStrings ChineseSimplified { get; } = new()
     {
         MoveTo = "移至",
@@ -227,7 +270,7 @@ public sealed record ForgeStrings
         CloseTabFormat = "关闭 {0}",
     };
 
-    /// <summary>繁体中文。</summary>
+    /// <summary>繁体中文（与 Locales/zh-Hant.axaml 同一份内容；给 <see cref="Override"/> 用）。</summary>
     public static ForgeStrings ChineseTraditional { get; } = ChineseSimplified with
     {
         MoveTo = "移至",
