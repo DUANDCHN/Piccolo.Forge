@@ -22,7 +22,7 @@ internal sealed class SampleApp : Application
 
         // Forge 的主题：**唯一入口**，装的是哪族由这一句定（REQ-068）。
         // 不装控件就没有模板 —— 不报错，只是什么都不画。换族要重启（见 ForgeThemeManager）。
-        ForgeThemeManager.Apply(this, ForgeThemeFamily.ExpUi);
+        ForgeThemeManager.Apply(this, new Piccolo.Forge.Themes.ExpUi.ForgeExpUiTheme());
     }
 
     public override void OnFrameworkInitializationCompleted()

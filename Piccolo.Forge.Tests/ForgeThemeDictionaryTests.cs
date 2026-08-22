@@ -156,7 +156,7 @@ public class ForgeThemeDictionaryTests
                 {
                     new ResourceInclude((Uri?)null)
                     {
-                        Source = new Uri($"avares://Piccolo.Forge.Themes/Themes/{family}/Colors.axaml"),
+                        Source = new Uri($"avares://Piccolo.Forge.Themes.{family}/Colors.axaml"),
                     },
                 },
             },

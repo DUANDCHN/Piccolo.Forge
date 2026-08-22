@@ -12,21 +12,21 @@
       共同的规矩见本目录 Theme.axaml 的开头。  -->
 <ResourceDictionary
     xmlns="https://github.com/avaloniaui"
-    xmlns:forge="clr-namespace:Piccolo.Forge.Avalonia"
+    xmlns:forge="clr-namespace:Piccolo.Forge.Avalonia;assembly=Piccolo.Forge.Avalonia"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <ControlTheme TargetType="forge:ForgeControl" x:Key="{x:Type forge:ForgeControl}">
-        <Setter Property="IslandBorderBrush" Value="{DynamicResource Forge.Islands.IslandBorder}" />
+        <Setter Property="IslandBorderBrush" Value="{DynamicResource Forge.ExpUi.IslandBorder}" />
         <!--  同一条边上两块面板之间那条 1px 线。归键的理由见 ForgeControl.DockDividerBrush：
               它原先直接取 Palette.WindowBorder，而那个值没有资源键，宿主够不着。  -->
-        <Setter Property="DockDividerBrush" Value="{DynamicResource Forge.Islands.WindowBorder}" />
+        <Setter Property="DockDividerBrush" Value="{DynamicResource Forge.ExpUi.WindowBorder}" />
     </ControlTheme>
 
     <!--  编辑区比外框多一样：**它自己的底色**。归了键之后，宿主想让编辑区与面板同色
           （内容常是一整块空画布时，上游那"深一档"会读成黑洞）只需重定义同名键，
           不必去动库里的配色。null 兜底回 ForgePalette.EditorBackground，见那个属性的说明。  -->
     <ControlTheme TargetType="forge:ForgeEditorControl" x:Key="{x:Type forge:ForgeEditorControl}">
-        <Setter Property="IslandBorderBrush" Value="{DynamicResource Forge.Islands.IslandBorder}" />
-        <Setter Property="EditorBackgroundBrush" Value="{DynamicResource Forge.Islands.EditorBackground}" />
+        <Setter Property="IslandBorderBrush" Value="{DynamicResource Forge.ExpUi.IslandBorder}" />
+        <Setter Property="EditorBackgroundBrush" Value="{DynamicResource Forge.ExpUi.EditorBackground}" />
     </ControlTheme>
 </ResourceDictionary>

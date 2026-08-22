@@ -23,6 +23,8 @@
     <ProjectReference Include="../Piccolo.Forge.Mvvm.CommunityToolkit/Piccolo.Forge.Mvvm.CommunityToolkit.csproj" />
     <ProjectReference Include="../Piccolo.Forge.Themes/Piccolo.Forge.Themes.csproj" />
     <ProjectReference Include="../Piccolo.Forge.Avalonia/Piccolo.Forge.Avalonia.csproj" />
+    <ProjectReference Include="../Piccolo.Forge.Themes.ExpUi/Piccolo.Forge.Themes.ExpUi.csproj" />
+    <ProjectReference Include="../Piccolo.Forge.Themes.Islands/Piccolo.Forge.Themes.Islands.csproj" />
   </ItemGroup>
 
 </Project>

@@ -14,12 +14,12 @@
       共同的规矩见本目录 Theme.axaml 的开头。  -->
 <ResourceDictionary
     xmlns="https://github.com/avaloniaui"
-    xmlns:forge="clr-namespace:Piccolo.Forge.Avalonia"
+    xmlns:forge="clr-namespace:Piccolo.Forge.Avalonia;assembly=Piccolo.Forge.Avalonia"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <ControlTheme TargetType="forge:ForgeToolWindowToolbar" x:Key="{x:Type forge:ForgeToolWindowToolbar}">
-        <Setter Property="StripeBackgroundBrush" Value="{DynamicResource Forge.ExpUi.StripeBackground}" />
-        <Setter Property="StripeBorderBrush" Value="{DynamicResource Forge.ExpUi.StripeBorder}" />
+        <Setter Property="StripeBackgroundBrush" Value="{DynamicResource Forge.Islands.StripeBackground}" />
+        <Setter Property="StripeBorderBrush" Value="{DynamicResource Forge.Islands.StripeBorder}" />
         <Setter Property="Template">
             <ControlTemplate TargetType="forge:ForgeToolWindowToolbar">
                 <Panel Background="Transparent">

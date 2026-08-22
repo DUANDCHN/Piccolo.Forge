@@ -3,7 +3,7 @@
 
       宿主不要直接 StyleInclude 这个文件 —— 走唯一入口：
 
-        ForgeThemeManager.Apply(app, ForgeThemeFamily.ExpUi);
+        <forge:ForgeExpUiTheme/> 放进 Application.Styles，或 ForgeThemeManager.Apply(app, new ForgeExpUiTheme());
 
       它会原子地把 Styles 单元与 ForgeThemeManager.Current 一起换掉；
       绕过它直接 include，就会出现"引的是一族、Family 是另一族"的半旧半新（REQ-068 R2）。
@@ -35,31 +35,34 @@
          · 只由主题给画笔：ToolWindowToolbar、ToolWindowHeader、EditorSplitter、DragOverlay、EditorTab
 
          后一类各自"拦路的是什么"，写在各自文件的开头。  -->
-<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<Styles
+    x:Class="Piccolo.Forge.Themes.ExpUi.ForgeExpUiTheme"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Styles.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <!--  颜色：本族一份，明暗进 ThemeDictionaries。值从 ForgePalette 转写，
                       由 ForgeThemeDictionaryTests 逐键守护（那里说明了为什么必须守护）。  -->
-                <ResourceInclude Source="avares://Piccolo.Forge.Themes/Themes/ExpUi/Colors.axaml" />
+                <ResourceInclude Source="avares://Piccolo.Forge.Themes.ExpUi/Colors.axaml" />
 
                 <!--  控件模板：**一个控件一份**，文件名即控件名。
                       次序不影响解析（ControlTheme 按类型作键，互不覆盖），这里按部位排：
                       条带 → 标题条 → 标签 → 编辑区 → 拖拽。
                       ★ 新增一个控件要**两套都加** —— 漏了哪套由 ForgeThemeCompletenessTests 当场报红。  -->
-                <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/ExpUi/ForgeStripeButton.axaml" />
-                <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/ExpUi/ForgeStripeSeparator.axaml" />
-                <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/ExpUi/ForgeMoreButton.axaml" />
-                <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/ExpUi/ForgeToolWindowToolbar.axaml" />
-                <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/ExpUi/ForgeToolWindowHeader.axaml" />
-                <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/ExpUi/ForgeHeaderButton.axaml" />
-                <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/ExpUi/ForgeContentTab.axaml" />
-                <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/ExpUi/ForgeEditorTab.axaml" />
-                <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/ExpUi/ForgeEditorSplitter.axaml" />
-                <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/ExpUi/ForgeDragOverlay.axaml" />
+                <ResourceInclude Source="avares://Piccolo.Forge.Themes.ExpUi/Themes/ForgeStripeButton.axaml" />
+                <ResourceInclude Source="avares://Piccolo.Forge.Themes.ExpUi/Themes/ForgeStripeSeparator.axaml" />
+                <ResourceInclude Source="avares://Piccolo.Forge.Themes.ExpUi/Themes/ForgeMoreButton.axaml" />
+                <ResourceInclude Source="avares://Piccolo.Forge.Themes.ExpUi/Themes/ForgeToolWindowToolbar.axaml" />
+                <ResourceInclude Source="avares://Piccolo.Forge.Themes.ExpUi/Themes/ForgeToolWindowHeader.axaml" />
+                <ResourceInclude Source="avares://Piccolo.Forge.Themes.ExpUi/Themes/ForgeHeaderButton.axaml" />
+                <ResourceInclude Source="avares://Piccolo.Forge.Themes.ExpUi/Themes/ForgeContentTab.axaml" />
+                <ResourceInclude Source="avares://Piccolo.Forge.Themes.ExpUi/Themes/ForgeEditorTab.axaml" />
+                <ResourceInclude Source="avares://Piccolo.Forge.Themes.ExpUi/Themes/ForgeEditorSplitter.axaml" />
+                <ResourceInclude Source="avares://Piccolo.Forge.Themes.ExpUi/Themes/ForgeDragOverlay.axaml" />
 
                 <!--  两个"岛的宿主"（外框与编辑区）：不是那 10 个控件之一，只喂岛描边那一个键  -->
-                <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/ExpUi/ForgeIslandHosts.axaml" />
+                <ResourceInclude Source="avares://Piccolo.Forge.Themes.ExpUi/Themes/ForgeIslandHosts.axaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Styles.Resources>

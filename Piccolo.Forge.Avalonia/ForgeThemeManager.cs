@@ -35,49 +35,57 @@ namespace Piccolo.Forge.Avalonia;
 /// </remarks>
 public static class ForgeThemeManager
 {
-    private static IStyle? _installed;
+    private static IForgeTheme? _installed;
 
-    /// <summary>当前装着哪一族；<see langword="null"/> = 还没装过。</summary>
-    /// <remarks>宿主不该按它做业务判断，它是给一致性守护与用例用的。</remarks>
-    public static ForgeThemeFamily? Current { get; private set; }
+    /// <summary>
+    /// 当前装的是哪一族。先看本类装过的；没装过就到 <c>Application.Current.Styles</c> 里找实现了
+    /// <see cref="IForgeTheme"/> 的单元（宿主在 XAML 里直接写 <c>&lt;ForgeIslandsTheme/&gt;</c> 那条路）。
+    /// </summary>
+    public static ForgeThemeFamily? Current
+    {
+        get
+        {
+            if (_installed is not null) return _installed.Family;
+            return FindInstalled(Application.Current)?.Family;
+        }
+    }
 
-    /// <summary>把 <paramref name="family"/> 那套主题装进 <paramref name="application"/>。</summary>
-    /// <remarks>
-    /// 原子地做两件事：卸掉上一个单元、装上这一个，并记下 <see cref="Current"/>。
-    /// 重复用同一族调用是幂等的（先卸后装，不会叠两份）。
-    /// <para>
-    /// 装载时机：**读完配置之后、外壳控件挂树之前**。装晚了首帧没有模板 ——
-    /// 不报错，只是什么都不画（REQ-067 那条「不加 include 就什么都不画」的教训）。
-    /// </para>
-    /// <para>
-    /// ⚠ 每次都**新建**一个 <see cref="StyleInclude"/>，不复用上一次那个实例：
-    /// Avalonia 的 <c>Styles</c> 认「宿主」，从 <see cref="Application.Styles"/> 摘下来的实例
-    /// 再装回去会抛 <c>The Styles already has a owner</c>。缓存实例省下的那点解析开销，
-    /// 换来的是切一次族就崩 —— 这条实测踩过。
-    /// </para>
-    /// </remarks>
-    public static void Apply(Application application, ForgeThemeFamily family)
+    /// <summary>
+    /// 装一套主题（Styles 单元），同时把 <see cref="Current"/> 记下 —— 两件事必须一起换。
+    /// 已经装着同一套就什么也不做；装着别的就先摘掉。
+    /// </summary>
+    /// <param name="application">应用。</param>
+    /// <param name="theme">主题包里的那个 Styles，如 <c>new ForgeIslandsTheme()</c>。</param>
+    public static void Apply(Application application, IForgeTheme theme)
     {
         ArgumentNullException.ThrowIfNull(application);
+        ArgumentNullException.ThrowIfNull(theme);
 
-        if (Current == family && _installed is not null && application.Styles.Contains(_installed))
+        var present = FindInstalled(application);
+        if (present is not null && present.Family == theme.Family)
         {
+            _installed = present;
             return;
         }
 
-        if (_installed is not null)
+        if (present is not null)
         {
-            application.Styles.Remove(_installed);
+            application.Styles.Remove(present);
         }
 
-        var unit = new StyleInclude((Uri?)null)
-        {
-            Source = new Uri($"avares://Piccolo.Forge.Avalonia/Themes/{family}/Theme.axaml"),
-        };
+        application.Styles.Add(theme);
+        _installed = theme;
+    }
 
-        application.Styles.Add(unit);
-        _installed = unit;
-        Current = family;
+    private static IForgeTheme? FindInstalled(Application? application)
+    {
+        if (application is null) return null;
+        foreach (var style in application.Styles)
+        {
+            if (style is IForgeTheme theme) return theme;
+        }
+
+        return null;
     }
 
     private static ResourceInclude? _locale;

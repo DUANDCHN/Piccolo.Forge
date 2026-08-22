@@ -4,7 +4,7 @@
       共同的规矩见本目录 Theme.axaml 的开头。  -->
 <ResourceDictionary
     xmlns="https://github.com/avaloniaui"
-    xmlns:forge="clr-namespace:Piccolo.Forge.Avalonia"
+    xmlns:forge="clr-namespace:Piccolo.Forge.Avalonia;assembly=Piccolo.Forge.Avalonia"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <ControlTheme TargetType="forge:ForgeDragOverlay" x:Key="{x:Type forge:ForgeDragOverlay}">

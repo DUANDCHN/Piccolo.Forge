@@ -31,7 +31,7 @@ public sealed class ForgeThemeScope : IDisposable
     /// <summary>换到 <paramref name="family"/>，出了作用域换回 <see cref="Default"/>。</summary>
     public static ForgeThemeScope Use(ForgeThemeFamily family)
     {
-        ForgeThemeManager.Apply(Application.Current!, family);
+        ForgeThemeManager.Apply(Application.Current!, ThemeFor(family));
         return new ForgeThemeScope();
     }
 
@@ -43,8 +43,15 @@ public sealed class ForgeThemeScope : IDisposable
     /// 免得 <see cref="ForgeThemeManager.AssertConsistent"/> 因为"两个开关不同族"当场炸 ——
     /// 那个断言正是要拦住产品代码里绕过单一入口的写法。
     /// </remarks>
-    public void SwitchTo(ForgeThemeFamily family) => ForgeThemeManager.Apply(Application.Current!, family);
+    public void SwitchTo(ForgeThemeFamily family) => ForgeThemeManager.Apply(Application.Current!, ThemeFor(family));
 
     /// <inheritdoc />
-    public void Dispose() => ForgeThemeManager.Apply(Application.Current!, Default);
+    public void Dispose() => ForgeThemeManager.Apply(Application.Current!, ThemeFor(Default));
+
+    /// <summary>族 → 主题包里的 Styles。两个包都引进来了，测试要两套都能跑。</summary>
+    public static IForgeTheme ThemeFor(ForgeThemeFamily family) => family switch
+    {
+        ForgeThemeFamily.Islands => new Piccolo.Forge.Themes.Islands.ForgeIslandsTheme(),
+        _ => new Piccolo.Forge.Themes.ExpUi.ForgeExpUiTheme(),
+    };
 }
