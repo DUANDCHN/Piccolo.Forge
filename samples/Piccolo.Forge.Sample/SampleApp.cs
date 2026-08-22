@@ -3,7 +3,9 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Styling;
 using Avalonia.Themes.Fluent;
+using System.Globalization;
 using Piccolo.Forge.Avalonia;
 using Piccolo.Forge.Model;
 using Piccolo.Forge.Mvvm;
@@ -11,18 +13,31 @@ using Piccolo.Forge.Themes;
 
 namespace Piccolo.Forge.Sample;
 
-/// 示例：新 UI 的默认布局（V2），条带按钮可点开/收起。
+/// 示例：新 UI 的默认布局（V2），条带按钮可点开/收起；顶部一排开关演示明暗 / 语言 / 显示名字 / 角标。
+/// 启动参数 <c>--islands</c> 换 Islands 主题（换主题要重启，所以做成启动参数而不是开关）。
 internal sealed class SampleApp : Application
 {
-    private static readonly ForgePalette Palette = ForgePalette.ExpUiDark;
+    /// <summary>命令行里有没有 <c>--islands</c>；由 Program 在 Initialize 之前设置。</summary>
+    public static bool UseIslands { get; set; }
+
+    private static ForgeThemeFamily Family => UseIslands ? ForgeThemeFamily.Islands : ForgeThemeFamily.ExpUi;
+
+    private static ForgePalette Palette => ForgePalette.ForTheme(Family, Application.Current!.ActualThemeVariant);
 
     public override void Initialize()
     {
         Styles.Add(new FluentTheme());
 
-        // Forge 的主题：**唯一入口**，装的是哪族由这一句定（REQ-068）。
+        // Forge 的主题：**唯一入口**，装的是哪族由这一句定。引用了哪个主题包就 new 哪个；
         // 不装控件就没有模板 —— 不报错，只是什么都不画。换族要重启（见 ForgeThemeManager）。
-        ForgeThemeManager.Apply(this, new Piccolo.Forge.Themes.ExpUi.ForgeExpUiTheme());
+        IForgeTheme theme = UseIslands
+            ? new Piccolo.Forge.Themes.Islands.ForgeIslandsTheme()
+            : new Piccolo.Forge.Themes.ExpUi.ForgeExpUiTheme();
+        ForgeThemeManager.Apply(this, theme);
+
+        // 文案跟系统语言；也可以传 "zh-CN" / "ja-JP" 这样的名字
+        ForgeThemeManager.ApplyLocale(this, CultureInfo.CurrentUICulture);
+        RequestedThemeVariant = ThemeVariant.Dark;
     }
 
     public override void OnFrameworkInitializationCompleted()
@@ -34,7 +49,6 @@ internal sealed class SampleApp : Application
                 Title = "Piccolo.Forge",
                 Width = 1100,
                 Height = 700,
-                Background = new SolidColorBrush(Palette.Background),
                 Content = BuildContent(),
             };
         }
@@ -67,7 +81,12 @@ internal sealed class SampleApp : Application
         var editorControl = new ForgeEditorControl();
         editorControl.Attach(editor);
 
-        var frame = new ForgeControl { EditorContent = editorControl };
+        var frame = new ForgeControl
+        {
+            EditorContent = editorControl,
+            // 外观只在外框设一次，编辑区跟着继承；Family 与明暗正交
+            Appearance = ForgeAppearance.Default with { Family = Family },
+        };
 
         frame.Attach(shell);
 
@@ -91,7 +110,58 @@ internal sealed class SampleApp : Application
         shell.Open("Structure");
         shell.Open("Version Control");
 
-        return frame;
+        var root = new DockPanel();
+        var toolbar = BuildToolbar(shell);
+        DockPanel.SetDock(toolbar, Dock.Top);
+        root.Children.Add(toolbar);
+        root.Children.Add(frame);
+        return root;
+    }
+
+    /// <summary>顶部一排开关：库能从外面拨动的几个维度都在这里，各自一句话。</summary>
+    private static Control BuildToolbar(ToolWindowShellViewModel shell)
+    {
+        var dark = new CheckBox { Content = "Dark", IsChecked = true };
+        dark.IsCheckedChanged += (_, _) =>
+            Application.Current!.RequestedThemeVariant = dark.IsChecked == true ? ThemeVariant.Dark : ThemeVariant.Light;
+
+        var names = new CheckBox { Content = "Show names" };
+        names.IsCheckedChanged += (_, _) => shell.ShowToolWindowNames = names.IsChecked == true;
+
+        var badge = new CheckBox { Content = "Badge on Notifications" };
+        badge.IsCheckedChanged += (_, _) =>
+        {
+            var vm = shell.ToolWindows.First(w => w.Id == "Notifications");
+            vm.HasBadge = badge.IsChecked == true;
+        };
+
+        var locale = new ComboBox
+        {
+            ItemsSource = ForgeThemeManager.SupportedLocales,
+            SelectedItem = ForgeThemeManager.CurrentLocale,
+            MinWidth = 110,
+        };
+        locale.SelectionChanged += (_, _) =>
+        {
+            if (locale.SelectedItem is string name)
+            {
+                ForgeThemeManager.ApplyLocale(Application.Current!, name);
+            }
+        };
+
+        var bar = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 16,
+            Margin = new Thickness(12, 6),
+        };
+        bar.Children.Add(new TextBlock { Text = $"Theme: {Family} (restart with --islands / without to switch)", VerticalAlignment = VerticalAlignment.Center });
+        bar.Children.Add(dark);
+        bar.Children.Add(names);
+        bar.Children.Add(badge);
+        bar.Children.Add(new TextBlock { Text = "Locale", VerticalAlignment = VerticalAlignment.Center });
+        bar.Children.Add(locale);
+        return bar;
     }
 
     private static Control Document(string title) => new Border

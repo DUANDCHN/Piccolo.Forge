@@ -7,7 +7,10 @@ internal static class Program
 {
     [STAThread]
     public static int Main(string[] args)
-        => BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+    {
+        SampleApp.UseIslands = args.Contains("--islands");
+        return BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+    }
 
     /// 供 Avalonia 设计器与 headless 复用的 AppBuilder。
     public static AppBuilder BuildAvaloniaApp()
