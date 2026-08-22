@@ -125,7 +125,8 @@ Full notices are provided in `THIRD-PARTY-NOTICES.md`.
 
 ## License
 
-MIT License.
+Proprietary. The packages may be referenced and redistributed in binary form as part of an
+application; the source code is not open source. See the `LICENSE` file in the package.
 
 ---
 
@@ -231,4 +232,4 @@ frame.Appearance = ForgeAppearance.Default with
 
 ## 许可证
 
-MIT License。
+专有许可。允许在应用程序中引用并以二进制形式分发；源代码未开源。详见包内 `LICENSE` 文件。

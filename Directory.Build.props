@@ -23,7 +23,8 @@
     <VersionSuffix>preview.2</VersionSuffix>
     <Authors>DUANDCHN</Authors>
     <Copyright>Copyright (c) DUANDCHN</Copyright>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <!-- 尚未开源：随包附自定义许可证文件，不用 SPDX 表达式 -->
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageProjectUrl>https://github.com/DUANDCHN/Piccolo.Forge</PackageProjectUrl>
     <RepositoryUrl>https://github.com/DUANDCHN/Piccolo.Forge</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
@@ -53,6 +54,7 @@
 
   <ItemGroup Condition="'$(IsPackable)' != 'false'">
     <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="/" Visible="false" />
+    <None Include="$(MSBuildThisFileDirectory)LICENSE" Pack="true" PackagePath="/" Visible="false" />
     <None Include="$(MSBuildThisFileDirectory)THIRD-PARTY-NOTICES.md" Pack="true" PackagePath="/" Visible="false" />
   </ItemGroup>
 
