@@ -1,3 +1,4 @@
+using Avalonia;
 using Piccolo.Forge.Model;
 
 namespace Piccolo.Forge.Avalonia;
@@ -34,19 +35,100 @@ public static class StripeDropResolver
     {
         ArgumentNullException.ThrowIfNull(items);
 
+        var index = ResolveInsertIndex(offset, items.Select(x => x.Size).ToList());
+        return index < items.Count ? items[index].Order : -1;
+    }
+
+    /// <summary>
+    /// 落在第几个之前——**序号**，不是 order。
+    /// </summary>
+    /// <remarks>
+    /// 与 <see cref="ResolveInsertOrder"/> 同一条判据，只是返回序号：
+    /// 空槽要插在排布序列的哪个位置，靠的是这个（order 是模型的事，序号是排布的事，
+    /// 两者在「被拖那个已从序列里拿掉」之后不再一一对应）。
+    /// <para>
+    /// ⚠ <paramref name="sizes"/> 必须是**排除被拖项之后**的序列。上游在
+    /// <c>AbstractDroppableStripe.kt:601</c> 先 <c>tools.remove(dragButton)</c> 再走这段；
+    /// 不排除的话后面每一项的累计坐标都多算一个按钮高，判定整体偏一格
+    /// ——表现就是「放在下面、框提示在上面」。
+    /// </para>
+    /// </remarks>
+    /// <param name="offset">落点在这一组里的纵向偏移。</param>
+    /// <param name="sizes">排除被拖项之后，每一项的高度，按显示次序给。</param>
+    /// <returns>插入序号，范围 <c>[0, sizes.Count]</c>；等于长度表示接在末尾。</returns>
+    public static int ResolveInsertIndex(double offset, IReadOnlyList<double> sizes)
+    {
+        ArgumentNullException.ThrowIfNull(sizes);
+
         var accumulated = 0.0;
-        foreach (var (order, size) in items)
+        for (var i = 0; i < sizes.Count; i++)
         {
-            if (offset - accumulated < size / 2)
+            if (offset - accumulated < sizes[i] / 2)
             {
-                return order;
+                return i;
             }
 
-            accumulated += size;
+            accumulated += sizes[i];
         }
 
-        return -1;
+        return sizes.Count;
     }
+
+    /// <summary>
+    /// 上组（LEFT / RIGHT）的落区。
+    /// </summary>
+    /// <remarks>
+    /// 照抄 <c>ToolWindowToolbar.kt:213-242 · StripeV2.containsPoint</c> 的 LEFT/RIGHT 分支：
+    /// <list type="number">
+    /// <item>取整根条带的矩形，**高度砍半**（<c>if (halfColumn) bounds.height /= 2</c>）——
+    /// 落区是这一列的**上半**，与按钮实际占了多高无关；</item>
+    /// <item>向窗口内侧扩出一个工具窗口的宽度（<c>bounds.width += toolWindowWidth</c>），
+    /// 右条带则同时把 x 左移同样的量。</item>
+    /// </list>
+    /// <para>
+    /// ⚠ 用「按钮的内容矩形」当落区是错的：那样点落在第一个图标**上方**或按钮堆下面的空白处
+    /// 都不在任何一组里，只能靠兜底猜一个 —— 上组按钮少的时候，
+    /// 半根条带的高度都会被判成"不属于任何组"。
+    /// </para>
+    /// </remarks>
+    /// <param name="stripe">条带在宿主坐标系里的矩形。</param>
+    /// <param name="isRight">是不是右条带。</param>
+    /// <param name="toolWindowSize">第一个可见工具窗口的宽度（没有就用兜底 350）。</param>
+    /// <returns>落区。</returns>
+    public static Rect ResolveTopZone(Rect stripe, bool isRight, double toolWindowSize)
+    {
+        var width = stripe.Width + toolWindowSize;
+        var x = isRight ? stripe.X - toolWindowSize : stripe.X;
+        return new Rect(x, stripe.Y, width, stripe.Height / 2);
+    }
+
+    /// <summary>
+    /// 下组（BOTTOM）的落区。
+    /// </summary>
+    /// <remarks>
+    /// 照抄同一方法的 BOTTOM 分支（<c>:243-252</c>）：整窗底部一条带，
+    /// 高 <c>max(第一个可见工具窗口的高, 条带高 + 40)</c>、宽**半个窗口**；
+    /// <c>split</c> 时整体右移半屏。
+    /// <para>
+    /// 上游还会再减掉状态栏高度；Forge 画的是外壳、状态栏归宿主，
+    /// 所以这里的"窗口底"就是外壳自己的底边。
+    /// </para>
+    /// </remarks>
+    /// <param name="frame">外壳自己的尺寸。</param>
+    /// <param name="stripeHeight">条带高（上游的 <c>height</c>）。</param>
+    /// <param name="toolWindowSize">第一个可见工具窗口的高度。</param>
+    /// <param name="isSplit">是不是右半那一组。</param>
+    /// <returns>落区。</returns>
+    public static Rect ResolveBottomZone(Size frame, double stripeHeight, double toolWindowSize, bool isSplit)
+    {
+        var height = Math.Max(toolWindowSize, stripeHeight + BottomZoneExtra);
+        var width = frame.Width / 2;
+        var x = isSplit ? width : 0;
+        return new Rect(x, frame.Height - height, width, height);
+    }
+
+    /// <summary>下组落区在条带高之上再加的余量 40（<c>ToolWindowToolbar.kt:245</c>）。</summary>
+    public const double BottomZoneExtra = 40;
 
     /// <summary>
     /// 把「落在哪根条带的哪一组」翻译成 anchor + isSplit。

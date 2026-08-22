@@ -1,0 +1,40 @@
+<!--  Forge 文案：英文（默认 / 回落）。
+      键名 Forge.Strings.*，与颜色键同一套机制：控件 / 菜单按键取值，宿主在自己的资源里重定义同名键即可覆盖。
+      由 ForgeThemeManager.ApplyLocale 按 CultureInfo 挑一份挂进 Application.Resources.MergedDictionaries。  -->
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <x:String x:Key="Forge.Strings.MoveTo">Move to</x:String>
+    <x:String x:Key="Forge.Strings.ViewMode">View Mode</x:String>
+    <x:String x:Key="Forge.Strings.RemoveFromSidebar">Remove from Sidebar</x:String>
+    <x:String x:Key="Forge.Strings.ShowToolWindowNames">Show Tool Window Names</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeDockPinned">Dock Pinned</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeDockUnpinned">Dock Unpinned</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeUndock">Undock</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeFloat">Float</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeWindow">Window</x:String>
+    <x:String x:Key="Forge.Strings.SideLeft">Left</x:String>
+    <x:String x:Key="Forge.Strings.SideRight">Right</x:String>
+    <x:String x:Key="Forge.Strings.SideBottom">Bottom</x:String>
+    <x:String x:Key="Forge.Strings.SideTop">Top</x:String>
+    <x:String x:Key="Forge.Strings.HalfTop">Top</x:String>
+    <x:String x:Key="Forge.Strings.HalfBottom">Bottom</x:String>
+    <x:String x:Key="Forge.Strings.HalfLeft">Left</x:String>
+    <x:String x:Key="Forge.Strings.HalfRight">Right</x:String>
+    <x:String x:Key="Forge.Strings.LocationFormat">{0} · {1}</x:String>
+    <x:String x:Key="Forge.Strings.MoveToFormat">Move to {0}</x:String>
+    <x:String x:Key="Forge.Strings.CloseTab">Close</x:String>
+    <x:String x:Key="Forge.Strings.CloseOtherTabs">Close Other Tabs</x:String>
+    <x:String x:Key="Forge.Strings.CloseAllTabs">Close All Tabs</x:String>
+    <x:String x:Key="Forge.Strings.CloseTabsToTheLeft">Close Tabs to the Left</x:String>
+    <x:String x:Key="Forge.Strings.CloseTabsToTheRight">Close Tabs to the Right</x:String>
+    <x:String x:Key="Forge.Strings.SplitRight">Split Right</x:String>
+    <x:String x:Key="Forge.Strings.SplitAndMoveRight">Split and Move Right</x:String>
+    <x:String x:Key="Forge.Strings.SplitDown">Split Down</x:String>
+    <x:String x:Key="Forge.Strings.SplitAndMoveDown">Split and Move Down</x:String>
+    <x:String x:Key="Forge.Strings.PinTab">Pin Tab</x:String>
+    <x:String x:Key="Forge.Strings.OpenTabInNewWindow">Open in New Window</x:String>
+    <x:String x:Key="Forge.Strings.DockButton">Dock</x:String>
+    <x:String x:Key="Forge.Strings.OptionsButton">Options</x:String>
+    <x:String x:Key="Forge.Strings.HideButton">Hide</x:String>
+    <x:String x:Key="Forge.Strings.MoreToolWindows">More tool windows</x:String>
+    <x:String x:Key="Forge.Strings.CloseTabFormat">Close {0}</x:String>
+</ResourceDictionary>

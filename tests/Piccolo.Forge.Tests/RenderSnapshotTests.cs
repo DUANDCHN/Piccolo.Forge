@@ -1,4 +1,4 @@
-using Avalonia;
+﻿using Avalonia;
 using System.Linq;
 using Avalonia.Input;
 using Avalonia.Controls;
@@ -37,10 +37,12 @@ public class RenderSnapshotTests
         // 竖着切一刀，把选中那页带过去
         editor.Area.Split(editor.Area.CurrentGroup, isVertical: true);
 
-        var control = new ForgeEditorArea
+        var control = new ForgeEditorControl
         {
             Palette = palette,
-            Background = new SolidColorBrush(themeName == "light"
+            // 编辑区正文的底色。islands-light 也是浅色，所以按「名字里带 light」判，
+            // 不是 == "light"。
+            Background = new SolidColorBrush(themeName.Contains("light", StringComparison.Ordinal)
                 ? ForgeColor.Parse("#FFFFFF")
                 : ForgeColor.Parse("#1E1F22")),
             Foreground = new SolidColorBrush(palette.Foreground),
@@ -77,7 +79,7 @@ public class RenderSnapshotTests
             shell.Add(id, title, anchor, split, icon);
         }
 
-        var frame = new ForgeToolWindowFrame
+        var frame = new ForgeControl
         {
             Palette = palette,
             EditorContent = new Border { Background = new SolidColorBrush(ForgeColor.Parse("#1E1F22")) },
@@ -112,13 +114,21 @@ public class RenderSnapshotTests
     [InlineData("dark", false)]
     [InlineData("light", false)]
     [InlineData("names", true)]
+    [InlineData("islands-dark", false)]
+    [InlineData("islands-light", false)]
     public void Render_the_default_layout(string themeName, bool showNames)
     {
-        var palette = themeName == "light" ? ForgePalette.ExpUiLight : ForgePalette.ExpUiDark;
+        var palette = themeName switch
+        {
+            "light" => ForgePalette.ExpUiLight,
+            "islands-dark" => ForgePalette.IslandsDark,
+            "islands-light" => ForgePalette.IslandsLight,
+            _ => ForgePalette.ExpUiDark,
+        };
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
         var manager = shell.Manager;
 
-        var frame = new ForgeToolWindowFrame
+        var frame = new ForgeControl
         {
             Palette = palette,
             ShowToolWindowNames = showNames,
@@ -156,7 +166,8 @@ public class RenderSnapshotTests
             Width = 900,
             Height = 560,
             WindowDecorations = WindowDecorations.None,
-            Background = new SolidColorBrush(palette.Background),
+            // 窗口底色用「海」：岛形态下缝里露出来的是它。expUI 下它等于 Background，无差别。
+            Background = new SolidColorBrush(palette.MainBackground),
             Content = frame,
         };
 
@@ -205,10 +216,10 @@ public class RenderSnapshotTests
         editor.Find("cam-1")!.Icon = ForgeIcons.Camera;
         editor.Find("snap-1")!.Icon = ForgeIcons.Bookmarks;
 
-        var editorControl = new ForgeEditorArea();
+        var editorControl = new ForgeEditorControl();
         editorControl.Attach(editor);
 
-        var frame = new ForgeToolWindowFrame { EditorContent = editorControl };
+        var frame = new ForgeControl { EditorContent = editorControl };
         frame.Attach(shell);
 
         shell.Open("ImageLibrary");
@@ -246,7 +257,7 @@ public class RenderSnapshotTests
     public void Render_a_drag_in_progress(string themeName)
     {
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
-        var frame = new ForgeToolWindowFrame
+        var frame = new ForgeControl
         {
             EditorContent = new Border(),
         };
@@ -322,22 +333,80 @@ public class RenderSnapshotTests
     }
 
     /// <summary>
-    /// 读一个像素。
+    /// 把条带按钮放大 4 倍渲出来，用来肉眼核对图标与高亮的位置关系。
     /// </summary>
     /// <remarks>
-    /// 字节序按 <see cref="ILockedFramebuffer.Format"/> 走，别写死 ——
-    /// headless 后端给的是 <c>Rgba8888</c>，桌面后端多是 <c>Bgra8888</c>，
-    /// 写死一种会得到红蓝互换的结论。
+    /// 1× 下这些差异只有一两个像素（Islands 的图标居中基准错了会偏 1.5px），
+    /// 在整机快照里根本看不出来，只能靠放大看。
     /// </remarks>
-    private static Color PixelAt(WriteableBitmap bitmap, int x, int y)
+    [AvaloniaTheory]
+    [InlineData("islands-left", true)]
+    [InlineData("islands-right", false)]
+    public void Render_the_stripe_buttons_zoomed(string name, bool isLeft)
     {
-        using var buffer = bitmap.Lock();
-        var offset = (y * buffer.RowBytes) + (x * 4);
-        var bytes = new byte[4];
-        System.Runtime.InteropServices.Marshal.Copy(buffer.Address + offset, bytes, 0, 4);
+        var palette = ForgePalette.IslandsDark;
 
-        return buffer.Format == PixelFormat.Rgba8888
-            ? Color.FromArgb(bytes[3], bytes[0], bytes[1], bytes[2])
-            : Color.FromArgb(bytes[3], bytes[2], bytes[1], bytes[0]);
+        // ⚠ 必须钉宽 + 不拉伸：StackPanel 默认把子控件横向拉满，
+        // 按钮会拿到窗口宽而不是它自己的 37，高亮铺到最右、图标被推出画面。
+        var stack = new StackPanel
+        {
+            Orientation = global::Avalonia.Layout.Orientation.Vertical,
+            Width = 37,
+            HorizontalAlignment = global::Avalonia.Layout.HorizontalAlignment.Left,
+            VerticalAlignment = global::Avalonia.Layout.VerticalAlignment.Top,
+        };
+
+        (Geometry Icon, bool Selected)[] items =
+        [
+            (ForgeIcons.Project, true),
+            (ForgeIcons.Camera, false),
+            (ForgeIcons.Chart, false),
+        ];
+
+        foreach (var (icon, selected) in items)
+        {
+            stack.Children.Add(new ForgeStripeButton
+            {
+                Palette = palette,
+                IsLeftStripe = isLeft,
+                Icon = icon,
+                IsToolWindowVisible = selected,
+                IsToolWindowActive = selected,
+            });
+        }
+
+        const double zoom = 4;
+        var scaled = new Border
+        {
+            Child = stack,
+            Width = 37,
+            Height = 40 * items.Length,
+            HorizontalAlignment = global::Avalonia.Layout.HorizontalAlignment.Left,
+            VerticalAlignment = global::Avalonia.Layout.VerticalAlignment.Top,
+            RenderTransform = new ScaleTransform(zoom, zoom),
+            RenderTransformOrigin = RelativePoint.TopLeft,
+        };
+
+        var window = new Window
+        {
+            Width = 37 * zoom,
+            Height = 40 * items.Length * zoom,
+            WindowDecorations = WindowDecorations.None,
+            // 条带底 = 海，与实机的透底一致地留出对比
+            Background = new SolidColorBrush(palette.StripeBackground),
+            Content = scaled,
+        };
+
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        var bitmap = window.CaptureRenderedFrame();
+        Assert.NotNull(bitmap);
+
+        Directory.CreateDirectory(OutputDirectory);
+        bitmap!.Save(Path.Combine(OutputDirectory, $"forge-stripe-{name}.png"), new PngBitmapEncoderOptions());
     }
+
+    /// <summary>读一个像素（实现见 <see cref="PixelProbe"/>）。</summary>
+    private static Color PixelAt(WriteableBitmap bitmap, int x, int y) => PixelProbe.At(bitmap, x, y);
 }

@@ -1,0 +1,69 @@
+<!--  ★ 标题条右侧那排小按钮（⿴ 停靠 / ⋮ 选项 / — 收起）。★ **真模板**
+      悬停与按下同一个底色（ActionButton.hoverBackground）。
+      ⚠ 圆角这里直接用 ForgeMetrics.HeaderButtonArc = 4 当**半径**，
+        与条带按钮那边"Arc 是直径、要折半"的规矩不一致——照抄原实现，不在本需求里"顺手修正"，
+        改它会改变现有观感，该单独判定对错。
+
+      共同的规矩见本目录 Theme.axaml 的开头。  -->
+<ResourceDictionary
+    xmlns="https://github.com/avaloniaui"
+    xmlns:forge="clr-namespace:Piccolo.Forge.Avalonia;assembly=Piccolo.Forge.Avalonia"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ControlTheme TargetType="forge:ForgeHeaderButton" x:Key="{x:Type forge:ForgeHeaderButton}">
+        <Setter Property="Foreground" Value="{DynamicResource Forge.Islands.ButtonForeground}" />
+        <Setter Property="HoverBackgroundBrush" Value="{DynamicResource Forge.Islands.ButtonHoverBackground}" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="forge:ForgeHeaderButton">
+                <!--  Render 只剩铺命中区，所以底色与图标都能放这里 —— 结构可换。
+                      ⚠ 圆角 4 是直接当**半径**用的（ForgeMetrics.HeaderButtonArc），
+                        与条带按钮那边"Arc 是直径、要折半"的规矩不一致 ——
+                        照抄原实现，不在本需求里顺手修正。  -->
+                <Panel Background="Transparent">
+                    <Border
+                        Background="{TemplateBinding HoverBackgroundBrush}"
+                        CornerRadius="4"
+                        IsVisible="False"
+                        Name="PART_Background" />
+
+                    <!--  图标位：20×20 居中（ForgeMetrics.HeaderButtonIconSlot）。
+                          ⚠ 比库自带 Geometry 的 16 大一圈是**给宿主的图标留余量**：
+                            字体形态的图标推进宽度不保证正好 1 em，格子与字号等大就切右边（撞过）。
+                            库自带那几个仍按 16 画（ForgeHeaderButton 给了固定尺寸），观感不变。  -->
+                    <ContentPresenter
+                        Height="20"
+                        HorizontalAlignment="Center"
+                        Name="PART_Icon"
+                        VerticalAlignment="Center"
+                        Width="20" />
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+
+        <!--  悬停与按下同一个底色（原实现就是 IsPointerOver || IsPressed）  -->
+        <Style Selector="^:pointerover /template/ Border#PART_Background">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+        <Style Selector="^:pressed /template/ Border#PART_Background">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+
+        <!--  ★ 禁用态：整颗压到 40%。★
+              这条**必须写在悬停/按下之后** —— 同一份 ControlTheme 里后面的赢；
+              写在前面的话，鼠标扫过一个禁用按钮照样会亮出悬停底。
+
+              压的是**整颗按钮**而不是前景色：图标未必是 Icon 那条路径 ——
+              宿主可以塞任意控件（IconContent），它自己的配色库管不着；
+              透明度这一层对两种形态都成立。
+
+              由来：标题条上的动作按钮是**纯图标、没有文字**的，一个动作能不能用
+              只剩颜色深浅这一条线索。原先没有这条样式，禁用与可用长得一模一样，
+              点下去没反应也看不出为什么（实机反馈）。  -->
+        <Style Selector="^:disabled">
+            <Setter Property="Opacity" Value="0.4" />
+        </Style>
+        <Style Selector="^:disabled /template/ Border#PART_Background">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+    </ControlTheme>
+</ResourceDictionary>

@@ -1,4 +1,5 @@
-using Avalonia;
+﻿using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Media;
 using Piccolo.Forge.Model;
 using Piccolo.Forge.Themes;
@@ -31,6 +32,9 @@ public class ForgeMoreButton : ForgeSquareButtonBase
     {
         AffectsRender<ForgeMoreButton>(SideProperty, ActiveSideProperty, HasHiddenToolWindowsProperty);
     }
+
+    /// <summary>建一个「更多」按钮；无障碍名走 <see cref="ForgeStrings"/>。</summary>
+    public ForgeMoreButton() => AutomationProperties.SetName(this, ForgeStrings.Current.MoreToolWindows);
 
     /// <summary>这个按钮长在哪根条带上。</summary>
     public StripeSide Side
@@ -98,18 +102,35 @@ public class ForgeMoreButton : ForgeSquareButtonBase
         // 可用时整块都能点
         ForgeHitArea.Fill(context, Bounds.Size);
 
-        if (ResolveBackground() is { } color)
-        {
-            context.DrawRectangle(new SolidColorBrush(color), null, new RoundedRect(new Rect(Bounds.Size), Arc));
-        }
-
-        // 三个点，对应上游的 AllIcons.Actions.MoreHorizontal（MoreSquareStripeButton.kt:91-96）
-        var iconRect = new Rect(
-            (Bounds.Width - IconSize) / 2,
-            (Bounds.Height - IconSize) / 2,
-            IconSize,
-            IconSize);
-
-        ForgeIcons.Draw(context, ForgeIcons.More, iconRect, new SolidColorBrush(ResolveForeground()), filled: true);
+        // 底色归模板里那层 Border（绑 BackgroundBrush）；规则与工具窗口按钮同一条
+        // （SquareStripeButtonLook 是两者共用的 look，见 SquareStripeButton.kt:62-80 的兄弟关系）。
+        // 三个点也在模板里（ForgeGeometryIcon，见 SyncIcon）—— 这里只剩铺命中区。
     }
+
+    /// <summary>把三个点交给模板里那个图标槽。</summary>
+    /// <remarks>
+    /// 对应上游的 <c>AllIcons.Actions.MoreHorizontal</c>（<c>MoreSquareStripeButton.kt:91-96</c>）。
+    /// 实心：圆点类图标描边画出来会变成三个小方框。
+    /// </remarks>
+    private void SyncIcon()
+        => SetGeometryIcon(
+            IsAvailable ? ForgeIcons.More : null,
+            Foreground ?? new SolidColorBrush(ResolveForeground()),
+            filled: true);
+
+    /// <inheritdoc />
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+
+        if (change.Property == SideProperty
+            || change.Property == ActiveSideProperty
+            || change.Property == HasHiddenToolWindowsProperty
+            || change.Property == ForegroundProperty
+            || change.Property == PaletteProperty)
+        {
+            SyncIcon();
+        }
+    }
+
 }

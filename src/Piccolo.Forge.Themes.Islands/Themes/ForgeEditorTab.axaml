@@ -1,0 +1,131 @@
+<!--  ★ 编辑区的文档标签。★ **真模板**：底与描边、下划线、标题、两个图标都在模板里。
+
+      与其它控件不同的一点：底与描边是 **5 态 × 2 族**，两族还是两个 painter
+      （expUI 整条贴边 + 下划线；Islands 改画内缩圆角块、完全不画下划线），
+      且若干状态的填充或描边是空。**「哪一档」的判定留在 C# 的 ResolveColors 里**
+      （每档带上游出处），模板拿到的是已经挑好的那一档画刷，只负责画成什么形状。
+      形状本身仍是可换的：重写这份模板就能改。
+
+      ⚠ 这份模板同时兜着一件事：TabStripItem 是 ContentControl，
+        Avalonia 给它兜了一份自带模板（PART_ContentPresenter）。标签容器由 TabStrip 建、
+        Content 被喂成**视图模型对象本身** —— 落回兜底模板就会把它 ToString 画在标签上
+        （实机症状：标签行顶上多出一串 "Piccolo.Forge.Mvvm.EditorTabViewModel"）。
+        由此的规矩：**删构造里的 Template，必须同时在 ControlTheme 里补一份，哪怕是空的。**
+        守护用例：标签不会落回Avalonia自带的模板。
+
+      共同的规矩见本目录 Theme.axaml 的开头。  -->
+<ResourceDictionary
+    xmlns="https://github.com/avaloniaui"
+    xmlns:forge="clr-namespace:Piccolo.Forge.Avalonia;assembly=Piccolo.Forge.Avalonia"
+    xmlns:themes="clr-namespace:Piccolo.Forge.Themes;assembly=Piccolo.Forge.Avalonia"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ControlTheme TargetType="forge:ForgeEditorTab" x:Key="{x:Type forge:ForgeEditorTab}">
+        <Setter Property="Template">
+            <ControlTemplate TargetType="forge:ForgeEditorTab">
+                <!--  次序 = 原先 Render 里的画序：底与描边 → 下划线 → 图标 → 标题 → 关闭/图钉  -->
+                <Panel Background="Transparent">
+                    <!--  底与描边。两族的差别整个落在 Margin / CornerRadius 上：
+                          expUI 全 0（整条贴边、直角），Islands 是那个内缩圆角块。
+                          ⚠ BorderThickness=1 对应原来的 new Pen(b, 1)；Avalonia 的笔跨在边线上、
+                            而 Border 的描边画在里面，差的那半像素由 DecorationMargin 补（见那里的注释）。  -->
+                    <Border
+                        Background="{TemplateBinding DecorationBrush}"
+                        BorderBrush="{TemplateBinding DecorationBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{TemplateBinding DecorationCornerRadius}"
+                        Margin="{TemplateBinding DecorationMargin}"
+                        Name="PART_Decoration" />
+
+                    <!--  下划线：**本族不画**（IslandsTabPainter.kt:109 把 underlineHeight
+                          覆盖成 0、:150 是空实现）。这个 Border 仍留在模板里 ——
+                          两套主题的模板结构保持一致，控件按名字找得到它；它只是永不显示。
+                          经典那份见 ExpUi/ForgeEditorTab.axaml。  -->
+                    <Border
+                        Background="{TemplateBinding UnderlineBrush}"
+                        CornerRadius="{TemplateBinding UnderlineCornerRadius}"
+                        Height="{TemplateBinding UnderlineHeight}"
+                        HorizontalAlignment="Stretch"
+                        IsVisible="False"
+                        Name="PART_Underline"
+                        VerticalAlignment="Bottom" />
+
+                    <!--  左边的文件图标：宿主给 Geometry 走这里；给**控件**的走另一条路
+                          （控件被挂在模板之外、由 ArrangeOverride 摆，见 ForgeEditorTab._iconControl）。  -->
+                    <forge:ForgeGeometryIcon
+                        Brush="{TemplateBinding Foreground}"
+                        Height="{TemplateBinding LeadingIconSize}"
+                        HorizontalAlignment="Left"
+                        Icon="{TemplateBinding LeadingGeometry}"
+                        Margin="{TemplateBinding LeadingIconMargin}"
+                        Name="PART_LeadingIcon"
+                        UseLayoutRounding="False"
+                        VerticalAlignment="Center"
+                        Width="{TemplateBinding LeadingIconSize}" />
+
+                    <!--  标题：⚠ 宽度是**测出来的**（MeasureTitle），字号 / 字重必须与那里同源。
+                          UseLayoutRounding="False" 的理由同内容标签：竖直居中会落在半像素上。  -->
+                    <TextBlock
+                        FontSize="{TemplateBinding TitleFontSize}"
+                        FontWeight="{TemplateBinding TitleFontWeight}"
+                        Foreground="{TemplateBinding Foreground}"
+                        HorizontalAlignment="Left"
+                        Margin="{TemplateBinding TitleMargin}"
+                        Name="PART_Title"
+                        Text="{TemplateBinding Title}"
+                        UseLayoutRounding="False"
+                        VerticalAlignment="Center" />
+
+                    <!--  右边关闭 / 图钉图标压上去时垫的那层圆角底（本库自定，理由见 IconHovered 的注释）  -->
+                    <Border
+                        Background="{TemplateBinding HoverBackgroundBrush}"
+                        CornerRadius="{TemplateBinding TabIconHoverCornerRadius}"
+                        Height="{TemplateBinding TabIconHoverSize}"
+                        HorizontalAlignment="Right"
+                        IsVisible="False"
+                        Margin="{TemplateBinding TabIconHoverMargin}"
+                        Name="PART_TabIconBackground"
+                        UseLayoutRounding="False"
+                        VerticalAlignment="Center"
+                        Width="{TemplateBinding TabIconHoverSize}" />
+
+                    <forge:ForgeGeometryIcon
+                        Brush="{TemplateBinding Foreground}"
+                        Height="{TemplateBinding TabIconSize}"
+                        HorizontalAlignment="Right"
+                        Icon="{x:Static themes:ForgeIcons.Close}"
+                        IsVisible="False"
+                        Margin="{TemplateBinding TabIconMargin}"
+                        Name="PART_TabIcon"
+                        UseLayoutRounding="False"
+                        VerticalAlignment="Center"
+                        Width="{TemplateBinding TabIconSize}" />
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+
+        <Setter Property="Foreground" Value="{DynamicResource Forge.Islands.Foreground}" />
+        <Setter Property="SelectedBackgroundBrush" Value="{DynamicResource Forge.Islands.EditorTabSelectedBackground}" />
+        <Setter Property="SelectedBorderBrush" Value="{DynamicResource Forge.Islands.EditorTabSelectedBorder}" />
+        <Setter Property="HoverBackgroundBrush" Value="{DynamicResource Forge.Islands.EditorTabHoverBackground}" />
+        <Setter Property="InactiveSelectedBackgroundBrush" Value="{DynamicResource Forge.Islands.EditorTabInactiveSelectedBackground}" />
+        <Setter Property="InactiveSelectedBorderBrush" Value="{DynamicResource Forge.Islands.EditorTabInactiveSelectedBorder}" />
+        <Setter Property="UnderlineBrush" Value="{DynamicResource Forge.Islands.HeaderTabUnderline}" />
+        <Setter Property="InactiveUnderlineBrush" Value="{DynamicResource Forge.Islands.HeaderTabInactiveUnderline}" />
+
+        <!--  ⚠ **下划线那一档在本族根本不存在**，这里没有任何让 PART_Underline 显示的样式 ——
+              不是漏写。经典那份（选中出下划线、失焦组换一档颜色）在 ExpUi/ForgeEditorTab.axaml。  -->
+
+        <!--  右边那个图标：能关或已固定才出；固定住时换成图钉且改为填充  -->
+        <Style Selector="^:has-tab-icon /template/ forge|ForgeGeometryIcon#PART_TabIcon">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+        <Style Selector="^:pinned /template/ forge|ForgeGeometryIcon#PART_TabIcon">
+            <Setter Property="Icon" Value="{x:Static themes:ForgeIcons.Pin}" />
+            <Setter Property="IsFilled" Value="True" />
+        </Style>
+        <Style Selector="^:icon-hover /template/ Border#PART_TabIconBackground">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+    </ControlTheme>
+</ResourceDictionary>

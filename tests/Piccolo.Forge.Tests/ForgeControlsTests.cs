@@ -1,6 +1,7 @@
-using System.Linq;
+﻿using System.Linq;
 using Avalonia;
 using Avalonia.Input;
+using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Avalonia.Media;
@@ -37,13 +38,111 @@ public class ForgeControlsTests
     {
         var button = new ForgeStripeButton();
         Assert.Equal(20, button.IconSize);
-        Assert.Equal(5, button.IconPadding);
+        Assert.Equal(new ForgeInsets(5), button.IconPadding);
         Assert.Equal(12, button.Arc);
 
         button.IsCompact = true;
         Assert.Equal(16, button.IconSize);
-        Assert.Equal(4, button.IconPadding);
+        Assert.Equal(new ForgeInsets(4), button.IconPadding);
         Assert.Equal(8, button.Arc);
+    }
+
+    /// <summary>
+    /// Islands 把条带按钮收窄到 37×40，且左右内边距镜像不对称——
+    /// 靠窗口内侧留 2、外侧留 5（<c>docs/upstream/Islands主题.md</c> §4）。
+    /// </summary>
+    [AvaloniaFact]
+    public void Islands_narrows_the_stripe_button_and_mirrors_its_icon_padding()
+    {
+        var button = new ForgeStripeButton { Palette = ForgePalette.IslandsDark };
+
+        button.Measure(Size.Infinity);
+        Assert.Equal(new Size(37, 40), button.DesiredSize);
+
+        // 左条带：右边（朝窗口里）留 2
+        Assert.Equal(new ForgeInsets(5, 5, 5, 2), button.IconPadding);
+
+        // 右条带：镜像过来，左边留 2
+        button.IsLeftStripe = false;
+        Assert.Equal(new ForgeInsets(5, 2, 5, 5), button.IconPadding);
+
+        // expUI 仍是 40×40、四边相等 —— 换族不该改到它
+        button.Palette = ForgePalette.ExpUiDark;
+        button.InvalidateMeasure();
+        button.Measure(Size.Infinity);
+        Assert.Equal(new Size(40, 40), button.DesiredSize);
+        Assert.Equal(new ForgeInsets(5), button.IconPadding);
+    }
+
+    /// <summary>
+    /// 两套主题的高亮矩形都是 30×30（<c>40-5-5</c> 与 <c>37-5-2</c>），
+    /// Islands 只是把它整体推向条带外缘 —— 回归：早先这里画的是整个按钮矩形。
+    /// </summary>
+    [AvaloniaTheory]
+    [InlineData(false, 5d, 30d)]
+    [InlineData(true, 5d, 30d)]
+    public void The_highlight_is_the_button_minus_its_icon_padding(bool islands, double expectedLeft, double expectedSize)
+    {
+        var button = new ForgeStripeButton
+        {
+            Palette = islands ? ForgePalette.IslandsDark : ForgePalette.ExpUiDark,
+        };
+
+        button.Measure(Size.Infinity);
+        var rect = button.BackgroundRect(new Rect(button.DesiredSize));
+
+        Assert.Equal(expectedLeft, rect.X);
+        Assert.Equal(expectedSize, rect.Width);
+        Assert.Equal(expectedSize, rect.Height);
+    }
+
+    /// <summary>
+    /// 图标与高亮**共用一个矩形**（都是「按钮 − 图标内边距」），所以图标在高亮里居中，
+    /// 而不是在整个按钮里居中。
+    /// </summary>
+    /// <remarks>
+    /// 出处 <c>SquareStripeButtonLook.kt:112-118 · getIconPosition</c> —— 它与
+    /// <c>paintBackground</c> 扣的是同一份 <c>iconPadding</c>。
+    /// <para>
+    /// 回归：本来按整个按钮宽居中。expUI 内边距左右对称、两种算法重合，看不出错；
+    /// Islands 是 5/2 不对称，图标就比高亮偏 1.5px（实机截图里"图标偏了"）。
+    /// </para>
+    /// </remarks>
+    [AvaloniaTheory]
+    [InlineData(true, 10d)]   // 左条带：padding 5/2 → 高亮 x∈[5,35]，中心 20，图标 20 宽 → x=10
+    [InlineData(false, 7d)]   // 右条带：镜像，padding 2/5 → 高亮 x∈[2,32]，中心 17 → x=7
+    public void The_icon_is_centred_on_the_highlight_not_on_the_button(bool isLeft, double expectedIconX)
+    {
+        var button = new ForgeStripeButton
+        {
+            Palette = ForgePalette.IslandsDark,
+            IsLeftStripe = isLeft,
+        };
+
+        button.Measure(Size.Infinity);
+        var cell = new Rect(button.DesiredSize);
+
+        var highlight = button.BackgroundRect(cell);
+        var iconX = highlight.X + ((highlight.Width - button.IconSize) / 2);
+
+        Assert.Equal(expectedIconX, iconX);
+
+        // 按整个按钮居中会得到 (37-20)/2 = 8.5 —— 两者必须不同，否则这条用例没有判别力
+        Assert.NotEqual((cell.Width - button.IconSize) / 2, iconX);
+    }
+
+    /// <summary>
+    /// 紧凑 + 显名时右条带的内边距是 <b>4</b> 而不是 5：
+    /// <c>rightStripeIconWithName.padding.compact</c> 在上游不存在，
+    /// 而紧凑是「有 <c>.compact</c> 才覆盖」，于是保留基值 4。
+    /// </summary>
+    [AvaloniaFact]
+    public void A_missing_compact_key_keeps_the_base_value_rather_than_the_code_fallback()
+    {
+        var metrics = ForgeStripeButtonMetrics.ForTheme(ForgeThemeFamily.ExpUi, compact: true);
+
+        Assert.Equal(new ForgeInsets(3), metrics.IconPadding(isLeft: true, showName: true));
+        Assert.Equal(new ForgeInsets(4), metrics.IconPadding(isLeft: false, showName: true));
     }
 
     [AvaloniaFact]
@@ -84,13 +183,32 @@ public class ForgeControlsTests
     public void Toolbar_is_button_width_plus_one_pixel_border()
     {
         // ToolWindowLeftToolbar.kt:28 —— 右缘一条 1px 线
-        var toolbar = new ForgeToolWindowToolbar { Side = StripeSide.Left };
+        var toolbar = new ForgeToolWindowToolbar
+        {
+            Side = StripeSide.Left,
+            HorizontalAlignment = global::Avalonia.Layout.HorizontalAlignment.Left,
+            VerticalAlignment = global::Avalonia.Layout.VerticalAlignment.Top,
+        };
         toolbar.TopGroup.Children.Add(new ForgeStripeButton());
 
-        toolbar.Measure(new Size(double.PositiveInfinity, 600));
+        // ⚠ **改的是写法不是断言**（REQ-067）：条带模板化之后，两组按钮住在模板里那个槽中，
+        //   脱树的 `new + Measure` 拿不到 ControlTheme → 没有模板 → 量出来恒为 0。
+        //   期望值 41（按钮 40 + 那条 1px 线）一字未改。
+        var window = new Window
+        {
+            Width = 200,
+            Height = 600,
+            Content = toolbar,
+            RequestedThemeVariant = ThemeVariant.Dark,
+        };
+
+        window.Show();
+        Relayout(window);
 
         Assert.Equal(41, toolbar.DesiredSize.Width);
         Assert.True(toolbar.HasButtons);
+
+        window.Close();
     }
 
     [AvaloniaFact]
@@ -137,8 +255,36 @@ public class ForgeControlsTests
 
         Assert.Same(tab, icon.GetVisualParent());
 
-        // 左内边距 8，竖直居中（标签页高 28、图标 16）
-        Assert.Equal(new Rect(8, 6, 16, 16), icon.Bounds);
+        // 左内边距 8，竖直居中。
+        // ⚠ 行高**不是** 28：EditorTabbedContainer.kt:784-788 算的是
+        //    UNSCALED_PREF_HEIGHT(28) - tabInsets.top - tabInsets.bottom，
+        //    而 tabInsets 上下是负值（expUI -7）→ 42。
+        //    早先按 28 写死，于是这条用例把错的行高一起钉住了。
+        // ⚠ 左内边距**不是** 8：标签页有两层（TabLabel.kt:583-587）——
+        //    labelInsets.left(8) + contentInsets.left(4) = 12。早先只算了外层，看着偏窄。
+        var rowHeight = ForgeMetrics.EditorTabRowHeight(islands: false);
+        Assert.Equal(42, rowHeight);
+        Assert.Equal(12, ForgeMetrics.EditorTabTextInsetLeft);
+        Assert.Equal(
+            new Rect(ForgeMetrics.EditorTabTextInsetLeft, (rowHeight - 16) / 2, 16, 16),
+            icon.Bounds);
+    }
+
+    /// <summary>
+    /// 宿主可以指定文档标签的行高（上游 Islands 40 / expUI 42），Islands 那个圆角块跟着自适应。
+    /// </summary>
+    [AvaloniaFact]
+    public void 宿主指定的标签行高盖过上游默认()
+    {
+        var tab = new ForgeEditorTab { Title = "cam-1.png", RowHeightOverride = 31 };
+        tab.Measure(Size.Infinity);
+
+        Assert.Equal(31, tab.DesiredSize.Height);
+
+        // 不设就还是上游那两档
+        var upstream = new ForgeEditorTab { Title = "cam-1.png" };
+        upstream.Measure(Size.Infinity);
+        Assert.Equal(ForgeMetrics.EditorTabRowHeight(islands: false), upstream.DesiredSize.Height);
     }
 
     [AvaloniaFact]
@@ -148,12 +294,10 @@ public class ForgeControlsTests
         // 上游 SquareStripeButton.kt:356-367 · scaleIcon 是把图标**缩放成 iconSize**（20），
         // padding 决定的是按钮内容区，不是图标大小。
         var icon = new Border();
-        var button = new ForgeStripeButton { Icon = icon };
-
-        button.Measure(Size.Infinity);
-        button.Arrange(new Rect(button.DesiredSize));
+        var window = HostButton(new ForgeStripeButton { Icon = icon });
 
         Assert.Equal(new Rect(10, 10, 20, 20), icon.Bounds);
+        window.Close();
     }
 
     [AvaloniaFact]
@@ -161,12 +305,10 @@ public class ForgeControlsTests
     {
         // 紧凑：按钮 32、图标 16 → 居中在 (8, 8)
         var icon = new Border();
-        var button = new ForgeStripeButton { Icon = icon, IsCompact = true };
-
-        button.Measure(Size.Infinity);
-        button.Arrange(new Rect(button.DesiredSize));
+        var window = HostButton(new ForgeStripeButton { Icon = icon, IsCompact = true });
 
         Assert.Equal(new Rect(8, 8, 16, 16), icon.Bounds);
+        window.Close();
     }
 
     [AvaloniaFact]
@@ -202,11 +344,11 @@ public class ForgeControlsTests
         // 宿主给 MaterialIcon 这类控件时，既不画它、也不画默认图形，按钮一片空白。
         var icon = new Border { Width = 20, Height = 20 };
         var button = new ForgeStripeButton { Icon = icon };
+        var window = HostButton(button);
 
-        button.Measure(Size.Infinity);
-        button.Arrange(new Rect(button.DesiredSize));
-
-        Assert.Same(button, icon.GetVisualParent());
+        // 图标挂在**模板里的槽**（ForgeIconHost）上，不直接挂按钮 —— Button 的 ApplyTemplate
+        // 会清空 VisualChildren，手工挂在按钮身上的东西活不过一次测量（见 ForgeIconHost）。
+        Assert.Contains(icon, button.GetVisualDescendants());
 
         // 图标位是 40 - padding 5 × 2 = 30×30，居中放在按钮里；
         // 控件自己有多大由它自己说了算（这里 Border 显式 20×20），只要它是居中的。
@@ -220,22 +362,30 @@ public class ForgeControlsTests
         var first = new Border();
         var second = new Border();
         var button = new ForgeStripeButton { Icon = first };
+        var window = HostButton(button);
 
         button.Icon = second;
+        Relayout(window);
 
-        Assert.Null(first.GetVisualParent());
-        Assert.Same(button, second.GetVisualParent());
+        Assert.DoesNotContain(first, button.GetVisualDescendants());
+        Assert.Contains(second, button.GetVisualDescendants());
+        window.Close();
     }
 
     [AvaloniaFact]
     public void A_geometry_icon_hosts_no_control()
     {
         var button = new ForgeStripeButton { Icon = ForgeIcons.Terminal };
+        var window = HostButton(button);
 
-        button.Measure(Size.Infinity);
-        button.Arrange(new Rect(button.DesiredSize));
-
-        Assert.Empty(button.GetVisualChildren());
+        // ⚠ 判据两次改过，两次都是因为实现真的变了：
+        //   ① 模板化之后树里本来就有 Border（底色那层），原来的"树里没有 Border"成了假绿；
+        //   ② Geometry 图标现在也放进图标槽了（ForgeGeometryIcon，为了不被模板盖住），
+        //      所以槽里**有**东西 —— 该断言的是"槽里放的不是宿主的控件"。
+        var slot = button.GetVisualDescendants().OfType<ForgeIconHost>().Single();
+        var hosted = slot.GetVisualChildren().OfType<Control>().ToList();
+        Assert.All(hosted, x => Assert.IsType<ForgeGeometryIcon>(x));
+        window.Close();
     }
 
     [AvaloniaFact]
@@ -243,16 +393,152 @@ public class ForgeControlsTests
     {
         // 不跟着走的话，浅色主题下是一排看不见的白图标 —— 而库自绘那套是好的，
         // 很难猜到原因在这里。
-        var button = new ForgeStripeButton
-        {
-            Icon = new Border(),
-            Palette = ForgePalette.ExpUiLight,
-        };
+        // ⚠ 明暗现在由**窗口的 ThemeVariant** 决定（前景已归 ControlTheme，从资源键取），
+        //   不再由 Palette 那个对象决定 —— 所以这里要挂进一个亮色窗口，而不是设 Palette=ExpUiLight。
+        //   真实运行时两者本来就一致（Palette 自己就是跟着 ActualThemeVariant 算出来的）。
+        var button = new ForgeStripeButton { Icon = new Border() };
+        var window = HostButton(button, ThemeVariant.Light);
 
-        Assert.Equal(ForgePalette.ExpUiLight.ButtonForeground, ((SolidColorBrush)button.Foreground!).Color);
+        // ⚠ 取色改从资源来之后，画刷是**冻结**的 ImmutableSolidColorBrush，不是 SolidColorBrush，
+        //   所以按接口 ISolidColorBrush 取值（断言的颜色一字未改）。
+        Assert.Equal(ForgePalette.ExpUiLight.ButtonForeground, ((ISolidColorBrush)button.Foreground!).Color);
 
         button.IsToolWindowActive = true;
-        Assert.Equal(ForgePalette.ExpUiLight.ButtonSelectedForeground, ((SolidColorBrush)button.Foreground!).Color);
+        Relayout(window);
+        Assert.Equal(ForgePalette.ExpUiLight.ButtonSelectedForeground, ((ISolidColorBrush)button.Foreground!).Color);
+        window.Close();
+    }
+
+    /// <summary>
+    /// 把按钮挂进一个真窗口再排版 —— 模板化之后**必须**这么做。
+    /// </summary>
+    /// <remarks>
+    /// Avalonia 按控件的实际类型找 <c>ControlTheme</c>，而它只有在控件**进了带样式的可视树**
+    /// 之后才解析得到。脱树的 <c>new + Measure + Arrange</c> 拿不到模板，图标槽根本不存在，
+    /// 图标的 Bounds 恒为 0 —— 不报错，断言直接对不上。判据见 <see cref="ThemeResourceSpikeTests"/>。
+    /// </remarks>
+    /// <param name="button">要摆进去的按钮。</param>
+    /// <returns>承载它的窗口（用完 Close）。</returns>
+
+    /// <summary>
+    /// 宿主把条带按钮收窄之后，高亮底仍是**居中的正方形**，图标在它里面上下左右都居中。
+    /// </summary>
+    /// <remarks>
+    /// ★ 实机 bug（REQ-067）：宿主给了 <c>StripeButtonWidth</c>（40→34）之后，
+    /// 底是「按钮矩形去掉图标内边距」算出来的 24×30 —— **一块竖长方形**，
+    /// 图标浮在里面像没放正。上游两套主题的按钮本来就是方的（40×40 / 37×37），
+    /// 扣完内边距仍是方的，所以这个问题在上游不存在，是"单独收窄宽度"这个口子带出来的。
+    /// <para>
+    /// ⚠ 显名那一档**不收成正方形**：那时底本来就要盖住图标 + 名字整块
+    /// （<c>SquareStripeButton.kt:196-198</c>）。
+    /// </para>
+    /// </remarks>
+    [AvaloniaFact]
+    public void 方底撑开的按钮里方底与图标都居中()
+    {
+        var button = new ForgeStripeButton
+        {
+            HighlightSize = 24,
+            HighlightInsetHorizontal = 5,
+            HighlightInsetVertical = 3,
+            Icon = ForgeIcons.Camera,
+        };
+        var window = HostButton(button);
+
+        var background = button.GetVisualDescendants().OfType<Border>().Single(x => x.Name == "PART_Background");
+        var icon = button.GetVisualDescendants().OfType<ForgeGeometryIcon>().Single();
+
+        // 方底 24 + 左右 5 + 上下 3 → 按钮 34×30（宽高都是"边距 + 底 + 边距"撑出来的）
+        Assert.Equal(new Size(34, 30), button.DesiredSize);
+        Assert.Equal(24, background.Bounds.Width);
+        Assert.Equal(24, background.Bounds.Height);
+        Assert.Equal(5, background.Bounds.X);
+        Assert.Equal(34 - 5, background.Bounds.Right);
+
+        // ★ 上下边距就是"相邻两块底之间的一半"：按钮之间没有间隙（上游 VerticalFlowLayout(0,0)），
+        //   所以两块底相距 3 + 3 = 6。这条钉住"间距按底算、不按图标算"。
+        Assert.Equal(3, background.Bounds.Y);
+        Assert.Equal(30 - 3, background.Bounds.Bottom);
+
+        // ★ 方底与图标两侧的留白都**逐像素相等** —— 这才是"居中"，不是"差不多在中间"。
+        //   宽度由方底撑开（5 + 24 + 5），所以两者构造上都落在整数：图标 20 → 两侧各 7。
+        Assert.Equal(7, icon.Bounds.X);
+        Assert.Equal(34 - 7, icon.Bounds.Right);
+        Assert.Equal(background.Bounds.Center.X, icon.Bounds.Center.X);
+
+        // 图标（20）在那块方底里上下左右都居中
+        Assert.Equal(background.Bounds.Center.X, icon.Bounds.Center.X, 3);
+        Assert.Equal(background.Bounds.Center.Y, icon.Bounds.Center.Y, 3);
+
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void 显名时的底不收成正方形()
+    {
+        // 那一档的底要盖住图标 + 名字整块，收成方的会把名字露在底外面
+        var button = new ForgeStripeButton
+        {
+            HighlightSize = 24,
+            HighlightInsetHorizontal = 5,
+            Icon = ForgeIcons.Camera,
+            Title = "相机列表",
+            ShowName = true,
+            StripeWidth = 57,
+        };
+        var window = HostButton(button);
+
+        var background = button.GetVisualDescendants().OfType<Border>().Single(x => x.Name == "PART_Background");
+        var name = button.GetVisualDescendants().OfType<TextBlock>().Single(x => x.Name == "PART_Name");
+
+        // 判据不是"长方形"（一行名字时它恰好也接近正方），而是**底盖住了名字那一截**。
+        // ⚠ **改的是判据，不是实现**：名字那个 TextBlock 现在是 VerticalAlignment=Stretch
+        //   （为的是不依赖自己可能过期的 DesiredSize，见「从窄条带切到显名之后名字要显示出来」），
+        //   所以它的**框**会一直伸到按钮底边、比字本身高。拿框去比就会假红 ——
+        //   要比的是**字**：底必须盖住 name.Y + 这行字真正的高度。
+        var glyphs = new TextBlock
+        {
+            Text = button.NameText,
+            FontFamily = name.FontFamily,
+            FontSize = name.FontSize,
+            FontWeight = name.FontWeight,
+        };
+        glyphs.Measure(Size.Infinity);
+
+        Assert.True(
+            background.Bounds.Bottom >= name.Bounds.Y + glyphs.DesiredSize.Height,
+            $"显名时底要盖住名字：底 {background.Bounds}、字从 {name.Bounds.Y} 起高 {glyphs.DesiredSize.Height}");
+
+        window.Close();
+    }
+
+    private static Window HostButton(ForgeStripeButton button, ThemeVariant? variant = null)
+    {
+        // ⚠ 靠左上摆，别让 Window 把它拉满：原先那些用例是 Arrange(DesiredSize)，
+        //   按钮就是 40×40；被拉成 200×200 的话图标会按 200 居中，断言的坐标全变。
+        button.HorizontalAlignment = global::Avalonia.Layout.HorizontalAlignment.Left;
+        button.VerticalAlignment = global::Avalonia.Layout.VerticalAlignment.Top;
+
+        var window = new Window
+        {
+            Width = 200,
+            Height = 200,
+            Content = button,
+            RequestedThemeVariant = variant ?? ThemeVariant.Dark,
+        };
+
+        window.Show();
+        Relayout(window);
+        return window;
+    }
+
+    /// <summary>改完属性重新排一次版。</summary>
+    /// <param name="window">窗口。</param>
+    private static void Relayout(Window window)
+    {
+        Dispatcher.UIThread.RunJobs();
+        window.CaptureRenderedFrame();
+        Dispatcher.UIThread.RunJobs();
     }
 }
 

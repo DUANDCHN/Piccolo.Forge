@@ -1,4 +1,4 @@
-namespace Piccolo.Forge.Model;
+﻿namespace Piccolo.Forge.Model;
 
 /// <summary>
 /// 编辑区里的一个标签页。

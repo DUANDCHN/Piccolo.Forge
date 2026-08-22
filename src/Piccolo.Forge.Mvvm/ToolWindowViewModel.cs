@@ -18,6 +18,7 @@ public sealed class ToolWindowViewModel : ForgeObservableObject
 {
     private string _title;
     private object? _icon;
+    private bool _hasBadge;
     private object? _content;
     private bool _isOpen;
     private bool _isActive;
@@ -57,6 +58,19 @@ public sealed class ToolWindowViewModel : ForgeObservableObject
     {
         get => _icon;
         set => SetProperty(ref _icon, value);
+    }
+
+    /// <summary>
+    /// 条带按钮上要不要亮一颗角标（图标右上角的小圆点）。
+    /// </summary>
+    /// <remarks>
+    /// 语义由宿主定（典型：「我没看的时候有没有出事」—— 通知面板的未读警告 / 错误）。
+    /// 库只负责画与即时刷新：改了立刻跟到按钮上，不等下一次同步。颜色走主题键 <c>Forge.*.StripeBadge</c>。
+    /// </remarks>
+    public bool HasBadge
+    {
+        get => _hasBadge;
+        set => SetProperty(ref _hasBadge, value);
     }
 
     /// <summary>面板里放什么。宿主的 VM，视图由宿主解析。</summary>

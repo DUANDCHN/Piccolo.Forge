@@ -3,8 +3,9 @@
     <Project Path="src/Piccolo.Forge.Model/Piccolo.Forge.Model.csproj" />
     <Project Path="src/Piccolo.Forge.Mvvm/Piccolo.Forge.Mvvm.csproj" />
     <Project Path="src/Piccolo.Forge.Mvvm.CommunityToolkit/Piccolo.Forge.Mvvm.CommunityToolkit.csproj" />
-    <Project Path="src/Piccolo.Forge.Themes/Piccolo.Forge.Themes.csproj" />
     <Project Path="src/Piccolo.Forge.Avalonia/Piccolo.Forge.Avalonia.csproj" />
+    <Project Path="src/Piccolo.Forge.Themes.ExpUi/Piccolo.Forge.Themes.ExpUi.csproj" />
+    <Project Path="src/Piccolo.Forge.Themes.Islands/Piccolo.Forge.Themes.Islands.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Piccolo.Forge.Tests/Piccolo.Forge.Tests.csproj" />

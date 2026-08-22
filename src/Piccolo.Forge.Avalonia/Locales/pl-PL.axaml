@@ -1,0 +1,38 @@
+<!--  Forge 文案：Polski（pl-PL）。键与 en-US.axaml 一一对应，缺键由英文回落。  -->
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <x:String x:Key="Forge.Strings.MoveTo">Przenieś do</x:String>
+    <x:String x:Key="Forge.Strings.ViewMode">Tryb widoku</x:String>
+    <x:String x:Key="Forge.Strings.RemoveFromSidebar">Usuń z paska bocznego</x:String>
+    <x:String x:Key="Forge.Strings.ShowToolWindowNames">Pokaż nazwy okien narzędzi</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeDockPinned">Zadokowane (przypięte)</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeDockUnpinned">Zadokowane (odpięte)</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeUndock">Oddokowane</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeFloat">Pływające</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeWindow">Okno</x:String>
+    <x:String x:Key="Forge.Strings.SideLeft">Lewo</x:String>
+    <x:String x:Key="Forge.Strings.SideRight">Prawo</x:String>
+    <x:String x:Key="Forge.Strings.SideBottom">Dół</x:String>
+    <x:String x:Key="Forge.Strings.SideTop">Góra</x:String>
+    <x:String x:Key="Forge.Strings.HalfTop">Góra</x:String>
+    <x:String x:Key="Forge.Strings.HalfBottom">Dół</x:String>
+    <x:String x:Key="Forge.Strings.HalfLeft">Lewo</x:String>
+    <x:String x:Key="Forge.Strings.HalfRight">Prawo</x:String>
+    <x:String x:Key="Forge.Strings.LocationFormat">{0} · {1}</x:String>
+    <x:String x:Key="Forge.Strings.MoveToFormat">Przenieś do {0}</x:String>
+    <x:String x:Key="Forge.Strings.CloseTab">Zamknij</x:String>
+    <x:String x:Key="Forge.Strings.CloseOtherTabs">Zamknij pozostałe karty</x:String>
+    <x:String x:Key="Forge.Strings.CloseAllTabs">Zamknij wszystkie karty</x:String>
+    <x:String x:Key="Forge.Strings.CloseTabsToTheLeft">Zamknij karty po lewej</x:String>
+    <x:String x:Key="Forge.Strings.CloseTabsToTheRight">Zamknij karty po prawej</x:String>
+    <x:String x:Key="Forge.Strings.SplitRight">Podziel w prawo</x:String>
+    <x:String x:Key="Forge.Strings.SplitAndMoveRight">Podziel i przenieś w prawo</x:String>
+    <x:String x:Key="Forge.Strings.SplitDown">Podziel w dół</x:String>
+    <x:String x:Key="Forge.Strings.SplitAndMoveDown">Podziel i przenieś w dół</x:String>
+    <x:String x:Key="Forge.Strings.PinTab">Przypnij kartę</x:String>
+    <x:String x:Key="Forge.Strings.OpenTabInNewWindow">Otwórz w nowym oknie</x:String>
+    <x:String x:Key="Forge.Strings.DockButton">Zadokuj</x:String>
+    <x:String x:Key="Forge.Strings.OptionsButton">Opcje</x:String>
+    <x:String x:Key="Forge.Strings.HideButton">Ukryj</x:String>
+    <x:String x:Key="Forge.Strings.MoreToolWindows">Więcej okien narzędzi</x:String>
+    <x:String x:Key="Forge.Strings.CloseTabFormat">Zamknij {0}</x:String>
+</ResourceDictionary>

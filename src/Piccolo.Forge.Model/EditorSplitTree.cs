@@ -1,4 +1,4 @@
-namespace Piccolo.Forge.Model;
+﻿namespace Piccolo.Forge.Model;
 
 /// <summary>
 /// 分屏树的一个节点：要么是一次分屏，要么是一组标签页。
@@ -45,8 +45,18 @@ public sealed class EditorSplit(EditorNode first, EditorNode second, bool isVert
     /// <summary>第二块。</summary>
     public EditorNode Second { get; internal set; } = second;
 
+    private float _proportion = Math.Clamp(proportion, MinProportion, MaxProportion);
+
     /// <summary>第一块占的比例，夹在 [0.1, 0.9]。</summary>
-    public float Proportion { get; set; } = Math.Clamp(proportion, MinProportion, MaxProportion);
+    /// <remarks>
+    /// 夹取在 <b>setter</b> 里，不只在构造时 —— 拖分割线、最大化、宫格摊匀都会写它，
+    /// 少夹一处就能拖出一条 0 宽的格子（而且它还回不来：0 宽的格子抓不住）。
+    /// </remarks>
+    public float Proportion
+    {
+        get => _proportion;
+        set => _proportion = Math.Clamp(value, MinProportion, MaxProportion);
+    }
 
     /// <inheritdoc />
     public override IEnumerable<EditorGroup> Groups => First.Groups.Concat(Second.Groups);
@@ -168,6 +178,47 @@ public sealed class EditorGroup : EditorNode
             _previousSelectedId = null;
         }
 
+        return true;
+    }
+
+    /// <summary>
+    /// 把一页挪到另一页的位置上（拖拽重排）。
+    /// </summary>
+    /// <remarks>
+    /// 对应 <c>JBTabsImpl.kt:3331-3342 · reallocate</c>，**逐行照搬**：
+    /// <code>
+    /// val targetIndex = visibleInfos.indexOf(target)   // ← 先取索引
+    /// visibleInfos.remove(source)                      // ← 再移除
+    /// visibleInfos.add(targetIndex, source)
+    /// </code>
+    /// <para>
+    /// ⚠ <b>索引在移除之前取，这不是笔误，是语义。</b>源在目标左边时，移除源会让目标
+    /// 左移一格，于是插回旧索引 = 落到目标**右边**；源在目标右边时，移除不影响目标，
+    /// 插回旧索引 = 落到目标**左边**。两个方向都是「越过目标」，这正是拖拽该有的手感。
+    /// 若改成移除后再取索引，往右拖会永远差一格、拖不过去 ——
+    /// 侧边栏那次「方向反了」就是同一类错。
+    /// </para>
+    /// </remarks>
+    /// <param name="sourceId">被拖的那一页。</param>
+    /// <param name="targetId">拖到谁的位置上。</param>
+    /// <returns>确实挪动了则为 <see langword="true"/>。</returns>
+    public bool Reorder(string sourceId, string targetId)
+    {
+        if (sourceId == targetId)
+        {
+            return false;
+        }
+
+        var targetIndex = _tabs.FindIndex(x => x.Id == targetId);
+        var sourceIndex = _tabs.FindIndex(x => x.Id == sourceId);
+        if (targetIndex < 0 || sourceIndex < 0)
+        {
+            return false;
+        }
+
+        var source = _tabs[sourceIndex];
+        _tabs.RemoveAt(sourceIndex);
+        _tabs.Insert(targetIndex, source);
         return true;
     }
 

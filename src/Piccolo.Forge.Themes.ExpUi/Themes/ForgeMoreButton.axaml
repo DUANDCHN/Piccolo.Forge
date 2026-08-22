@@ -1,0 +1,27 @@
+<!--  ★ 「更多」按钮。★ **真模板**
+      与条带按钮同族（SquareStripeButton.kt:62-80 是兄弟），底色规则也一样
+      （按钮矩形 − 图标内边距）。不可用时整块不画、也不吃鼠标。
+
+      共同的规矩见本目录 Theme.axaml 的开头。  -->
+<ResourceDictionary
+    xmlns="https://github.com/avaloniaui"
+    xmlns:forge="clr-namespace:Piccolo.Forge.Avalonia;assembly=Piccolo.Forge.Avalonia"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ControlTheme TargetType="forge:ForgeMoreButton" x:Key="{x:Type forge:ForgeMoreButton}">
+        <Setter Property="Foreground" Value="{DynamicResource Forge.ExpUi.ButtonForeground}" />
+        <Setter Property="HoverBackgroundBrush" Value="{DynamicResource Forge.ExpUi.ButtonHoverBackground}" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="forge:ForgeMoreButton">
+                <Panel Background="Transparent">
+                    <Border
+                        Background="{TemplateBinding BackgroundBrush}"
+                        CornerRadius="{TemplateBinding ArcCornerRadius}"
+                        Margin="{TemplateBinding BackgroundInsets}"
+                        Name="PART_Background" />
+                    <forge:ForgeIconHost Name="PART_Icon" />
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+</ResourceDictionary>

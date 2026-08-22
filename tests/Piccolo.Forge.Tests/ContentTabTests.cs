@@ -1,6 +1,9 @@
+﻿using System;
+using System.Linq;
 using Avalonia;
 using Avalonia.Headless.XUnit;
 using Avalonia.VisualTree;
+using Avalonia.Threading;
 using Piccolo.Forge.Avalonia;
 using Piccolo.Forge.Model;
 using Piccolo.Forge.Mvvm;
@@ -116,7 +119,7 @@ public class ContentTabTests
     {
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
         var manager = shell.Manager;
-        var frame = new ForgeToolWindowFrame();
+        var frame = new ForgeControl();
         frame.Attach(shell);
 
         var contents = frame.GetContentManager("Version Control");
@@ -126,9 +129,13 @@ public class ContentTabTests
         manager.Activate("Version Control");
 
         var header = frame.DockPane.GetVisualDescendants().OfType<ForgeToolWindowHeader>().Single();
-        Assert.Equal(2, header.Tabs.Children.Count);
-        Assert.Equal(["Local Changes", "Shelf"], header.Tabs.Children.OfType<ForgeContentTab>().Select(x => x.Title));
-        Assert.True(header.Tabs.Children.OfType<ForgeContentTab>().First().IsSelected);
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(2, header.Tabs.ItemCount);
+        Assert.Equal(
+            ["Local Changes", "Shelf"],
+            Assert.IsAssignableFrom<IEnumerable<ToolWindowContent>>(header.Tabs.ItemsSource)
+                .Select(x => x.DisplayName));
+        Assert.Equal(contents.SelectedContent, header.Tabs.SelectedItem);
     }
 
     [AvaloniaFact]
@@ -137,7 +144,7 @@ public class ContentTabTests
         // 默认布局里 Project 是 COMBO（defaultToolWindowlayoutProvider.kt:258-261）
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
         var manager = shell.Manager;
-        var frame = new ForgeToolWindowFrame();
+        var frame = new ForgeControl();
         frame.Attach(shell);
 
         var contents = frame.GetContentManager("Project");
@@ -148,6 +155,59 @@ public class ContentTabTests
 
         var header = frame.DockPane.GetVisualDescendants().OfType<ForgeToolWindowHeader>().Single();
         Assert.Equal(ToolWindowContentUiType.Combo, header.ContentUiType);
-        Assert.Single(header.Tabs.Children);
+        Assert.Equal(1, header.Tabs.ItemCount);
     }
+
+    // ── 顺序的持久化：拖出来的次序要能存进布局、再套回来 ──────────────
+
+    [Fact]
+    public void 内容tab的顺序存得住也套得回来()
+    {
+        var saved = NewShell();
+        var panel = saved.Add("camParam", "相机参数", ToolWindowAnchor.Right);
+        panel.Contents.Add(new ToolWindowContent("common", "快捷属性"));
+        panel.Contents.Add(new ToolWindowContent("tree", "属性树"));
+
+        // 用户把「属性树」拖到最前
+        panel.Contents.Reorder("tree", "common");
+        var xml = saved.SaveLayout();
+
+        // 重启：面板与内容按登记时的原始次序重新建起来
+        var restored = NewShell();
+        var fresh = restored.Add("camParam", "相机参数", ToolWindowAnchor.Right);
+        fresh.Contents.Add(new ToolWindowContent("common", "快捷属性"));
+        fresh.Contents.Add(new ToolWindowContent("tree", "属性树"));
+
+        restored.RestoreLayout(xml);
+
+        Assert.Equal(["tree", "common"], fresh.Contents.Contents.Select(c => c.Id));
+    }
+
+    [Fact]
+    public void 存档里没有的那一块留在原地()
+    {
+        // 存档是老版本写的（那时还没有「图像预处理」这一块），新增的一块不能因此被甩丢
+        var saved = NewShell();
+        var panel = saved.Add("camParam", "相机参数", ToolWindowAnchor.Right);
+        panel.Contents.Add(new ToolWindowContent("tree", "属性树"));
+        panel.Contents.Add(new ToolWindowContent("common", "快捷属性"));
+        var xml = saved.SaveLayout();
+
+        var restored = NewShell();
+        var fresh = restored.Add("camParam", "相机参数", ToolWindowAnchor.Right);
+        fresh.Contents.Add(new ToolWindowContent("common", "快捷属性"));
+        fresh.Contents.Add(new ToolWindowContent("preprocess", "图像预处理"));
+        fresh.Contents.Add(new ToolWindowContent("tree", "属性树"));
+
+        restored.RestoreLayout(xml);
+
+        // 存档里出现过的两块按存档排（tree 在 common 前），没出现过的那块仍在
+        var ids = fresh.Contents.Contents.Select(c => c.Id).ToArray();
+        Assert.Contains("preprocess", ids);
+        Assert.True(Array.IndexOf(ids, "tree") < Array.IndexOf(ids, "common"));
+    }
+
+    /// <summary>只要 VM 层 —— 顺序的存取不碰控件，别在这儿造 ForgeControl（那要头less 平台起字体管理器）。</summary>
+    private static ToolWindowShellViewModel NewShell()
+        => new(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
 }

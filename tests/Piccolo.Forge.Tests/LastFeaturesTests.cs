@@ -46,7 +46,7 @@ public class ForgeMoreButtonTests
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
         var manager = shell.Manager;
         manager.Hide("Project", removeFromStripe: true);   // 造一个「被摘掉的」
-        var frame = new ForgeToolWindowFrame();
+        var frame = new ForgeControl();
         frame.Attach(shell);
 
         var left = frame.LeftToolbar.TopGroup.Children.OfType<ForgeMoreButton>().Single();

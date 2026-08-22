@@ -1,3 +1,4 @@
+﻿using System;
 using Avalonia;
 using Avalonia.Headless.XUnit;
 using Avalonia.Media;
@@ -66,6 +67,28 @@ public class ForgeIconsTests
     }
 
     [AvaloniaFact]
+    public void 标题条那两个图标的墨迹与图标包的同档()
+    {
+        // 由来：宿主在同一排里混了图标包的图标（字形几乎撑满 em 盒，16px 时墨迹 ≈13.3），
+        // 上游那版 ⋮ 只有 10 高、— 只有 9 长，摆在一起明显小一圈。
+        // ⚠ 大是靠改坐标拿到的：这两条路径按 16 网格的**整数**坐标画，1.0 倍画进 16×16
+        //   的图标位时压在像素边界上；改成缩放（试过 1.15）会推到半像素、抗锯齿发虚。
+        Assert.Equal(12, ForgeIcons.MoreVertical.Bounds.Height);
+        Assert.Equal(12, ForgeIcons.Hide.Bounds.Width);
+
+        // 整数坐标是"锐利"的前提，一并钉住
+        foreach (var edge in new[]
+                 {
+                     ForgeIcons.MoreVertical.Bounds.X, ForgeIcons.MoreVertical.Bounds.Y,
+                     ForgeIcons.MoreVertical.Bounds.Right, ForgeIcons.MoreVertical.Bounds.Bottom,
+                     ForgeIcons.Hide.Bounds.X, ForgeIcons.Hide.Bounds.Right,
+                 })
+        {
+            Assert.Equal(edge, Math.Round(edge));
+        }
+    }
+
+    [AvaloniaFact]
     public void A_stripe_button_takes_a_geometry_icon()
     {
         // Icon 是 object：Geometry 直接画，别的东西宿主自己渲染
@@ -82,7 +105,7 @@ public class ForgeIconsTests
         var shell = new ToolWindowShellViewModel();
         shell.Add("Project", "项目", ToolWindowAnchor.Left, icon: ForgeIcons.DefaultToolWindow);
 
-        var frame = new ForgeToolWindowFrame();
+        var frame = new ForgeControl();
         frame.Attach(shell);
 
         var button = Assert.Single(frame.LeftToolbar.TopGroup.Children.OfType<ForgeStripeButton>());

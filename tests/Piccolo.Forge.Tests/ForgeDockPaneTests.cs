@@ -1,3 +1,4 @@
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
@@ -159,6 +160,56 @@ public class ForgeDockPaneTests
         pane.Measure(new Size(1000, 1000));
         pane.Arrange(new Rect(0, 0, 1000, 1000));
         return (pane, first, second);
+    }
+
+    [AvaloniaTheory]
+    // 非宽屏：LEFT 夹在 TOP/BOTTOM 中间 —— 1000 - 330（下边）= 670
+    [InlineData(false, 670.0)]
+    // 宽屏：LEFT 通栏，这时铺满整条边才是对的
+    [InlineData(true, 1000.0)]
+    public void Edge_resizer_spans_only_its_own_slot(bool isWideScreen, double expectedHeight)
+    {
+        var (_, resizer) = BuildPaneWithLeftResizer(isWideScreen);
+
+        // X 两档都一样：骑在 250 这条界上，宽 6（SplitterMouseZone）
+        Assert.Equal(new Rect(247, 0, 6, expectedHeight), resizer.Bounds);
+    }
+
+    /// <summary>
+    /// 上一条守的是一个真缺陷，这里把“为什么它以前不报”写下来。
+    /// </summary>
+    /// <remarks>
+    /// 旧写法里热区一律取 <c>paneSize.Height</c>，非宽屏档下会比 LEFT 面板本人长出
+    /// 下面那 330 —— 鼠标摸到 BOTTOM 面板那一截的左边界，拖的却是 LEFT 的宽度。
+    /// 它一直没被发现，是因为那截上面通常压着 BOTTOM 面板把命中挡掎了；
+    /// 而遮挡关系取决于 ZIndex 与子控件顺序，和“热区该多长”是两件事。
+    /// 所以判据写成几何（Bounds 多少）而不是命中行为（能不能拖到）：
+    /// 后者会随添加顺序变结果，今天绿明天红，守不住东西。
+    /// </remarks>
+    [AvaloniaFact]
+    public void Edge_resizer_does_not_reach_into_the_neighbouring_slot()
+    {
+        var (pane, resizer) = BuildPaneWithLeftResizer(isWideScreen: false);
+
+        var bottom = pane.Children.First(c => ForgeDockPane.GetAnchor(c) == ToolWindowAnchor.Bottom);
+
+        Assert.True(resizer.Bounds.Bottom <= bottom.Bounds.Y,
+            $"左侧拖动条伸进了下方面板：热区到 {resizer.Bounds.Bottom}，下面板从 {bottom.Bounds.Y} 开始");
+    }
+
+    /// <summary>左面板 + 下面板 + 一根左侧拖动条。</summary>
+    private static (ForgeDockPane Pane, Control Resizer) BuildPaneWithLeftResizer(bool isWideScreen)
+    {
+        var (pane, _, _, _) = BuildPane(isWideScreen);
+
+        var resizer = new Border();
+        ForgeDockPane.SetIsResizer(resizer, ToolWindowAnchor.Left);
+        pane.Children.Add(resizer);
+
+        pane.Measure(new Size(1000, 1000));
+        pane.Arrange(new Rect(0, 0, 1000, 1000));
+
+        return (pane, resizer);
     }
 
     private static (ForgeDockPane Pane, Control Left, Control Bottom, Control Center) BuildPane(bool isWideScreen)

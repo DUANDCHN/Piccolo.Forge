@@ -1,5 +1,12 @@
+﻿using System.Linq;
 using Avalonia;
+using Avalonia.Styling;
+using Avalonia.VisualTree;
+using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Media;
+using Avalonia.Threading;
 using Piccolo.Forge.Avalonia;
 using Piccolo.Forge.Model;
 using Piccolo.Forge.Mvvm;
@@ -50,6 +57,48 @@ public class ForgeShowNamesTests
         Assert.True(two.DesiredSize.Height > one.DesiredSize.Height);
     }
 
+    /// <summary>
+    /// 名字的行高**不许小于字体的自然行高** —— 小了 Avalonia 会把字剪掉。
+    /// </summary>
+    /// <remarks>
+    /// ★ 实机 bug（REQ-067）：模板化之后名字是模板里的 <c>TextBlock</c>，
+    /// 而 <c>TextBlock.LineHeight</c> 是**行盒的高度**，装不下就剪 ——
+    /// 症状是条带按钮上的名字"只剩上半截"。自绘时代的 <c>FormattedText</c> 是
+    /// "每行往下推 1.4 字高"，推得再密也只是行距挤，字本身照画不误，所以搬家时没人想到这条。
+    /// <para>
+    /// ⚠ <b>这条用例的判别力取决于跑它的机器上装了什么字体</b>：默认字体 1.4 em 恰好够用，
+    /// 所以**它拦不住"改回写死 1.4 em"**。真正暴露它的是上位机内嵌的 HarmonyOS Sans SC。
+    /// 这里钉的是不变式本身（行高 ≥ 自然行高），别把它当成"这个 bug 不会再来"的保证。
+    /// </para>
+    /// </remarks>
+    [AvaloniaFact]
+    public void 名字的行高不小于字体的自然行高()
+    {
+        foreach (var title in new[] { "相机列表", "Version Control", "Terminal" })
+        {
+            var button = Named(title);
+
+            // 同字体同字号、**不设 LineHeight** 的一行字有多高 —— 那就是自然行高
+            var probe = new TextBlock
+            {
+                Text = ForgeStripeButton.SplitTitle(title)[0],
+                FontFamily = button.FontFamily,
+                FontSize = button.NameFontSize,
+            };
+            probe.Measure(Size.Infinity);
+
+            Assert.True(
+                button.NameLineHeight >= probe.DesiredSize.Height,
+                $"「{title}」行高 {button.NameLineHeight} < 自然行高 {probe.DesiredSize.Height}，字会被剪");
+
+            // 按钮的高度也要跟着让开，否则字挤出按钮
+            var lines = ForgeStripeButton.SplitTitle(title).Count;
+            Assert.True(
+                button.DesiredSize.Height >= 40 + ForgeMetrics.StripeIconLabelGap + (lines * probe.DesiredSize.Height),
+                $"「{title}」按钮 {button.DesiredSize.Height} 装不下 {lines} 行自然行高");
+        }
+    }
+
     [AvaloniaFact]
     public void The_stripe_takes_the_custom_width()
     {
@@ -76,7 +125,7 @@ public class ForgeShowNamesTests
     {
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
         var manager = shell.Manager;
-        var frame = new ForgeToolWindowFrame { ShowToolWindowNames = true };
+        var frame = new ForgeControl { ShowToolWindowNames = true };
         frame.Attach(shell);
 
         Assert.Equal(ForgeMetrics.StripeNamedDefaultWidth, frame.LeftToolbar.CustomWidth);
@@ -90,6 +139,161 @@ public class ForgeShowNamesTests
         Assert.All(
             frame.LeftToolbar.TopGroup.Children.OfType<ForgeStripeButton>(),
             x => Assert.False(x.ShowName));
+    }
+
+    /// <summary>
+    /// 显名时的高亮背景板要**包住图标和文字**，不是只包图标。
+    /// </summary>
+    /// <remarks>
+    /// 上游 <c>SquareStripeButton.kt:196-198 · paintButtonLook</c>：<c>paintBackground</c> 收到的是
+    /// button 本身（size 已含名字的高度），只有 <c>paintIcon</c> 才用 <c>buttonWrapper</c>
+    /// 把高度砍掉一截去摆图标。本仓原来跟着图标一起砍，于是名字露在背景板外面 ——
+    /// 看着像"选中的是那个图标"，而不是"选中的是这一项"。
+    /// <para>按像素断言：名字那一行的中间必须已经被高亮铺到。</para>
+    /// </remarks>
+    [AvaloniaFact]
+    public void 显名时的高亮包住图标和文字()
+    {
+        var button = new ForgeStripeButton
+        {
+            Title = "Project",
+            ShowName = true,
+            StripeWidth = ForgeMetrics.StripeNamedDefaultWidth,
+            IsToolWindowVisible = true,
+            Palette = ForgePalette.ExpUiLight,
+        };
+
+        var window = new Window
+        {
+            Width = 120,
+            Height = 120,
+            WindowDecorations = WindowDecorations.None,
+            Background = Brushes.White,
+            Content = new Panel { Children = { button }, HorizontalAlignment = global::Avalonia.Layout.HorizontalAlignment.Left, VerticalAlignment = global::Avalonia.Layout.VerticalAlignment.Top },
+        };
+
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        var bitmap = window.CaptureRenderedFrame();
+        Assert.NotNull(bitmap);
+
+        // ⚠ 取样点要**避开文字笔画**：名字那一行的左边缘（文字居中，够不到那儿）。
+        //   取中间的话，画上去的字本身就让像素变了色，旧实现也能"通过"——那是假绿。
+        var labelY = (int)(ForgeMetrics.StripeButtonSize + ForgeMetrics.StripeIconLabelGap + 4);
+        var iconY = (int)(ForgeMetrics.StripeButtonSize / 2);
+        const int edgeX = 8;
+
+        var onLabelRow = PixelProbe.At(bitmap!, edgeX, labelY);
+        var onIconRow = PixelProbe.At(bitmap!, edgeX, iconY);
+        var outside = PixelProbe.At(bitmap!, (int)button.Bounds.Width + 20, labelY);
+
+        Assert.NotEqual(outside.ToUInt32(), onIconRow.ToUInt32());          // 图标那一行有高亮（前提）
+        Assert.Equal(onIconRow.ToUInt32(), onLabelRow.ToUInt32());          // 名字那一行是同一块高亮
+    }
+
+    /// <summary>控件与 VM 两头对齐：菜单改控件要写回 VM，宿主改 VM 要反映到控件。</summary>
+    /// <remarks>
+    /// 持久化不归库管（宿主存在自己的外观设置里），但两头必须是同一个值 ——
+    /// 否则宿主读到的是"菜单切之前"的那个。
+    /// </remarks>
+    [AvaloniaFact]
+    public void 控件与VM的显示名字两头对齐()
+    {
+        var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
+        var frame = new ForgeControl();
+        frame.Attach(shell);
+
+        // 菜单那一路：改控件 → 落到 VM（否则存不下去）
+        frame.ShowToolWindowNames = true;
+        Assert.True(shell.ShowToolWindowNames);
+
+        // 宿主那一路：改 VM → 控件跟上（启动时从设置里读回来就是这条）
+        shell.ShowToolWindowNames = false;
+        Assert.False(frame.ShowToolWindowNames);
+        Assert.All(
+            frame.LeftToolbar.TopGroup.Children.OfType<ForgeStripeButton>(),
+            x => Assert.False(x.ShowName));
+    }
+
+
+    /// <summary>
+    /// **先窄后切宽**：名字必须显示出来（不是高度 2px 的一条）。
+    /// </summary>
+    /// <remarks>
+    /// ★ 实机 bug（REQ-067）：软件默认启动是窄条带，切到"显示名字"就一个字都没有；
+    /// 而启动就是宽条带的反倒正常。
+    /// <para>
+    /// 根因是 <c>Layoutable.Measure</c> **按 availableSize 缓存**：窄条带那一轮，
+    /// 名字是空的、量出来内容高 2px；切到显名之后名字有了字，但若用同一个宽度去量，
+    /// 它会直接返回那个旧的 <c>DesiredSize</c> —— 而模板里的名字原先是 <c>Top</c> 对齐、
+    /// 高度取自 <c>DesiredSize</c>，于是排出来只有 2px。
+    /// </para>
+    /// <para>
+    /// 两道修法都钉在这条用例上：量之前 <c>InvalidateMeasure()</c>；
+    /// 名字改成 <c>VerticalAlignment=Stretch</c>，高度由"按钮高 − 上边距"决定、
+    /// 不再依赖它自己的 <c>DesiredSize</c>。
+    /// </para>
+    /// </remarks>
+    [AvaloniaFact]
+    public void 从窄条带切到显名之后名字要显示出来()
+    {
+        var button = new ForgeStripeButton
+        {
+            HighlightSize = 24,
+            HighlightInsetHorizontal = 5,
+            HighlightInsetVertical = 3,
+            Title = "相机列表",
+            ShowName = false,
+            HorizontalAlignment = global::Avalonia.Layout.HorizontalAlignment.Left,
+            VerticalAlignment = global::Avalonia.Layout.VerticalAlignment.Top,
+        };
+
+        var window = new Window
+        {
+            Width = 200,
+            Height = 200,
+            Content = button,
+            RequestedThemeVariant = ThemeVariant.Dark,
+        };
+
+        window.Show();
+        Pump(window);
+
+        // 先窄：名字是空的
+        var name = button.GetVisualDescendants().OfType<TextBlock>().Single(x => x.Name == "PART_Name");
+        Assert.Null(button.NameText);
+
+        // 切到显名
+        button.ShowName = true;
+        button.StripeWidth = 62;
+        Pump(window);
+
+        Assert.Equal("相机列表", button.NameText);
+
+        // ★ 判据：名字那块排出来的高度，装得下它自己要的高度
+        var probe = new TextBlock
+        {
+            Text = button.NameText,
+            FontFamily = button.FontFamily,
+            FontSize = button.NameFontSize,
+            FontWeight = button.NameFontWeight,
+            TextWrapping = global::Avalonia.Media.TextWrapping.Wrap,
+            Width = 62 - (button.TextPadding * 2),
+        };
+        probe.Measure(Size.Infinity);
+
+        Assert.True(
+            name.Bounds.Height >= probe.DesiredSize.Height,
+            $"名字排出来只有 {name.Bounds.Height} 高，装不下 {probe.DesiredSize.Height} —— 切换后又看不见字了");
+
+        window.Close();
+    }
+
+    private static void Pump(Window window)
+    {
+        Dispatcher.UIThread.RunJobs();
+        window.CaptureRenderedFrame();
+        Dispatcher.UIThread.RunJobs();
     }
 
     private static ForgeStripeButton Named(string title)

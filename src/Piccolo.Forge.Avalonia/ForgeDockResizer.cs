@@ -1,4 +1,4 @@
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
@@ -19,6 +19,7 @@ namespace Piccolo.Forge.Avalonia;
 /// 并夹在 <c>ide.mainSplitter.min.size</c>（30，<c>registry.properties:160</c>）之内。
 /// </para>
 /// </remarks>
+[ForgeThemeless("只是一块透明的拖拽热区（分界线由 ForgeControl 自己画）。")]
 public class ForgeDockResizer : Control
 {
     private bool _dragging;
@@ -40,14 +41,51 @@ public class ForgeDockResizer : Control
         set
         {
             SetValue(AnchorProperty, value);
-            Cursor = new Cursor(value.IsHorizontal()
-                ? StandardCursorType.SizeNorthSouth
-                : StandardCursorType.SizeWestEast);
+            UpdateCursor();
         }
     }
 
     /// <summary>热区宽度（未缩放）：6。</summary>
     public static double MouseZone => ForgeMetrics.SplitterMouseZone;
+
+    /// <summary><see cref="IsSplitDivider"/> 的属性定义。</summary>
+    public static readonly StyledProperty<bool> IsSplitDividerProperty =
+        AvaloniaProperty.Register<ForgeDockResizer, bool>(nameof(IsSplitDivider));
+
+    /// <summary>
+    /// 这是**同一条边里两个窗口之间**的那条分割线，不是停靠区与编辑区之间的边界。
+    /// </summary>
+    /// <remarks>
+    /// 对应 <c>ToolWindowPane.kt:617 · MySplitter</c>（<c>OnePixelSplitter</c>）——
+    /// 一条边被两个窗口分掉时，中间那条可拖的线，拖出来的是 <c>sideWeight</c>。
+    /// <para>
+    /// 切分方向与 <c>ForgeDockPane.SplitSlot</c> 一致：**横边（TOP/BOTTOM）左右分，
+    /// 竖边（LEFT/RIGHT）上下分** —— 所以它的拖动轴与同 anchor 的停靠边界**正好垂直**，
+    /// 光标形状也相反。
+    /// </para>
+    /// </remarks>
+    public bool IsSplitDivider
+    {
+        get => GetValue(IsSplitDividerProperty);
+        set
+        {
+            SetValue(IsSplitDividerProperty, value);
+            UpdateCursor();
+        }
+    }
+
+    private void UpdateCursor()
+    {
+        // 分割线的轴与停靠边界垂直：横边的停靠边界是上下拖，它的分割线是左右拖
+        var horizontalDrag = IsSplitDivider ? !Anchor.IsHorizontal() : Anchor.IsHorizontal();
+        Cursor = new Cursor(horizontalDrag ? StandardCursorType.SizeNorthSouth : StandardCursorType.SizeWestEast);
+    }
+
+    /// <summary>
+    /// 分割线所在那一格在 pane 坐标系里的矩形；由 <see cref="ForgeDockPane"/> 排布时写入。
+    /// </summary>
+    /// <remarks>比例要按**这一格**算，不是整个 pane —— 底边那一格只占 pane 的下面一条。</remarks>
+    public Rect? SlotBounds { get; set; }
 
     /// <summary>用户把边界拖到了新的权重。</summary>
     public event EventHandler<DockWeightChangedEventArgs>? WeightChanged;
@@ -72,8 +110,7 @@ public class ForgeDockResizer : Control
             return WindowInfo.DefaultWeight;
         }
 
-        var min = ForgeMetrics.MainSplitterMinSize;
-        var clamped = Math.Clamp(partSize, min, Math.Max(min, totalSize - min));
+        var clamped = ClampPart(partSize, totalSize);
 
         var ratio = clamped / totalSize;
         ratio += (((clamped + direction) / totalSize) - ratio) / 2;
@@ -81,22 +118,77 @@ public class ForgeDockResizer : Control
         return ForgeMetrics.NormalizeWeight((float)ratio);
     }
 
+    /// <summary>
+    /// 把拖到的像素夹进可用范围：两端各留 <c>ide.mainSplitter.min.size</c>=30。
+    /// </summary>
+    /// <param name="partSize">这条边占的像素。</param>
+    /// <param name="totalSize">整个 pane 的对应边长。</param>
+    /// <returns>夹过的像素。</returns>
+    public static double ClampPart(double partSize, double totalSize)
+    {
+        var min = ForgeMetrics.MainSplitterMinSize;
+        return Math.Clamp(partSize, min, Math.Max(min, totalSize - min));
+    }
+
+    /// <summary>
+    /// 分隔线的画刷；<see langword="null"/> = 这条边不画线。线宽固定 1px（上游 OnePixelSplitter）。
+    /// </summary>
+    /// <remarks>
+    /// 由 <c>ForgeControl</c> 按形态给：
+    /// <list type="bullet">
+    /// <item><b>覆盖层（SLIDING）</b>：必须有 —— 它浮在编辑区上面，不画线就分不出哪儿是面板、
+    /// 哪儿是被盖住的内容。上游为此单给 SLIDING 加了一条 divider
+    /// （<c>InternalDecoratorImpl.kt:599-612</c>，按 anchor 加在 EAST/WEST/NORTH/SOUTH）。</item>
+    /// <item><b>常规停靠</b>：上游**不画**（<c>ToolWindowPane.kt:197</c> 分隔器可见宽度是 0），
+    /// 靠"面板底与编辑区底的色差"分区。但宿主一旦把编辑区底覆盖成与面板同色，那点色差就没了 ——
+    /// 所以非岛档现在画（自觉偏离上游）。不想要就把 <c>ForgeControl.DockDividerBrush</c> 设成透明。</item>
+    /// <item><b>岛（Islands）</b>：一律不画 —— 两座岛之间本来就有缝，再画一条等于把缝糊死。</item>
+    /// </list>
+    /// </remarks>
+    public IBrush? LineBrush
+    {
+        get => _lineBrush;
+        set
+        {
+            if (Equals(_lineBrush, value)) return;
+            _lineBrush = value;
+            InvalidateVisual();
+        }
+    }
+
+    private IBrush? _lineBrush;
+
     /// <inheritdoc />
     /// <remarks>
     /// <b>必须画点东西，哪怕是透明的。</b>Avalonia 的命中测试基于渲染内容 ——
     /// 一个什么都不画的 <see cref="Control"/> 收不到任何指针事件，
     /// 于是热区在那儿、光标也变了，就是拖不动。
-    /// 上游那条分隔器<b>可见宽度是 0</b>（<c>ToolWindowPane.kt:197</c>），
-    /// 所以这里也只画透明色：看不见，但吃得到鼠标。
     /// </remarks>
     public override void Render(DrawingContext context)
-        => context.FillRectangle(Brushes.Transparent, new Rect(Bounds.Size));
+    {
+        context.FillRectangle(Brushes.Transparent, new Rect(Bounds.Size));
+
+        if (LineBrush is not { } brush)
+        {
+            return;
+        }
+
+        // 线画在热区正中 —— 热区骑在边界上，中线就是边界（见 ForgeDockPane.ResizerRect）
+        var horizontalBar = IsSplitDivider ? !Anchor.IsHorizontal() : Anchor.IsHorizontal();
+        var rect = horizontalBar
+            ? new Rect(0, Math.Round((Bounds.Height - 1) / 2), Bounds.Width, 1)
+            : new Rect(Math.Round((Bounds.Width - 1) / 2), 0, 1, Bounds.Height);
+
+        context.FillRectangle(brush, rect);
+    }
 
     /// <inheritdoc />
     protected override Size MeasureOverride(Size availableSize)
-        => Anchor.IsHorizontal()
-            ? new Size(0, MouseZone)
-            : new Size(MouseZone, 0);
+    {
+        // 分割线的轴与停靠边界垂直（见 IsSplitDivider 的说明）
+        var horizontalBar = IsSplitDivider ? !Anchor.IsHorizontal() : Anchor.IsHorizontal();
+        return horizontalBar ? new Size(0, MouseZone) : new Size(MouseZone, 0);
+    }
 
     /// <inheritdoc />
     protected override void OnPointerPressed(PointerPressedEventArgs e)
@@ -119,6 +211,22 @@ public class ForgeDockResizer : Control
         var point = e.GetPosition(parent);
         var bounds = parent.Bounds;
 
+        if (IsSplitDivider)
+        {
+            // sideWeight 是**非 split 那半占的比例**（ForgeDockPane.ComputeSplitProportion）。
+            // 横边左右分：非 split 在左；竖边上下分：非 split 在上。
+            var slot = SlotBounds ?? new Rect(bounds.Size);
+            var (first, span) = Anchor.IsHorizontal()
+                ? (point.X - slot.X, slot.Width)
+                : (point.Y - slot.Y, slot.Height);
+
+            WeightChanged?.Invoke(
+                this,
+                new DockWeightChangedEventArgs(Anchor, ComputeWeight(first, span), isSideWeight: true));
+            e.Handled = true;
+            return;
+        }
+
         var (part, total) = Anchor switch
         {
             ToolWindowAnchor.Left => (point.X, bounds.Width),
@@ -127,7 +235,14 @@ public class ForgeDockResizer : Control
             _ => (bounds.Height - point.Y, bounds.Height),
         };
 
-        WeightChanged?.Invoke(this, new DockWeightChangedEventArgs(Anchor, ComputeWeight(part, total)));
+        // ★ 拖出来的是**像素**，不是比例：停靠区的边尺寸真值就是像素（见 ForgeDockPane）。
+        //   权重一起给，但它只用于写进台账（存档格式仍是 weight）——排布不看它。
+        //   早先这里只给 weight，排布再 floor 回像素，一来一回的量化误差在窄尺寸下
+        //   足够让边界每帧跳一格，表现就是"拖到小一点时标题栏一跳一跳"。
+        var pixels = ClampPart(part, total);
+        WeightChanged?.Invoke(
+            this,
+            new DockWeightChangedEventArgs(Anchor, ComputeWeight(part, total), pixels: pixels));
         e.Handled = true;
     }
 
@@ -145,11 +260,29 @@ public class ForgeDockResizer : Control
 /// </summary>
 /// <param name="anchor">被拖的是哪条边。</param>
 /// <param name="weight">新的权重。</param>
-public sealed class DockWeightChangedEventArgs(ToolWindowAnchor anchor, float weight) : EventArgs
+/// <param name="isSideWeight">拖的是不是格内那条分割线（改 <c>sideWeight</c>）。</param>
+/// <param name="pixels">这条边的新尺寸，像素；格内分割线那条不给（<see cref="double.NaN"/>）。</param>
+public sealed class DockWeightChangedEventArgs(
+    ToolWindowAnchor anchor,
+    float weight,
+    bool isSideWeight = false,
+    double pixels = double.NaN)
+    : EventArgs
 {
+    /// <summary>
+    /// 这条边的新尺寸，像素。<see cref="double.NaN"/> = 没给（格内分割线那条，改的是比例）。
+    /// </summary>
+    /// <remarks>排布的真值是它；<see cref="Weight"/> 只是写台账用的等价换算。</remarks>
+    public double Pixels { get; } = pixels;
+
     /// <summary>被拖的是哪条边。</summary>
     public ToolWindowAnchor Anchor { get; } = anchor;
 
     /// <summary>新的权重。</summary>
     public float Weight { get; } = weight;
+
+    /// <summary>
+    /// 拖的是不是**同一条边里两个窗口之间**那条线（改的是 <c>sideWeight</c>，不是这条边的整体权重）。
+    /// </summary>
+    public bool IsSideWeight { get; } = isSideWeight;
 }

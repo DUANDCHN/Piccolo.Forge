@@ -1,4 +1,4 @@
-namespace Piccolo.Forge.Model;
+﻿namespace Piccolo.Forge.Model;
 
 /// <summary>
 /// 整个编辑区：一棵二叉分屏树 + 「当前是哪一组」。
@@ -48,6 +48,22 @@ public sealed class EditorArea
     public event EventHandler<EditorTabClosedEventArgs>? TabClosed;
 
     /// <summary>
+    /// 标签页**即将**关闭；宿主可以把 <see cref="EditorTabClosingEventArgs.Cancel"/> 设成
+    /// <see langword="true"/> 拦下这一次。
+    /// </summary>
+    /// <remarks>
+    /// 与 <see cref="TabClosed"/> 的分工：这条在动手之前问、可否决；那条是事后通知、
+    /// 用来释放宿主自己的对象。
+    /// <para>
+    /// 存在的理由是「关闭要换成别的动作」这类场景：一张图对应一台设备时，
+    /// 关图的语义是断设备 —— 宿主取消这次关闭、发起断开，等断开流程回头再来关它。
+    /// 没有这个钩子的话，宿主只能在 <see cref="TabClosed"/> 里补一刀断开，
+    /// 那时标签页已经没了：设备断开失败或用户在确认框里点了「否」，图也回不来。
+    /// </para>
+    /// </remarks>
+    public event EventHandler<EditorTabClosingEventArgs>? TabClosing;
+
+    /// <summary>
     /// 整棵树换掉 —— 读档用。
     /// </summary>
     /// <param name="root">新的根。</param>
@@ -90,14 +106,28 @@ public sealed class EditorArea
         foreach (var group in Groups)
         {
             var tab = group.Tabs.FirstOrDefault(x => x.Id == id);
+
+            // EditorTab 是值类型，FirstOrDefault 给的是 default 而不是 null ——
+            // 判 Id 才是「这一组里有没有」（同 Split 里那处的写法）。
+            if (tab.Id is null)
+            {
+                continue;
+            }
+
+            // 先问一句「这张能关吗」——宿主可能要把关闭换成别的动作。
+            // 典型：一张图对应一台设备，关图 = 断设备，那就得先取消这次关闭、
+            // 走完断开流程再由断开的回调来关它，否则会出现「图没了、设备还连着」，
+            // 或者两条路各 Dispose 一次。
+            var closing = new EditorTabClosingEventArgs(tab);
+            TabClosing?.Invoke(this, closing);
+            if (closing.Cancel)
+            {
+                return false;
+            }
+
             if (group.Close(id))
             {
-                // 空了的组要从树上摘掉（除非它是唯一一组）
-                if (group.Tabs.Count == 0)
-                {
-                    RemoveGroup(group);
-                }
-
+                // 空了的组由 OnChanged 里的不变量摘掉，这里不重复判
                 OnChanged();
 
                 // 先把树整理好再广播：宿主在这个回调里会去读编辑区的现状
@@ -108,6 +138,166 @@ public sealed class EditorArea
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// 选中一个标签页，并把它所在的组设成当前组。
+    /// </summary>
+    /// <remarks>
+    /// ⚠ **必须走这一层，不能直接调 <see cref="EditorGroup.Select"/>** ——
+    /// 那个方法改完**没人发通知**，视图监听的是本类的 <see cref="Changed"/>。
+    /// 直接调的后果是：模型选中了，界面纹丝不动；用户以为"点了没反应"，
+    /// 再点一下变成双击、而双击走的是另一条会重绘的路 —— 表现成
+    /// **「切标签必须双击」**。同一个坑 <see cref="SetPinned"/> 的注释里已经记过一次。
+    /// <para>
+    /// 顺带把所在组设为当前组：点另一组的标签页，焦点本来就该跟过去。
+    /// </para>
+    /// <para>
+    /// ⚠ **判据是「这一组里有没有这一页」，不是 <see cref="EditorGroup.Select"/> 的返回值。**
+    /// 那个方法在「本来就选中着」时返回 <see langword="false"/>（它答的是"选中项变了没有"），
+    /// 拿它当"找到没有"用，就会在**这一页已经是所在组的选中项**时整个方法空转：
+    /// <see cref="CurrentGroup"/> 不跟过去、<see cref="Changed"/> 也不广播。
+    /// <para>
+    /// 后果不是抽象的：分屏时点另一格里那张已选中的图，焦点不过去（跟随活动文档的
+    /// 分析面板于是跟错相机）；宿主程序化排完宫格调一句 <c>Select(第一路)</c> 想把
+    /// 焦点放回第一格，也会**静默失败**，当前组停留在最后切出去的那一格 ——
+    /// 再点「单栏」时就以那一格为幸存组收拢，标签顺序跟着乱掉。
+    /// </para>
+    /// </para>
+    /// </remarks>
+    /// <param name="id">标签页 id。</param>
+    /// <returns>找到并选中了则为 <see langword="true"/>。</returns>
+    public bool Select(string id)
+    {
+        foreach (var group in Groups)
+        {
+            if (group.Tabs.All(x => x.Id != id))
+            {
+                continue;
+            }
+
+            group.Select(id);
+            CurrentGroup = group;
+            OnChanged();
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// 拖拽重排：把一页挪到同组另一页的位置上。
+    /// </summary>
+    /// <remarks>
+    /// 对应 <c>JBTabsImpl.kt:3331 · reallocate</c>；换位规则见 <see cref="EditorGroup.Reorder"/>。
+    /// <para>
+    /// <b>只在组内重排</b> —— 上游的 <c>reallocate</c> 动的是 <c>visibleInfos</c>，
+    /// 那就是一个标签条 = 一组。跨组是另一条路（拖出去），走
+    /// <see cref="DropTab(string, EditorGroup, EditorDropSide)"/>。
+    /// 所以两页不在同一组时这里什么都不做，而不是"就近凑合一下"。
+    /// </para>
+    /// </remarks>
+    /// <param name="sourceId">被拖的那一页。</param>
+    /// <param name="targetId">拖到谁的位置上。</param>
+    /// <returns>确实挪动了则为 <see langword="true"/>。</returns>
+    public bool ReorderTab(string sourceId, string targetId)
+    {
+        var group = Groups.FirstOrDefault(g => g.Tabs.Any(t => t.Id == sourceId));
+        if (group is null || group.Tabs.All(t => t.Id != targetId))
+        {
+            return false;
+        }
+
+        if (!group.Reorder(sourceId, targetId))
+        {
+            return false;
+        }
+
+        OnChanged();
+        return true;
+    }
+
+    /// <summary>
+    /// 关掉这一组里除了它以外的标签页。
+    /// </summary>
+    /// <remarks>
+    /// 逐个走 <see cref="Close"/>，好让 <see cref="TabClosing"/> 的否决与
+    /// <see cref="TabClosed"/> 的释放对**每一页**都成立 —— 宿主可能对其中某几页有话说
+    /// （比如"这张图对应的设备正在采集"），批量关不能绕过它。
+    /// <para>
+    /// **固定住的和不可关的都跳过**：固定的语义就是"别动我"，
+    /// 而 <c>IsCloseable=false</c> 的连关闭按钮都没有。
+    /// </para>
+    /// </remarks>
+    /// <param name="id">保留哪一个。</param>
+    /// <returns>实际关掉了几个。</returns>
+    public int CloseOthers(string id) => CloseWhere(id, (_, _) => true, keepSelf: true);
+
+    /// <summary>关掉这一组里所有能关的标签页（含它自己）。</summary>
+    /// <param name="id">这一组里的任意一个标签页 id，用来定位是哪一组。</param>
+    /// <returns>实际关掉了几个。</returns>
+    public int CloseAll(string id) => CloseWhere(id, (_, _) => true, keepSelf: false);
+
+    /// <summary>关掉它**左边**（显示次序在前）的标签页。</summary>
+    /// <param name="id">基准标签页。</param>
+    /// <returns>实际关掉了几个。</returns>
+    public int CloseToTheLeft(string id) => CloseWhere(id, (index, pivot) => index < pivot, keepSelf: true);
+
+    /// <summary>关掉它**右边**（显示次序在后）的标签页。</summary>
+    /// <param name="id">基准标签页。</param>
+    /// <returns>实际关掉了几个。</returns>
+    public int CloseToTheRight(string id) => CloseWhere(id, (index, pivot) => index > pivot, keepSelf: true);
+
+    /// <summary>
+    /// 批量关闭的共同实现。
+    /// </summary>
+    /// <remarks>
+    /// ⚠ **先把要关的 id 快照下来再逐个关**。边遍历边关会在集合被改的同时读它，
+    /// 而且每关一个都可能触发组的移除、把序号搅乱。
+    /// </remarks>
+    private int CloseWhere(string id, Func<int, int, bool> predicate, bool keepSelf)
+    {
+        var group = Groups.FirstOrDefault(g => g.Tabs.Any(t => t.Id == id));
+        if (group is null)
+        {
+            return 0;
+        }
+
+        var tabs = group.Tabs.ToList();
+        var pivot = tabs.FindIndex(t => t.Id == id);
+        if (pivot < 0)
+        {
+            return 0;
+        }
+
+        var targets = new List<string>();
+        for (var i = 0; i < tabs.Count; i++)
+        {
+            var tab = tabs[i];
+            if (keepSelf && i == pivot)
+            {
+                continue;
+            }
+
+            // 固定住的与不可关的都跳过
+            if (tab.IsPinned || !tab.IsCloseable || !predicate(i, pivot))
+            {
+                continue;
+            }
+
+            targets.Add(tab.Id);
+        }
+
+        var closed = 0;
+        foreach (var target in targets)
+        {
+            if (Close(target))
+            {
+                closed++;
+            }
+        }
+
+        return closed;
     }
 
     /// <summary>
@@ -254,54 +444,71 @@ public sealed class EditorArea
     {
         ArgumentNullException.ThrowIfNull(target);
 
+        var source = Groups.FirstOrDefault(g => g.Tabs.Any(t => t.Id == tabId));
+        return source is not null && DropTab(tabId, source, target, side);
+    }
+
+    /// <summary>把指定源组中的一页拖到目标组。</summary>
+    /// <remarks>
+    /// <see cref="Split"/> 会让同一标签 id 同时存在于两组；拖拽层必须把源组身份传下来，
+    /// 不能再按 id 反查，否则总会误取树中靠前的副本。
+    /// </remarks>
+    /// <param name="tabId">被拖的标签 id。</param>
+    /// <param name="source">鼠标实际拖起标签的组。</param>
+    /// <param name="target">落点组。</param>
+    /// <param name="side">落点方向。</param>
+    /// <returns>落点生效则为 <see langword="true"/>。</returns>
+    public bool DropTab(string tabId, EditorGroup source, EditorGroup target, EditorDropSide side)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(target);
+
         if (side == EditorDropSide.None)
         {
             return false;
         }
 
-        var source = Groups.FirstOrDefault(g => g.Tabs.Any(t => t.Id == tabId));
-        if (source is null)
+        if (!Groups.Contains(source) || !Groups.Contains(target))
         {
             return false;
         }
 
-        var tab = source.Tabs.First(t => t.Id == tabId);
+        return DocumentDockFactory.MoveDockable(
+            tabId, source, target, side,
+            Replace,
+            group => CurrentGroup = group,
+            OnChanged);
+    }
 
-        if (side == EditorDropSide.Center)
+    /// <summary>
+    /// 改一次分屏比例 —— 用户拖分割线走这里。
+    /// </summary>
+    /// <remarks>
+    /// ⚠ **必须走这一层，不能让视图自己去改 <see cref="EditorSplit.Proportion"/>**：
+    /// 那样改完没人广播，别的视图（另一个编辑区控件、存档）看不到；更要紧的是
+    /// 视图那边的比例只活在 Grid 的行列定义里，下一次重建就按模型重画、
+    /// 把用户拖出来的比例打回原样 —— 同 <see cref="Select"/> / <see cref="SetPinned"/>
+    /// 注释里记过的那条规矩。
+    /// </remarks>
+    /// <param name="split">哪一刀。</param>
+    /// <param name="proportion">第一块占的比例；自动夹在 [0.1, 0.9]。</param>
+    /// <returns>确实改了则为 <see langword="true"/>。</returns>
+    public bool SetProportion(EditorSplit split, float proportion)
+    {
+        ArgumentNullException.ThrowIfNull(split);
+
+        if (!AllSplits(_root).Any(x => ReferenceEquals(x, split)))
         {
-            if (ReferenceEquals(source, target))
-            {
-                return false;
-            }
-
-            source.Close(tabId);
-            target.Add(tab);
-            if (source.Tabs.Count == 0)
-            {
-                RemoveGroup(source);
-            }
-
-            CurrentGroup = target;
-            OnChanged();
-            return true;
+            return false;
         }
 
-        var created = new EditorGroup();
-        created.Add(tab);
-
-        var split = EditorDropPolicy.NewGroupIsSecond(side)
-            ? new EditorSplit(target, created, EditorDropPolicy.IsVertical(side))
-            : new EditorSplit(created, target, EditorDropPolicy.IsVertical(side));
-
-        Replace(target, split);
-        source.Close(tabId);
-
-        if (source.Tabs.Count == 0 && !ReferenceEquals(source, target))
+        var before = split.Proportion;
+        split.Proportion = proportion;
+        if (Math.Abs(split.Proportion - before) < float.Epsilon)
         {
-            RemoveGroup(source);
+            return false;
         }
 
-        CurrentGroup = created;
         OnChanged();
         return true;
     }
@@ -315,6 +522,217 @@ public sealed class EditorArea
         {
             // 直到它不在任何分屏里
         }
+    }
+
+    /// <summary>
+    /// 收成一组 —— 页序 = 屏幕次序（左→右 / 上→下），幸存组恒为第一组。
+    /// </summary>
+    /// <remarks>
+    /// 与 <see cref="UnsplitAll"/> 的分工：那一条照抄上游（合并到**调用方指定**的那一组、
+    /// 兄弟的页一律**追加**在后面），是用户点「取消分屏」时的手势语义；
+    /// 这一条是**程序化归位**用的（宫格 → 单栏），要的是两条上游给不了的保证：
+    /// <list type="number">
+    /// <item><b>幸存组确定</b>：不看 <see cref="CurrentGroup"/>（它随焦点飘），恒取第一组，
+    /// 所以同一个宫格收几次都收成同一个样子；</item>
+    /// <item><b>页序确定</b>：按屏幕次序重排。走上游那条时，收进右下角那一格的话，
+    /// 页序会变成「右下那一格的页在最前」——用户看到的是标签顺序凭空乱掉。</item>
+    /// </list>
+    /// </remarks>
+    /// <returns>幸存下来的那一组。</returns>
+    public EditorGroup CollapseToSingleGroup()
+    {
+        var group = CollapseCore();
+        OnChanged();
+        return group;
+    }
+
+    /// <summary>
+    /// 把若干页排成 <paramref name="rows"/>×<paramref name="cols"/> 的**均匀**宫格。
+    /// </summary>
+    /// <remarks>
+    /// 实际形状由 <see cref="EditorGridPolicy.Resolve"/> 定（格数按页数封顶，
+    /// 多出来的页塞最后一格）。<paramref name="tabIds"/> 之外的页（宿主另开的静态文档等）
+    /// 留在第一格。
+    /// <para>
+    /// <b>为什么这件事必须在模型层做，而不是宿主拿 <see cref="DropTab(string, EditorGroup, EditorDropSide)"/> 敲。</b>
+    /// 敲得出格子，敲不出**比例**：每切一刀都是新建一个 0.5 的二叉分屏节点，
+    /// 三格于是成了 50% / 25% / 25%，四格才碰巧均匀。而 <see cref="EditorSplit.Proportion"/>
+    /// 挂在树的内部节点上，宿主根本够不着（<see cref="Root"/> 只读，
+    /// 要改就得自己在树上找刚切出来的那个节点 —— 那是把分屏树的知识搬进 UI 宿主）。
+    /// 树形与比例本来就是编辑区自己的账，同 <see cref="UnsplitAll"/> /
+    /// <see cref="MaximizeOrNormalize"/>。
+    /// </para>
+    /// <para>
+    /// 均匀是这么来的：一行 k 格切出来是**右嵌套**的
+    /// <c>(g0, (g1, (g2 …)))</c>，所以从外往里第 i 刀取 <c>1/(k-i)</c> ——
+    /// 外层 1/k 给第一格，剩下的 (k-1)/k 再按 1/(k-1) 切，逐格恰好 1/k。行方向同理。
+    /// </para>
+    /// </remarks>
+    /// <param name="tabIds">要进格子的页，**按格子的行主序**。</param>
+    /// <param name="rows">行数，<c>&lt;= 0</c> 表示按页数自动。</param>
+    /// <param name="cols">列数，<c>&lt;= 0</c> 表示按页数自动。</param>
+    /// <returns>确实排成了宫格则为 <see langword="true"/>；不足两页排不成宫格时收回单组并返回 <see langword="false"/>。</returns>
+    public bool ArrangeGrid(IReadOnlyList<string> tabIds, int rows, int cols)
+    {
+        ArgumentNullException.ThrowIfNull(tabIds);
+
+        var known = _root.Groups.SelectMany(g => g.Tabs).Select(x => x.Id).ToHashSet(StringComparer.Ordinal);
+        var ids = tabIds.Where(known.Contains).Distinct(StringComparer.Ordinal).ToList();
+
+        // 先收成一组：从「当前是什么形状」出发去改是算不清的，收平了再切才有确定的起点。
+        var survivor = CollapseCore();
+
+        if (ids.Count < 2)
+        {
+            OnChanged();
+            return false;
+        }
+
+        var shape = EditorGridPolicy.Resolve(ids.Count, rows, cols);
+        survivor.Select(ids[0]);
+
+        // 行：每一行从上一行切出去 → 右嵌套的竖直分屏
+        var rowGroups = new List<EditorGroup> { survivor };
+        var rowSplits = new List<EditorSplit>();
+        for (var r = 1; r < shape.Rows; r++)
+        {
+            var index = r * shape.Cols;
+            if (index >= shape.CellCount || Carve(rowGroups[r - 1], ids[index], vertical: true) is not { } carved)
+            {
+                break;
+            }
+
+            rowSplits.Add(carved.Split);
+            rowGroups.Add(carved.Created);
+        }
+
+        // 列：每一行内部再右嵌套地切出各格
+        for (var r = 0; r < rowGroups.Count; r++)
+        {
+            var previous = rowGroups[r];
+            var colSplits = new List<EditorSplit>();
+            for (var c = 1; c < shape.Cols; c++)
+            {
+                var index = (r * shape.Cols) + c;
+                if (index >= shape.CellCount || Carve(previous, ids[index], vertical: false) is not { } carved)
+                {
+                    break;
+                }
+
+                colSplits.Add(carved.Split);
+                previous = carved.Created;
+            }
+
+            Distribute(colSplits);
+        }
+
+        Distribute(rowSplits);
+
+        // 多于格数的那些：留在最后一格当标签页（预设的语义是「最大形状」，见 EditorGridPolicy）
+        if (GroupOf(ids[shape.CellCount - 1]) is { } last)
+        {
+            for (var i = shape.CellCount; i < ids.Count; i++)
+            {
+                MoveInto(last, ids[i]);
+            }
+        }
+
+        CurrentGroup = survivor;
+        OnChanged();
+        return true;
+    }
+
+    /// <summary>把一条右嵌套分屏链的比例摊匀：从外往里第 i 刀取 <c>1/(n+1-i)</c>。</summary>
+    private static void Distribute(IReadOnlyList<EditorSplit> chain)
+    {
+        for (var i = 0; i < chain.Count; i++)
+        {
+            chain[i].Proportion = 1f / (chain.Count + 1 - i);
+        }
+    }
+
+    /// <summary>
+    /// 从树上任意位置取一页，切成 <paramref name="target"/> 旁边的新一格。
+    /// </summary>
+    /// <remarks>
+    /// 与 <see cref="Split"/> 的差别：那个只能带走**本组**选中的那一页；
+    /// 这里要的是「把第 k 路挪到第 k 格」，源在哪一组由 id 决定，不受 target 限制。
+    /// </remarks>
+    private (EditorSplit Split, EditorGroup Created)? Carve(EditorGroup target, string tabId, bool vertical)
+    {
+        if (GroupOf(tabId) is not { } source)
+        {
+            return null;
+        }
+
+        var tab = source.Tabs.First(x => x.Id == tabId);
+        var created = new EditorGroup();
+        created.Add(tab);
+
+        var split = new EditorSplit(target, created, vertical);
+        Replace(target, split);
+        source.Close(tabId);
+        return (split, created);
+    }
+
+    /// <summary>把一页并进某一组（不分屏）。</summary>
+    private void MoveInto(EditorGroup target, string tabId)
+    {
+        if (GroupOf(tabId) is not { } source || ReferenceEquals(source, target))
+        {
+            return;
+        }
+
+        var tab = source.Tabs.First(x => x.Id == tabId);
+        source.Close(tabId);
+        target.Add(tab, select: false);
+    }
+
+    /// <summary>这一页在哪一组（树里靠前的那份）。</summary>
+    private EditorGroup? GroupOf(string tabId) => _root.Groups.FirstOrDefault(g => g.Tabs.Any(x => x.Id == tabId));
+
+    /// <summary>收成一组，但**不广播** —— 给「收完还要接着改树」的调用方用。</summary>
+    private EditorGroup CollapseCore()
+    {
+        var groups = _root.Groups.ToList();
+        var survivor = groups[0];
+        if (groups.Count == 1)
+        {
+            return survivor;
+        }
+
+        // 屏幕次序（Groups 就是左→右 / 上→下）。同一 id 可能同时开在两组，去重。
+        var order = new List<EditorTab>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var tab in groups.SelectMany(g => g.Tabs))
+        {
+            if (seen.Add(tab.Id))
+            {
+                order.Add(tab);
+            }
+        }
+
+        var selected = CurrentGroup.SelectedId;
+
+        foreach (var tab in survivor.Tabs.ToList())
+        {
+            survivor.Close(tab.Id);
+        }
+
+        foreach (var tab in order)
+        {
+            survivor.Add(tab, select: false);
+        }
+
+        _root = survivor;
+        CurrentGroup = survivor;
+
+        if (selected is not null)
+        {
+            survivor.Select(selected);
+        }
+
+        return survivor;
     }
 
     /// <summary>
@@ -466,9 +884,91 @@ public sealed class EditorArea
         return FindParent(split.First, target) ?? FindParent(split.Second, target);
     }
 
-    private void OnChanged() => Changed?.Invoke(this, EventArgs.Empty);
+    /// <summary>
+    /// 直接改过组之后，重新建立不变量并广播。
+    /// </summary>
+    /// <remarks>
+    /// 给<b>绕过本类、直接动 <see cref="EditorGroup"/></b> 的调用方用
+    /// （读档时按内容工厂的结果逐个丢弃标签页就是这么干的）。
+    /// 正常路径不需要它 —— 本类自己的方法都已经走 <see cref="OnChanged"/>。
+    /// </remarks>
+    public void Refresh() => OnChanged();
+
+    /// <summary>
+    /// 广播「树变了」——<b>广播之前先把不变量补齐</b>。
+    /// </summary>
+    /// <remarks>
+    /// 这是整个类唯一的出口，所以不变量放在这里，而不是散在每个改动方法里。
+    /// <para>
+    /// <b>为什么非这样不可。</b>此前是每个改动方法各自判「这一组空了吗、要不要摘」，
+    /// 判据还各写各的（<c>Close</c> 判 <c>Tabs.Count == 0</c>、
+    /// <c>DropTab</c> 判 <c>Count == 0 &amp;&amp; !ReferenceEquals(source, target)</c>…）。
+    /// 结果是<b>只要有一条路忘了判，树里就多一个空组</b>，编辑区凭空出现空白窗格；
+    /// 而且漏一条修一条，永远不知道还剩几条没堵
+    /// —— 「拖动之后中间空了」就是这么反复出现的。
+    /// </para>
+    /// <para>
+    /// 现在改成：<b>改动方法只管把标签页搬对，树的形状由这里兜底。</b>
+    /// 新增改动路径不必再想「要不要摘空组」，忘了也不会漏。
+    /// </para>
+    /// </remarks>
+    private void OnChanged()
+    {
+        EnforceInvariants();
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// 树的两条不变量。
+    /// </summary>
+    /// <remarks>
+    /// <list type="number">
+    /// <item>
+    /// <b>没有空组</b> —— 除非整个编辑区就剩这一组（那是"什么都没打开"的正常状态，
+    /// 对应上游 <c>EditorWindow.kt:735</c>「<c>tabCount == 0</c> 就销毁窗口」，
+    /// 以及 <c>:546-548</c>「<c>split</c> 不生成会留下空窗格的分屏」）。
+    /// </item>
+    /// <item><b><see cref="CurrentGroup"/> 指向树里确实存在的组。</b></item>
+    /// </list>
+    /// <para>
+    /// 摘要循环着摘：摘掉一个会让父分屏塌陷成它的兄弟，那个兄弟里可能还有空组。
+    /// </para>
+    /// </remarks>
+    private void EnforceInvariants()
+    {
+        while (true)
+        {
+            var empty = _root.Groups.FirstOrDefault(g => g.Tabs.Count == 0);
+
+            // 没有空组，或者空的那个就是根 —— 后者是「编辑区空着」，合法，留着
+            if (empty is null || FindParent(_root, empty) is not { } parent)
+            {
+                break;
+            }
+
+            Replace(parent, ReferenceEquals(parent.First, empty) ? parent.Second : parent.First);
+        }
+
+        if (!_root.Groups.Any(g => ReferenceEquals(g, CurrentGroup)))
+        {
+            CurrentGroup = _root.Groups.First();
+        }
+    }
 }
 
+
+/// <summary>
+/// <see cref="EditorArea.TabClosing"/> 的参数。
+/// </summary>
+/// <param name="tab">即将关闭的标签页。</param>
+public sealed class EditorTabClosingEventArgs(EditorTab tab) : EventArgs
+{
+    /// <summary>即将关闭的标签页。</summary>
+    public EditorTab Tab { get; } = tab;
+
+    /// <summary>设成 <see langword="true"/> 拦下这次关闭。</summary>
+    public bool Cancel { get; set; }
+}
 
 /// <summary>
 /// <see cref="EditorArea.TabClosed"/> 的参数。

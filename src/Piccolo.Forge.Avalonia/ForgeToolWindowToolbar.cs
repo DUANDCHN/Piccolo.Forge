@@ -1,6 +1,7 @@
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.VisualTree;
 using Avalonia.Media;
 using Piccolo.Forge.Model;
 using Piccolo.Forge.Themes;
@@ -39,10 +40,26 @@ public class ForgeToolWindowToolbar : TemplatedControl
     public static readonly StyledProperty<double> CustomWidthProperty =
         AvaloniaProperty.Register<ForgeToolWindowToolbar, double>(nameof(CustomWidth));
 
+    /// <summary><see cref="TransparentBackdrop"/> 的属性定义。</summary>
+    public static readonly StyledProperty<bool> TransparentBackdropProperty =
+        AvaloniaProperty.Register<ForgeToolWindowToolbar, bool>(nameof(TransparentBackdrop));
+
+    /// <summary>
+    /// 不画条带底，让窗口背后的东西透上来。由 <see cref="ForgeControl"/> 下发，别单独设。
+    /// </summary>
+    public bool TransparentBackdrop
+    {
+        get => GetValue(TransparentBackdropProperty);
+        set => SetValue(TransparentBackdropProperty, value);
+    }
+
     static ForgeToolWindowToolbar()
     {
-        AffectsRender<ForgeToolWindowToolbar>(PaletteProperty, SideProperty);
-        AffectsMeasure<ForgeToolWindowToolbar>(CustomWidthProperty);
+        AffectsRender<ForgeToolWindowToolbar>(
+            PaletteProperty, SideProperty, TransparentBackdropProperty,
+            StripeBackgroundBrushProperty, StripeBorderBrushProperty);
+
+        AffectsMeasure<ForgeToolWindowToolbar>(CustomWidthProperty, BorderOverlaysContentProperty);
     }
 
     /// <summary>建一根条带。</summary>
@@ -52,8 +69,58 @@ public class ForgeToolWindowToolbar : TemplatedControl
         DockPanel.SetDock(_bottomGroup, Dock.Bottom);
         _root.Children.Add(_topGroup);
         _root.Children.Add(_bottomGroup);
-        VisualChildren.Add(_root);
-        LogicalChildren.Add(_root);
+
+        // ⚠ 两组按钮**不再**挂在这个控件的 Visual/LogicalChildren 上（REQ-067 模板化）：
+        //   ApplyTemplate 会把 VisualChildren 清空，挂在这儿等于每次套模板被扫一次；
+        //   而 LogicalChildren 也不能留 —— 槽（Decorator.Child）自己会认领逻辑父，
+        //   两处都认就当场抛「The Control already has a parent」。
+        //   它们改为放进模板里那个槽（PART_Groups），见 OnApplyTemplate。
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// 把两组按钮塞进模板的槽里。
+    /// <para>
+    /// ⚠ <b>先摘再挂</b>：一个控件只能有一个父，重新套模板时上一份模板里的槽还攥着 <c>_root</c>，
+    /// 不摘就当场抛「already has a visual parent」。
+    /// </para>
+    /// </remarks>
+    protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
+    {
+        base.OnApplyTemplate(e);
+
+        if (_root.GetVisualParent() is Decorator previous)
+        {
+            previous.Child = null;
+        }
+
+        if (e.NameScope.Find<Decorator>("PART_Groups") is { } slot)
+        {
+            slot.Child = _root;
+        }
+    }
+
+    /// <summary><see cref="BorderOverlaysContent"/> 的属性定义。</summary>
+    public static readonly StyledProperty<bool> BorderOverlaysContentProperty =
+        AvaloniaProperty.Register<ForgeToolWindowToolbar, bool>(nameof(BorderOverlaysContent));
+
+    /// <summary>
+    /// 内侧那条 1px 线**压在内容上**，不再单独占宽。
+    /// </summary>
+    /// <remarks>
+    /// 默认 <see langword="false"/>（照上游：线占 1px，条带 = 按钮 + 1）。
+    /// <para>
+    /// ★ 宿主自己定了条带宽度时要打开它，否则两件事对不上：
+    /// 总宽会变成"给的宽 + 1"，而且**图标在总宽里落在半像素上** ——
+    /// 按钮在内容区里居中是整数，可总宽比内容多 1，取整后左右就差 1px（实机看出来的"偏左"）。
+    /// 线压在内容上之后，按钮就是整条条带宽，图标居中即整数。
+    /// 线本身画在条带边缘，而图标离边缘还有七八个像素，压不到任何东西。
+    /// </para>
+    /// </remarks>
+    public bool BorderOverlaysContent
+    {
+        get => GetValue(BorderOverlaysContentProperty);
+        set => SetValue(BorderOverlaysContentProperty, value);
     }
 
     /// <summary>配色。</summary>
@@ -115,34 +182,70 @@ public class ForgeToolWindowToolbar : TemplatedControl
     public bool HasButtons => _topGroup.Children.Count > 0 || _bottomGroup.Children.Count > 0;
 
     /// <inheritdoc />
+    /// <remarks>
+    /// 算式没变，只是**换了谁在算**（REQ-067）：内侧那条 1px 线占的宽，
+    /// 现在由模板里那个槽的 <c>Margin</c> 表达（左条带右让 1、右条带左让 1），
+    /// 于是模板根量出来的就已经是"两组按钮 + 1"。
+    /// </remarks>
     protected override Size MeasureOverride(Size availableSize)
     {
-        _root.Measure(availableSize);
-        var size = _root.DesiredSize;
-
-        // 内侧那条 1px 线占宽
-        var width = CustomWidth > 0 ? CustomWidth : size.Width + 1;
-        return new Size(width, size.Height);
+        var size = base.MeasureOverride(availableSize);
+        return new Size(CustomWidth > 0 ? CustomWidth : size.Width, size.Height);
     }
 
-    /// <inheritdoc />
-    protected override Size ArrangeOverride(Size finalSize)
+    /// <summary><see cref="StripeBackgroundBrush"/> 的属性定义。</summary>
+    public static readonly StyledProperty<IBrush?> StripeBackgroundBrushProperty =
+        AvaloniaProperty.Register<ForgeToolWindowToolbar, IBrush?>(nameof(StripeBackgroundBrush));
+
+    /// <summary><see cref="StripeBorderBrush"/> 的属性定义。</summary>
+    public static readonly StyledProperty<IBrush?> StripeBorderBrushProperty =
+        AvaloniaProperty.Register<ForgeToolWindowToolbar, IBrush?>(nameof(StripeBorderBrush));
+
+    /// <summary>条带的底色，由 <c>ControlTheme</c> 从资源键给（REQ-067）。</summary>
+    /// <remarks>
+    /// ★ 这个控件**已经是真模板**：两组按钮住在模板里那个槽（<c>PART_Groups</c>）中，
+    /// 由 <see cref="OnApplyTemplate"/> 塞进去 —— 这样 <c>ApplyTemplate</c> 清空
+    /// <c>VisualChildren</c> 就不再是问题（早先正是这条把它挡在模板之外）。
+    /// 底与那条 1px 线都是模板里的 <c>Border</c>，宿主重写模板即可改形状。
+    /// </remarks>
+    public IBrush? StripeBackgroundBrush
     {
-        var contentWidth = Math.Max(0, finalSize.Width - 1);
-        var x = Side == StripeSide.Left ? 0 : 1;
-        _root.Arrange(new Rect(x, 0, contentWidth, finalSize.Height));
-        return finalSize;
+        get => GetValue(StripeBackgroundBrushProperty);
+        set => SetValue(StripeBackgroundBrushProperty, value);
     }
 
-    /// <inheritdoc />
-    public override void Render(DrawingContext context)
+    /// <summary>条带边缘那条 1px 线的颜色，来源同 <see cref="StripeBackgroundBrush"/>。</summary>
+    public IBrush? StripeBorderBrush
     {
-        context.FillRectangle(new SolidColorBrush(Palette.StripeBackground), new Rect(Bounds.Size));
+        get => GetValue(StripeBorderBrushProperty);
+        set => SetValue(StripeBorderBrushProperty, value);
+    }
 
-        // 左条带的线在右缘，右条带的线在左缘
-        var x = Side == StripeSide.Left ? Bounds.Width - 1 : 0;
-        context.FillRectangle(
-            new SolidColorBrush(Palette.StripeBorder),
-            new Rect(x, 0, 1, Bounds.Height));
+    /// <summary>透底时不画条带底 —— 写成伪类，模板据此把那层 <c>Border</c> 收起来。</summary>
+    /// <remarks>
+    /// 它和停靠区底是同一片「海」，只画一半会出现一条硬边。
+    /// ⚠ <b>收起来的只是底色那层</b>：模板根仍是 <c>Background="Transparent"</c> 的 <c>Panel</c>，
+    /// 否则条带空白处收不到鼠标（那里有右键菜单）。
+    /// </remarks>
+    /// <param name="change">属性变化。</param>
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+
+        if (change.Property == TransparentBackdropProperty)
+        {
+            PseudoClasses.Set(":transparent-backdrop", change.GetNewValue<bool>());
+        }
+
+        if (change.Property == BorderOverlaysContentProperty)
+        {
+            PseudoClasses.Set(":border-overlay", change.GetNewValue<bool>());
+        }
+
+        if (change.Property == SideProperty)
+        {
+            // 左条带的线在右缘，右条带的线在左缘；槽也跟着往另一边让出那 1px
+            PseudoClasses.Set(":right-side", change.GetNewValue<StripeSide>() == StripeSide.Right);
+        }
     }
 }

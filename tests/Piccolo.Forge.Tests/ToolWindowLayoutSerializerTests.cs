@@ -1,4 +1,4 @@
-using System.Xml.Linq;
+﻿using System.Xml.Linq;
 using Piccolo.Forge.Model;
 using Xunit;
 
@@ -144,5 +144,39 @@ public class ToolWindowLayoutSerializerTests
         Assert.Equal(
             original.GetSortedList().Select(x => (x.Id, x.Anchor, x.Order, x.Weight, x.IsSplit, x.ContentUiType)),
             reloaded.GetSortedList().Select(x => (x.Id, x.Anchor, x.Order, x.Weight, x.IsSplit, x.ContentUiType)));
+    }
+
+    // ── 标题条上那排内容 tab 的顺序（用户拖出来的）────────────────────────
+
+    [Fact]
+    public void 内容tab顺序_原样往返()
+    {
+        var layout = new DesktopLayout([new WindowInfo { Id = "camParam", ContentOrder = ["tree", "preprocess", "common"] }]);
+
+        var back = ToolWindowLayoutSerializer.Read(ToolWindowLayoutSerializer.Write(layout));
+
+        Assert.Equal(["tree", "preprocess", "common"], back.GetInfo("camParam")!.ContentOrder);
+    }
+
+    [Fact]
+    public void 没有内容tab的面板不写这一项()
+    {
+        // 绝大多数面板没有内容 tab，存档里不该因此多一个属性
+        var layout = new DesktopLayout([new WindowInfo { Id = "X" }]);
+
+        var element = ToolWindowLayoutSerializer.Write(layout).Elements("window_info").Single();
+
+        Assert.Null(element.Attribute("content_order"));
+    }
+
+    [Fact]
+    public void 内容id里带逗号就整项不写()
+    {
+        // 分隔符是逗号；真带了逗号宁可丢顺序，也不能写一份读回来是错的
+        var layout = new DesktopLayout([new WindowInfo { Id = "X", ContentOrder = ["a,b", "c"] }]);
+
+        var element = ToolWindowLayoutSerializer.Write(layout).Elements("window_info").Single();
+
+        Assert.Null(element.Attribute("content_order"));
     }
 }

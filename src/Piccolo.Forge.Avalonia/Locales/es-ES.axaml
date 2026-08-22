@@ -1,0 +1,38 @@
+<!--  Forge 文案：Español（es-ES）。键与 en-US.axaml 一一对应，缺键由英文回落。  -->
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <x:String x:Key="Forge.Strings.MoveTo">Mover a</x:String>
+    <x:String x:Key="Forge.Strings.ViewMode">Modo de vista</x:String>
+    <x:String x:Key="Forge.Strings.RemoveFromSidebar">Quitar de la barra lateral</x:String>
+    <x:String x:Key="Forge.Strings.ShowToolWindowNames">Mostrar nombres de ventanas de herramientas</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeDockPinned">Acoplado (fijado)</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeDockUnpinned">Acoplado (sin fijar)</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeUndock">Desacoplado</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeFloat">Flotante</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeWindow">Ventana</x:String>
+    <x:String x:Key="Forge.Strings.SideLeft">Izquierda</x:String>
+    <x:String x:Key="Forge.Strings.SideRight">Derecha</x:String>
+    <x:String x:Key="Forge.Strings.SideBottom">Abajo</x:String>
+    <x:String x:Key="Forge.Strings.SideTop">Arriba</x:String>
+    <x:String x:Key="Forge.Strings.HalfTop">Arriba</x:String>
+    <x:String x:Key="Forge.Strings.HalfBottom">Abajo</x:String>
+    <x:String x:Key="Forge.Strings.HalfLeft">Izquierda</x:String>
+    <x:String x:Key="Forge.Strings.HalfRight">Derecha</x:String>
+    <x:String x:Key="Forge.Strings.LocationFormat">{0} · {1}</x:String>
+    <x:String x:Key="Forge.Strings.MoveToFormat">Mover a {0}</x:String>
+    <x:String x:Key="Forge.Strings.CloseTab">Cerrar</x:String>
+    <x:String x:Key="Forge.Strings.CloseOtherTabs">Cerrar las demás pestañas</x:String>
+    <x:String x:Key="Forge.Strings.CloseAllTabs">Cerrar todas las pestañas</x:String>
+    <x:String x:Key="Forge.Strings.CloseTabsToTheLeft">Cerrar pestañas a la izquierda</x:String>
+    <x:String x:Key="Forge.Strings.CloseTabsToTheRight">Cerrar pestañas a la derecha</x:String>
+    <x:String x:Key="Forge.Strings.SplitRight">Dividir a la derecha</x:String>
+    <x:String x:Key="Forge.Strings.SplitAndMoveRight">Dividir y mover a la derecha</x:String>
+    <x:String x:Key="Forge.Strings.SplitDown">Dividir abajo</x:String>
+    <x:String x:Key="Forge.Strings.SplitAndMoveDown">Dividir y mover abajo</x:String>
+    <x:String x:Key="Forge.Strings.PinTab">Fijar pestaña</x:String>
+    <x:String x:Key="Forge.Strings.OpenTabInNewWindow">Abrir en una ventana nueva</x:String>
+    <x:String x:Key="Forge.Strings.DockButton">Acoplar</x:String>
+    <x:String x:Key="Forge.Strings.OptionsButton">Opciones</x:String>
+    <x:String x:Key="Forge.Strings.HideButton">Ocultar</x:String>
+    <x:String x:Key="Forge.Strings.MoreToolWindows">Más ventanas de herramientas</x:String>
+    <x:String x:Key="Forge.Strings.CloseTabFormat">Cerrar {0}</x:String>
+</ResourceDictionary>

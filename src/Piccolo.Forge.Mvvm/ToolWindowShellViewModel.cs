@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Xml.Linq;
 using Piccolo.Forge.Model;
@@ -56,6 +56,16 @@ public sealed class ToolWindowShellViewModel : ForgeObservableObject
     public ReadOnlyObservableCollection<ToolWindowViewModel> ToolWindows { get; }
 
     /// <summary>条带上是否在图标下面显示名字。</summary>
+    /// <remarks>
+    /// <b>这里是运行期的真相</b>，控件（<c>ForgeControl.ShowToolWindowNames</c>）跟着它走：
+    /// 菜单里切换会落到这里，宿主也从这里读写。
+    /// <para>
+    /// <b>库不负责持久化它。</b>上游把它放在应用级的 <c>UISettings.showToolWindowsNames</c>
+    /// （<c>UISettings.kt:40-45</c> 存 <c>ui.lnf.xml</c>，跨项目全局），而**布局**是项目级的
+    /// （<c>ToolWindowManagerState.kt:38</c> 存 <c>workspace.xml</c>）—— 两条线，不是一回事。
+    /// 宿主想存哪就存哪，订阅 <see cref="ForgeObservableObject.PropertyChanged"/> 即可。
+    /// </para>
+    /// </remarks>
     public bool ShowToolWindowNames
     {
         get => _showToolWindowNames;
@@ -257,12 +267,98 @@ public sealed class ToolWindowShellViewModel : ForgeObservableObject
     public IReadOnlyList<string> RestoreLayout(XElement xml)
     {
         ArgumentNullException.ThrowIfNull(xml);
-        return Manager.SetLayout(ToolWindowLayoutSerializer.Read(xml));
+        var layout = ToolWindowLayoutSerializer.Read(xml);
+        var applied = Manager.SetLayout(layout);
+        RestoreContentOrder(layout);
+        return applied;
     }
 
     /// <summary>把当前摆放写成存档。</summary>
+    /// <remarks>
+    /// 写之前先把各面板**标题条上那排内容 tab 的顺序**抓进模型：那排 tab 住在 VM 上
+    /// （宿主登记时给的），模型自己不知道用户把它们拖成了什么次序。
+    /// </remarks>
     /// <returns>存档根元素。</returns>
-    public XElement SaveLayout() => ToolWindowLayoutSerializer.Write(Manager.Layout);
+    public XElement SaveLayout()
+    {
+        CaptureContentOrder();
+        return ToolWindowLayoutSerializer.Write(Manager.Layout);
+    }
+
+    /// <summary>把每块面板当前的内容 tab 顺序写回模型（存盘前调）。</summary>
+    private void CaptureContentOrder()
+    {
+        foreach (var vm in _toolWindows)
+        {
+            if (Manager.Layout.GetInfo(vm.Id) is not { } info)
+            {
+                continue;
+            }
+
+            var order = vm.Contents.Contents.Select(c => c.Id).ToArray();
+
+            // 没有内容 tab 的面板（绝大多数）不去动模型 —— 免得每次存盘都造一份新的 WindowInfo。
+            if (order.Length == 0 && info.ContentOrder.Count == 0)
+            {
+                continue;
+            }
+
+            Manager.Layout.SetInfo(info with { ContentOrder = order });
+        }
+    }
+
+    /// <summary>
+    /// 按存档里的顺序把各面板的内容 tab 重排（恢复布局时调）。
+    /// </summary>
+    /// <remarks>
+    /// 存档里只有**顺序**，内容本身仍由宿主登记（见 <see cref="RestoreLayout"/> 的说明）。
+    /// 于是两边可能对不齐，两个方向都得容错：
+    /// <list type="bullet">
+    /// <item>存档里有、现在没有的 id：跳过（宿主换版本删了一块）。</item>
+    /// <item>现在有、存档里没有的：留在原地（新增的一块，排在它自然的位置上）。</item>
+    /// </list>
+    /// 逐个把该在前面的挪到前面，用的是内容管理器自己的 <c>Reorder</c>（与拖拽同一条路径）。
+    /// </remarks>
+    /// <param name="layout">刚读出来的布局。</param>
+    private void RestoreContentOrder(DesktopLayout layout)
+    {
+        foreach (var vm in _toolWindows)
+        {
+            if (layout.GetInfo(vm.Id) is not { ContentOrder.Count: > 0 } info)
+            {
+                continue;
+            }
+
+            // 按存档顺序，把每一块依次挪到"当前该在的位置"上：
+            // 走一遍之后，存档里出现过的那些就按存档排好了，其余的保持相对次序。
+            var target = 0;
+            foreach (var id in info.ContentOrder)
+            {
+                var contents = vm.Contents.Contents;
+                var from = -1;
+                for (var i = 0; i < contents.Count; i++)
+                {
+                    if (string.Equals(contents[i].Id, id, StringComparison.Ordinal))
+                    {
+                        from = i;
+                        break;
+                    }
+                }
+
+                if (from < 0)
+                {
+                    continue;   // 存档里有、现在没登记这一块
+                }
+
+                if (from != target && target < contents.Count)
+                {
+                    vm.Contents.Reorder(id, contents[target].Id);
+                }
+
+                target++;
+            }
+        }
+    }
 
     private void Track(ToolWindowViewModel vm)
     {
@@ -280,7 +376,9 @@ public sealed class ToolWindowShellViewModel : ForgeObservableObject
     /// </remarks>
     private void Sync()
     {
-        var active = Manager.LastActiveToolWindowId;
+        // 用「此刻焦点在哪个」而不是「最后活跃过哪个」：后者只增不减，
+        // 焦点回到图像区之后条带按钮仍会亮着（见 ToolWindowManager.ActiveToolWindowId）。
+        var active = Manager.ActiveToolWindowId;
 
         foreach (var vm in _toolWindows)
         {

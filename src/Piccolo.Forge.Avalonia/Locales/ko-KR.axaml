@@ -1,0 +1,38 @@
+<!--  Forge 文案：한국어（ko-KR）。键与 en-US.axaml 一一对应，缺键由英文回落。  -->
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <x:String x:Key="Forge.Strings.MoveTo">이동</x:String>
+    <x:String x:Key="Forge.Strings.ViewMode">보기 모드</x:String>
+    <x:String x:Key="Forge.Strings.RemoveFromSidebar">사이드바에서 제거</x:String>
+    <x:String x:Key="Forge.Strings.ShowToolWindowNames">도구 창 이름 표시</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeDockPinned">도킹(고정)</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeDockUnpinned">도킹(고정 해제)</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeUndock">도킹 해제</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeFloat">플로팅</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeWindow">창</x:String>
+    <x:String x:Key="Forge.Strings.SideLeft">왼쪽</x:String>
+    <x:String x:Key="Forge.Strings.SideRight">오른쪽</x:String>
+    <x:String x:Key="Forge.Strings.SideBottom">아래</x:String>
+    <x:String x:Key="Forge.Strings.SideTop">위</x:String>
+    <x:String x:Key="Forge.Strings.HalfTop">위</x:String>
+    <x:String x:Key="Forge.Strings.HalfBottom">아래</x:String>
+    <x:String x:Key="Forge.Strings.HalfLeft">왼쪽</x:String>
+    <x:String x:Key="Forge.Strings.HalfRight">오른쪽</x:String>
+    <x:String x:Key="Forge.Strings.LocationFormat">{0} · {1}</x:String>
+    <x:String x:Key="Forge.Strings.MoveToFormat">{0}(으)로 이동</x:String>
+    <x:String x:Key="Forge.Strings.CloseTab">닫기</x:String>
+    <x:String x:Key="Forge.Strings.CloseOtherTabs">다른 탭 닫기</x:String>
+    <x:String x:Key="Forge.Strings.CloseAllTabs">모든 탭 닫기</x:String>
+    <x:String x:Key="Forge.Strings.CloseTabsToTheLeft">왼쪽 탭 닫기</x:String>
+    <x:String x:Key="Forge.Strings.CloseTabsToTheRight">오른쪽 탭 닫기</x:String>
+    <x:String x:Key="Forge.Strings.SplitRight">오른쪽으로 분할</x:String>
+    <x:String x:Key="Forge.Strings.SplitAndMoveRight">분할하여 오른쪽으로 이동</x:String>
+    <x:String x:Key="Forge.Strings.SplitDown">아래로 분할</x:String>
+    <x:String x:Key="Forge.Strings.SplitAndMoveDown">분할하여 아래로 이동</x:String>
+    <x:String x:Key="Forge.Strings.PinTab">탭 고정</x:String>
+    <x:String x:Key="Forge.Strings.OpenTabInNewWindow">새 창에서 열기</x:String>
+    <x:String x:Key="Forge.Strings.DockButton">도킹</x:String>
+    <x:String x:Key="Forge.Strings.OptionsButton">옵션</x:String>
+    <x:String x:Key="Forge.Strings.HideButton">숨기기</x:String>
+    <x:String x:Key="Forge.Strings.MoreToolWindows">기타 도구 창</x:String>
+    <x:String x:Key="Forge.Strings.CloseTabFormat">{0} 닫기</x:String>
+</ResourceDictionary>

@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Xml.Linq;
 using Piccolo.Forge.Model;
 
@@ -141,6 +141,26 @@ public sealed class EditorGroupViewModel : ForgeObservableObject
         Selected = wanted.FirstOrDefault(x => x.IsSelected);
     }
 
+    /// <summary>
+    /// 在跨 DocumentDock 搬移的 add 阶段之前，先摘掉已经不属于本组的文档。
+    /// </summary>
+    /// <remarks>
+    /// 对应 Dock 的 Factory.MoveDockable：先从 source VisibleDockables remove，
+    /// 再向 target add。若反过来，同一个宿主 Control 图标会同时被两个 TabStrip
+    /// 容器收养，目标容器实现失败后就永久显示为缺页。
+    /// </remarks>
+    internal void PruneMovedDockables()
+    {
+        var wantedIds = Group.Tabs.Select(x => x.Id).ToHashSet(StringComparer.Ordinal);
+        for (var i = _tabs.Count - 1; i >= 0; i--)
+        {
+            if (!wantedIds.Contains(_tabs[i].Id))
+            {
+                _tabs.RemoveAt(i);
+            }
+        }
+    }
+
     private static void Reconcile(ObservableCollection<EditorTabViewModel> target, IReadOnlyList<EditorTabViewModel> wanted)
     {
         for (var i = target.Count - 1; i >= 0; i--)
@@ -187,10 +207,32 @@ public sealed class EditorAreaViewModel : ForgeObservableObject
     {
         Area = area ?? new EditorArea();
         Area.Changed += (_, _) => Sync();
+        Area.TabClosing += (_, e) =>
+        {
+            if (!_tabsById.TryGetValue(e.Tab.Id, out var vm))
+            {
+                return;
+            }
+
+            // 摘走（搬去别的编辑区）不是关闭：不问宿主要不要拦，也不告诉它"这页关了"
+            if (string.Equals(_detaching, e.Tab.Id, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            var args = new EditorTabClosingViewModelEventArgs(vm);
+            TabClosing?.Invoke(this, args);
+            e.Cancel = args.Cancel;
+        };
         Area.TabClosed += (_, e) =>
         {
             // 关掉的那一页从缓存里摘掉 —— 不摘的话宿主塞的内容（相机会话、图像帧）
             // 会被这个字典一直强引用着，Dispose 了也回收不掉。
+            if (string.Equals(_detaching, e.Tab.Id, StringComparison.Ordinal))
+            {
+                return;
+            }
+
             if (_tabsById.Remove(e.Tab.Id, out var vm))
             {
                 TabClosed?.Invoke(this, vm);
@@ -216,6 +258,15 @@ public sealed class EditorAreaViewModel : ForgeObservableObject
     /// （同一个会话可能还被别处引用着）。
     /// </remarks>
     public event EventHandler<EditorTabViewModel>? TabClosed;
+
+    /// <summary>
+    /// 一个标签页**即将**关闭 —— 宿主可以拦下这一次。
+    /// </summary>
+    /// <remarks>
+    /// 转发自 <see cref="EditorArea.TabClosing"/>。用途见那边的说明：
+    /// 「关闭要换成别的动作」的场景（一张图对应一台设备，关图 = 断设备）。
+    /// </remarks>
+    public event EventHandler<EditorTabClosingViewModelEventArgs>? TabClosing;
 
     /// <summary>
     /// 当前活动的那一页换人了（换成 <see langword="null"/> 也报）。
@@ -273,8 +324,17 @@ public sealed class EditorAreaViewModel : ForgeObservableObject
     {
         ArgumentNullException.ThrowIfNull(panel);
 
-        var vm = Open(panel.Id, panel.Title, panel, isPreview);
+        // ⚠ **图标必须在 Area.Open 之前设。**
+        //    Area.Open 会触发 Changed，视图就在那一刻把标签页画出来 ——
+        //    此时若 vm.Icon 还是 null，画出来就是没图标的；而事后给 VM 赋 Icon
+        //    **不触发 Area.Changed**，视图不会回头再读。
+        //    表现：新开的文档没图标，切一下文档（Select → Changed）图标才冒出来。
+        var vm = Resolve(panel.Id);
+        vm.Title = panel.Title;
+        vm.Content = panel;
         vm.Icon = panel.Icon;
+
+        Area.Open(new EditorTab(panel.Id, panel.Title, IsPreview: isPreview));
         return vm;
     }
 
@@ -283,22 +343,79 @@ public sealed class EditorAreaViewModel : ForgeObservableObject
     /// <returns>确实关掉了则为 <see langword="true"/>。</returns>
     public bool Close(string id) => Area.Close(id);
 
+    /// <summary>
+    /// 把一个标签页从这个编辑区**摘下来**（不当作关闭）。
+    /// </summary>
+    /// <remarks>
+    /// 给"拖到另一个编辑区/浮出成独立窗口"用：标签的图标与内容都是**宿主的实例**
+    /// （相机实时画面就在里头），搬家必须搬同一个对象，不能关掉再重建 ——
+    /// 那等于把相机连接断了重连。
+    /// <para>
+    /// 因此这里绕开 <see cref="Close"/>：不发 <c>TabClosing</c> / <c>TabClosed</c>，
+    /// 宿主不会以为这块内容该释放了。
+    /// </para>
+    /// </remarks>
+    /// <param name="id">标签页 id。</param>
+    /// <returns>摘下来的标签页 VM；这里没有这一页就是 <see langword="null"/>。</returns>
+    public EditorTabViewModel? Detach(string id)
+    {
+        if (!_tabsById.TryGetValue(id, out var vm))
+        {
+            return null;
+        }
+
+        _detaching = id;
+        try
+        {
+            Area.Close(id);
+        }
+        finally
+        {
+            _detaching = null;
+        }
+
+        _tabsById.Remove(id);
+        return vm;
+    }
+
+    /// <summary>
+    /// 把一个别处摘下来的标签页收进这个编辑区。
+    /// </summary>
+    /// <remarks>与 <see cref="Detach"/> 成对；标签的身份、图标、内容原样带过来。</remarks>
+    /// <param name="tab">标签页 VM。</param>
+    /// <param name="select">收进来之后要不要选中它。</param>
+    /// <exception cref="ArgumentNullException"><paramref name="tab"/> 为 <see langword="null"/>。</exception>
+    public void Attach(EditorTabViewModel tab, bool select = true)
+    {
+        ArgumentNullException.ThrowIfNull(tab);
+
+        _tabsById[tab.Id] = tab;
+        Area.Open(new EditorTab(tab.Id, tab.Title, IsPreview: tab.IsPreview), select);
+    }
+
+    private string? _detaching;
+
     /// <summary>选中一个标签页。</summary>
     /// <param name="id">标签页 id。</param>
     /// <returns>选中成功则为 <see langword="true"/>。</returns>
-    public bool Select(string id)
-    {
-        foreach (var group in Area.Groups)
-        {
-            if (group.Select(id))
-            {
-                Sync();
-                return true;
-            }
-        }
+    public bool Select(string id) => Area.Select(id);
 
-        return false;
-    }
+    /// <summary>拖拽重排：把一页挪到同组另一页的位置上。</summary>
+    /// <param name="sourceId">被拖的那一页。</param>
+    /// <param name="targetId">拖到谁的位置上。</param>
+    /// <returns>确实挪动了则为 <see langword="true"/>。</returns>
+    public bool ReorderTab(string sourceId, string targetId) => Area.ReorderTab(sourceId, targetId);
+
+    /// <summary>把一页拖到某一组上，按落点分屏或并入。</summary>
+    /// <param name="tabId">被拖的那一页。</param>
+    /// <param name="target">落在哪一组上。</param>
+    /// <param name="side">落在哪一侧。</param>
+    /// <returns>落点生效则为 <see langword="true"/>。</returns>
+    public bool DropTab(string tabId, EditorGroup target, EditorDropSide side) => Area.DropTab(tabId, target, side);
+
+    /// <summary>把鼠标实际拖起的组中的标签落到目标组。</summary>
+    public bool DropTab(string tabId, EditorGroup source, EditorGroup target, EditorDropSide side)
+        => Area.DropTab(tabId, source, target, side);
 
     /// <summary>
     /// 从存档里恢复整个编辑区。
@@ -349,6 +466,13 @@ public sealed class EditorAreaViewModel : ForgeObservableObject
                 }
             }
         }
+
+        // ⚠ 上面那一圈是**直接动 EditorGroup**（绕过 EditorArea）丢弃标签页的：
+        //   内容工厂造不出内容的那些页就地关掉。整组都被丢光时树里就多一个空组，
+        //   而这条路不经过 EditorArea 的任何方法，不变量补不上 ——
+        //   表现是启动后编辑区里凭空一块空白窗格（宿主换了版本、某类文档不再认识时最容易撞上）。
+        //   Refresh 就是为这种"我自己改过了"的调用方准备的。
+        Area.Refresh();
 
         Sync();
         return dropped;
@@ -410,6 +534,14 @@ public sealed class EditorAreaViewModel : ForgeObservableObject
     {
         var wanted = new List<EditorGroupViewModel>();
 
+        // Dock Factory.MoveDockable 的事务顺序：所有 source 先 detach，所有 target
+        // 后 attach。不能边枚举最终组边各自 Reconcile；目标组通常排在源组前面，
+        // 那会短暂让同一个 VM（以及宿主给它的 Control 图标）同时存在于两条 TabStrip。
+        foreach (var vm in _groupsByModel.Values)
+        {
+            vm.PruneMovedDockables();
+        }
+
         foreach (var group in Area.Groups)
         {
             if (!_groupsByModel.TryGetValue(group, out var vm))
@@ -459,4 +591,17 @@ public sealed class EditorAreaViewModel : ForgeObservableObject
         _activeTab = active;
         ActiveTabChanged?.Invoke(this, active);
     }
+}
+
+/// <summary>
+/// <see cref="EditorAreaViewModel.TabClosing"/> 的参数。
+/// </summary>
+/// <param name="tab">即将关闭的那一页。</param>
+public sealed class EditorTabClosingViewModelEventArgs(EditorTabViewModel tab) : EventArgs
+{
+    /// <summary>即将关闭的那一页。</summary>
+    public EditorTabViewModel Tab { get; } = tab;
+
+    /// <summary>设成 <see langword="true"/> 拦下这次关闭。</summary>
+    public bool Cancel { get; set; }
 }

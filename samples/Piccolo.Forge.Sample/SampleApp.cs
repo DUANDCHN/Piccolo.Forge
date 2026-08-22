@@ -16,7 +16,14 @@ internal sealed class SampleApp : Application
 {
     private static readonly ForgePalette Palette = ForgePalette.ExpUiDark;
 
-    public override void Initialize() => Styles.Add(new FluentTheme());
+    public override void Initialize()
+    {
+        Styles.Add(new FluentTheme());
+
+        // Forge 的主题：**唯一入口**，装的是哪族由这一句定（REQ-068）。
+        // 不装控件就没有模板 —— 不报错，只是什么都不画。换族要重启（见 ForgeThemeManager）。
+        ForgeThemeManager.Apply(this, new Piccolo.Forge.Themes.ExpUi.ForgeExpUiTheme());
+    }
 
     public override void OnFrameworkInitializationCompleted()
     {
@@ -52,21 +59,15 @@ internal sealed class SampleApp : Application
         shell.Add(new SampleTool("Services", "Services", ForgeIcons.Services).Init(), ToolWindowAnchor.Bottom, isSplit: true);
 
         // ③ 建控件并接上。配色跟着宿主的明暗变体走，这里不用管。
-        var frame = new ForgeToolWindowFrame
-        {
-            EditorContent = new Border
-            {
-                Background = new SolidColorBrush(ForgeColor.Parse("#1E1F22")),
-                Child = new TextBlock
-                {
-                    Text = "编辑区占位\n\n点左右条带上的按钮开合工具窗口",
-                    TextAlignment = TextAlignment.Center,
-                    Foreground = new SolidColorBrush(Palette.Foreground),
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center,
-                },
-            },
-        };
+        var editor = new EditorAreaViewModel();
+        editor.Open("sample-a", "Sample A", Document("Sample A"));
+        editor.Open("sample-b", "Sample B", Document("Sample B"));
+        editor.Area.DropTab("sample-b", editor.Area.Groups[0], EditorDropSide.Right);
+
+        var editorControl = new ForgeEditorControl();
+        editorControl.Attach(editor);
+
+        var frame = new ForgeControl { EditorContent = editorControl };
 
         frame.Attach(shell);
 
@@ -92,4 +93,17 @@ internal sealed class SampleApp : Application
 
         return frame;
     }
+
+    private static Control Document(string title) => new Border
+    {
+        Background = new SolidColorBrush(ForgeColor.Parse("#1E1F22")),
+        Child = new TextBlock
+        {
+            Text = $"{title}\n\n把标签拖到另一个窗格中心合并",
+            TextAlignment = TextAlignment.Center,
+            Foreground = new SolidColorBrush(Palette.Foreground),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+        },
+    };
 }

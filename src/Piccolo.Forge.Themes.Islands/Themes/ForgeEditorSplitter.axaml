@@ -1,0 +1,14 @@
+<!--  ★ 编辑区的分割线。★ **不套模板**：只由主题给画笔。
+      它画的是"热区里居中的一条线"（抓取区 6px、线 1px），
+      模板要表达就得把 LineRect 也搬成绑定属性，收益抵不上绕这一道。
+
+      共同的规矩见本目录 Theme.axaml 的开头。  -->
+<ResourceDictionary
+    xmlns="https://github.com/avaloniaui"
+    xmlns:forge="clr-namespace:Piccolo.Forge.Avalonia;assembly=Piccolo.Forge.Avalonia"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ControlTheme TargetType="forge:ForgeEditorSplitter" x:Key="{x:Type forge:ForgeEditorSplitter}">
+        <Setter Property="LineBrush" Value="{DynamicResource Forge.Islands.EditorTabsBorder}" />
+    </ControlTheme>
+</ResourceDictionary>

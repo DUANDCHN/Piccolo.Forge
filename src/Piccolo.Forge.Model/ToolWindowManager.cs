@@ -1,4 +1,4 @@
-namespace Piccolo.Forge.Model;
+﻿namespace Piccolo.Forge.Model;
 
 /// <summary>
 /// 工具窗口的显示/隐藏/激活。
@@ -57,6 +57,16 @@ public sealed class ToolWindowManager
     /// <summary>最后一个活跃过的工具窗口。</summary>
     /// <remarks>读的是 activeStack 的**持久栈**（<c>ToolWindowManagerImpl.kt:737-740</c>）。</remarks>
     public string? LastActiveToolWindowId => _activeStack.PersistentStack.FirstOrDefault();
+
+    /// <summary>
+    /// **此刻**焦点在哪个工具窗口里；焦点不在任何工具窗口时为 <see langword="null"/>。
+    /// </summary>
+    /// <remarks>
+    /// 与 <see cref="LastActiveToolWindowId"/> 不是一回事：那个是"最后活跃过的"，只增不减，
+    /// 用来决定关掉当前窗口后焦点回哪儿；这个是"现在是不是它"，焦点一走就清空 ——
+    /// 条带按钮的选中态读的是它。
+    /// </remarks>
+    public string? ActiveToolWindowId { get; private set; }
 
     /// <summary>状态变了。</summary>
     public event EventHandler<ToolWindowStateChangedEventArgs>? StateChanged;
@@ -125,6 +135,12 @@ public sealed class ToolWindowManager
             Deactivate(info);
         }
 
+        // 收起来的那个当然不再是"焦点所在"
+        if (string.Equals(ActiveToolWindowId, id, StringComparison.Ordinal))
+        {
+            ActiveToolWindowId = null;
+        }
+
         if (removeFromStripe)
         {
             var current = Layout.GetInfo(id)!;
@@ -185,6 +201,12 @@ public sealed class ToolWindowManager
         }
 
         _activeStack.Push(id);
+        ActiveToolWindowId = id;
+
+        // 焦点到了这个面板 → 别的「失焦就收」的面板该收了
+        // （上游是全局焦点监听触发，见 AutoHideOthers；这里以"激活"为焦点转移的时机）
+        AutoHideOthers(id);
+
         OnStateChanged(ToolWindowChangeKind.Activated, id);
     }
 
@@ -202,8 +224,25 @@ public sealed class ToolWindowManager
     /// <summary>
     /// 编辑区拿到焦点：清空易失栈，持久栈不动。
     /// </summary>
-    /// <remarks>对应 <c>ToolWindowManagerLifecycle.kt:85-92</c>。</remarks>
-    public void OnEditorFocused() => _activeStack.Clear();
+    /// <remarks>
+    /// 对应 <c>ToolWindowManagerLifecycle.kt:85-92</c>。焦点离开了所有工具窗口，
+    /// 所以「失焦就收」的那些也一并收起（同一处上游代码里紧跟着的那件事）。
+    /// </remarks>
+    public void OnEditorFocused()
+    {
+        var wasActive = ActiveToolWindowId;
+
+        _activeStack.Clear();
+        ActiveToolWindowId = null;
+        AutoHideOthers(exceptId: null);
+
+        // 焦点离开了工具窗口 —— 得说一声，否则条带按钮的选中态没人去灭。
+        // 借 Activated 这个 kind 报刚才那个 id：视图收到后重读"谁是活动的"，读出来是"没有"。
+        if (wasActive is not null)
+        {
+            OnStateChanged(ToolWindowChangeKind.Activated, wasActive);
+        }
+    }
 
     /// <summary>
     /// 焦点跑到别处时，该不该自动隐藏这个窗口。
@@ -239,6 +278,56 @@ public sealed class ToolWindowManager
 
         Deactivate(info);
         OnStateChanged(ToolWindowChangeKind.Hidden, id);
+        return true;
+    }
+
+    /// <summary>
+    /// 焦点落到别处了：把该自动收起的都收起来。
+    /// </summary>
+    /// <remarks>
+    /// 对应 <c>ToolWindowManagerLifecycle.kt:97-106 · 遍历所有 id 逐个
+    /// hideIfAutoHideToolWindowLostFocus</c>。上游是全局焦点监听触发的；这里由调用方
+    /// 在"焦点确实换了地方"的时刻调用（激活另一个面板、编辑区拿到焦点）。
+    /// </remarks>
+    /// <param name="exceptId">刚拿到焦点的那个工具窗口；焦点去了编辑区就传 <see langword="null"/>。</param>
+    /// <returns>被收起来的 id。</returns>
+    public IReadOnlyList<string> AutoHideOthers(string? exceptId)
+    {
+        var hidden = new List<string>();
+
+        foreach (var info in Layout.GetSortedList().ToList())
+        {
+            if (info.Id == exceptId || !ShouldAutoHideOnFocusLost(info))
+            {
+                continue;
+            }
+
+            if (AutoHideOnFocusLost(info.Id))
+            {
+                hidden.Add(info.Id);
+            }
+        }
+
+        return hidden;
+    }
+
+    /// <summary>
+    /// 设「失焦自动收起」。
+    /// </summary>
+    /// <remarks>对应 <c>ToolWindowManagerImpl.kt:1727-1740 · setToolWindowAutoHide</c>。</remarks>
+    /// <param name="id">工具窗口 id。</param>
+    /// <param name="autoHide">是否自动收起。</param>
+    /// <returns>确实改了则为 <see langword="true"/>。</returns>
+    public bool SetAutoHide(string id, bool autoHide)
+    {
+        var info = Layout.GetInfo(id) ?? throw new InvalidOperationException($"未注册的工具窗口：{id}");
+        if (info.IsAutoHide == autoHide)
+        {
+            return false;
+        }
+
+        Layout.SetInfo(info with { IsAutoHide = autoHide });
+        OnStateChanged(ToolWindowChangeKind.TypeChanged, id);
         return true;
     }
 
@@ -316,12 +405,51 @@ public sealed class ToolWindowManager
             Layout.SetUnifiedAnchorWeight(anchor, layout.GetUnifiedAnchorWeight(anchor));
         }
 
+        EnforceOneVisiblePerSlot();
+
         foreach (var id in applied)
         {
             OnStateChanged(ToolWindowChangeKind.Moved, id);
         }
 
         return applied;
+    }
+
+    /// <summary>
+    /// 一格里最多一个可见 —— 读档之后补这条不变量。
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Show"/> 与 <see cref="MoveTo"/> 一直在维护它（<see cref="HideOthersInSameSlot"/>），
+    /// 唯独 <see cref="SetLayout"/> 是**直接把存档写进台账**，一条都不判 ——
+    /// 于是存档里只要有「同一格两个都可见」，这个状态就永久留着，重启也修不好。
+    /// <para>
+    /// 症状很具体：那一格的两个条带按钮**都亮着背板**，而两块面板被排在同一个位置、
+    /// 后画的盖住前面的 —— 看起来就是「选中的是甲，开着的却是乙」；
+    /// 关掉乙，甲又冒出来。四个角里只有你手动摆过的那个角会这样，
+    /// 因为只有它的存档进过这种状态。
+    /// </para>
+    /// <para>
+    /// 留下**序号最小**的那个：确定性，且与条带上从上往下的次序一致；
+    /// 被挤掉的走 <see cref="Deactivate"/>，与 <see cref="HideOthersInSameSlot"/> 同一条路。
+    /// 外部形态（浮动 / 独立窗口）不占格，不参与。
+    /// </para>
+    /// </remarks>
+    private void EnforceOneVisiblePerSlot()
+    {
+        var seen = new HashSet<ToolWindowSlot>();
+
+        foreach (var info in Layout.GetSortedList().ToList())
+        {
+            if (!info.IsVisible || IsExternal(info.Type))
+            {
+                continue;
+            }
+
+            if (!seen.Add(info.Slot))
+            {
+                Deactivate(info);
+            }
+        }
     }
 
     /// <summary>
