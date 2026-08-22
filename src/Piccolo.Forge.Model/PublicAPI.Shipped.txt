@@ -1,1 +1,497 @@
 #nullable enable
+Piccolo.Forge.Model.ActiveStack<T>
+Piccolo.Forge.Model.ActiveStack<T>.ActiveStack() -> void
+Piccolo.Forge.Model.ActiveStack<T>.Clear() -> void
+Piccolo.Forge.Model.ActiveStack<T>.PeekPersistent(int index) -> T!
+Piccolo.Forge.Model.ActiveStack<T>.PersistentCount.get -> int
+Piccolo.Forge.Model.ActiveStack<T>.PersistentStack.get -> System.Collections.Generic.IReadOnlyList<T!>!
+Piccolo.Forge.Model.ActiveStack<T>.Push(T! item) -> void
+Piccolo.Forge.Model.ActiveStack<T>.Remove(T! item, bool removePersistentAlso) -> void
+Piccolo.Forge.Model.ActiveStack<T>.Stack.get -> System.Collections.Generic.IReadOnlyList<T!>!
+Piccolo.Forge.Model.DefaultToolWindowLayout
+Piccolo.Forge.Model.DesktopLayout
+Piccolo.Forge.Model.DesktopLayout.DesktopLayout() -> void
+Piccolo.Forge.Model.DesktopLayout.DesktopLayout(System.Collections.Generic.IEnumerable<Piccolo.Forge.Model.WindowInfo!>! infos) -> void
+Piccolo.Forge.Model.DesktopLayout.GetInfo(string! id) -> Piccolo.Forge.Model.WindowInfo?
+Piccolo.Forge.Model.DesktopLayout.GetNextOrder(string! paneId, Piccolo.Forge.Model.ToolWindowAnchor anchor) -> int
+Piccolo.Forge.Model.DesktopLayout.GetSortedList() -> System.Collections.Generic.IReadOnlyList<Piccolo.Forge.Model.WindowInfo!>!
+Piccolo.Forge.Model.DesktopLayout.GetUnifiedAnchorWeight(Piccolo.Forge.Model.ToolWindowAnchor anchor) -> float
+Piccolo.Forge.Model.DesktopLayout.NormalizeOrder() -> void
+Piccolo.Forge.Model.DesktopLayout.SetAnchor(string! id, string! newPaneId, Piccolo.Forge.Model.ToolWindowAnchor newAnchor, int newOrder) -> System.Collections.Generic.IReadOnlyList<Piccolo.Forge.Model.WindowInfo!>!
+Piccolo.Forge.Model.DesktopLayout.SetInfo(Piccolo.Forge.Model.WindowInfo! info) -> void
+Piccolo.Forge.Model.DesktopLayout.SetSideToolAndAnchor(string! id, string! newPaneId, Piccolo.Forge.Model.ToolWindowAnchor newAnchor, int newOrder, bool isSplit) -> System.Collections.Generic.IReadOnlyList<Piccolo.Forge.Model.WindowInfo!>!
+Piccolo.Forge.Model.DesktopLayout.SetUnifiedAnchorWeight(Piccolo.Forge.Model.ToolWindowAnchor anchor, float weight) -> void
+Piccolo.Forge.Model.EditorArea
+Piccolo.Forge.Model.EditorArea.ArrangeGrid(System.Collections.Generic.IReadOnlyList<string!>! tabIds, int rows, int cols) -> bool
+Piccolo.Forge.Model.EditorArea.Changed -> System.EventHandler?
+Piccolo.Forge.Model.EditorArea.Close(string! id) -> bool
+Piccolo.Forge.Model.EditorArea.CloseAll(string! id) -> int
+Piccolo.Forge.Model.EditorArea.CloseOthers(string! id) -> int
+Piccolo.Forge.Model.EditorArea.CloseToTheLeft(string! id) -> int
+Piccolo.Forge.Model.EditorArea.CloseToTheRight(string! id) -> int
+Piccolo.Forge.Model.EditorArea.CollapseToSingleGroup() -> Piccolo.Forge.Model.EditorGroup!
+Piccolo.Forge.Model.EditorArea.CurrentGroup.get -> Piccolo.Forge.Model.EditorGroup!
+Piccolo.Forge.Model.EditorArea.DropTab(string! tabId, Piccolo.Forge.Model.EditorGroup! source, Piccolo.Forge.Model.EditorGroup! target, Piccolo.Forge.Model.EditorDropSide side) -> bool
+Piccolo.Forge.Model.EditorArea.DropTab(string! tabId, Piccolo.Forge.Model.EditorGroup! target, Piccolo.Forge.Model.EditorDropSide side) -> bool
+Piccolo.Forge.Model.EditorArea.EditorArea() -> void
+Piccolo.Forge.Model.EditorArea.Groups.get -> System.Collections.Generic.IReadOnlyList<Piccolo.Forge.Model.EditorGroup!>!
+Piccolo.Forge.Model.EditorArea.MaximizeOrNormalize(Piccolo.Forge.Model.EditorGroup! group) -> bool
+Piccolo.Forge.Model.EditorArea.Open(Piccolo.Forge.Model.EditorTab tab, bool select = true) -> void
+Piccolo.Forge.Model.EditorArea.Refresh() -> void
+Piccolo.Forge.Model.EditorArea.RemoveGroup(Piccolo.Forge.Model.EditorGroup! group) -> bool
+Piccolo.Forge.Model.EditorArea.ReorderTab(string! sourceId, string! targetId) -> bool
+Piccolo.Forge.Model.EditorArea.Root.get -> Piccolo.Forge.Model.EditorNode!
+Piccolo.Forge.Model.EditorArea.Select(string! id) -> bool
+Piccolo.Forge.Model.EditorArea.SetCurrentGroup(Piccolo.Forge.Model.EditorGroup! group) -> void
+Piccolo.Forge.Model.EditorArea.SetPinned(string! id, bool pinned) -> bool
+Piccolo.Forge.Model.EditorArea.SetProportion(Piccolo.Forge.Model.EditorSplit! split, float proportion) -> bool
+Piccolo.Forge.Model.EditorArea.Split(Piccolo.Forge.Model.EditorGroup! group, bool isVertical, string? tabId = null, bool newGroupIsSecond = true) -> Piccolo.Forge.Model.EditorGroup?
+Piccolo.Forge.Model.EditorArea.TabClosed -> System.EventHandler<Piccolo.Forge.Model.EditorTabClosedEventArgs!>?
+Piccolo.Forge.Model.EditorArea.TabClosing -> System.EventHandler<Piccolo.Forge.Model.EditorTabClosingEventArgs!>?
+Piccolo.Forge.Model.EditorArea.Unsplit(Piccolo.Forge.Model.EditorGroup! group, int tabLimit = 30) -> bool
+Piccolo.Forge.Model.EditorArea.UnsplitAll(Piccolo.Forge.Model.EditorGroup! group) -> void
+Piccolo.Forge.Model.EditorDropPolicy
+Piccolo.Forge.Model.EditorDropSide
+Piccolo.Forge.Model.EditorDropSide.Bottom = 4 -> Piccolo.Forge.Model.EditorDropSide
+Piccolo.Forge.Model.EditorDropSide.Center = 1 -> Piccolo.Forge.Model.EditorDropSide
+Piccolo.Forge.Model.EditorDropSide.Left = 3 -> Piccolo.Forge.Model.EditorDropSide
+Piccolo.Forge.Model.EditorDropSide.None = 0 -> Piccolo.Forge.Model.EditorDropSide
+Piccolo.Forge.Model.EditorDropSide.Right = 5 -> Piccolo.Forge.Model.EditorDropSide
+Piccolo.Forge.Model.EditorDropSide.Top = 2 -> Piccolo.Forge.Model.EditorDropSide
+Piccolo.Forge.Model.EditorGridPolicy
+Piccolo.Forge.Model.EditorGroup
+Piccolo.Forge.Model.EditorGroup.Add(Piccolo.Forge.Model.EditorTab tab, bool select = true, int index = -1) -> void
+Piccolo.Forge.Model.EditorGroup.Close(string! id, System.Collections.Generic.IReadOnlyList<string!>? history = null, bool activeMruEditorOnClose = false, bool activeRightEditorOnClose = false) -> bool
+Piccolo.Forge.Model.EditorGroup.EditorGroup() -> void
+Piccolo.Forge.Model.EditorGroup.PreviousSelectedId.get -> string?
+Piccolo.Forge.Model.EditorGroup.PromoteFromPreview(string! id) -> bool
+Piccolo.Forge.Model.EditorGroup.Reorder(string! sourceId, string! targetId) -> bool
+Piccolo.Forge.Model.EditorGroup.Select(string! id) -> bool
+Piccolo.Forge.Model.EditorGroup.SelectedId.get -> string?
+Piccolo.Forge.Model.EditorGroup.SetPinned(string! id, bool pinned) -> bool
+Piccolo.Forge.Model.EditorGroup.Tabs.get -> System.Collections.Generic.IReadOnlyList<Piccolo.Forge.Model.EditorTab>!
+Piccolo.Forge.Model.EditorGroup.TrimToSize(int tabLimit = 30, string? keepId = null, System.Collections.Generic.IReadOnlySet<string!>? modifiedIds = null, bool closeNonModifiedFilesFirst = false) -> System.Collections.Generic.IReadOnlyList<string!>!
+Piccolo.Forge.Model.EditorLayoutSerializer
+Piccolo.Forge.Model.EditorNode
+Piccolo.Forge.Model.EditorNode.EditorNode() -> void
+Piccolo.Forge.Model.EditorSelectionPolicy
+Piccolo.Forge.Model.EditorSplit
+Piccolo.Forge.Model.EditorSplit.EditorSplit(Piccolo.Forge.Model.EditorNode! first, Piccolo.Forge.Model.EditorNode! second, bool isVertical, float proportion = 0.5) -> void
+Piccolo.Forge.Model.EditorSplit.First.get -> Piccolo.Forge.Model.EditorNode!
+Piccolo.Forge.Model.EditorSplit.IsVertical.get -> bool
+Piccolo.Forge.Model.EditorSplit.Proportion.get -> float
+Piccolo.Forge.Model.EditorSplit.Proportion.set -> void
+Piccolo.Forge.Model.EditorSplit.Second.get -> Piccolo.Forge.Model.EditorNode!
+Piccolo.Forge.Model.EditorTab
+Piccolo.Forge.Model.EditorTab.Deconstruct(out string! Id, out string! Title, out bool IsPinned, out bool IsPreview, out bool IsCloseable, out bool IsInHistory) -> void
+Piccolo.Forge.Model.EditorTab.EditorTab() -> void
+Piccolo.Forge.Model.EditorTab.EditorTab(string! Id, string! Title, bool IsPinned = false, bool IsPreview = false, bool IsCloseable = true, bool IsInHistory = true) -> void
+Piccolo.Forge.Model.EditorTab.Equals(Piccolo.Forge.Model.EditorTab other) -> bool
+Piccolo.Forge.Model.EditorTab.Id.get -> string!
+Piccolo.Forge.Model.EditorTab.Id.init -> void
+Piccolo.Forge.Model.EditorTab.IsCloseable.get -> bool
+Piccolo.Forge.Model.EditorTab.IsCloseable.init -> void
+Piccolo.Forge.Model.EditorTab.IsInHistory.get -> bool
+Piccolo.Forge.Model.EditorTab.IsInHistory.init -> void
+Piccolo.Forge.Model.EditorTab.IsPinned.get -> bool
+Piccolo.Forge.Model.EditorTab.IsPinned.init -> void
+Piccolo.Forge.Model.EditorTab.IsPreview.get -> bool
+Piccolo.Forge.Model.EditorTab.IsPreview.init -> void
+Piccolo.Forge.Model.EditorTab.Title.get -> string!
+Piccolo.Forge.Model.EditorTab.Title.init -> void
+Piccolo.Forge.Model.EditorTabClosedEventArgs
+Piccolo.Forge.Model.EditorTabClosedEventArgs.EditorTabClosedEventArgs(Piccolo.Forge.Model.EditorTab tab) -> void
+Piccolo.Forge.Model.EditorTabClosedEventArgs.Tab.get -> Piccolo.Forge.Model.EditorTab
+Piccolo.Forge.Model.EditorTabClosingEventArgs
+Piccolo.Forge.Model.EditorTabClosingEventArgs.Cancel.get -> bool
+Piccolo.Forge.Model.EditorTabClosingEventArgs.Cancel.set -> void
+Piccolo.Forge.Model.EditorTabClosingEventArgs.EditorTabClosingEventArgs(Piccolo.Forge.Model.EditorTab tab) -> void
+Piccolo.Forge.Model.EditorTabClosingEventArgs.Tab.get -> Piccolo.Forge.Model.EditorTab
+Piccolo.Forge.Model.EditorTabContextMenu
+Piccolo.Forge.Model.EditorTabLimitPolicy
+Piccolo.Forge.Model.EditorTabMenuItem
+Piccolo.Forge.Model.EditorTabMenuItem.Deconstruct(out Piccolo.Forge.Model.EditorTabMenuItemKind Kind) -> void
+Piccolo.Forge.Model.EditorTabMenuItem.EditorTabMenuItem() -> void
+Piccolo.Forge.Model.EditorTabMenuItem.EditorTabMenuItem(Piccolo.Forge.Model.EditorTabMenuItemKind Kind) -> void
+Piccolo.Forge.Model.EditorTabMenuItem.Equals(Piccolo.Forge.Model.EditorTabMenuItem other) -> bool
+Piccolo.Forge.Model.EditorTabMenuItem.Kind.get -> Piccolo.Forge.Model.EditorTabMenuItemKind
+Piccolo.Forge.Model.EditorTabMenuItem.Kind.init -> void
+Piccolo.Forge.Model.EditorTabMenuItemKind
+Piccolo.Forge.Model.EditorTabMenuItemKind.Close = 1 -> Piccolo.Forge.Model.EditorTabMenuItemKind
+Piccolo.Forge.Model.EditorTabMenuItemKind.CloseAll = 3 -> Piccolo.Forge.Model.EditorTabMenuItemKind
+Piccolo.Forge.Model.EditorTabMenuItemKind.CloseOthers = 2 -> Piccolo.Forge.Model.EditorTabMenuItemKind
+Piccolo.Forge.Model.EditorTabMenuItemKind.CloseToTheLeft = 4 -> Piccolo.Forge.Model.EditorTabMenuItemKind
+Piccolo.Forge.Model.EditorTabMenuItemKind.CloseToTheRight = 5 -> Piccolo.Forge.Model.EditorTabMenuItemKind
+Piccolo.Forge.Model.EditorTabMenuItemKind.MoveToNewWindow = 11 -> Piccolo.Forge.Model.EditorTabMenuItemKind
+Piccolo.Forge.Model.EditorTabMenuItemKind.Separator = 0 -> Piccolo.Forge.Model.EditorTabMenuItemKind
+Piccolo.Forge.Model.EditorTabMenuItemKind.SplitAndMoveDown = 9 -> Piccolo.Forge.Model.EditorTabMenuItemKind
+Piccolo.Forge.Model.EditorTabMenuItemKind.SplitAndMoveRight = 8 -> Piccolo.Forge.Model.EditorTabMenuItemKind
+Piccolo.Forge.Model.EditorTabMenuItemKind.SplitDown = 7 -> Piccolo.Forge.Model.EditorTabMenuItemKind
+Piccolo.Forge.Model.EditorTabMenuItemKind.SplitRight = 6 -> Piccolo.Forge.Model.EditorTabMenuItemKind
+Piccolo.Forge.Model.EditorTabMenuItemKind.TogglePinned = 10 -> Piccolo.Forge.Model.EditorTabMenuItemKind
+Piccolo.Forge.Model.FloatingBounds
+Piccolo.Forge.Model.FloatingBounds.Deconstruct(out int X, out int Y, out int Width, out int Height) -> void
+Piccolo.Forge.Model.FloatingBounds.Equals(Piccolo.Forge.Model.FloatingBounds other) -> bool
+Piccolo.Forge.Model.FloatingBounds.FloatingBounds() -> void
+Piccolo.Forge.Model.FloatingBounds.FloatingBounds(int X, int Y, int Width, int Height) -> void
+Piccolo.Forge.Model.FloatingBounds.Height.get -> int
+Piccolo.Forge.Model.FloatingBounds.Height.init -> void
+Piccolo.Forge.Model.FloatingBounds.Width.get -> int
+Piccolo.Forge.Model.FloatingBounds.Width.init -> void
+Piccolo.Forge.Model.FloatingBounds.X.get -> int
+Piccolo.Forge.Model.FloatingBounds.X.init -> void
+Piccolo.Forge.Model.FloatingBounds.Y.get -> int
+Piccolo.Forge.Model.FloatingBounds.Y.init -> void
+Piccolo.Forge.Model.FloatingBoundsResolver
+Piccolo.Forge.Model.FloatingFade
+Piccolo.Forge.Model.FloatingFade.Deconstruct(out float StartRatio, out float EndRatio, out int TotalFrames) -> void
+Piccolo.Forge.Model.FloatingFade.EndRatio.get -> float
+Piccolo.Forge.Model.FloatingFade.EndRatio.init -> void
+Piccolo.Forge.Model.FloatingFade.Equals(Piccolo.Forge.Model.FloatingFade other) -> bool
+Piccolo.Forge.Model.FloatingFade.FloatingFade() -> void
+Piccolo.Forge.Model.FloatingFade.FloatingFade(float StartRatio, float EndRatio, int TotalFrames) -> void
+Piccolo.Forge.Model.FloatingFade.RatioAt(int frame) -> float
+Piccolo.Forge.Model.FloatingFade.StartRatio.get -> float
+Piccolo.Forge.Model.FloatingFade.StartRatio.init -> void
+Piccolo.Forge.Model.FloatingFade.TotalFrames.get -> int
+Piccolo.Forge.Model.FloatingFade.TotalFrames.init -> void
+Piccolo.Forge.Model.IEditorPanel
+Piccolo.Forge.Model.IForgePanel
+Piccolo.Forge.Model.IForgePanel.Icon.get -> object?
+Piccolo.Forge.Model.IForgePanel.Icon.set -> void
+Piccolo.Forge.Model.IForgePanel.Id.get -> string!
+Piccolo.Forge.Model.IForgePanel.Id.set -> void
+Piccolo.Forge.Model.IForgePanel.Title.get -> string!
+Piccolo.Forge.Model.IForgePanel.Title.set -> void
+Piccolo.Forge.Model.IToolWindowPanel
+Piccolo.Forge.Model.KeyGestureState
+Piccolo.Forge.Model.KeyGestureState.Hold = 3 -> Piccolo.Forge.Model.KeyGestureState
+Piccolo.Forge.Model.KeyGestureState.Pressed = 1 -> Piccolo.Forge.Model.KeyGestureState
+Piccolo.Forge.Model.KeyGestureState.Released = 2 -> Piccolo.Forge.Model.KeyGestureState
+Piccolo.Forge.Model.KeyGestureState.Waiting = 0 -> Piccolo.Forge.Model.KeyGestureState
+Piccolo.Forge.Model.SideStack
+Piccolo.Forge.Model.SideStack.Clear() -> void
+Piccolo.Forge.Model.SideStack.IsEmpty(Piccolo.Forge.Model.ToolWindowAnchor anchor) -> bool
+Piccolo.Forge.Model.SideStack.Pop(Piccolo.Forge.Model.ToolWindowAnchor anchor) -> Piccolo.Forge.Model.WindowInfo!
+Piccolo.Forge.Model.SideStack.Push(Piccolo.Forge.Model.WindowInfo! info) -> void
+Piccolo.Forge.Model.SideStack.Remove(string! id) -> void
+Piccolo.Forge.Model.SideStack.SideStack() -> void
+Piccolo.Forge.Model.StripeGroup
+Piccolo.Forge.Model.StripeGroup.Bottom = 1 -> Piccolo.Forge.Model.StripeGroup
+Piccolo.Forge.Model.StripeGroup.Top = 0 -> Piccolo.Forge.Model.StripeGroup
+Piccolo.Forge.Model.StripeGroupLayout
+Piccolo.Forge.Model.StripeItem
+Piccolo.Forge.Model.StripeItem.Deconstruct(out Piccolo.Forge.Model.WindowInfo? Window) -> void
+Piccolo.Forge.Model.StripeItem.Equals(Piccolo.Forge.Model.StripeItem other) -> bool
+Piccolo.Forge.Model.StripeItem.IsSeparator.get -> bool
+Piccolo.Forge.Model.StripeItem.StripeItem() -> void
+Piccolo.Forge.Model.StripeItem.StripeItem(Piccolo.Forge.Model.WindowInfo? Window) -> void
+Piccolo.Forge.Model.StripeItem.Window.get -> Piccolo.Forge.Model.WindowInfo?
+Piccolo.Forge.Model.StripeItem.Window.init -> void
+Piccolo.Forge.Model.StripeOverlayState
+Piccolo.Forge.Model.StripeOverlayState.IsStripesOverlaid.get -> bool
+Piccolo.Forge.Model.StripeOverlayState.OnDoubleClickTimeout() -> void
+Piccolo.Forge.Model.StripeOverlayState.ProcessModifierKey(bool pressed) -> void
+Piccolo.Forge.Model.StripeOverlayState.Reset() -> void
+Piccolo.Forge.Model.StripeOverlayState.State.get -> Piccolo.Forge.Model.KeyGestureState
+Piccolo.Forge.Model.StripeOverlayState.StripeOverlayState() -> void
+Piccolo.Forge.Model.StripeOverlayState.SuppressDoubleClickHandler.get -> bool
+Piccolo.Forge.Model.StripeOverlayState.SuppressDoubleClickHandler.init -> void
+Piccolo.Forge.Model.StripePlacement
+Piccolo.Forge.Model.StripePlacement.Deconstruct(out Piccolo.Forge.Model.StripeSide Side, out Piccolo.Forge.Model.StripeGroup Group) -> void
+Piccolo.Forge.Model.StripePlacement.Equals(Piccolo.Forge.Model.StripePlacement other) -> bool
+Piccolo.Forge.Model.StripePlacement.Group.get -> Piccolo.Forge.Model.StripeGroup
+Piccolo.Forge.Model.StripePlacement.Group.init -> void
+Piccolo.Forge.Model.StripePlacement.Side.get -> Piccolo.Forge.Model.StripeSide
+Piccolo.Forge.Model.StripePlacement.Side.init -> void
+Piccolo.Forge.Model.StripePlacement.StripePlacement() -> void
+Piccolo.Forge.Model.StripePlacement.StripePlacement(Piccolo.Forge.Model.StripeSide Side, Piccolo.Forge.Model.StripeGroup Group) -> void
+Piccolo.Forge.Model.StripePlacementResolver
+Piccolo.Forge.Model.StripeSide
+Piccolo.Forge.Model.StripeSide.Left = 0 -> Piccolo.Forge.Model.StripeSide
+Piccolo.Forge.Model.StripeSide.Right = 1 -> Piccolo.Forge.Model.StripeSide
+Piccolo.Forge.Model.TabIconAction
+Piccolo.Forge.Model.TabIconAction.Close = 2 -> Piccolo.Forge.Model.TabIconAction
+Piccolo.Forge.Model.TabIconAction.CloseOthers = 3 -> Piccolo.Forge.Model.TabIconAction
+Piccolo.Forge.Model.TabIconAction.None = 0 -> Piccolo.Forge.Model.TabIconAction
+Piccolo.Forge.Model.TabIconAction.Unpin = 1 -> Piccolo.Forge.Model.TabIconAction
+Piccolo.Forge.Model.ToolWindowAnchor
+Piccolo.Forge.Model.ToolWindowAnchor.Bottom = 2 -> Piccolo.Forge.Model.ToolWindowAnchor
+Piccolo.Forge.Model.ToolWindowAnchor.Left = 1 -> Piccolo.Forge.Model.ToolWindowAnchor
+Piccolo.Forge.Model.ToolWindowAnchor.Right = 3 -> Piccolo.Forge.Model.ToolWindowAnchor
+Piccolo.Forge.Model.ToolWindowAnchor.Top = 0 -> Piccolo.Forge.Model.ToolWindowAnchor
+Piccolo.Forge.Model.ToolWindowAnchorExtensions
+Piccolo.Forge.Model.ToolWindowChangeKind
+Piccolo.Forge.Model.ToolWindowChangeKind.Activated = 2 -> Piccolo.Forge.Model.ToolWindowChangeKind
+Piccolo.Forge.Model.ToolWindowChangeKind.Hidden = 1 -> Piccolo.Forge.Model.ToolWindowChangeKind
+Piccolo.Forge.Model.ToolWindowChangeKind.Moved = 3 -> Piccolo.Forge.Model.ToolWindowChangeKind
+Piccolo.Forge.Model.ToolWindowChangeKind.Shown = 0 -> Piccolo.Forge.Model.ToolWindowChangeKind
+Piccolo.Forge.Model.ToolWindowChangeKind.TypeChanged = 4 -> Piccolo.Forge.Model.ToolWindowChangeKind
+Piccolo.Forge.Model.ToolWindowContent
+Piccolo.Forge.Model.ToolWindowContent.Deconstruct(out string! Id, out string! DisplayName, out bool IsCloseable, out bool IsPinned) -> void
+Piccolo.Forge.Model.ToolWindowContent.DisplayName.get -> string!
+Piccolo.Forge.Model.ToolWindowContent.DisplayName.init -> void
+Piccolo.Forge.Model.ToolWindowContent.Equals(Piccolo.Forge.Model.ToolWindowContent other) -> bool
+Piccolo.Forge.Model.ToolWindowContent.Id.get -> string!
+Piccolo.Forge.Model.ToolWindowContent.Id.init -> void
+Piccolo.Forge.Model.ToolWindowContent.IsCloseable.get -> bool
+Piccolo.Forge.Model.ToolWindowContent.IsCloseable.init -> void
+Piccolo.Forge.Model.ToolWindowContent.IsPinned.get -> bool
+Piccolo.Forge.Model.ToolWindowContent.IsPinned.init -> void
+Piccolo.Forge.Model.ToolWindowContent.ToolWindowContent() -> void
+Piccolo.Forge.Model.ToolWindowContent.ToolWindowContent(string! Id, string! DisplayName, bool IsCloseable = true, bool IsPinned = false) -> void
+Piccolo.Forge.Model.ToolWindowContentManager
+Piccolo.Forge.Model.ToolWindowContentManager.Add(Piccolo.Forge.Model.ToolWindowContent content) -> void
+Piccolo.Forge.Model.ToolWindowContentManager.CanBeClosed(Piccolo.Forge.Model.ToolWindowContent content) -> bool
+Piccolo.Forge.Model.ToolWindowContentManager.CanCloseContents.get -> bool
+Piccolo.Forge.Model.ToolWindowContentManager.CanCloseContents.init -> void
+Piccolo.Forge.Model.ToolWindowContentManager.Contents.get -> System.Collections.Generic.IReadOnlyList<Piccolo.Forge.Model.ToolWindowContent>!
+Piccolo.Forge.Model.ToolWindowContentManager.InvokeIconAction(string! id, bool isAltPressed = false) -> Piccolo.Forge.Model.TabIconAction
+Piccolo.Forge.Model.ToolWindowContentManager.IsSoleContent.get -> bool
+Piccolo.Forge.Model.ToolWindowContentManager.MoveTo(string! id, int insertionIndex) -> bool
+Piccolo.Forge.Model.ToolWindowContentManager.Remove(string! id) -> bool
+Piccolo.Forge.Model.ToolWindowContentManager.Reorder(string! sourceId, string! targetId) -> bool
+Piccolo.Forge.Model.ToolWindowContentManager.Reordered -> System.EventHandler?
+Piccolo.Forge.Model.ToolWindowContentManager.ResolveIconAction(string! id, bool isAltPressed = false) -> Piccolo.Forge.Model.TabIconAction
+Piccolo.Forge.Model.ToolWindowContentManager.Select(string! id) -> bool
+Piccolo.Forge.Model.ToolWindowContentManager.SelectedContent.get -> Piccolo.Forge.Model.ToolWindowContent?
+Piccolo.Forge.Model.ToolWindowContentManager.SelectionChanged -> System.EventHandler?
+Piccolo.Forge.Model.ToolWindowContentManager.ToolWindowContentManager() -> void
+Piccolo.Forge.Model.ToolWindowContentUiType
+Piccolo.Forge.Model.ToolWindowContentUiType.Combo = 1 -> Piccolo.Forge.Model.ToolWindowContentUiType
+Piccolo.Forge.Model.ToolWindowContentUiType.Tabbed = 0 -> Piccolo.Forge.Model.ToolWindowContentUiType
+Piccolo.Forge.Model.ToolWindowContextMenu
+Piccolo.Forge.Model.ToolWindowLayoutSerializer
+Piccolo.Forge.Model.ToolWindowManager
+Piccolo.Forge.Model.ToolWindowManager.Activate(string! id) -> void
+Piccolo.Forge.Model.ToolWindowManager.ActiveToolWindowId.get -> string?
+Piccolo.Forge.Model.ToolWindowManager.AutoHideOnFocusLost(string! id) -> bool
+Piccolo.Forge.Model.ToolWindowManager.AutoHideOthers(string? exceptId) -> System.Collections.Generic.IReadOnlyList<string!>!
+Piccolo.Forge.Model.ToolWindowManager.FindToolWindowToFocus() -> string?
+Piccolo.Forge.Model.ToolWindowManager.Hide(string! id, bool hideSide = false, bool removeFromStripe = false) -> bool
+Piccolo.Forge.Model.ToolWindowManager.IsStackEnabled.get -> bool
+Piccolo.Forge.Model.ToolWindowManager.IsUnifiedToolWindowSizesEnabled.get -> bool
+Piccolo.Forge.Model.ToolWindowManager.IsUnifiedToolWindowSizesEnabled.init -> void
+Piccolo.Forge.Model.ToolWindowManager.LastActiveToolWindowId.get -> string?
+Piccolo.Forge.Model.ToolWindowManager.Layout.get -> Piccolo.Forge.Model.DesktopLayout!
+Piccolo.Forge.Model.ToolWindowManager.MoveTo(string! id, Piccolo.Forge.Model.ToolWindowAnchor anchor, int order, bool isSplit, string! paneId = "root") -> void
+Piccolo.Forge.Model.ToolWindowManager.OnEditorFocused() -> void
+Piccolo.Forge.Model.ToolWindowManager.RecentToolWindows.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Piccolo.Forge.Model.ToolWindowManager.ResolveInternalType(string! id) -> Piccolo.Forge.Model.ToolWindowType
+Piccolo.Forge.Model.ToolWindowManager.SetAutoHide(string! id, bool autoHide) -> bool
+Piccolo.Forge.Model.ToolWindowManager.SetLayout(Piccolo.Forge.Model.DesktopLayout! layout) -> System.Collections.Generic.IReadOnlyList<string!>!
+Piccolo.Forge.Model.ToolWindowManager.SetType(string! id, Piccolo.Forge.Model.ToolWindowType type) -> bool
+Piccolo.Forge.Model.ToolWindowManager.Show(string! id) -> bool
+Piccolo.Forge.Model.ToolWindowManager.StateChanged -> System.EventHandler<Piccolo.Forge.Model.ToolWindowStateChangedEventArgs!>?
+Piccolo.Forge.Model.ToolWindowManager.ToolWindowManager(Piccolo.Forge.Model.DesktopLayout! layout, bool isStackEnabled = false) -> void
+Piccolo.Forge.Model.ToolWindowMenuItem
+Piccolo.Forge.Model.ToolWindowMenuItem.Anchor.get -> Piccolo.Forge.Model.ToolWindowAnchor?
+Piccolo.Forge.Model.ToolWindowMenuItem.Anchor.init -> void
+Piccolo.Forge.Model.ToolWindowMenuItem.Deconstruct(out Piccolo.Forge.Model.ToolWindowMenuItemKind Kind, out Piccolo.Forge.Model.ToolWindowAnchor? Anchor, out bool IsSplit, out Piccolo.Forge.Model.ToolWindowViewMode? ViewMode) -> void
+Piccolo.Forge.Model.ToolWindowMenuItem.Equals(Piccolo.Forge.Model.ToolWindowMenuItem other) -> bool
+Piccolo.Forge.Model.ToolWindowMenuItem.IsSplit.get -> bool
+Piccolo.Forge.Model.ToolWindowMenuItem.IsSplit.init -> void
+Piccolo.Forge.Model.ToolWindowMenuItem.Kind.get -> Piccolo.Forge.Model.ToolWindowMenuItemKind
+Piccolo.Forge.Model.ToolWindowMenuItem.Kind.init -> void
+Piccolo.Forge.Model.ToolWindowMenuItem.ToolWindowMenuItem() -> void
+Piccolo.Forge.Model.ToolWindowMenuItem.ToolWindowMenuItem(Piccolo.Forge.Model.ToolWindowMenuItemKind Kind, Piccolo.Forge.Model.ToolWindowAnchor? Anchor = null, bool IsSplit = false, Piccolo.Forge.Model.ToolWindowViewMode? ViewMode = null) -> void
+Piccolo.Forge.Model.ToolWindowMenuItem.ViewMode.get -> Piccolo.Forge.Model.ToolWindowViewMode?
+Piccolo.Forge.Model.ToolWindowMenuItem.ViewMode.init -> void
+Piccolo.Forge.Model.ToolWindowMenuItemKind
+Piccolo.Forge.Model.ToolWindowMenuItemKind.Hide = 1 -> Piccolo.Forge.Model.ToolWindowMenuItemKind
+Piccolo.Forge.Model.ToolWindowMenuItemKind.MoveTo = 2 -> Piccolo.Forge.Model.ToolWindowMenuItemKind
+Piccolo.Forge.Model.ToolWindowMenuItemKind.Separator = 0 -> Piccolo.Forge.Model.ToolWindowMenuItemKind
+Piccolo.Forge.Model.ToolWindowMenuItemKind.ToggleShowNames = 3 -> Piccolo.Forge.Model.ToolWindowMenuItemKind
+Piccolo.Forge.Model.ToolWindowMenuItemKind.ViewMode = 4 -> Piccolo.Forge.Model.ToolWindowMenuItemKind
+Piccolo.Forge.Model.ToolWindowSlot
+Piccolo.Forge.Model.ToolWindowSlot.Anchor.get -> Piccolo.Forge.Model.ToolWindowAnchor
+Piccolo.Forge.Model.ToolWindowSlot.Anchor.init -> void
+Piccolo.Forge.Model.ToolWindowSlot.Deconstruct(out string! PaneId, out Piccolo.Forge.Model.ToolWindowAnchor Anchor, out bool IsSplit, out Piccolo.Forge.Model.ToolWindowType Type) -> void
+Piccolo.Forge.Model.ToolWindowSlot.Equals(Piccolo.Forge.Model.ToolWindowSlot other) -> bool
+Piccolo.Forge.Model.ToolWindowSlot.IsSplit.get -> bool
+Piccolo.Forge.Model.ToolWindowSlot.IsSplit.init -> void
+Piccolo.Forge.Model.ToolWindowSlot.PaneId.get -> string!
+Piccolo.Forge.Model.ToolWindowSlot.PaneId.init -> void
+Piccolo.Forge.Model.ToolWindowSlot.ToolWindowSlot() -> void
+Piccolo.Forge.Model.ToolWindowSlot.ToolWindowSlot(string! PaneId, Piccolo.Forge.Model.ToolWindowAnchor Anchor, bool IsSplit, Piccolo.Forge.Model.ToolWindowType Type) -> void
+Piccolo.Forge.Model.ToolWindowSlot.Type.get -> Piccolo.Forge.Model.ToolWindowType
+Piccolo.Forge.Model.ToolWindowSlot.Type.init -> void
+Piccolo.Forge.Model.ToolWindowStackOptions
+Piccolo.Forge.Model.ToolWindowStateChangedEventArgs
+Piccolo.Forge.Model.ToolWindowStateChangedEventArgs.Id.get -> string!
+Piccolo.Forge.Model.ToolWindowStateChangedEventArgs.Kind.get -> Piccolo.Forge.Model.ToolWindowChangeKind
+Piccolo.Forge.Model.ToolWindowStateChangedEventArgs.ToolWindowStateChangedEventArgs(Piccolo.Forge.Model.ToolWindowChangeKind kind, string! id) -> void
+Piccolo.Forge.Model.ToolWindowType
+Piccolo.Forge.Model.ToolWindowType.Docked = 0 -> Piccolo.Forge.Model.ToolWindowType
+Piccolo.Forge.Model.ToolWindowType.Floating = 1 -> Piccolo.Forge.Model.ToolWindowType
+Piccolo.Forge.Model.ToolWindowType.Sliding = 2 -> Piccolo.Forge.Model.ToolWindowType
+Piccolo.Forge.Model.ToolWindowType.Windowed = 3 -> Piccolo.Forge.Model.ToolWindowType
+Piccolo.Forge.Model.ToolWindowViewMode
+Piccolo.Forge.Model.ToolWindowViewMode.DockPinned = 0 -> Piccolo.Forge.Model.ToolWindowViewMode
+Piccolo.Forge.Model.ToolWindowViewMode.DockUnpinned = 1 -> Piccolo.Forge.Model.ToolWindowViewMode
+Piccolo.Forge.Model.ToolWindowViewMode.Float = 3 -> Piccolo.Forge.Model.ToolWindowViewMode
+Piccolo.Forge.Model.ToolWindowViewMode.Undock = 2 -> Piccolo.Forge.Model.ToolWindowViewMode
+Piccolo.Forge.Model.ToolWindowViewMode.Window = 4 -> Piccolo.Forge.Model.ToolWindowViewMode
+Piccolo.Forge.Model.ToolWindowViewModes
+Piccolo.Forge.Model.WindowInfo
+Piccolo.Forge.Model.WindowInfo.<Clone>$() -> Piccolo.Forge.Model.WindowInfo!
+Piccolo.Forge.Model.WindowInfo.Anchor.get -> Piccolo.Forge.Model.ToolWindowAnchor
+Piccolo.Forge.Model.WindowInfo.Anchor.init -> void
+Piccolo.Forge.Model.WindowInfo.ContentOrder.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Piccolo.Forge.Model.WindowInfo.ContentOrder.init -> void
+Piccolo.Forge.Model.WindowInfo.ContentUiType.get -> Piccolo.Forge.Model.ToolWindowContentUiType
+Piccolo.Forge.Model.WindowInfo.ContentUiType.init -> void
+Piccolo.Forge.Model.WindowInfo.Equals(Piccolo.Forge.Model.WindowInfo? other) -> bool
+Piccolo.Forge.Model.WindowInfo.FloatingBounds.get -> Piccolo.Forge.Model.FloatingBounds?
+Piccolo.Forge.Model.WindowInfo.FloatingBounds.init -> void
+Piccolo.Forge.Model.WindowInfo.Id.get -> string!
+Piccolo.Forge.Model.WindowInfo.Id.init -> void
+Piccolo.Forge.Model.WindowInfo.InternalType.get -> Piccolo.Forge.Model.ToolWindowType
+Piccolo.Forge.Model.WindowInfo.InternalType.init -> void
+Piccolo.Forge.Model.WindowInfo.IsActiveOnStart.get -> bool
+Piccolo.Forge.Model.WindowInfo.IsActiveOnStart.init -> void
+Piccolo.Forge.Model.WindowInfo.IsAutoHide.get -> bool
+Piccolo.Forge.Model.WindowInfo.IsAutoHide.init -> void
+Piccolo.Forge.Model.WindowInfo.IsDocked.get -> bool
+Piccolo.Forge.Model.WindowInfo.IsFromPersistentSettings.get -> bool
+Piccolo.Forge.Model.WindowInfo.IsFromPersistentSettings.init -> void
+Piccolo.Forge.Model.WindowInfo.IsMaximized.get -> bool
+Piccolo.Forge.Model.WindowInfo.IsMaximized.init -> void
+Piccolo.Forge.Model.WindowInfo.IsShowStripeButton.get -> bool
+Piccolo.Forge.Model.WindowInfo.IsShowStripeButton.init -> void
+Piccolo.Forge.Model.WindowInfo.IsSplit.get -> bool
+Piccolo.Forge.Model.WindowInfo.IsSplit.init -> void
+Piccolo.Forge.Model.WindowInfo.IsVisible.get -> bool
+Piccolo.Forge.Model.WindowInfo.IsVisible.init -> void
+Piccolo.Forge.Model.WindowInfo.Order.get -> int
+Piccolo.Forge.Model.WindowInfo.Order.init -> void
+Piccolo.Forge.Model.WindowInfo.PaneId.get -> string!
+Piccolo.Forge.Model.WindowInfo.PaneId.init -> void
+Piccolo.Forge.Model.WindowInfo.SideWeight.get -> float
+Piccolo.Forge.Model.WindowInfo.SideWeight.init -> void
+Piccolo.Forge.Model.WindowInfo.Slot.get -> Piccolo.Forge.Model.ToolWindowSlot
+Piccolo.Forge.Model.WindowInfo.Type.get -> Piccolo.Forge.Model.ToolWindowType
+Piccolo.Forge.Model.WindowInfo.Type.init -> void
+Piccolo.Forge.Model.WindowInfo.Weight.get -> float
+Piccolo.Forge.Model.WindowInfo.Weight.init -> void
+Piccolo.Forge.Model.WindowInfo.WindowInfo() -> void
+abstract Piccolo.Forge.Model.EditorNode.Groups.get -> System.Collections.Generic.IEnumerable<Piccolo.Forge.Model.EditorGroup!>!
+const Piccolo.Forge.Model.EditorDropPolicy.DefaultDragToSplitRatio = 0.2 -> double
+const Piccolo.Forge.Model.EditorDropPolicy.MaxRatio = 0.45 -> double
+const Piccolo.Forge.Model.EditorDropPolicy.MinRatio = 0.05 -> double
+const Piccolo.Forge.Model.EditorLayoutSerializer.FileTag = "file" -> string!
+const Piccolo.Forge.Model.EditorLayoutSerializer.FirstTag = "split-first" -> string!
+const Piccolo.Forge.Model.EditorLayoutSerializer.LeafTag = "leaf" -> string!
+const Piccolo.Forge.Model.EditorLayoutSerializer.SecondTag = "split-second" -> string!
+const Piccolo.Forge.Model.EditorLayoutSerializer.SplitterTag = "splitter" -> string!
+const Piccolo.Forge.Model.EditorSelectionPolicy.ActiveMruEditorOnCloseDefault = false -> bool
+const Piccolo.Forge.Model.EditorSelectionPolicy.ActiveRightEditorOnCloseDefault = false -> bool
+const Piccolo.Forge.Model.EditorSplit.DefaultProportion = 0.5 -> float
+const Piccolo.Forge.Model.EditorSplit.MaxProportion = 0.9 -> float
+const Piccolo.Forge.Model.EditorSplit.MinProportion = 0.1 -> float
+const Piccolo.Forge.Model.EditorTabLimitPolicy.CloseNonModifiedFilesFirstDefault = false -> bool
+const Piccolo.Forge.Model.EditorTabLimitPolicy.DefaultTabLimit = 30 -> int
+const Piccolo.Forge.Model.StripeOverlayState.DoubleClickTimeoutMs = 300 -> int
+const Piccolo.Forge.Model.ToolWindowLayoutSerializer.LayoutTag = "layout" -> string!
+const Piccolo.Forge.Model.ToolWindowLayoutSerializer.UnifiedWeightsTag = "unified_weights" -> string!
+const Piccolo.Forge.Model.ToolWindowLayoutSerializer.WindowInfoTag = "window_info" -> string!
+const Piccolo.Forge.Model.ToolWindowStackOptions.IsStackEnabledByDefault = false -> bool
+const Piccolo.Forge.Model.WindowInfo.DefaultPaneId = "root" -> string!
+const Piccolo.Forge.Model.WindowInfo.DefaultWeight = 0.33 -> float
+override Piccolo.Forge.Model.EditorGroup.Groups.get -> System.Collections.Generic.IEnumerable<Piccolo.Forge.Model.EditorGroup!>!
+override Piccolo.Forge.Model.EditorSplit.Groups.get -> System.Collections.Generic.IEnumerable<Piccolo.Forge.Model.EditorGroup!>!
+override Piccolo.Forge.Model.EditorTab.GetHashCode() -> int
+override Piccolo.Forge.Model.EditorTabMenuItem.GetHashCode() -> int
+override Piccolo.Forge.Model.FloatingBounds.GetHashCode() -> int
+override Piccolo.Forge.Model.FloatingFade.GetHashCode() -> int
+override Piccolo.Forge.Model.StripeItem.GetHashCode() -> int
+override Piccolo.Forge.Model.StripePlacement.GetHashCode() -> int
+override Piccolo.Forge.Model.ToolWindowContent.GetHashCode() -> int
+override Piccolo.Forge.Model.ToolWindowMenuItem.GetHashCode() -> int
+override Piccolo.Forge.Model.ToolWindowSlot.GetHashCode() -> int
+override Piccolo.Forge.Model.WindowInfo.Equals(object? obj) -> bool
+override Piccolo.Forge.Model.WindowInfo.GetHashCode() -> int
+override Piccolo.Forge.Model.WindowInfo.ToString() -> string!
+static Piccolo.Forge.Model.DefaultToolWindowLayout.CreateV2() -> Piccolo.Forge.Model.DesktopLayout!
+static Piccolo.Forge.Model.DesktopLayout.Comparer.get -> System.Collections.Generic.IComparer<Piccolo.Forge.Model.WindowInfo!>!
+static Piccolo.Forge.Model.EditorDropPolicy.IsSplit(Piccolo.Forge.Model.EditorDropSide side) -> bool
+static Piccolo.Forge.Model.EditorDropPolicy.IsVertical(Piccolo.Forge.Model.EditorDropSide side) -> bool
+static Piccolo.Forge.Model.EditorDropPolicy.NewGroupIsSecond(Piccolo.Forge.Model.EditorDropSide side) -> bool
+static Piccolo.Forge.Model.EditorDropPolicy.Resolve(double x, double y, double width, double height, double ratio = 0.2) -> Piccolo.Forge.Model.EditorDropSide
+static Piccolo.Forge.Model.EditorGridPolicy.IsDistinct(int tabCount, int rows, int cols, params (int Rows, int Cols)[]! smaller) -> bool
+static Piccolo.Forge.Model.EditorGridPolicy.Resolve(int tabCount, int rows, int cols) -> (int Rows, int Cols, int CellCount)
+static Piccolo.Forge.Model.EditorLayoutSerializer.Read(System.Xml.Linq.XElement! root) -> Piccolo.Forge.Model.EditorArea!
+static Piccolo.Forge.Model.EditorLayoutSerializer.Read(System.Xml.Linq.XElement! root, Piccolo.Forge.Model.EditorArea! area) -> void
+static Piccolo.Forge.Model.EditorLayoutSerializer.Write(Piccolo.Forge.Model.EditorArea! area) -> System.Xml.Linq.XElement!
+static Piccolo.Forge.Model.EditorSelectionPolicy.ComputeIndexToSelect(System.Collections.Generic.IReadOnlyList<Piccolo.Forge.Model.EditorTab>! tabs, int closingIndex, int selectedIndex, System.Collections.Generic.IReadOnlyList<string!>? history = null, bool activeMruEditorOnClose = false, bool activeRightEditorOnClose = false) -> int
+static Piccolo.Forge.Model.EditorSelectionPolicy.ComputeTabToSelect(System.Collections.Generic.IReadOnlyList<Piccolo.Forge.Model.EditorTab>! tabs, int closingIndex, int selectedIndex, string? previousSelectionId = null, System.Collections.Generic.IReadOnlyList<string!>? history = null, bool activeMruEditorOnClose = false, bool activeRightEditorOnClose = false) -> string?
+static Piccolo.Forge.Model.EditorTab.operator !=(Piccolo.Forge.Model.EditorTab left, Piccolo.Forge.Model.EditorTab right) -> bool
+static Piccolo.Forge.Model.EditorTab.operator ==(Piccolo.Forge.Model.EditorTab left, Piccolo.Forge.Model.EditorTab right) -> bool
+static Piccolo.Forge.Model.EditorTabContextMenu.Standard() -> System.Collections.Generic.IReadOnlyList<Piccolo.Forge.Model.EditorTabMenuItem>!
+static Piccolo.Forge.Model.EditorTabLimitPolicy.CanBeClosed(Piccolo.Forge.Model.EditorTab tab, string? keepId = null) -> bool
+static Piccolo.Forge.Model.EditorTabLimitPolicy.ComputeTabsToClose(System.Collections.Generic.IReadOnlyList<Piccolo.Forge.Model.EditorTab>! tabs, int tabLimit = 30, string? keepId = null, System.Collections.Generic.IReadOnlySet<string!>? modifiedIds = null, bool closeNonModifiedFilesFirst = false) -> System.Collections.Generic.IReadOnlyList<string!>!
+static Piccolo.Forge.Model.EditorTabLimitPolicy.IsUnderLimit(System.Collections.Generic.IReadOnlyList<Piccolo.Forge.Model.EditorTab>! tabs, int tabLimit, string? keepId = null) -> bool
+static Piccolo.Forge.Model.EditorTabMenuItem.operator !=(Piccolo.Forge.Model.EditorTabMenuItem left, Piccolo.Forge.Model.EditorTabMenuItem right) -> bool
+static Piccolo.Forge.Model.EditorTabMenuItem.operator ==(Piccolo.Forge.Model.EditorTabMenuItem left, Piccolo.Forge.Model.EditorTabMenuItem right) -> bool
+static Piccolo.Forge.Model.FloatingBounds.operator !=(Piccolo.Forge.Model.FloatingBounds left, Piccolo.Forge.Model.FloatingBounds right) -> bool
+static Piccolo.Forge.Model.FloatingBounds.operator ==(Piccolo.Forge.Model.FloatingBounds left, Piccolo.Forge.Model.FloatingBounds right) -> bool
+static Piccolo.Forge.Model.FloatingBoundsResolver.CenterOn(Piccolo.Forge.Model.FloatingBounds bounds, Piccolo.Forge.Model.FloatingBounds parent) -> Piccolo.Forge.Model.FloatingBounds
+static Piccolo.Forge.Model.FloatingBoundsResolver.IsValid(Piccolo.Forge.Model.FloatingBounds bounds, Piccolo.Forge.Model.FloatingBounds screen) -> bool
+static Piccolo.Forge.Model.FloatingBoundsResolver.MoveToFit(Piccolo.Forge.Model.FloatingBounds bounds, Piccolo.Forge.Model.FloatingBounds screen) -> Piccolo.Forge.Model.FloatingBounds
+static Piccolo.Forge.Model.FloatingBoundsResolver.Resolve(Piccolo.Forge.Model.FloatingBounds? stored, Piccolo.Forge.Model.FloatingBounds screen, (int Width, int Height) fallbackSize) -> (Piccolo.Forge.Model.FloatingBounds Bounds, bool NeedToCenter)
+static Piccolo.Forge.Model.FloatingFade.FlipFrame(int currentFrame, int totalFrames) -> int
+static Piccolo.Forge.Model.FloatingFade.OnActivated(float currentRatio, int totalFrames) -> Piccolo.Forge.Model.FloatingFade
+static Piccolo.Forge.Model.FloatingFade.OnDeactivated(float currentRatio, float targetRatio, int totalFrames) -> Piccolo.Forge.Model.FloatingFade
+static Piccolo.Forge.Model.FloatingFade.operator !=(Piccolo.Forge.Model.FloatingFade left, Piccolo.Forge.Model.FloatingFade right) -> bool
+static Piccolo.Forge.Model.FloatingFade.operator ==(Piccolo.Forge.Model.FloatingFade left, Piccolo.Forge.Model.FloatingFade right) -> bool
+static Piccolo.Forge.Model.StripeGroupLayout.Build(System.Collections.Generic.IEnumerable<Piccolo.Forge.Model.WindowInfo!>! windows, Piccolo.Forge.Model.ToolWindowAnchor anchor, bool useSeparator) -> System.Collections.Generic.IReadOnlyList<Piccolo.Forge.Model.StripeItem>!
+static Piccolo.Forge.Model.StripeItem.Separator.get -> Piccolo.Forge.Model.StripeItem
+static Piccolo.Forge.Model.StripeItem.operator !=(Piccolo.Forge.Model.StripeItem left, Piccolo.Forge.Model.StripeItem right) -> bool
+static Piccolo.Forge.Model.StripeItem.operator ==(Piccolo.Forge.Model.StripeItem left, Piccolo.Forge.Model.StripeItem right) -> bool
+static Piccolo.Forge.Model.StripePlacement.operator !=(Piccolo.Forge.Model.StripePlacement left, Piccolo.Forge.Model.StripePlacement right) -> bool
+static Piccolo.Forge.Model.StripePlacement.operator ==(Piccolo.Forge.Model.StripePlacement left, Piccolo.Forge.Model.StripePlacement right) -> bool
+static Piccolo.Forge.Model.StripePlacementResolver.CreateButtonLayoutComparer(Piccolo.Forge.Model.ToolWindowAnchor anchor) -> System.Collections.Generic.IComparer<Piccolo.Forge.Model.WindowInfo!>!
+static Piccolo.Forge.Model.StripePlacementResolver.Resolve(Piccolo.Forge.Model.ToolWindowAnchor anchor, bool isSplit) -> Piccolo.Forge.Model.StripePlacement
+static Piccolo.Forge.Model.ToolWindowAnchorExtensions.IsHorizontal(this Piccolo.Forge.Model.ToolWindowAnchor anchor) -> bool
+static Piccolo.Forge.Model.ToolWindowAnchorExtensions.ParseAnchorOrLeft(string? value) -> Piccolo.Forge.Model.ToolWindowAnchor
+static Piccolo.Forge.Model.ToolWindowAnchorExtensions.SortWeight(this Piccolo.Forge.Model.ToolWindowAnchor anchor) -> int
+static Piccolo.Forge.Model.ToolWindowAnchorExtensions.ToXmlValue(this Piccolo.Forge.Model.ToolWindowAnchor anchor) -> string!
+static Piccolo.Forge.Model.ToolWindowContent.operator !=(Piccolo.Forge.Model.ToolWindowContent left, Piccolo.Forge.Model.ToolWindowContent right) -> bool
+static Piccolo.Forge.Model.ToolWindowContent.operator ==(Piccolo.Forge.Model.ToolWindowContent left, Piccolo.Forge.Model.ToolWindowContent right) -> bool
+static Piccolo.Forge.Model.ToolWindowContextMenu.ForHeaderOptions(System.Collections.Generic.IReadOnlyList<Piccolo.Forge.Model.ToolWindowViewMode>! viewModes) -> System.Collections.Generic.IReadOnlyList<Piccolo.Forge.Model.ToolWindowMenuItem>!
+static Piccolo.Forge.Model.ToolWindowContextMenu.ForStripeBackground() -> System.Collections.Generic.IReadOnlyList<Piccolo.Forge.Model.ToolWindowMenuItem>!
+static Piccolo.Forge.Model.ToolWindowContextMenu.ForStripeButton() -> System.Collections.Generic.IReadOnlyList<Piccolo.Forge.Model.ToolWindowMenuItem>!
+static Piccolo.Forge.Model.ToolWindowContextMenu.Hide(Piccolo.Forge.Model.ToolWindowManager! manager, string! id) -> void
+static Piccolo.Forge.Model.ToolWindowLayoutSerializer.Read(System.Xml.Linq.XElement! root) -> Piccolo.Forge.Model.DesktopLayout!
+static Piccolo.Forge.Model.ToolWindowLayoutSerializer.Write(Piccolo.Forge.Model.DesktopLayout! layout) -> System.Xml.Linq.XElement!
+static Piccolo.Forge.Model.ToolWindowManager.IsExternal(Piccolo.Forge.Model.ToolWindowType type) -> bool
+static Piccolo.Forge.Model.ToolWindowManager.IsInternal(Piccolo.Forge.Model.ToolWindowType type) -> bool
+static Piccolo.Forge.Model.ToolWindowManager.ShouldAutoHideOnFocusLost(Piccolo.Forge.Model.WindowInfo! info) -> bool
+static Piccolo.Forge.Model.ToolWindowMenuItem.operator !=(Piccolo.Forge.Model.ToolWindowMenuItem left, Piccolo.Forge.Model.ToolWindowMenuItem right) -> bool
+static Piccolo.Forge.Model.ToolWindowMenuItem.operator ==(Piccolo.Forge.Model.ToolWindowMenuItem left, Piccolo.Forge.Model.ToolWindowMenuItem right) -> bool
+static Piccolo.Forge.Model.ToolWindowSlot.operator !=(Piccolo.Forge.Model.ToolWindowSlot left, Piccolo.Forge.Model.ToolWindowSlot right) -> bool
+static Piccolo.Forge.Model.ToolWindowSlot.operator ==(Piccolo.Forge.Model.ToolWindowSlot left, Piccolo.Forge.Model.ToolWindowSlot right) -> bool
+static Piccolo.Forge.Model.ToolWindowViewModes.Apply(Piccolo.Forge.Model.ToolWindowManager! manager, string! id, Piccolo.Forge.Model.ToolWindowViewMode mode) -> void
+static Piccolo.Forge.Model.ToolWindowViewModes.AutoHideOf(Piccolo.Forge.Model.ToolWindowViewMode mode) -> bool
+static Piccolo.Forge.Model.ToolWindowViewModes.Resolve(Piccolo.Forge.Model.WindowInfo! info) -> Piccolo.Forge.Model.ToolWindowViewMode
+static Piccolo.Forge.Model.ToolWindowViewModes.TypeOf(Piccolo.Forge.Model.ToolWindowViewMode mode) -> Piccolo.Forge.Model.ToolWindowType
+static Piccolo.Forge.Model.WindowInfo.operator !=(Piccolo.Forge.Model.WindowInfo? left, Piccolo.Forge.Model.WindowInfo? right) -> bool
+static Piccolo.Forge.Model.WindowInfo.operator ==(Piccolo.Forge.Model.WindowInfo? left, Piccolo.Forge.Model.WindowInfo? right) -> bool
+~override Piccolo.Forge.Model.EditorTab.Equals(object obj) -> bool
+~override Piccolo.Forge.Model.EditorTab.ToString() -> string
+~override Piccolo.Forge.Model.EditorTabMenuItem.Equals(object obj) -> bool
+~override Piccolo.Forge.Model.EditorTabMenuItem.ToString() -> string
+~override Piccolo.Forge.Model.FloatingBounds.Equals(object obj) -> bool
+~override Piccolo.Forge.Model.FloatingBounds.ToString() -> string
+~override Piccolo.Forge.Model.FloatingFade.Equals(object obj) -> bool
+~override Piccolo.Forge.Model.FloatingFade.ToString() -> string
+~override Piccolo.Forge.Model.StripeItem.Equals(object obj) -> bool
+~override Piccolo.Forge.Model.StripeItem.ToString() -> string
+~override Piccolo.Forge.Model.StripePlacement.Equals(object obj) -> bool
+~override Piccolo.Forge.Model.StripePlacement.ToString() -> string
+~override Piccolo.Forge.Model.ToolWindowContent.Equals(object obj) -> bool
+~override Piccolo.Forge.Model.ToolWindowContent.ToString() -> string
+~override Piccolo.Forge.Model.ToolWindowMenuItem.Equals(object obj) -> bool
+~override Piccolo.Forge.Model.ToolWindowMenuItem.ToString() -> string
+~override Piccolo.Forge.Model.ToolWindowSlot.Equals(object obj) -> bool
+~override Piccolo.Forge.Model.ToolWindowSlot.ToString() -> string

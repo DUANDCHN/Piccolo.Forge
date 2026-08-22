@@ -1,16 +1,1 @@
 #nullable enable
-Piccolo.Forge.Mvvm.CommunityToolkit.Controls.EditorPanel
-Piccolo.Forge.Mvvm.CommunityToolkit.Controls.EditorPanel.EditorPanel() -> void
-Piccolo.Forge.Mvvm.CommunityToolkit.Controls.EditorPanel.EditorPanel(string! id) -> void
-Piccolo.Forge.Mvvm.CommunityToolkit.Controls.ForgePanelBase
-Piccolo.Forge.Mvvm.CommunityToolkit.Controls.ForgePanelBase.ForgePanelBase() -> void
-Piccolo.Forge.Mvvm.CommunityToolkit.Controls.ForgePanelBase.ForgePanelBase(string! id) -> void
-Piccolo.Forge.Mvvm.CommunityToolkit.Controls.ForgePanelBase.Icon.get -> object?
-Piccolo.Forge.Mvvm.CommunityToolkit.Controls.ForgePanelBase.Icon.set -> void
-Piccolo.Forge.Mvvm.CommunityToolkit.Controls.ForgePanelBase.Id.get -> string!
-Piccolo.Forge.Mvvm.CommunityToolkit.Controls.ForgePanelBase.Id.set -> void
-Piccolo.Forge.Mvvm.CommunityToolkit.Controls.ForgePanelBase.Title.get -> string!
-Piccolo.Forge.Mvvm.CommunityToolkit.Controls.ForgePanelBase.Title.set -> void
-Piccolo.Forge.Mvvm.CommunityToolkit.Controls.ToolWindowPanel
-Piccolo.Forge.Mvvm.CommunityToolkit.Controls.ToolWindowPanel.ToolWindowPanel() -> void
-Piccolo.Forge.Mvvm.CommunityToolkit.Controls.ToolWindowPanel.ToolWindowPanel(string! id) -> void
