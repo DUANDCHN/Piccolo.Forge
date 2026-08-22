@@ -1,4 +1,5 @@
 ﻿using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Media;
@@ -45,6 +46,10 @@ public class ForgeContentTab : TabStripItem
 
     static ForgeContentTab()
     {
+        // 无障碍：读屏器按 AutomationProperties.Name 念标签名
+        TitleProperty.Changed.AddClassHandler<ForgeContentTab>(
+            (t, _) => AutomationProperties.SetName(t, t.Title ?? string.Empty));
+
         AffectsMeasure<ForgeContentTab>(
             TitleProperty, CanBeClosedProperty, TitleFontSizeProperty, TitleFontWeightProperty, IconSizeProperty);
 

@@ -1,4 +1,5 @@
 ﻿using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Media;
@@ -178,6 +179,10 @@ public class ForgeEditorTab : TabStripItem
 
     static ForgeEditorTab()
     {
+        // 无障碍：读屏器按 AutomationProperties.Name 念标签名
+        TitleProperty.Changed.AddClassHandler<ForgeEditorTab>(
+            (t, _) => AutomationProperties.SetName(t, t.Title ?? string.Empty));
+
         // ⚠ 这里原来有一串 AffectsRender（七个画刷）。现在 Render 只剩铺命中区，
         //   画面全由模板子元素出：画刷变化经 OnPropertyChanged → SyncDecoration 传给模板，
         //   下划线那两个直接被模板绑着 —— 那串已经不起作用（REQ-067）。

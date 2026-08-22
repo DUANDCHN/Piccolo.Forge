@@ -1,4 +1,5 @@
 ﻿using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Chrome;
 using Avalonia.Controls.Primitives;
@@ -59,6 +60,11 @@ public class ForgeToolWindowHeader : TemplatedControl
     /// <summary>建一个标题条。</summary>
     public ForgeToolWindowHeader()
     {
+        // 无障碍名：三颗内置按钮只有图标，读屏器念 AutomationProperties.Name（文案走 ForgeStrings）
+        AutomationProperties.SetName(_dock, ForgeStrings.Current.DockButton);
+        AutomationProperties.SetName(_options, ForgeStrings.Current.OptionsButton);
+        AutomationProperties.SetName(_hide, ForgeStrings.Current.HideButton);
+
         // ⚠ 子控件**不再**挂在这个控件身上（REQ-067 模板化）：ApplyTemplate 会清空
         //   VisualChildren，挂这儿等于每套一次模板被扫一次；LogicalChildren 也不能留
         //   —— 槽（Panel.Children）自己会认领逻辑父，两处都认就抛「already has a parent」。

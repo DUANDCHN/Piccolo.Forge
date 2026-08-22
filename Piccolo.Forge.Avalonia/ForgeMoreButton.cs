@@ -1,4 +1,5 @@
 ﻿using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Media;
 using Piccolo.Forge.Model;
 using Piccolo.Forge.Themes;
@@ -31,6 +32,9 @@ public class ForgeMoreButton : ForgeSquareButtonBase
     {
         AffectsRender<ForgeMoreButton>(SideProperty, ActiveSideProperty, HasHiddenToolWindowsProperty);
     }
+
+    /// <summary>建一个「更多」按钮；无障碍名走 <see cref="ForgeStrings"/>。</summary>
+    public ForgeMoreButton() => AutomationProperties.SetName(this, ForgeStrings.Current.MoreToolWindows);
 
     /// <summary>这个按钮长在哪根条带上。</summary>
     public StripeSide Side

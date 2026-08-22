@@ -24,6 +24,7 @@
             <Color x:Key="Forge.Islands.ButtonHoverBackground">#12000000</Color>  <!-- 上游 #00000012 -->
             <Color x:Key="Forge.Islands.StripeSeparator">#20000000</Color>  <!-- 上游 #00000020 -->
             <Color x:Key="Forge.Islands.StripeSeparatorDragAndDrop">#3871E1</Color>
+            <Color x:Key="Forge.Islands.StripeBadge">#E55765</Color>  <!-- 角标：expUI 的错误红（Notification.errorForeground 那一档） -->
             <Color x:Key="Forge.Islands.StripeBackground">#E9EAEE</Color>
             <Color x:Key="Forge.Islands.StripeBorder">#00000000</Color>  <!-- 上游 #00000000 -->
 
@@ -66,6 +67,7 @@
             <Color x:Key="Forge.Islands.ButtonHoverBackground">#16FFFFFF</Color>  <!-- 上游 #FFFFFF16 -->
             <Color x:Key="Forge.Islands.StripeSeparator">#21FFFFFF</Color>  <!-- 上游 #FFFFFF21 -->
             <Color x:Key="Forge.Islands.StripeSeparatorDragAndDrop">#3871E1</Color>
+            <Color x:Key="Forge.Islands.StripeBadge">#E55765</Color>
             <Color x:Key="Forge.Islands.StripeBackground">#26282C</Color>
             <Color x:Key="Forge.Islands.StripeBorder">#00000000</Color>  <!-- 上游 #00000000 -->
 

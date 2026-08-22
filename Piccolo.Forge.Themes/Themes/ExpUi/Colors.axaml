@@ -24,6 +24,7 @@
             <Color x:Key="Forge.ExpUi.ButtonHoverBackground">#12000000</Color>  <!-- 上游 #00000012 -->
             <Color x:Key="Forge.ExpUi.StripeSeparator">#C9CCD6</Color>
             <Color x:Key="Forge.ExpUi.StripeSeparatorDragAndDrop">#709CF5</Color>
+            <Color x:Key="Forge.ExpUi.StripeBadge">#E55765</Color>  <!-- 角标：expUI 的错误红（Notification.errorForeground 那一档） -->
             <Color x:Key="Forge.ExpUi.StripeBackground">#F7F8FA</Color>
             <Color x:Key="Forge.ExpUi.StripeBorder">#EBECF0</Color>
 
@@ -66,6 +67,7 @@
             <Color x:Key="Forge.ExpUi.ButtonHoverBackground">#16FFFFFF</Color>  <!-- 上游 #FFFFFF16 -->
             <Color x:Key="Forge.ExpUi.StripeSeparator">#43454A</Color>
             <Color x:Key="Forge.ExpUi.StripeSeparatorDragAndDrop">#548AF7</Color>
+            <Color x:Key="Forge.ExpUi.StripeBadge">#E55765</Color>
             <Color x:Key="Forge.ExpUi.StripeBackground">#2B2D30</Color>
             <Color x:Key="Forge.ExpUi.StripeBorder">#1E1F22</Color>
 

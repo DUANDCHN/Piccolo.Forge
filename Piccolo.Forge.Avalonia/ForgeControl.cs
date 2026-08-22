@@ -896,6 +896,19 @@ public class ForgeControl : TemplatedControl
             button = new ForgeStripeButton { Tag = vm };
             WireStripeButton(button, vm);
             _stripeButtons[vm.Id] = button;
+
+            // 标题 / 图标 / 角标改了**即时**跟到按钮上，不等下一次 Sync（角标尤其要即时：它报的是"刚出事"）。
+            // 按钮与 VM 同寿（都活到外壳拆掉），不解订阅。
+            var captured = button;
+            vm.PropertyChanged += (_, e) =>
+            {
+                switch (e.PropertyName)
+                {
+                    case nameof(ToolWindowViewModel.HasBadge): captured.HasBadge = vm.HasBadge; break;
+                    case nameof(ToolWindowViewModel.Title): captured.Title = vm.Title; captured.Text = vm.Icon is null ? vm.Title[..1] : null; break;
+                    case nameof(ToolWindowViewModel.Icon): captured.Icon = vm.Icon; captured.Text = vm.Icon is null ? vm.Title[..1] : null; break;
+                }
+            };
         }
 
         button.Palette = Palette;
@@ -919,6 +932,7 @@ public class ForgeControl : TemplatedControl
         button.Icon = vm.Icon;
         button.Text = vm.Icon is null ? vm.Title[..1] : null;
         button.Title = vm.Title;
+        button.HasBadge = vm.HasBadge;
         button.ShowName = ShowToolWindowNames;
         button.StripeWidth = ShowToolWindowNames ? ResolvedStripeNamedWidth : 0;
         button.IsToolWindowVisible = vm.IsOpen;

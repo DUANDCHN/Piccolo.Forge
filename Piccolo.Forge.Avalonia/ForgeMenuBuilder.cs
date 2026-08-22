@@ -161,7 +161,7 @@ public static class ForgeMenuBuilder
                 case ToolWindowMenuItemKind.Hide:
                     // 名字照上游的 RemoveStripeButtonAction —— 它做的就是「连条带按钮一起摘掉」，
                     // 叫「隐藏」会与标题条上那个「—」（只收起、按钮还在）混成一件事。
-                    menu.Items.Add(Item("从边栏中移除", () => ToolWindowContextMenu.Hide(manager!, id!)));
+                    menu.Items.Add(Item(ForgeStrings.Current.RemoveFromSidebar, () => ToolWindowContextMenu.Hide(manager!, id!)));
                     break;
 
                 case ToolWindowMenuItemKind.ViewMode:
@@ -169,7 +169,7 @@ public static class ForgeMenuBuilder
 
                     if (viewMode is null)
                     {
-                        viewMode = new MenuItem { Header = "视图模式" };
+                        viewMode = new MenuItem { Header = ForgeStrings.Current.ViewMode };
                         menu.Items.Add(viewMode);
                     }
 
@@ -189,7 +189,7 @@ public static class ForgeMenuBuilder
 
                     if (moveTo is null)
                     {
-                        moveTo = new MenuItem { Header = "移至" };
+                        moveTo = new MenuItem { Header = ForgeStrings.Current.MoveTo };
                         menu.Items.Add(moveTo);
                     }
 
@@ -211,7 +211,7 @@ public static class ForgeMenuBuilder
 
                 case ToolWindowMenuItemKind.ToggleShowNames:
                     // 可勾选：不给勾的话，用户看不出当前开没开（上游那项是带 ✓ 的）
-                    var toggle = Item("显示工具窗口名称", onToggleShowNames);
+                    var toggle = Item(ForgeStrings.Current.ShowToolWindowNames, onToggleShowNames);
                     toggle.ToggleType = MenuItemToggleType.CheckBox;
                     toggle.IsChecked = showNames;
                     menu.Items.Add(toggle);
@@ -291,45 +291,45 @@ public static class ForgeMenuBuilder
                     break;
 
                 case EditorTabMenuItemKind.Close:
-                    menu.Items.Add(Item("关闭", () => model.Close(tabId)));
+                    menu.Items.Add(Item(ForgeStrings.Current.CloseTab, () => model.Close(tabId)));
                     break;
 
                 case EditorTabMenuItemKind.CloseOthers:
-                    menu.Items.Add(Item("关闭其他标签页", () => model.CloseOthers(tabId)));
+                    menu.Items.Add(Item(ForgeStrings.Current.CloseOtherTabs, () => model.CloseOthers(tabId)));
                     break;
 
                 case EditorTabMenuItemKind.CloseAll:
-                    menu.Items.Add(Item("关闭所有标签页", () => model.CloseAll(tabId)));
+                    menu.Items.Add(Item(ForgeStrings.Current.CloseAllTabs, () => model.CloseAll(tabId)));
                     break;
 
                 case EditorTabMenuItemKind.CloseToTheLeft:
-                    menu.Items.Add(Item("关闭左侧标签页", () => model.CloseToTheLeft(tabId)));
+                    menu.Items.Add(Item(ForgeStrings.Current.CloseTabsToTheLeft, () => model.CloseToTheLeft(tabId)));
                     break;
 
                 case EditorTabMenuItemKind.CloseToTheRight:
-                    menu.Items.Add(Item("关闭右侧标签页", () => model.CloseToTheRight(tabId)));
+                    menu.Items.Add(Item(ForgeStrings.Current.CloseTabsToTheRight, () => model.CloseToTheRight(tabId)));
                     break;
 
                 // 「拆分」把选中那页留在原组、新组开一份；「拆分并移动」是把它搬过去。
                 // 两者都落到 EditorArea.Split —— 区别只在事后要不要把原组那份关掉。
                 case EditorTabMenuItemKind.SplitRight:
-                    menu.Items.Add(Item("向右拆分", () => Split(model, tabId, vertical: false, move: false)));
+                    menu.Items.Add(Item(ForgeStrings.Current.SplitRight, () => Split(model, tabId, vertical: false, move: false)));
                     break;
 
                 case EditorTabMenuItemKind.SplitAndMoveRight:
-                    menu.Items.Add(Item("拆分并右移", () => Split(model, tabId, vertical: false, move: true)));
+                    menu.Items.Add(Item(ForgeStrings.Current.SplitAndMoveRight, () => Split(model, tabId, vertical: false, move: true)));
                     break;
 
                 case EditorTabMenuItemKind.SplitDown:
-                    menu.Items.Add(Item("向下拆分", () => Split(model, tabId, vertical: true, move: false)));
+                    menu.Items.Add(Item(ForgeStrings.Current.SplitDown, () => Split(model, tabId, vertical: true, move: false)));
                     break;
 
                 case EditorTabMenuItemKind.SplitAndMoveDown:
-                    menu.Items.Add(Item("拆分并下移", () => Split(model, tabId, vertical: true, move: true)));
+                    menu.Items.Add(Item(ForgeStrings.Current.SplitAndMoveDown, () => Split(model, tabId, vertical: true, move: true)));
                     break;
 
                 case EditorTabMenuItemKind.TogglePinned:
-                    var pin = Item("固定标签页", () => model.SetPinned(tabId, !isPinned));
+                    var pin = Item(ForgeStrings.Current.PinTab, () => model.SetPinned(tabId, !isPinned));
                     pin.ToggleType = MenuItemToggleType.CheckBox;
                     pin.IsChecked = isPinned;
                     menu.Items.Add(pin);
@@ -338,7 +338,7 @@ public static class ForgeMenuBuilder
                 // 与"把标签拖出编辑区"是同一条路（ForgeEditorControl.MoveToNewWindow），
                 // 不另开一种"菜单开出来的窗口"。
                 case EditorTabMenuItemKind.MoveToNewWindow when moveToNewWindow is not null:
-                    menu.Items.Add(Item("在新窗口中打开标签页", () => moveToNewWindow(tabId)));
+                    menu.Items.Add(Item(ForgeStrings.Current.OpenTabInNewWindow, () => moveToNewWindow(tabId)));
                     break;
             }
         }
@@ -377,15 +377,7 @@ public static class ForgeMenuBuilder
     /// </remarks>
     /// <param name="mode">视图模式。</param>
     /// <returns>菜单上显示的名字。</returns>
-    private static string DescribeViewMode(ToolWindowViewMode mode) => mode switch
-    {
-        ToolWindowViewMode.DockPinned => "停靠固定",
-        ToolWindowViewMode.DockUnpinned => "停靠不固定",
-        ToolWindowViewMode.Undock => "取消停靠",
-        ToolWindowViewMode.Float => "浮动",
-        ToolWindowViewMode.Window => "窗口",
-        _ => mode.ToString(),
-    };
+    private static string DescribeViewMode(ToolWindowViewMode mode) => ForgeStrings.Current.Describe(mode);
 
     /// <summary>
     /// 「移到…」这一项该怎么念。
@@ -397,15 +389,7 @@ public static class ForgeMenuBuilder
     /// <param name="anchor">目标边。</param>
     /// <param name="isSplit">是不是另一半。</param>
     /// <returns>菜单项的名字。</returns>
-    public static string DescribeMove(ToolWindowAnchor anchor, bool isSplit) => anchor switch
-    {
-        // 说成「哪条边 · 哪一半」：「左下」与「下左」两个字颠倒就是两个位置，念出来分不清；
-        // 「左侧 · 下半」是左边那条竖栏的下段，「底部 · 左半」是底下那条横栏的左段。
-        ToolWindowAnchor.Left => isSplit ? "左侧 · 下半" : "左侧 · 上半",
-        ToolWindowAnchor.Right => isSplit ? "右侧 · 下半" : "右侧 · 上半",
-        ToolWindowAnchor.Bottom => isSplit ? "底部 · 右半" : "底部 · 左半",
-        _ => isSplit ? "顶部 · 右半" : "顶部 · 左半",
-    };
+    public static string DescribeMove(ToolWindowAnchor anchor, bool isSplit) => ForgeStrings.Current.Describe(anchor, isSplit);
 
     /// <summary>
     /// 「移至」菜单项的位置图标：窗口轮廓 + 那条栏的**分界线** + 目标半段实心。对位上游 <c>getLocationIcon</c>（那边是位图，这里按几何画）。
@@ -446,7 +430,7 @@ public static class ForgeMenuBuilder
     /// <param name="isSplit">是不是那条边的「另一半」。</param>
     /// <returns>要显示的字。</returns>
     public static string DescribeMoveTarget(ToolWindowAnchor anchor, bool isSplit)
-        => $"移至 {DescribeMove(anchor, isSplit)}";
+        => string.Format(ForgeStrings.Current.MoveToFormat, DescribeMove(anchor, isSplit));
 
     private static MenuItem Item(string header, Action action)
     {

@@ -1079,3 +1079,29 @@ public class ForgeContentTabReorderTests
         return (window, panel, frame.GetVisualDescendants().OfType<ForgeContentTabStrip>().First());
     }
 }
+
+/// <summary>文案表：库默认英文，宿主可整套换、也可只改一条。</summary>
+public class ForgeStringsTests
+{
+    [Fact]
+    public void Default_is_English_and_host_can_swap_or_override()
+    {
+        var saved = ForgeStrings.Current;
+        try
+        {
+            ForgeStrings.Current = ForgeStrings.English;
+            Assert.Equal("Move to Left · Bottom", ForgeMenuBuilder.DescribeMoveTarget(ToolWindowAnchor.Left, true));
+            Assert.Equal("Bottom · Left", ForgeMenuBuilder.DescribeMove(ToolWindowAnchor.Bottom, false));
+
+            ForgeStrings.Current = ForgeStrings.English with { MoveToFormat = "→ {0}" };
+            Assert.Equal("→ Right · Top", ForgeMenuBuilder.DescribeMoveTarget(ToolWindowAnchor.Right, false));
+
+            ForgeStrings.Current = ForgeStrings.ChineseTraditional;
+            Assert.Equal("移至 右側 · 下半", ForgeMenuBuilder.DescribeMoveTarget(ToolWindowAnchor.Right, true));
+        }
+        finally
+        {
+            ForgeStrings.Current = saved;
+        }
+    }
+}

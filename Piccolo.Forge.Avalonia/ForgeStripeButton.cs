@@ -1,4 +1,5 @@
 ﻿using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Media;
@@ -24,6 +25,10 @@ public class ForgeStripeButton : ForgeSquareButtonBase
     /// <summary><see cref="IsToolWindowActive"/> 的属性定义。</summary>
     public static readonly StyledProperty<bool> IsToolWindowActiveProperty =
         AvaloniaProperty.Register<ForgeStripeButton, bool>(nameof(IsToolWindowActive));
+
+    /// <summary><see cref="HasBadge"/> 的属性定义。</summary>
+    public static readonly StyledProperty<bool> HasBadgeProperty =
+        AvaloniaProperty.Register<ForgeStripeButton, bool>(nameof(HasBadge));
 
     /// <summary><see cref="Text"/> 的属性定义。</summary>
     public static readonly StyledProperty<string?> TextProperty =
@@ -73,6 +78,9 @@ public class ForgeStripeButton : ForgeSquareButtonBase
         //   所以"浅色主题却是深气泡"不是缺陷，上游 IntelliJ 的 HelpTooltip 同样如此
         //   （expUI 浅色档底色 Gray2 = #27282E）。
         TitleProperty.Changed.AddClassHandler<ForgeStripeButton>((b, _) => b.SyncToolTip());
+        // 无障碍：按钮只有图标，读屏器要靠 AutomationProperties.Name 才知道它是哪个面板
+        TitleProperty.Changed.AddClassHandler<ForgeStripeButton>(
+            (b, _) => AutomationProperties.SetName(b, b.Title ?? string.Empty));
 
         // 两个状态写进伪类，模板据此选底色（见 Themes/ForgeStripeButton.axaml）。
         // 用伪类而不是样式类：它们是控件自己的状态，不该让宿主用 Classes 去改。
@@ -80,6 +88,8 @@ public class ForgeStripeButton : ForgeSquareButtonBase
             (b, e) => b.PseudoClasses.Set(":toolwindow-visible", e.GetNewValue<bool>()));
         IsToolWindowActiveProperty.Changed.AddClassHandler<ForgeStripeButton>(
             (b, e) => b.PseudoClasses.Set(":toolwindow-active", e.GetNewValue<bool>()));
+        HasBadgeProperty.Changed.AddClassHandler<ForgeStripeButton>(
+            (b, e) => b.PseudoClasses.Set(":badge", e.GetNewValue<bool>()));
 
         // 显名会换一整套内边距键，几何跟着变
         ShowNameProperty.Changed.AddClassHandler<ForgeStripeButton>((b, _) => b.UpdateGeometry());
@@ -90,6 +100,13 @@ public class ForgeStripeButton : ForgeSquareButtonBase
     {
         get => GetValue(IsToolWindowVisibleProperty);
         set => SetValue(IsToolWindowVisibleProperty, value);
+    }
+
+    /// <summary>图标右上角亮不亮角标（模板里的 PART_Badge，伪类 <c>:badge</c>）。</summary>
+    public bool HasBadge
+    {
+        get => GetValue(HasBadgeProperty);
+        set => SetValue(HasBadgeProperty, value);
     }
 
     /// <summary>对应的工具窗口当前是否持有焦点。</summary>

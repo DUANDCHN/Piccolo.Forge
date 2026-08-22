@@ -1358,11 +1358,11 @@ public class ForgeEditorControl : TemplatedControl
 
             var anchorId = group.Tabs[0].Id;
 
-            var closeOthers = new MenuItem { Header = "关闭其他标签页" };
+            var closeOthers = new MenuItem { Header = ForgeStrings.Current.CloseOtherTabs };
             closeOthers.Click += (_, _) => _area?.Area.CloseOthers(group.Selected?.Id ?? anchorId);
             menu.Items.Add(closeOthers);
 
-            var closeAll = new MenuItem { Header = "关闭所有标签页" };
+            var closeAll = new MenuItem { Header = ForgeStrings.Current.CloseAllTabs };
             closeAll.Click += (_, _) => _area?.Area.CloseAll(anchorId);
             menu.Items.Add(closeAll);
         }
