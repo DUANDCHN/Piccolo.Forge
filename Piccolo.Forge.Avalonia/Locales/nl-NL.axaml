@@ -1,0 +1,38 @@
+<!--  Forge 文案：Nederlands（nl-NL）。键与 en-US.axaml 一一对应，缺键由英文回落。  -->
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <x:String x:Key="Forge.Strings.MoveTo">Verplaatsen naar</x:String>
+    <x:String x:Key="Forge.Strings.ViewMode">Weergavemodus</x:String>
+    <x:String x:Key="Forge.Strings.RemoveFromSidebar">Verwijderen uit zijbalk</x:String>
+    <x:String x:Key="Forge.Strings.ShowToolWindowNames">Namen van gereedschapsvensters tonen</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeDockPinned">Gedockt (vastgezet)</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeDockUnpinned">Gedockt (niet vastgezet)</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeUndock">Losgekoppeld</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeFloat">Zwevend</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeWindow">Venster</x:String>
+    <x:String x:Key="Forge.Strings.SideLeft">Links</x:String>
+    <x:String x:Key="Forge.Strings.SideRight">Rechts</x:String>
+    <x:String x:Key="Forge.Strings.SideBottom">Onder</x:String>
+    <x:String x:Key="Forge.Strings.SideTop">Boven</x:String>
+    <x:String x:Key="Forge.Strings.HalfTop">Boven</x:String>
+    <x:String x:Key="Forge.Strings.HalfBottom">Onder</x:String>
+    <x:String x:Key="Forge.Strings.HalfLeft">Links</x:String>
+    <x:String x:Key="Forge.Strings.HalfRight">Rechts</x:String>
+    <x:String x:Key="Forge.Strings.LocationFormat">{0} · {1}</x:String>
+    <x:String x:Key="Forge.Strings.MoveToFormat">Verplaatsen naar {0}</x:String>
+    <x:String x:Key="Forge.Strings.CloseTab">Sluiten</x:String>
+    <x:String x:Key="Forge.Strings.CloseOtherTabs">Andere tabbladen sluiten</x:String>
+    <x:String x:Key="Forge.Strings.CloseAllTabs">Alle tabbladen sluiten</x:String>
+    <x:String x:Key="Forge.Strings.CloseTabsToTheLeft">Tabbladen links sluiten</x:String>
+    <x:String x:Key="Forge.Strings.CloseTabsToTheRight">Tabbladen rechts sluiten</x:String>
+    <x:String x:Key="Forge.Strings.SplitRight">Rechts splitsen</x:String>
+    <x:String x:Key="Forge.Strings.SplitAndMoveRight">Splitsen en naar rechts verplaatsen</x:String>
+    <x:String x:Key="Forge.Strings.SplitDown">Onder splitsen</x:String>
+    <x:String x:Key="Forge.Strings.SplitAndMoveDown">Splitsen en naar onder verplaatsen</x:String>
+    <x:String x:Key="Forge.Strings.PinTab">Tabblad vastzetten</x:String>
+    <x:String x:Key="Forge.Strings.OpenTabInNewWindow">In nieuw venster openen</x:String>
+    <x:String x:Key="Forge.Strings.DockButton">Docken</x:String>
+    <x:String x:Key="Forge.Strings.OptionsButton">Opties</x:String>
+    <x:String x:Key="Forge.Strings.HideButton">Verbergen</x:String>
+    <x:String x:Key="Forge.Strings.MoreToolWindows">Meer gereedschapsvensters</x:String>
+    <x:String x:Key="Forge.Strings.CloseTabFormat">{0} sluiten</x:String>
+</ResourceDictionary>

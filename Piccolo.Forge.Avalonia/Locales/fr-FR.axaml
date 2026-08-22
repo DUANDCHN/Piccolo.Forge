@@ -1,0 +1,38 @@
+<!--  Forge 文案：Français（fr-FR）。键与 en-US.axaml 一一对应，缺键由英文回落。  -->
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <x:String x:Key="Forge.Strings.MoveTo">Déplacer vers</x:String>
+    <x:String x:Key="Forge.Strings.ViewMode">Mode d'affichage</x:String>
+    <x:String x:Key="Forge.Strings.RemoveFromSidebar">Retirer de la barre latérale</x:String>
+    <x:String x:Key="Forge.Strings.ShowToolWindowNames">Afficher les noms des fenêtres d'outils</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeDockPinned">Ancré (épinglé)</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeDockUnpinned">Ancré (non épinglé)</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeUndock">Désancré</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeFloat">Flottant</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeWindow">Fenêtre</x:String>
+    <x:String x:Key="Forge.Strings.SideLeft">Gauche</x:String>
+    <x:String x:Key="Forge.Strings.SideRight">Droite</x:String>
+    <x:String x:Key="Forge.Strings.SideBottom">Bas</x:String>
+    <x:String x:Key="Forge.Strings.SideTop">Haut</x:String>
+    <x:String x:Key="Forge.Strings.HalfTop">Haut</x:String>
+    <x:String x:Key="Forge.Strings.HalfBottom">Bas</x:String>
+    <x:String x:Key="Forge.Strings.HalfLeft">Gauche</x:String>
+    <x:String x:Key="Forge.Strings.HalfRight">Droite</x:String>
+    <x:String x:Key="Forge.Strings.LocationFormat">{0} · {1}</x:String>
+    <x:String x:Key="Forge.Strings.MoveToFormat">Déplacer vers {0}</x:String>
+    <x:String x:Key="Forge.Strings.CloseTab">Fermer</x:String>
+    <x:String x:Key="Forge.Strings.CloseOtherTabs">Fermer les autres onglets</x:String>
+    <x:String x:Key="Forge.Strings.CloseAllTabs">Fermer tous les onglets</x:String>
+    <x:String x:Key="Forge.Strings.CloseTabsToTheLeft">Fermer les onglets à gauche</x:String>
+    <x:String x:Key="Forge.Strings.CloseTabsToTheRight">Fermer les onglets à droite</x:String>
+    <x:String x:Key="Forge.Strings.SplitRight">Scinder à droite</x:String>
+    <x:String x:Key="Forge.Strings.SplitAndMoveRight">Scinder et déplacer à droite</x:String>
+    <x:String x:Key="Forge.Strings.SplitDown">Scinder en bas</x:String>
+    <x:String x:Key="Forge.Strings.SplitAndMoveDown">Scinder et déplacer en bas</x:String>
+    <x:String x:Key="Forge.Strings.PinTab">Épingler l'onglet</x:String>
+    <x:String x:Key="Forge.Strings.OpenTabInNewWindow">Ouvrir dans une nouvelle fenêtre</x:String>
+    <x:String x:Key="Forge.Strings.DockButton">Ancrer</x:String>
+    <x:String x:Key="Forge.Strings.OptionsButton">Options</x:String>
+    <x:String x:Key="Forge.Strings.HideButton">Masquer</x:String>
+    <x:String x:Key="Forge.Strings.MoreToolWindows">Autres fenêtres d'outils</x:String>
+    <x:String x:Key="Forge.Strings.CloseTabFormat">Fermer {0}</x:String>
+</ResourceDictionary>

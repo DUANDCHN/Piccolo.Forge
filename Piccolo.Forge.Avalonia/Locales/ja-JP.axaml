@@ -1,0 +1,38 @@
+<!--  Forge 文案：日本語（ja-JP）。键与 en-US.axaml 一一对应，缺键由英文回落。  -->
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <x:String x:Key="Forge.Strings.MoveTo">移動</x:String>
+    <x:String x:Key="Forge.Strings.ViewMode">表示モード</x:String>
+    <x:String x:Key="Forge.Strings.RemoveFromSidebar">サイドバーから削除</x:String>
+    <x:String x:Key="Forge.Strings.ShowToolWindowNames">ツールウィンドウ名を表示</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeDockPinned">ドック（固定）</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeDockUnpinned">ドック（固定解除）</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeUndock">ドック解除</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeFloat">フローティング</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeWindow">ウィンドウ</x:String>
+    <x:String x:Key="Forge.Strings.SideLeft">左</x:String>
+    <x:String x:Key="Forge.Strings.SideRight">右</x:String>
+    <x:String x:Key="Forge.Strings.SideBottom">下</x:String>
+    <x:String x:Key="Forge.Strings.SideTop">上</x:String>
+    <x:String x:Key="Forge.Strings.HalfTop">上</x:String>
+    <x:String x:Key="Forge.Strings.HalfBottom">下</x:String>
+    <x:String x:Key="Forge.Strings.HalfLeft">左</x:String>
+    <x:String x:Key="Forge.Strings.HalfRight">右</x:String>
+    <x:String x:Key="Forge.Strings.LocationFormat">{0} · {1}</x:String>
+    <x:String x:Key="Forge.Strings.MoveToFormat">{0} に移動</x:String>
+    <x:String x:Key="Forge.Strings.CloseTab">閉じる</x:String>
+    <x:String x:Key="Forge.Strings.CloseOtherTabs">他のタブを閉じる</x:String>
+    <x:String x:Key="Forge.Strings.CloseAllTabs">すべてのタブを閉じる</x:String>
+    <x:String x:Key="Forge.Strings.CloseTabsToTheLeft">左側のタブを閉じる</x:String>
+    <x:String x:Key="Forge.Strings.CloseTabsToTheRight">右側のタブを閉じる</x:String>
+    <x:String x:Key="Forge.Strings.SplitRight">右に分割</x:String>
+    <x:String x:Key="Forge.Strings.SplitAndMoveRight">分割して右に移動</x:String>
+    <x:String x:Key="Forge.Strings.SplitDown">下に分割</x:String>
+    <x:String x:Key="Forge.Strings.SplitAndMoveDown">分割して下に移動</x:String>
+    <x:String x:Key="Forge.Strings.PinTab">タブを固定</x:String>
+    <x:String x:Key="Forge.Strings.OpenTabInNewWindow">新しいウィンドウで開く</x:String>
+    <x:String x:Key="Forge.Strings.DockButton">ドック</x:String>
+    <x:String x:Key="Forge.Strings.OptionsButton">オプション</x:String>
+    <x:String x:Key="Forge.Strings.HideButton">非表示</x:String>
+    <x:String x:Key="Forge.Strings.MoreToolWindows">その他のツールウィンドウ</x:String>
+    <x:String x:Key="Forge.Strings.CloseTabFormat">{0} を閉じる</x:String>
+</ResourceDictionary>

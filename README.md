@@ -47,7 +47,7 @@
 |---|---|
 | `src/Piccolo.Forge.Model` | 纯模型，不依赖 Avalonia：`WindowInfo` / `DesktopLayout` / `ToolWindowManager` / 两个栈 / 默认布局 / 按钮落位 |
 | `src/Piccolo.Forge.Mvvm` | 可观察包装：工具窗口与内容的 VM。**只依赖模型层，不引 Avalonia，也不引任何 MVVM 框架** |
-| `src/Piccolo.Forge.Avalonia` | 度量常量 / 缩放 / 主题键名 / C# 调色板（`Themes/`，命名空间 `Piccolo.Forge.Themes`）；控件：条带按钮 / 分隔符 / 条带 / 标题条 / 停靠区 / 整机框架；语言字典（`Locales/`） |
+| `src/Piccolo.Forge.Avalonia` | 度量常量 / 缩放 / 主题键名 / C# 调色板（`Themes/`，命名空间 `Piccolo.Forge.Themes`）；控件：条带按钮 / 分隔符 / 条带 / 标题条 / 停靠区 / 整机框架；语言字典（`Locales/`，13 种语言，与 Semi 对齐） |
 | `src/Piccolo.Forge.Themes.ExpUi` | 经典 expUI 主题：全部控件的 ControlTheme + 明暗颜色（`ForgeExpUiTheme`） |
 | `src/Piccolo.Forge.Themes.Islands` | Islands 主题（`ForgeIslandsTheme`）。两个主题包互不依赖，引哪个就是哪套 |
 | `tests/Piccolo.Forge.Tests` | xunit v3 + Avalonia headless（含 Skia 渲染快照） |

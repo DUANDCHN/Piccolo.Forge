@@ -1,0 +1,38 @@
+<!--  Forge 文案：Русский（ru-RU）。键与 en-US.axaml 一一对应，缺键由英文回落。  -->
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <x:String x:Key="Forge.Strings.MoveTo">Переместить в</x:String>
+    <x:String x:Key="Forge.Strings.ViewMode">Режим отображения</x:String>
+    <x:String x:Key="Forge.Strings.RemoveFromSidebar">Убрать с боковой панели</x:String>
+    <x:String x:Key="Forge.Strings.ShowToolWindowNames">Показывать названия окон инструментов</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeDockPinned">Закреплено</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeDockUnpinned">Не закреплено</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeUndock">Откреплено</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeFloat">Плавающее</x:String>
+    <x:String x:Key="Forge.Strings.ViewModeWindow">Окно</x:String>
+    <x:String x:Key="Forge.Strings.SideLeft">Слева</x:String>
+    <x:String x:Key="Forge.Strings.SideRight">Справа</x:String>
+    <x:String x:Key="Forge.Strings.SideBottom">Снизу</x:String>
+    <x:String x:Key="Forge.Strings.SideTop">Сверху</x:String>
+    <x:String x:Key="Forge.Strings.HalfTop">Верх</x:String>
+    <x:String x:Key="Forge.Strings.HalfBottom">Низ</x:String>
+    <x:String x:Key="Forge.Strings.HalfLeft">Слева</x:String>
+    <x:String x:Key="Forge.Strings.HalfRight">Справа</x:String>
+    <x:String x:Key="Forge.Strings.LocationFormat">{0} · {1}</x:String>
+    <x:String x:Key="Forge.Strings.MoveToFormat">Переместить в {0}</x:String>
+    <x:String x:Key="Forge.Strings.CloseTab">Закрыть</x:String>
+    <x:String x:Key="Forge.Strings.CloseOtherTabs">Закрыть другие вкладки</x:String>
+    <x:String x:Key="Forge.Strings.CloseAllTabs">Закрыть все вкладки</x:String>
+    <x:String x:Key="Forge.Strings.CloseTabsToTheLeft">Закрыть вкладки слева</x:String>
+    <x:String x:Key="Forge.Strings.CloseTabsToTheRight">Закрыть вкладки справа</x:String>
+    <x:String x:Key="Forge.Strings.SplitRight">Разделить вправо</x:String>
+    <x:String x:Key="Forge.Strings.SplitAndMoveRight">Разделить и переместить вправо</x:String>
+    <x:String x:Key="Forge.Strings.SplitDown">Разделить вниз</x:String>
+    <x:String x:Key="Forge.Strings.SplitAndMoveDown">Разделить и переместить вниз</x:String>
+    <x:String x:Key="Forge.Strings.PinTab">Закрепить вкладку</x:String>
+    <x:String x:Key="Forge.Strings.OpenTabInNewWindow">Открыть в новом окне</x:String>
+    <x:String x:Key="Forge.Strings.DockButton">Закрепить</x:String>
+    <x:String x:Key="Forge.Strings.OptionsButton">Параметры</x:String>
+    <x:String x:Key="Forge.Strings.HideButton">Скрыть</x:String>
+    <x:String x:Key="Forge.Strings.MoreToolWindows">Другие окна инструментов</x:String>
+    <x:String x:Key="Forge.Strings.CloseTabFormat">Закрыть {0}</x:String>
+</ResourceDictionary>

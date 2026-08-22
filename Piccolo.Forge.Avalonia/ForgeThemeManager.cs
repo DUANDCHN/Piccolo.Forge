@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System;
 using System.Diagnostics;
 using System.Globalization;
@@ -101,7 +102,7 @@ public static class ForgeThemeManager
     /// （照 Semi 的 <c>SemiTheme.Locale</c>）。换语言就再调一次，旧的摘掉。
     /// </summary>
     /// <remarks>
-    /// 回落链：<c>zh-Hant / zh-TW / zh-HK / zh-MO</c> → zh-Hant；其余 <c>zh*</c> → zh-CN；其它一律 en-US。
+    /// 回落规则见 <see cref="ResolveLocale(string)"/>；自带语言见 <see cref="SupportedLocales"/>。
     /// 宿主想覆盖某句，在自己的资源里重定义 <c>Forge.Strings.*</c> 同名键（后加的字典优先）。
     /// </remarks>
     /// <param name="application">应用。</param>
@@ -140,7 +141,21 @@ public static class ForgeThemeManager
         return ResolveLocale(culture.Name);
     }
 
-    /// <summary>文化名（如 <c>zh-TW</c>）→ 资源文件名。与 <see cref="ResolveLocale(CultureInfo)"/> 同一规则，给不能造 CultureInfo 的环境（不变文化模式）用。</summary>
+    /// <summary>
+    /// 自带的语言字典（<c>Locales/*.axaml</c>），与 Semi.Avalonia 的语言集合对齐：
+    /// 英、简中、繁中、日、韩、德、法、西、意、荷、波、俄、乌。
+    /// </summary>
+    public static IReadOnlyList<string> SupportedLocales { get; } =
+    [
+        "en-US", "zh-CN", "zh-Hant", "ja-JP", "ko-KR", "de-DE", "fr-FR",
+        "es-ES", "it-IT", "nl-NL", "pl-PL", "ru-RU", "uk-UA",
+    ];
+
+    /// <summary>文化名（如 <c>zh-TW</c>、<c>de-AT</c>）→ 资源文件名。与 <see cref="ResolveLocale(CultureInfo)"/> 同一规则，给不能造 CultureInfo 的环境（不变文化模式）用。</summary>
+    /// <remarks>
+    /// 按语言前缀匹配，地区不区分（<c>de-AT</c> → de-DE，<c>fr-CA</c> → fr-FR）；
+    /// 中文按文字分：<c>Hant / TW / HK / MO</c> → zh-Hant，其余 → zh-CN；没对应的一律 en-US。
+    /// </remarks>
     public static string ResolveLocale(string cultureName)
     {
         var n = cultureName ?? string.Empty;
@@ -152,6 +167,16 @@ public static class ForgeThemeManager
                    || n.EndsWith("-MO", StringComparison.OrdinalIgnoreCase)
                 ? "zh-Hant"
                 : "zh-CN";
+        }
+
+        var dash = n.IndexOf('-');
+        var language = dash < 0 ? n : n[..dash];
+        foreach (var locale in SupportedLocales)
+        {
+            if (locale.StartsWith(language + "-", StringComparison.OrdinalIgnoreCase) && language.Length > 0)
+            {
+                return locale;
+            }
         }
 
         return "en-US";

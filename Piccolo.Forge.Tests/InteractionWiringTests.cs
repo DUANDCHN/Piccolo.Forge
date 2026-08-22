@@ -1117,9 +1117,35 @@ public class ForgeLocaleTests
     [InlineData("zh-HK", "zh-Hant")]
     [InlineData("zh-Hant-TW", "zh-Hant")]
     [InlineData("en-US", "en-US")]
-    [InlineData("de-DE", "en-US")]
+    [InlineData("de-DE", "de-DE")]
+    [InlineData("de-AT", "de-DE")]
+    [InlineData("fr-CA", "fr-FR")]
+    [InlineData("ja", "ja-JP")]
+    [InlineData("uk-UA", "uk-UA")]
+    [InlineData("sv-SE", "en-US")]
+    [InlineData("", "en-US")]
     public void Cultures_fall_back_to_a_shipped_locale(string culture, string expected)
         => Assert.Equal(expected, ForgeThemeManager.ResolveLocale(culture));   // 测试工程是不变文化模式，按名字判
+
+    /// <summary>每份语言字典都必须与英文键集完全一致——漏一句就整句变英文，肉眼难发现。</summary>
+    [AvaloniaFact]
+    public void Every_shipped_locale_has_exactly_the_english_keys()
+    {
+        static HashSet<string> Keys(string locale)
+        {
+            var dict = (global::Avalonia.Controls.ResourceDictionary)global::Avalonia.Markup.Xaml.AvaloniaXamlLoader.Load(
+                new Uri($"avares://Piccolo.Forge.Avalonia/Locales/{locale}.axaml"));
+            return dict.Keys.Select(k => k.ToString()!).ToHashSet();
+        }
+
+        var english = Keys("en-US");
+        foreach (var locale in ForgeThemeManager.SupportedLocales)
+        {
+            var keys = Keys(locale);
+            Assert.True(english.SetEquals(keys),
+                $"{locale}: 缺 [{string.Join(", ", english.Except(keys))}] 多 [{string.Join(", ", keys.Except(english))}]");
+        }
+    }
 
     [AvaloniaFact]
     public void Installing_a_locale_dictionary_drives_the_strings_facade()
@@ -1132,6 +1158,9 @@ public class ForgeLocaleTests
             ForgeThemeManager.ApplyLocale(app, "zh-TW");
             Assert.Equal("zh-Hant", ForgeThemeManager.CurrentLocale);
             Assert.Equal("檢視模式", ForgeStrings.Current.ViewMode);
+
+            ForgeThemeManager.ApplyLocale(app, "ja-JP");
+            Assert.Equal("表示モード", ForgeStrings.Current.ViewMode);
 
             ForgeThemeManager.ApplyLocale(app, "en-US");
             Assert.Equal("View Mode", ForgeStrings.Current.ViewMode);
