@@ -82,9 +82,11 @@ Install one theme entry in `Application.Styles` — pick the layer you need
 ```
 
 If you use DataGrid or ColorPicker, add the matching add-on package and install its entry
-**after** the theme entry (the theme supplies the colour keys; without it the controls render
-but stay uncoloured, with no error). The add-ons have no `Family` — templates are shared
-between families and the colours follow whatever family the theme entry selected:
+alongside the theme entry — the theme supplies the colour keys, and **without it** those
+controls render but stay uncoloured, with no error. Their relative order does not matter
+(colour keys are resolved via `DynamicResource`, and the two sets of implicit control
+themes target disjoint types). The add-ons have no `Family` — templates are shared between
+families and the colours follow whatever family the theme entry selected:
 
 ```xml
 <Application.Styles>
@@ -338,8 +340,9 @@ Piccolo.Forge 为 Avalonia 桌面应用程序提供与 IntelliJ IDEA、Rider 类
 <forge:ForgeShellTheme Family="ExpUi" />          <!-- 只要外壳，叠在其上 -->
 ```
 
-用到 DataGrid / ColorPicker 时，引对应附加包并把其入口挂在主题入口**之后**
-（色板键由主题入口提供，顺序反了控件画得出来但没颜色，且不报错）。
+用到 DataGrid / ColorPicker 时，引对应附加包并与主题入口一起挂上 —— 色板键由主题入口提供，
+**不装主题入口**那两族控件画得出来但没颜色，且不报错。两者**先后无所谓**：色板键走
+`DynamicResource`（延迟解析、跨 Styles 查找），隐式 ControlTheme 的目标类型也不相交。
 附加包没有 `Family` —— 模板两档共用，颜色自动跟主题入口选的族走：
 
 ```xml

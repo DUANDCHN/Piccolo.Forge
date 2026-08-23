@@ -2,12 +2,15 @@
         xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <!--  DataGrid 一族的主题入口（附加包）。模板两档共用，故**不分档**，只有这一个入口。
-          与主题包一起挂进 Application.Styles，且主题包在前：
+          与主题包一起挂进 Application.Styles（色板键由主题包提供）：
 
             <themes:ForgeExpUiTheme />
             <datagrid:ForgeDataGridTheme />
 
-          只挂本入口的话色板键找不到，控件画得出来但没颜色，且不报错。  -->
+          **只挂本入口**（不装主题包）才会出问题：色板键找不到，控件画得出来但没颜色，且不报错。
+          ⚠ 但两者的**先后无所谓** —— 附加包挂在主题入口之后只是**读起来的顺序**，不是功能要求：附加包对色板键
+              一律用 DynamicResource（延迟解析、跨 Styles 查找），两者的隐式 ControlTheme
+              目标类型也不相交，所以先后颠倒照常工作。两个都装上才是真要求。  -->
     <Styles.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>

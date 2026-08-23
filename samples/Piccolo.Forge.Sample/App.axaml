@@ -12,7 +12,8 @@
           真实宿主可写 Family="{x:Static local:Settings.Family}" 引配置，启动时求值，换族重启生效。
           三个入口：ForgeTheme（全套）/ ForgeControlsTheme（控件）/ ForgeShellTheme（外壳）。
           后两行是附加包（DataGrid / ColorPicker 在独立的 Avalonia 包里），用不到就不加。
-          ⚠ 主题包必须在前：色板键由它提供，颠倒过来控件画得出来但没颜色，且不报错。  -->
+          ⚠ 主题入口不能漏：色板键由它提供，漏了控件画得出来但没颜色，且不报错。
+            （与附加包的**先后无所谓**：色板键走 DynamicResource，隐式 ControlTheme 不撞类型。）  -->
     <Application.Styles>
         <forge:ForgeControlsTheme Family="ExpUi" />
         <forgedg:ForgeDataGridTheme />

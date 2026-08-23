@@ -10,8 +10,9 @@
         做法照 Semi（Semi.Avalonia.DataGrid / .ColorPicker 各自独立）。
 
         ⚠ 有意**不引用主题包**（Semi 的附加包同样不依赖主包）：少一层版本耦合。
-          代价是使用者必须自己把主题包也挂上、且排在前面 —— 只挂本包的话色板键找不到，
-          表现是控件画得出来但没颜色，**且不报错**。  -->
+          代价是使用者必须自己把主题包也装上 —— 只装本包的话色板键找不到，
+          表现是控件画得出来但没颜色，**且不报错**。
+          （两者的先后无所谓：色板键走 DynamicResource，隐式 ControlTheme 也不撞类型。）  -->
   <ItemGroup>
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Controls.ColorPicker" />
