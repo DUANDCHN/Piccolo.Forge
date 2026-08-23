@@ -1,16 +1,21 @@
 ﻿<Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:themes="using:Piccolo.Forge.Themes.ExpUi"
-             xmlns:dg="using:Piccolo.Forge.Avalonia.DataGrid"
-             xmlns:cpk="using:Piccolo.Forge.Avalonia.ColorPicker"
+             xmlns:forge="using:Piccolo.Forge.Avalonia"
+             xmlns:forgedg="using:Piccolo.Forge.Avalonia.DataGrid"
+             xmlns:forgecpk="using:Piccolo.Forge.Avalonia.ColorPicker"
              x:Class="Piccolo.Forge.Sample.App"
              RequestedThemeVariant="Light">
     <!--  ★ 宿主要做的全部事情就是这三行。★
-          第一行是完整基础主题（色板 + 外壳 + 控件），后两行是附加包，用不到就不加。
+
+          第一行是 **ForgeControlsTheme**（色板 + 控件，不含停靠外壳）—— 本示例只演示控件。
+          族由 Family 属性定（包管"有哪些可用"，属性管"用哪个"）；
+          真实宿主可写 Family="{x:Static local:Settings.Family}" 引配置，启动时求值，换族重启生效。
+          三个入口：ForgeTheme（全套）/ ForgeControlsTheme（控件）/ ForgeShellTheme（外壳）。
+          后两行是附加包（DataGrid / ColorPicker 在独立的 Avalonia 包里），用不到就不加。
           ⚠ 主题包必须在前：色板键由它提供，颠倒过来控件画得出来但没颜色，且不报错。  -->
     <Application.Styles>
-        <themes:ForgeExpUiTheme />
-        <dg:ForgeDataGridTheme />
-        <cpk:ForgeColorPickerTheme />
+        <forge:ForgeControlsTheme Family="ExpUi" />
+        <forgedg:ForgeDataGridTheme />
+        <forgecpk:ForgeColorPickerTheme />
     </Application.Styles>
 </Application>

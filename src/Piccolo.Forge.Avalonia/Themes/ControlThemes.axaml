@@ -14,7 +14,7 @@
         控件模板只有一份、键就不能带族，否则两档没法共用同一份模板。
         这不是历史遗留，是两种模板的分档方式不同导致的必然结果。
 
-      宿主不要直接 include 本文件，走 ForgeExpUiTheme / ForgeIslandsTheme 那个唯一入口
+      宿主不要直接 include 本文件，走 ForgeTheme / ForgeControlsTheme 入口（Family 属性选族）
       —— 只装本文件会得到"有模板没颜色"的控件，且不报错。
 
       ⚠ 这里**没有兜底主题**（不引 Avalonia.Themes.Simple / Fluent）：本套自足。

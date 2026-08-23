@@ -26,5 +26,5 @@ public static class TestAppBuilder
             // 默认装经典那套；要在用例里换族用 ForgeThemeScope.Use(...)，
             // ⚠ 且必须**先换族再新建控件**（换单元不会让已挂树的控件重取主题，见 ThemeSwapSpikeTests）。
             .AfterSetup(builder => global::Piccolo.Forge.Avalonia.ForgeThemeManager.Apply(
-                builder.Instance!, new global::Piccolo.Forge.Themes.ExpUi.ForgeExpUiTheme()));
+                builder.Instance!, new global::Piccolo.Forge.Avalonia.ForgeTheme { Family = global::Piccolo.Forge.Themes.ForgeThemeFamily.ExpUi }));
 }

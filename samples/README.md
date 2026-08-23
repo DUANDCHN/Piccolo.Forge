@@ -2,12 +2,18 @@
 
 四个工程，**三个能跑、一个是内容库**：
 
-| 工程 | 能跑 | 引哪些主题包 | 看什么 |
-|---|---|---|---|
-| `Piccolo.Forge.Sample` | ✅ | `Themes.ExpUi` **一个** + 两个附加包 | **控件**：Avalonia 全部 89 个 |
-| `Piccolo.Forge.Sample.ExpUi` | ✅ | `Themes.ExpUi` **一个** | **外壳布局**：条带 / 停靠区 / 工具窗 / 编辑器标签 |
-| `Piccolo.Forge.Sample.Islands` | ✅ | `Themes.Islands` **一个** | 同上，Islands 档 |
-| `Piccolo.Forge.Sample.Shared` | ❌ 类库 | **一个都不引** | 上面两个外壳示例的内容 |
+| 工程 | 能跑 | 引哪些资源包 | 入口写法 | 看什么 |
+|---|---|---|---|---|
+| `Piccolo.Forge.Sample` | ✅ | `Themes.ExpUi` **一个** + 两个附加包 | `<forge:ForgeControlsTheme Family="ExpUi"/>` | **控件**：Avalonia 全部 89 个 |
+| `Piccolo.Forge.Sample.ExpUi` | ✅ | `Themes.ExpUi` **一个** | `<forge:ForgeTheme Family="ExpUi"/>` | **外壳布局**：条带 / 停靠区 / 工具窗 / 编辑器标签 |
+| `Piccolo.Forge.Sample.Islands` | ✅ | `Themes.Islands` **一个** | `<forge:ForgeTheme Family="Islands"/>` | 同上，Islands 档 |
+| `Piccolo.Forge.Sample.Shared` | ❌ 类库 | **一个都不引** | — | 上面两个外壳示例的内容 |
+
+**入口与包是两回事**：入口类只有三个（`ForgeTheme` 全套 / `ForgeControlsTheme` 只控件 /
+`ForgeShellTheme` 只外壳，都在 `Piccolo.Forge.Avalonia` 里），族由 `Family` 属性定 ——
+**包管"有哪些可用"，属性管"用哪个"**。族的资源在运行期按 avares 取：`Family` 选了没被引用的族，
+启动即抛，异常里写明缺哪个包。两档都要的宿主（如 LDVision）两个资源包都引，
+`Family="{x:Static local:Settings.Family}"` 从配置来，启动时求值一次，换族重启生效。
 
 ```bash
 dotnet run --project samples/Piccolo.Forge.Sample            # 控件
@@ -26,9 +32,9 @@ dotnet run --project samples/Piccolo.Forge.Sample.Islands    # 外壳（Islands 
 
 ## 为什么按档拆成两个工程，而不是一个带 `--islands` 的
 
-**设计的默认姿势是"谁用哪一档，就引哪一个包"**，所以四个工程里没有一个引两个主题包。
-两档都引是少数派（宿主想在设置里切换，如 LDVision）——那种接法不在示例里，
-做法是两个包都引，按配置 `new` 对应的入口类，换档重启生效。
+**设计的默认姿势是"谁用哪一档，就引哪一个资源包"**，所以四个工程里没有一个引两个主题包。
+两档都引是少数派（宿主想在设置里切换，如 LDVision）——那种接法不在示例里：
+两个资源包都引，`Family` 用 `{x:Static}` 从配置来，换档重启生效。入口类不用换。
 
 单包示例不只是"演示对了"，它还是一道**构建期的证明**：`Themes.ExpUi` 若不足以单独装出
 一整套界面（漏了键、或悄悄依赖了另一族的东西），那个示例会当场编不过、或跑出没颜色的控件。

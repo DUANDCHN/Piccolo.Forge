@@ -1,13 +1,14 @@
 ﻿<Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:themes="using:Piccolo.Forge.Themes.ExpUi"
+             xmlns:forge="using:Piccolo.Forge.Avalonia"
              x:Class="Piccolo.Forge.Sample.ExpUi.App"
              RequestedThemeVariant="Dark">
     <!--  ★ 宿主要做的全部事情就是这一行。★
-          ForgeExpUiTheme 是**完整基础主题**：色板 + 外壳 + 控件。
-          ⚠ 这里**不再叠 FluentTheme** —— 12.1.0 之前外壳库不管控件，示例得找别人要基础主题；
-            现在一行装完。叠第二套会抢同一批隐式 ControlTheme，谁赢取决于先后，且不报错。  -->
+          ForgeTheme 是**完整基础主题**（色板 + 外壳 + 控件），族由 Family 属性定 ——
+          本工程只引了 Themes.ExpUi 一个资源包，Family 也就只能选 ExpUi（选别的启动即抛，
+          异常里写明缺哪个包）。⚠ 不要再叠 FluentTheme：两套基础主题抢同一批隐式
+          ControlTheme，谁赢取决于先后，且不报错。  -->
     <Application.Styles>
-        <themes:ForgeExpUiTheme />
+        <forge:ForgeTheme Family="ExpUi" />
     </Application.Styles>
 </Application>
