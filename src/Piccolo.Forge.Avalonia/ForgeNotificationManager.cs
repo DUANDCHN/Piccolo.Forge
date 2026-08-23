@@ -29,6 +29,8 @@ namespace Piccolo.Forge.Avalonia;
 /// 用接口（<c>INotificationManager</c>）持有会落回框架实现，暂停就没了。
 /// </para>
 /// </remarks>
+[ForgeThemeless("只改计时行为、不改长相：StyleKeyOverride 指回 WindowNotificationManager，" +
+                "用的就是框架那份主题。给它单独加一份 ControlTheme 反而会与基类那份分叉。")]
 public class ForgeNotificationManager : WindowNotificationManager
 {
     private readonly Dictionary<NotificationCard, PendingClose> _pending = [];
