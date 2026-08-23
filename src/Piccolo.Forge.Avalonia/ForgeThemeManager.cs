@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System;
 using System.Diagnostics;
 using System.Globalization;
@@ -74,7 +74,18 @@ public static class ForgeThemeManager
             application.Styles.Remove(present);
         }
 
-        application.Styles.Add(theme);
+        // ★ 插到**最前**，不是追加。★
+        //
+        // 基础主题按定义就该排在 Application.Styles 最前：Avalonia 的隐式 ControlTheme 与
+        // 样式是后来者覆盖先来者，宿主写在 App.axaml 里的那些覆盖（改窗口背景、调按钮内边距…）
+        // 必须能盖过主题，而不是反过来被主题盖掉。
+        //
+        // ⚠ 这里曾经是 Styles.Add（追加）。12.0.1 时本类只装**外壳**主题，外壳控件类型
+        //   宿主一般不覆盖，追加看不出问题；12.1.0 起装的是**全套**（含 Window 与全部控件），
+        //   追加就会盖掉宿主的覆盖 —— 实测症状：宿主把窗口设成透明以透出 Win11 云母，
+        //   Forge.Window 的不透明 Background 排在后面把云母整个盖住，且**不报错**。
+        //   这类"顺序错→外观悄悄变了"正是本库反复警告的那一类，不该由库自己制造。
+        application.Styles.Insert(0, theme);
         _installed = theme;
     }
 
