@@ -1,16 +1,24 @@
-<Window xmlns="https://github.com/avaloniaui"
+﻿<Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:forge="using:Piccolo.Forge.Avalonia"
         xmlns:vm="using:Piccolo.Forge.Sample.Mvvm.ViewModels"
         x:Class="Piccolo.Forge.Sample.Mvvm.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Title="Piccolo.Forge —— MVVM 接法"
-        Width="1000" Height="640">
+        Width="1000" Height="640"
+        ExtendClientAreaToDecorationsHint="True"
+        WindowDecorations="Full">
     <!--  ★ 对接全靠绑定，没有一行 code-behind 接线。★
           Shell 与 Editor 都是 StyledProperty：外壳绑外壳 VM、编辑区控件绑编辑区 VM，
           EditorContent 里的控件继承本窗口的 DataContext，所以两个绑定同源。
-          （Attach() 那套命令式 API 仍在，给不走绑定的宿主用 —— 两条路等价，选一条。）  -->
-    <forge:ForgeControl Shell="{Binding Shell}">
+          （Attach() 那套命令式 API 仍在，给不走绑定的宿主用 —— 两条路等价，选一条。）
+
+          窗口装饰也走本主题（上面两行窗口属性）：标题条与那几颗按钮由主题画；
+          标题条空白处可拖动、可双击最大化 —— 命中面从装饰条以下才开始，条上留给装饰层。
+          顶部 Margin=34 给标题条让位 —— 自绘装饰浮在客户区之上（DefaultTitleBarHeight）。  -->
+    <!--  拖拽不用宿主接线：标题条空白处的命中会穿到装饰层的 TitleBar
+          （Forge.Window 的命中面从装饰条以下才开始，照 Semi 的做法），拖动 / 双击最大化开箱即用。  -->
+    <forge:ForgeControl Shell="{Binding Shell}" Margin="0,34,0,0">
         <forge:ForgeControl.EditorContent>
             <forge:ForgeEditorControl Editor="{Binding Editor}" />
         </forge:ForgeControl.EditorContent>

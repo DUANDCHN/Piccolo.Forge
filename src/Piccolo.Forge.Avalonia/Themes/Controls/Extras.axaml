@@ -1,4 +1,4 @@
-<ResourceDictionary xmlns="https://github.com/avaloniaui"
+﻿<ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:notif="using:Avalonia.Controls.Notifications">
     <!--
@@ -324,7 +324,14 @@
                 <Panel>
                     <Border Name="PART_TransparencyFallback" IsHitTestVisible="False" />
                     <Border Background="{TemplateBinding Background}" IsHitTestVisible="False" />
-                    <Panel Background="Transparent" Margin="{TemplateBinding OffScreenMargin}">
+                    <!-- ⚠ 空白客户区的命中面（右键菜单、拖放落点靠它）**从装饰条以下才开始**
+                         （Margin=WindowDecorationMargin，照 Semi 的 Window 模板）：
+                         标题条那条**故意留空**，命中于是穿到装饰底层那块 ElementRole=TitleBar，
+                         拖拽 / 双击最大化开箱即用。原先这块透明 Panel 铺满整窗，
+                         把标题条的命中整个拦死 —— 自绘装饰的窗口标题条拖不动，且不报错。
+                         宿主往条上摆的控件（菜单、按钮）在内容层，命中照常先到它们。 -->
+                    <Panel Background="Transparent" Margin="{TemplateBinding WindowDecorationMargin}" />
+                    <Panel Margin="{TemplateBinding OffScreenMargin}">
                         <VisualLayerManager Name="PART_VisualLayerManager">
                             <ContentPresenter Name="PART_ContentPresenter"
                                               Content="{TemplateBinding Content}"
