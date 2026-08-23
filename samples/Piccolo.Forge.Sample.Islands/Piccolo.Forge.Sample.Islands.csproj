@@ -1,21 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <!--  Islands档的控件演示。★ 全工程**只引一个主题包** —— 这就是设计里的默认姿势：
-        谁想用哪一档，就引哪一个包。（两档都要、由设置切换的接法见 Piccolo.Forge.Sample。）
+  <!--  ★ Islands档的**外壳布局**演示：条带 / 停靠区 / 工具窗 / 编辑器标签。★
 
-        它同时是一道**构建期的证明**：Themes.Islands 若不足以单独装出一整套界面
-        （漏了键、或悄悄依赖了另一族的东西），这个示例会当场编不过或跑出没颜色的控件。  -->
+        外壳是两档差别最大的地方（11 个模板文件逐个 diff，无一相同），所以按档各出一个。
+        控件的演示只要一档就够（两档只有色板不同），见 Piccolo.Forge.Sample。
+
+        全工程**只引一个主题包** —— 这是设计里的默认姿势：谁用哪一档，就引哪一个包。
+        它同时是一道构建期的证明：Themes.Islands 若不足以单独装出一整套界面，这个示例会当场编不过。  -->
   <PropertyGroup>
-    <OutputType>WinExe</OutputType>
     <RootNamespace>Piccolo.Forge.Sample.Islands</RootNamespace>
-    <!--  库多目标，示例单目标：Directory.Build.props 里的 TargetFrameworks 要先清空，
-          否则它优先于 TargetFramework，Avalonia 的构建任务会在解析不到目标框架时报 MSB4022。  -->
+    <OutputType>WinExe</OutputType>
     <TargetFrameworks></TargetFrameworks>
-    <TargetFramework>net10.0</TargetFramework>
-    <!--  不是对外 API，不强制 XML 注释  -->
-    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <TargetFramework>net8.0</TargetFramework>
     <IsPackable>false</IsPackable>
-    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
 
@@ -27,9 +25,6 @@
   <ItemGroup>
     <ProjectReference Include="../Piccolo.Forge.Sample.Shared/Piccolo.Forge.Sample.Shared.csproj" />
     <ProjectReference Include="../../src/Piccolo.Forge.Themes.Islands/Piccolo.Forge.Themes.Islands.csproj" />
-    <!--  DataGrid / ColorPicker 的模板是附加包（那两个控件在独立的 Avalonia 包里）。  -->
-    <ProjectReference Include="../../src/Piccolo.Forge.Avalonia.DataGrid/Piccolo.Forge.Avalonia.DataGrid.csproj" />
-    <ProjectReference Include="../../src/Piccolo.Forge.Avalonia.ColorPicker/Piccolo.Forge.Avalonia.ColorPicker.csproj" />
   </ItemGroup>
 
 </Project>

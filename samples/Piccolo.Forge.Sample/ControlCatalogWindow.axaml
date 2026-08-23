@@ -1,6 +1,6 @@
 ﻿<Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        x:Class="Piccolo.Forge.Sample.Shared.ControlCatalogWindow"
+        x:Class="Piccolo.Forge.Sample.ControlCatalogWindow"
         Title="Piccolo.Forge —— 控件样式演示"
         Width="1080" Height="720">
     <!--

@@ -1,34 +1,45 @@
-# 示例
+﻿# 示例
 
 四个工程，**三个能跑、一个是内容库**：
 
 | 工程 | 能跑 | 引哪些主题包 | 看什么 |
 |---|---|---|---|
-| `Piccolo.Forge.Sample.ExpUi` | ✅ | `Themes.ExpUi` **一个** | 经典（expUI）档的全部控件 |
-| `Piccolo.Forge.Sample.Islands` | ✅ | `Themes.Islands` **一个** | Islands 档的全部控件 |
-| `Piccolo.Forge.Sample` | ✅ | 两个都引 | 外壳（停靠 / 工具窗）；`--islands` 切档 |
-| `Piccolo.Forge.Sample.Shared` | ❌ 类库 | **一个都不引** | 上面两个的内容（控件目录 + 用例页） |
+| `Piccolo.Forge.Sample` | ✅ | `Themes.ExpUi` **一个** + 两个附加包 | **控件**：Avalonia 全部 89 个 |
+| `Piccolo.Forge.Sample.ExpUi` | ✅ | `Themes.ExpUi` **一个** | **外壳布局**：条带 / 停靠区 / 工具窗 / 编辑器标签 |
+| `Piccolo.Forge.Sample.Islands` | ✅ | `Themes.Islands` **一个** | 同上，Islands 档 |
+| `Piccolo.Forge.Sample.Shared` | ❌ 类库 | **一个都不引** | 上面两个外壳示例的内容 |
 
 ```bash
-dotnet run --project samples/Piccolo.Forge.Sample.ExpUi
-dotnet run --project samples/Piccolo.Forge.Sample.Islands
-dotnet run --project samples/Piccolo.Forge.Sample -- --islands
+dotnet run --project samples/Piccolo.Forge.Sample            # 控件
+dotnet run --project samples/Piccolo.Forge.Sample.ExpUi      # 外壳（经典档）
+dotnet run --project samples/Piccolo.Forge.Sample.Islands    # 外壳（Islands 档）
 ```
+
+## 为什么控件只演示一档、外壳要按档各出一个
+
+**分档这条轴不是均匀的**，是量过的：
+
+- **外壳**每族一份模板 —— 两族逐文件 diff，11 个文件**无一相同**（ContentTab 35 行、EditorTab 34 行…）。
+  两档摆在一起看差别明显，所以按档各出一个示例。
+- **控件**两档**共用同一份模板**（上游 Islands 的 parentTheme 就是 Experimental*，
+  控件层结构相同、只有色板不同）。两档打开几乎一样，各出一个只是重复。
 
 ## 为什么按档拆成两个工程，而不是一个带 `--islands` 的
 
-**设计的默认姿势是"谁用哪一档，就引哪一个包"。** 两档都引是少数派（宿主想在设置里切换，
-如 LDVision）。示例引两个包，就是把例外当范例 —— 所以按档各出一个只引一个包的示例，
-少数派那种接法由 `Piccolo.Forge.Sample` 演示。
+**设计的默认姿势是"谁用哪一档，就引哪一个包"**，所以四个工程里没有一个引两个主题包。
+两档都引是少数派（宿主想在设置里切换，如 LDVision）——那种接法不在示例里，
+做法是两个包都引，按配置 `new` 对应的入口类，换档重启生效。
 
 单包示例不只是"演示对了"，它还是一道**构建期的证明**：`Themes.ExpUi` 若不足以单独装出
 一整套界面（漏了键、或悄悄依赖了另一族的东西），那个示例会当场编不过、或跑出没颜色的控件。
 
 ## `Sample.Shared` 为什么是类库、为什么不可运行
 
-它只装**内容**：控件目录（89 条）+ 每个控件的用例页。**不引任何主题包** —— 三个壳各引各的，
+它只装**外壳演示的内容**（停靠 / 工具窗 / 编辑器标签）。**不引任何主题包** —— 三个壳各引各的，
 于是"一个宿主只引一个主题包"这件事在每个壳的 csproj 里一眼可见，而这份 89 条的清单只有一份。
 抄成每档一份必然漂移，那正是 `ForgeThemeCompletenessTests` 立项要防的缺陷类。
+控件目录不在这里 —— 它只有一个消费者（`Piccolo.Forge.Sample`），直接放在那个工程里，
+于是它也是可运行的（Rider 里能跑、axaml 能用预览器）。
 
 它不引主题包这条本身也是护栏：内容里一旦写死某族的键（`Forge.ExpUi.*` / `Forge.Islands.*`）
 就编不过。控件的色键不带族前缀，所以两档能共用同一份内容。
@@ -37,7 +48,7 @@ dotnet run --project samples/Piccolo.Forge.Sample -- --islands
 > Avalonia 的 `x:Name` 源生成器不接受 link 进来的 axaml，补 `AdditionalFiles` 也不行，
 > `Nav` / `Detail` 这些字段生不出来。
 
-## 命令行开关（两个控件示例通用）
+## 命令行开关（控件示例 `Piccolo.Forge.Sample`）
 
 | 开关 | 作用 |
 |---|---|
@@ -47,9 +58,9 @@ dotnet run --project samples/Piccolo.Forge.Sample -- --islands
 | `--sweep` | 把 89 个条目逐个渲染一遍再退出，专扫"一渲染就崩"；exit code 可判 |
 
 ```bash
-# 冒烟：两档 × 明暗，全过才算模板都装得起来
-dotnet run --project samples/Piccolo.Forge.Sample.ExpUi -- --sweep --open
-dotnet run --project samples/Piccolo.Forge.Sample.Islands -- --sweep --open --dark
+# 冒烟：明暗两档全过才算模板都装得起来
+dotnet run --project samples/Piccolo.Forge.Sample -- --sweep --open
+dotnet run --project samples/Piccolo.Forge.Sample -- --sweep --open --dark
 ```
 
 ⚠ `--sweep` 只扫崩溃，**扫不出"悄悄退回默认外观"** —— 资源找不到在 Avalonia 里不报错。

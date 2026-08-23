@@ -1,4 +1,8 @@
-﻿using Avalonia;
+﻿// ⚠ 本文件里对 Avalonia 的**限定引用一律写 global::Avalonia.***。
+// 原因：命名空间是 Piccolo.Forge.Sample，C# 由内向外找 —— 写 Avalonia.Thickness 会先撞上
+// 兄弟命名空间 Piccolo.Forge.Avalonia（本工程引了它），解析成 Piccolo.Forge.Avalonia.Thickness 而报错。
+// 顶部的 using 指令不受影响（它们全局解析），只有**限定名**会被就近劫持。
+using Avalonia;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,7 +14,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Styling;
 
-namespace Piccolo.Forge.Sample.Shared;
+namespace Piccolo.Forge.Sample;
 
 /// <summary>演示页里的一行：左边写用途，右边是照这个用途构造出来的控件。</summary>
 /// <remarks>
@@ -209,7 +213,7 @@ public static class Catalog
                     () => Scrollable(new ScrollViewer { Width = 220, Height = 110 })),
                 new Row("双向滚动",
                     () => Scrollable(new ScrollViewer { Width = 220, Height = 110,
-                        HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto }, wide: true))),
+                        HorizontalScrollBarVisibility = global::Avalonia.Controls.Primitives.ScrollBarVisibility.Auto }, wide: true))),
             new Entry("ScrollBar", "滚动条") { Inner = true, SeeAlso = "ScrollViewer" },
             new Entry("GridSplitter", "分隔条",
                 new Row("竖向分隔", () => Splitter())),
@@ -322,7 +326,7 @@ public static class Catalog
     /// <summary>挂一个具名 ControlTheme（及可选 Classes）。</summary>
     static Control Themed(Control c, string theme, params string[] classes)
     {
-        if (Avalonia.Application.Current!.TryFindResource(theme, out var t) && t is ControlTheme ct)
+        if (global::Avalonia.Application.Current!.TryFindResource(theme, out var t) && t is ControlTheme ct)
             c.Theme = ct;
         foreach (var cls in classes) c.Classes.Add(cls);
         return c;
@@ -337,7 +341,7 @@ public static class Catalog
     /// <summary>一个"下载"图标，纯路径，不依赖图标包。</summary>
     static Control Icon() => new PathIcon
     {
-        Data = Avalonia.Media.Geometry.Parse(
+        Data = global::Avalonia.Media.Geometry.Parse(
             "M8 1 L8 10 M4.5 6.5 L8 10 L11.5 6.5 M2 13 L14 13"),
         Width = 16, Height = 16,
         VerticalAlignment = VerticalAlignment.Center,
@@ -351,8 +355,8 @@ public static class Catalog
             IsPaneOpen = true,
             OpenPaneLength = 110,
             DisplayMode = SplitViewDisplayMode.Inline,
-            Pane = new TextBlock { Text = "侧栏", Margin = new Avalonia.Thickness(10) },
-            Content = new TextBlock { Text = "内容区", Margin = new Avalonia.Thickness(10) },
+            Pane = new TextBlock { Text = "侧栏", Margin = new global::Avalonia.Thickness(10) },
+            Content = new TextBlock { Text = "内容区", Margin = new global::Avalonia.Thickness(10) },
         };
         return sv;
     }
@@ -385,7 +389,7 @@ public static class Catalog
         // ⚠ 管理器内部是自己 new NotificationCard 的，既不经过 ApplyForgeTheme，
         //   也拿不到外层子树注册的隐式主题。要让自研主题生效，只能挂在**管理器自己**的
         //   资源里 —— 卡片是它的后代，查得到。
-        if (forge && Avalonia.Application.Current!.TryFindResource("Forge.NotificationCard", out var t)
+        if (forge && global::Avalonia.Application.Current!.TryFindResource("Forge.NotificationCard", out var t)
             && t is ControlTheme ct)
         {
             mgr.Resources[typeof(NotificationCard)] = ct;
@@ -423,8 +427,8 @@ public static class Catalog
         var b = new Border
         {
             Width = 180, Height = 44,
-            BorderThickness = new Avalonia.Thickness(1),
-            BorderBrush = Avalonia.Media.Brushes.Gray,
+            BorderThickness = new global::Avalonia.Thickness(1),
+            BorderBrush = global::Avalonia.Media.Brushes.Gray,
             Child = new TextBlock { Text = "把鼠标停在这里", HorizontalAlignment = HorizontalAlignment.Center,
                                     VerticalAlignment = VerticalAlignment.Center },
         };
@@ -449,9 +453,9 @@ public static class Catalog
                 new CamRow("虚拟相机", "—", "在线"),
             },
         };
-        dg.Columns.Add(new DataGridTextColumn { Header = "名称", Binding = new Avalonia.Data.Binding(nameof(CamRow.Name)), Width = new DataGridLength(1, DataGridLengthUnitType.Star) });
-        dg.Columns.Add(new DataGridTextColumn { Header = "IP", Binding = new Avalonia.Data.Binding(nameof(CamRow.Ip)) });
-        dg.Columns.Add(new DataGridTextColumn { Header = "状态", Binding = new Avalonia.Data.Binding(nameof(CamRow.State)) });
+        dg.Columns.Add(new DataGridTextColumn { Header = "名称", Binding = new global::Avalonia.Data.Binding(nameof(CamRow.Name)), Width = new DataGridLength(1, DataGridLengthUnitType.Star) });
+        dg.Columns.Add(new DataGridTextColumn { Header = "IP", Binding = new global::Avalonia.Data.Binding(nameof(CamRow.Ip)) });
+        dg.Columns.Add(new DataGridTextColumn { Header = "状态", Binding = new global::Avalonia.Data.Binding(nameof(CamRow.State)) });
         return dg;
     }
 
@@ -461,7 +465,7 @@ public static class Catalog
     {
         var tc = new TabControl { Width = 320, Height = 140 };
         foreach (var (h, c) in new[] { ("常用", "常用属性页"), ("高级", "高级属性页"), ("关于", "关于页") })
-            tc.Items.Add(new TabItem { Header = h, Content = new TextBlock { Text = c, Margin = new Avalonia.Thickness(12) } });
+            tc.Items.Add(new TabItem { Header = h, Content = new TextBlock { Text = c, Margin = new global::Avalonia.Thickness(12) } });
         return tc;
     }
 
@@ -508,13 +512,13 @@ public static class Catalog
     // 占位图标：描边跟着按钮前景走，选中态翻白才不至于糊在主色底上
     static Control Glyph()
     {
-        var r = new Avalonia.Controls.Shapes.Rectangle
+        var r = new global::Avalonia.Controls.Shapes.Rectangle
         {
             Width = 12, Height = 12, RadiusX = 2, RadiusY = 2, StrokeThickness = 1.2,
         };
-        r.Bind(Avalonia.Controls.Shapes.Shape.StrokeProperty, new Avalonia.Data.Binding("Foreground")
+        r.Bind(global::Avalonia.Controls.Shapes.Shape.StrokeProperty, new global::Avalonia.Data.Binding("Foreground")
         {
-            RelativeSource = new Avalonia.Data.RelativeSource(Avalonia.Data.RelativeSourceMode.FindAncestor)
+            RelativeSource = new global::Avalonia.Data.RelativeSource(global::Avalonia.Data.RelativeSourceMode.FindAncestor)
             {
                 AncestorType = typeof(TemplatedControl),
             },
@@ -596,7 +600,7 @@ public static class Catalog
     static Control Splitter()
     {
         var g = new Grid { Width = 260, Height = 90, ColumnDefinitions = new ColumnDefinitions("*,Auto,*") };
-        var left = new Border { Background = Avalonia.Media.Brushes.Transparent,
+        var left = new Border { Background = global::Avalonia.Media.Brushes.Transparent,
                                 Child = new TextBlock { Text = "左", HorizontalAlignment = HorizontalAlignment.Center,
                                                         VerticalAlignment = VerticalAlignment.Center } };
         var right = new Border { Child = new TextBlock { Text = "右", HorizontalAlignment = HorizontalAlignment.Center,
@@ -651,7 +655,7 @@ public static class Catalog
 
     static Control Horiz(params Control[] items)
     {
-        var sp = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 8 };
+        var sp = new StackPanel { Orientation = global::Avalonia.Layout.Orientation.Horizontal, Spacing = 8 };
         foreach (var i in items) sp.Children.Add(i);
         return sp;
     }
@@ -707,8 +711,8 @@ public static class Catalog
         return new Border
         {
             Width = 180, Height = 60,
-            BorderThickness = new Avalonia.Thickness(1),
-            BorderBrush = Avalonia.Media.Brushes.Gray,
+            BorderThickness = new global::Avalonia.Thickness(1),
+            BorderBrush = global::Avalonia.Media.Brushes.Gray,
             ContextMenu = menu,
             Child = new TextBlock { Text = "在这里右键", HorizontalAlignment = HorizontalAlignment.Center,
                                     VerticalAlignment = VerticalAlignment.Center },
@@ -723,7 +727,7 @@ public static class Catalog
             sp.Children.Add(new TextBlock
             {
                 Text = wide ? $"第 {i} 行 —— 这一行有意写得很长，用来把横向滚动条也逼出来" : $"第 {i} 行",
-                Margin = new Avalonia.Thickness(4, 3),
+                Margin = new global::Avalonia.Thickness(4, 3),
             });
         sv.Content = sp;
         return sv;

@@ -1,4 +1,8 @@
-﻿using System;
+﻿// ⚠ 本文件里对 Avalonia 的**限定引用一律写 global::Avalonia.***。
+// 原因：命名空间是 Piccolo.Forge.Sample，C# 由内向外找 —— 写 Avalonia.Thickness 会先撞上
+// 兄弟命名空间 Piccolo.Forge.Avalonia（本工程引了它），解析成 Piccolo.Forge.Avalonia.Thickness 而报错。
+// 顶部的 using 指令不受影响（它们全局解析），只有**限定名**会被就近劫持。
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Avalonia.Controls;
@@ -10,7 +14,7 @@ using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Styling;
 using Avalonia.Threading;
 
-namespace Piccolo.Forge.Sample.Shared;
+namespace Piccolo.Forge.Sample;
 
 public partial class ControlCatalogWindow : Window
 {
@@ -155,7 +159,7 @@ public partial class ControlCatalogWindow : Window
         {
             Text = entry.Cn.Length > 0 ? $"{entry.Name} — {entry.Cn}" : entry.Name,
             Classes = { "h" },
-            Margin = new Avalonia.Thickness(0, 0, 0, 16),
+            Margin = new global::Avalonia.Thickness(0, 0, 0, 16),
         });
 
         if (entry.Rows.Length == 0)
@@ -181,11 +185,11 @@ public partial class ControlCatalogWindow : Window
         for (var i = 0; i < entry.Rows.Length; i++)
         {
             var row = entry.Rows[i];
-            AddCell(grid, i, 0, new TextBlock { Text = row.Label, Classes = { "label" }, Margin = new Avalonia.Thickness(0, 12, 12, 0) });
+            AddCell(grid, i, 0, new TextBlock { Text = row.Label, Classes = { "label" }, Margin = new global::Avalonia.Thickness(0, 12, 12, 0) });
 
             var sample = row.Build();
             sample.HorizontalAlignment = HorizontalAlignment.Left;
-            sample.Margin = new Avalonia.Thickness(0, 8, 0, 16);
+            sample.Margin = new global::Avalonia.Thickness(0, 8, 0, 16);
             AddCell(grid, i, 1, sample);
         }
 
@@ -196,7 +200,7 @@ public partial class ControlCatalogWindow : Window
     {
         Grid.SetRow(c, row);
         Grid.SetColumn(c, col);
-        c.Margin = new Avalonia.Thickness(0, 0, 12, 0);
+        c.Margin = new global::Avalonia.Thickness(0, 0, 12, 0);
         grid.Children.Add(c);
     }
 

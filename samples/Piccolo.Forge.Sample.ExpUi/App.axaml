@@ -1,17 +1,13 @@
 ﻿<Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:themes="using:Piccolo.Forge.Themes.ExpUi"
-             xmlns:dg="using:Piccolo.Forge.Avalonia.DataGrid"
-             xmlns:cpk="using:Piccolo.Forge.Avalonia.ColorPicker"
              x:Class="Piccolo.Forge.Sample.ExpUi.App"
-             RequestedThemeVariant="Light">
-    <!--  ★ 宿主要做的全部事情就是这三行。★
-          第一行是完整基础主题（色板 + 外壳 + 控件）；后两行是附加包，用不到就不加。
-          ⚠ 次序：主题包必须在前 —— 色板键由它提供，颠倒过来控件画得出来但没颜色，且不报错。
-          ⚠ 明暗跟随 RequestedThemeVariant，改成 Dark 即可看暗档。  -->
+             RequestedThemeVariant="Dark">
+    <!--  ★ 宿主要做的全部事情就是这一行。★
+          ForgeExpUiTheme 是**完整基础主题**：色板 + 外壳 + 控件。
+          ⚠ 这里**不再叠 FluentTheme** —— 12.1.0 之前外壳库不管控件，示例得找别人要基础主题；
+            现在一行装完。叠第二套会抢同一批隐式 ControlTheme，谁赢取决于先后，且不报错。  -->
     <Application.Styles>
         <themes:ForgeExpUiTheme />
-        <dg:ForgeDataGridTheme />
-        <cpk:ForgeColorPickerTheme />
     </Application.Styles>
 </Application>

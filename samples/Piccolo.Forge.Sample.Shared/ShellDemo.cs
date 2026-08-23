@@ -1,62 +1,29 @@
+﻿using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Styling;
-using Avalonia.Themes.Fluent;
-using System.Globalization;
 using Piccolo.Forge.Avalonia;
 using Piccolo.Forge.Model;
 using Piccolo.Forge.Mvvm;
 using Piccolo.Forge.Themes;
 
-namespace Piccolo.Forge.Sample;
+namespace Piccolo.Forge.Sample.Shared;
 
-/// 示例：新 UI 的默认布局（V2），条带按钮可点开/收起；顶部一排开关演示明暗 / 语言 / 显示名字 / 角标。
-/// 启动参数 <c>--islands</c> 换 Islands 主题（换主题要重启，所以做成启动参数而不是开关）。
-internal sealed class SampleApp : Application
+/// <summary>
+/// 外壳（停靠 / 工具窗 / 编辑器标签）的演示内容，两档共用。
+/// </summary>
+/// <remarks>
+/// ⚠ 本工程**不引任何主题包**：装哪一族由各示例壳自己决定（各引一个包），
+/// 这里只接收一个 <see cref="ForgeThemeFamily"/> 参数用于外框的 Appearance 与取色。
+/// </remarks>
+public static class ShellDemo
 {
-    /// <summary>命令行里有没有 <c>--islands</c>；由 Program 在 Initialize 之前设置。</summary>
-    public static bool UseIslands { get; set; }
+    static ForgePalette Pal(ForgeThemeFamily family) =>
+        ForgePalette.ForTheme(family, Application.Current!.ActualThemeVariant);
 
-    private static ForgeThemeFamily Family => UseIslands ? ForgeThemeFamily.Islands : ForgeThemeFamily.ExpUi;
-
-    private static ForgePalette Palette => ForgePalette.ForTheme(Family, Application.Current!.ActualThemeVariant);
-
-    public override void Initialize()
-    {
-        Styles.Add(new FluentTheme());
-
-        // Forge 的主题：**唯一入口**，装的是哪族由这一句定。引用了哪个主题包就 new 哪个；
-        // 不装控件就没有模板 —— 不报错，只是什么都不画。换族要重启（见 ForgeThemeManager）。
-        IForgeTheme theme = UseIslands
-            ? new Piccolo.Forge.Themes.Islands.ForgeIslandsTheme()
-            : new Piccolo.Forge.Themes.ExpUi.ForgeExpUiTheme();
-        ForgeThemeManager.Apply(this, theme);
-
-        // 文案跟系统语言；也可以传 "zh-CN" / "ja-JP" 这样的名字
-        ForgeThemeManager.ApplyLocale(this, CultureInfo.CurrentUICulture);
-        RequestedThemeVariant = ThemeVariant.Dark;
-    }
-
-    public override void OnFrameworkInitializationCompleted()
-    {
-        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
-        {
-            desktop.MainWindow = new Window
-            {
-                Title = "Piccolo.Forge",
-                Width = 1100,
-                Height = 700,
-                Content = BuildContent(),
-            };
-        }
-
-        base.OnFrameworkInitializationCompleted();
-    }
-
-    private static Control BuildContent()
+    public static Control Build(ForgeThemeFamily family)
     {
         // ① 建外壳 VM —— 宿主的接入点
         var shell = new ToolWindowShellViewModel();
@@ -74,8 +41,8 @@ internal sealed class SampleApp : Application
 
         // ③ 建控件并接上。配色跟着宿主的明暗变体走，这里不用管。
         var editor = new EditorAreaViewModel();
-        editor.Open("sample-a", "Sample A", Document("Sample A"));
-        editor.Open("sample-b", "Sample B", Document("Sample B"));
+        editor.Open("sample-a", "Sample A", Document(family, "Sample A"));
+        editor.Open("sample-b", "Sample B", Document(family, "Sample B"));
         editor.Area.DropTab("sample-b", editor.Area.Groups[0], EditorDropSide.Right);
 
         var editorControl = new ForgeEditorControl();
@@ -85,7 +52,7 @@ internal sealed class SampleApp : Application
         {
             EditorContent = editorControl,
             // 外观只在外框设一次，编辑区跟着继承；Family 与明暗正交
-            Appearance = ForgeAppearance.Default with { Family = Family },
+            Appearance = ForgeAppearance.Default with { Family = family },
         };
 
         frame.Attach(shell);
@@ -100,7 +67,7 @@ internal sealed class SampleApp : Application
                 {
                     Text = tool.Body,
                     Margin = new Thickness(12, 8, 0, 0),
-                    Foreground = new SolidColorBrush(Palette.Foreground),
+                    Foreground = new SolidColorBrush(Pal(family).Foreground),
                 };
             }
         }
@@ -111,7 +78,7 @@ internal sealed class SampleApp : Application
         shell.Open("Version Control");
 
         var root = new DockPanel();
-        var toolbar = BuildToolbar(shell);
+        var toolbar = BuildToolbar(shell, family);
         DockPanel.SetDock(toolbar, Dock.Top);
         root.Children.Add(toolbar);
         root.Children.Add(frame);
@@ -119,7 +86,7 @@ internal sealed class SampleApp : Application
     }
 
     /// <summary>顶部一排开关：库能从外面拨动的几个维度都在这里，各自一句话。</summary>
-    private static Control BuildToolbar(ToolWindowShellViewModel shell)
+    static Control BuildToolbar(ToolWindowShellViewModel shell, ForgeThemeFamily family)
     {
         var dark = new CheckBox { Content = "Dark", IsChecked = true };
         dark.IsCheckedChanged += (_, _) =>
@@ -155,7 +122,7 @@ internal sealed class SampleApp : Application
             Spacing = 16,
             Margin = new Thickness(12, 6),
         };
-        bar.Children.Add(new TextBlock { Text = $"Theme: {Family} (restart with --islands / without to switch)", VerticalAlignment = VerticalAlignment.Center });
+        bar.Children.Add(new TextBlock { Text = $"Theme: {family}", VerticalAlignment = VerticalAlignment.Center });
         bar.Children.Add(dark);
         bar.Children.Add(names);
         bar.Children.Add(badge);
@@ -164,14 +131,14 @@ internal sealed class SampleApp : Application
         return bar;
     }
 
-    private static Control Document(string title) => new Border
+    static Control Document(ForgeThemeFamily family, string title) => new Border
     {
         Background = new SolidColorBrush(ForgeColor.Parse("#1E1F22")),
         Child = new TextBlock
         {
             Text = $"{title}\n\n把标签拖到另一个窗格中心合并",
             TextAlignment = TextAlignment.Center,
-            Foreground = new SolidColorBrush(Palette.Foreground),
+            Foreground = new SolidColorBrush(Pal(family).Foreground),
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
         },
