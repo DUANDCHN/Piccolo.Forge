@@ -1,0 +1,17 @@
+﻿<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:themes="using:Piccolo.Forge.Themes.Islands"
+             xmlns:dg="using:Piccolo.Forge.Avalonia.DataGrid"
+             xmlns:cpk="using:Piccolo.Forge.Avalonia.ColorPicker"
+             x:Class="Piccolo.Forge.Sample.Islands.App"
+             RequestedThemeVariant="Light">
+    <!--  ★ 宿主要做的全部事情就是这三行。★
+          第一行是完整基础主题（色板 + 外壳 + 控件）；后两行是附加包，用不到就不加。
+          ⚠ 次序：主题包必须在前 —— 色板键由它提供，颠倒过来控件画得出来但没颜色，且不报错。
+          ⚠ 明暗跟随 RequestedThemeVariant，改成 Dark 即可看暗档。  -->
+    <Application.Styles>
+        <themes:ForgeIslandsTheme />
+        <dg:ForgeDataGridTheme />
+        <cpk:ForgeColorPickerTheme />
+    </Application.Styles>
+</Application>

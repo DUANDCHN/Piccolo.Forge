@@ -1,0 +1,54 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Piccolo.Forge.Sample.Shared.ControlCatalogWindow"
+        Title="Piccolo.Forge —— 控件样式演示"
+        Width="1080" Height="720">
+    <!--
+      左侧树列出 Avalonia 全部具体控件（清单在 Catalog.cs，就是覆盖进度表），
+      右侧是选中控件在当前主题下的样子。悬停/按下这些态截图看不到，要手动划过去。
+    -->
+    <Window.Styles>
+        <Style Selector="TextBlock.h">
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="FontSize" Value="14" />
+        </Style>
+        <Style Selector="TextBlock.label">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Opacity" Value="0.75" />
+        </Style>
+        <Style Selector="TextBlock.muted">
+            <Setter Property="Opacity" Value="0.5" />
+        </Style>
+    </Window.Styles>
+
+    <DockPanel>
+        <Border DockPanel.Dock="Top" Padding="16,12" BorderThickness="0,0,0,1"
+                BorderBrush="{DynamicResource Forge.Window.Border}">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <TextBlock Text="主题变体：" Classes="label" />
+                <RadioButton Name="LightVariant" Content="Light" IsChecked="True" GroupName="v" />
+                <RadioButton Name="DarkVariant" Content="Dark" GroupName="v" />
+                <TextBlock Name="ProgressText" Classes="label" Margin="16,0,0,0" />
+            </StackPanel>
+        </Border>
+
+        <Grid ColumnDefinitions="280,Auto,*">
+            <TreeView Name="Nav" Grid.Column="0" Margin="4"
+                      ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                <TreeView.Styles>
+                    <!-- 未接管的条目压暗一档，树本身就是进度表。 -->
+                    <Style Selector="TreeViewItem TextBlock.pending">
+                        <Setter Property="Opacity" Value="0.45" />
+                    </Style>
+                </TreeView.Styles>
+            </TreeView>
+
+            <GridSplitter Grid.Column="1" Width="1" ResizeDirection="Columns"
+                          Background="{DynamicResource Forge.Window.Border}" />
+
+            <ScrollViewer Grid.Column="2" Padding="20">
+                <StackPanel Name="Detail" Spacing="0" />
+            </ScrollViewer>
+        </Grid>
+    </DockPanel>
+</Window>

@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--  控件演示的**内容**：目录树 + 每个控件的用例页。
+        ⚠ 有意**不引用任何主题包**。三个示例壳各引一个主题包、link 本工程，
+          于是"一个宿主只引一个主题包"这件事在每个壳的 csproj 里一眼可见，而这份 89 条的
+          清单只有一份 —— 抄成每档一份必然漂移，那正是 ForgeThemeCompletenessTests 立项要防的。
+        ⚠ 内容里一旦写死某一族的键（Forge.ExpUi.* / Forge.Islands.*），本工程就编不过，
+          这条约束本身就是护栏。控件的色键不带族前缀，所以两档共用同一份内容。  -->
+  <PropertyGroup>
+    <RootNamespace>Piccolo.Forge.Sample.Shared</RootNamespace>
+    <!--  库多目标，示例单目标：Directory.Build.props 里的 TargetFrameworks 要先清空，
+          否则它优先于 TargetFramework，Avalonia 的构建任务会在解析不到目标框架时报 MSB4022。  -->
+    <TargetFrameworks></TargetFrameworks>
+    <TargetFramework>net10.0</TargetFramework>
+    <!--  不是对外 API，不强制 XML 注释  -->
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <IsPackable>false</IsPackable>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <!--  演示 DataGrid / ColorPicker 需要控件本身；它们的**主题**由各壳工程引附加包。  -->
+    <PackageReference Include="Avalonia.Controls.DataGrid" />
+    <PackageReference Include="Avalonia.Controls.ColorPicker" />
+  </ItemGroup>
+
+</Project>

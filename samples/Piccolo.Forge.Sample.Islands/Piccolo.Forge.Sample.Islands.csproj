@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--  Islands档的控件演示。★ 全工程**只引一个主题包** —— 这就是设计里的默认姿势：
+        谁想用哪一档，就引哪一个包。（两档都要、由设置切换的接法见 Piccolo.Forge.Sample。）
+
+        它同时是一道**构建期的证明**：Themes.Islands 若不足以单独装出一整套界面
+        （漏了键、或悄悄依赖了另一族的东西），这个示例会当场编不过或跑出没颜色的控件。  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>Piccolo.Forge.Sample.Islands</RootNamespace>
+    <!--  库多目标，示例单目标：Directory.Build.props 里的 TargetFrameworks 要先清空，
+          否则它优先于 TargetFramework，Avalonia 的构建任务会在解析不到目标框架时报 MSB4022。  -->
+    <TargetFrameworks></TargetFrameworks>
+    <TargetFramework>net10.0</TargetFramework>
+    <!--  不是对外 API，不强制 XML 注释  -->
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <IsPackable>false</IsPackable>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Piccolo.Forge.Sample.Shared/Piccolo.Forge.Sample.Shared.csproj" />
+    <ProjectReference Include="../../src/Piccolo.Forge.Themes.Islands/Piccolo.Forge.Themes.Islands.csproj" />
+    <!--  DataGrid / ColorPicker 的模板是附加包（那两个控件在独立的 Avalonia 包里）。  -->
+    <ProjectReference Include="../../src/Piccolo.Forge.Avalonia.DataGrid/Piccolo.Forge.Avalonia.DataGrid.csproj" />
+    <ProjectReference Include="../../src/Piccolo.Forge.Avalonia.ColorPicker/Piccolo.Forge.Avalonia.ColorPicker.csproj" />
+  </ItemGroup>
+
+</Project>

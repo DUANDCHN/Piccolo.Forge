@@ -1,4 +1,8 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--  外壳（停靠 / 工具窗）的演示。★ 它是三个示例里**唯一引两个主题包**的一个，
+        演示的是少数派接法：宿主两档都要、由设置切换（LDVision 就是这样）。
+        默认姿势是**只引一个包** —— 见 Piccolo.Forge.Sample.ExpUi / .Islands。  -->
 
   <PropertyGroup>
     <RootNamespace>Piccolo.Forge.Sample</RootNamespace>
