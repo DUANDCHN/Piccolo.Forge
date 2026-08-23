@@ -138,7 +138,7 @@ public sealed class ForgeTheme : ForgeThemeBase
 /// <summary>
 /// 只有**控件**（Avalonia 全部 89 个 + 宿主壳一族）与它们的色板，不含停靠外壳。
 /// 给"想要 IntelliJ 控件外观、不用 Forge 停靠框架"的宿主 —— 它本身是完整基础主题，
-/// 直接替掉 Fluent / Semi，不要再叠别的基础主题。
+/// 自身即是完整基础主题，不要再叠别的基础主题。
 /// </summary>
 /// <remarks>
 /// DataGrid / ColorPicker 的模板在附加包里（那两个控件在独立的 Avalonia 包里），

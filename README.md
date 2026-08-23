@@ -16,7 +16,7 @@ to that of IntelliJ IDEA and Rider:
   that can be rearranged by dragging tabs.
 - A **complete control theme** — all 89 concrete Avalonia controls (buttons, inputs, lists,
   trees, menus, pickers…) in the IntelliJ visual language, usable as a full base theme that
-  replaces Fluent or Semi; DataGrid and ColorPicker themes ship as add-on packages.
+  replaces the default base theme; DataGrid and ColorPicker themes ship as add-on packages.
 - Two visual families, **expUI** and **Islands**, each with light and dark variants; the
   family is selected by a single `Family` property.
 - Layout persistence, context menus, an overflow ("More") button, stripe-button badges,
@@ -71,12 +71,25 @@ Install one theme entry in `Application.Styles` — pick the layer you need
 
 ```xml
 <forge:ForgeControlsTheme Family="ExpUi" />       <!-- controls only: a full base theme,
-                                                       no docking — replaces Fluent/Semi -->
+                                                       no docking — a base theme on its own -->
 ```
 
 ```xml
 <FluentTheme />                                   <!-- your own base theme, first -->
 <forge:ForgeShellTheme Family="ExpUi" />          <!-- shell only, on top of it -->
+```
+
+If you use DataGrid or ColorPicker, add the matching add-on package and install its entry
+**after** the theme entry (the theme supplies the colour keys; without it the controls render
+but stay uncoloured, with no error). The add-ons have no `Family` — templates are shared
+between families and the colours follow whatever family the theme entry selected:
+
+```xml
+<Application.Styles>
+    <forge:ForgeTheme Family="ExpUi" />
+    <forgedg:ForgeDataGridTheme />    <!-- xmlns:forgedg="using:Piccolo.Forge.Avalonia.DataGrid" -->
+    <forgecpk:ForgeColorPickerTheme /><!-- xmlns:forgecpk="using:Piccolo.Forge.Avalonia.ColorPicker" -->
+</Application.Styles>
 ```
 
 Hosts that ship both families reference both resource packages and bind the property to
@@ -141,6 +154,11 @@ Three samples are provided in `samples/`: `Piccolo.Forge.Sample` (the control ca
 - **Dock** ([wieslawsoltes/Dock](https://github.com/wieslawsoltes/Dock), MIT License).
   The tab-move semantics of the editor area (detach, attach, commit) and its drag lifecycle
   were developed with reference to Dock.
+- **Semi.Avalonia** ([irihitech/Semi.Avalonia](https://github.com/irihitech/Semi.Avalonia), MIT License).
+  The locale mechanism (`ApplyLocale`), the add-on package layout (DataGrid / ColorPicker as
+  separate packages) and a number of control-templating framework facts were developed with
+  reference to Semi.Avalonia. Piccolo.Forge contains no Semi source code; visual structure
+  and colours follow the IntelliJ Platform, not Semi.
 
 Full notices are provided in `THIRD-PARTY-NOTICES.md`.
 
@@ -159,7 +177,7 @@ Piccolo.Forge 为 Avalonia 桌面应用程序提供与 IntelliJ IDEA、Rider 类
 - **视图模式**：停靠（固定或不固定）、取消停靠、浮动、独立窗口，显示与自动隐藏规则参考 IntelliJ Platform。
 - **编辑区**：标签页、固定 / 关闭 / 数量上限策略，以及可通过拖拽标签重排的二叉分屏树。
 - **完整的控件主题**：Avalonia 全部 89 个具体控件（按钮、输入、列表、树、菜单、选择器…）
-  的 IntelliJ 视觉语言实现，可作为完整基础主题直接替代 Fluent / Semi；
+  的 IntelliJ 视觉语言实现，可作为完整基础主题独立使用（无需再装其它基础主题）；
   DataGrid 与 ColorPicker 的主题以附加包提供。
 - 两种视觉风格：**expUI** 与 **Islands**，各含明、暗两种变体；族由一个 `Family` 属性选定。
 - 布局持久化、上下文菜单、溢出（「更多」）按钮、条带按钮角标、无障碍名称，以及 13 种语言的界面文案。
@@ -205,12 +223,24 @@ Piccolo.Forge 为 Avalonia 桌面应用程序提供与 IntelliJ IDEA、Rider 类
 
 ```xml
 <forge:ForgeControlsTheme Family="ExpUi" />       <!-- 只要控件：完整基础主题，
-                                                       不含停靠，直接替代 Fluent / Semi -->
+                                                       不含停靠，自身即是基础主题 -->
 ```
 
 ```xml
 <FluentTheme />                                   <!-- 自己的基础主题在前 -->
 <forge:ForgeShellTheme Family="ExpUi" />          <!-- 只要外壳，叠在其上 -->
+```
+
+用到 DataGrid / ColorPicker 时，引对应附加包并把其入口挂在主题入口**之后**
+（色板键由主题入口提供，顺序反了控件画得出来但没颜色，且不报错）。
+附加包没有 `Family` —— 模板两档共用，颜色自动跟主题入口选的族走：
+
+```xml
+<Application.Styles>
+    <forge:ForgeTheme Family="ExpUi" />
+    <forgedg:ForgeDataGridTheme />    <!-- xmlns:forgedg="using:Piccolo.Forge.Avalonia.DataGrid" -->
+    <forgecpk:ForgeColorPickerTheme /><!-- xmlns:forgecpk="using:Piccolo.Forge.Avalonia.ColorPicker" -->
+</Application.Styles>
 ```
 
 两档都要的宿主两个资源包都引，属性从配置来（启动时求值一次）：
@@ -268,6 +298,10 @@ frame.Appearance = ForgeAppearance.Default with
   工具窗口模型、布局规则、度量以及 expUI / Islands 配色方案参考其源码实现。Piccolo.Forge 不包含 JetBrains 的源代码与图标资产。
 - **Dock**（[wieslawsoltes/Dock](https://github.com/wieslawsoltes/Dock)，MIT License）。
   编辑区标签搬移的语义（分离、附加、提交）与拖拽生命周期参考 Dock 实现。
+- **Semi.Avalonia**（[irihitech/Semi.Avalonia](https://github.com/irihitech/Semi.Avalonia)，MIT License）。
+  语言文案机制（`ApplyLocale`）、附加包拆分惯例（DataGrid / ColorPicker 独立成包）
+  及若干控件模板化的框架事实参考 Semi.Avalonia。Piccolo.Forge 不包含 Semi 的源代码；
+  视觉结构与颜色以 IntelliJ Platform 为依据，而非 Semi。
 
 完整声明见 `THIRD-PARTY-NOTICES.md`。
 
