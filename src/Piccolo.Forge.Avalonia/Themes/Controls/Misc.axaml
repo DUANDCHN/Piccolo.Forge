@@ -297,9 +297,25 @@
 
     <!-- 拆分按钮的两半：无边框（外壳那层已经画了），只有叠加反馈。 -->
     <ControlTheme x:Key="Forge.SplitButtonPart" TargetType="Button" BasedOn="{StaticResource Forge.IconButton}">
-        <!-- 外框由 SplitButton 自己画，两半只负责各自的悬停/按下叠加，所以不要圆角。 -->
+        <!-- 外框由 SplitButton 自己画，两半只负责各自的悬停/按下叠加，所以不要圆角。
+             ⚠ 有边框那档才这样：两半贴在外框里，圆角归外框。**无边框（.tertiary）那档不能
+               用这份** —— 没有外框兜着，方角的悬停背板就直接露出来，与同排圆角的图标钮
+               对不上（宿主实测到的正是这个）。那档换下面 NoOverlay 那份，背板改由外壳整块出。 -->
         <Setter Property="CornerRadius" Value="0" />
         <Setter Property="MinHeight" Value="{DynamicResource Forge.Button.MinHeight}" />
+    </ControlTheme>
+
+    <!-- .tertiary 那档的两半：**自己不画任何叠加**。
+         背板整块由外壳（PART_Root）出 —— 无边框档没有外框把两半圈起来，各画各的背板
+         就成了"两颗独立按钮"，看不出是一个控件；而两块背板一深一浅叠着更脏。
+         悬停哪一半都亮同一块整板，这也是 Rider 的做法。 -->
+    <ControlTheme x:Key="Forge.SplitButtonPart.NoOverlay" TargetType="Button" BasedOn="{StaticResource Forge.SplitButtonPart}">
+        <Style Selector="^:pointerover /template/ Border#PART_Overlay">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="^:pressed /template/ Border#PART_Overlay">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
     </ControlTheme>
 
     <ControlTheme x:Key="Forge.SplitButton" TargetType="SplitButton">
@@ -354,6 +370,7 @@
         <Style Selector="^.tertiary">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="CornerRadius" Value="{DynamicResource Forge.Button.CornerRadius}" />
             <Setter Property="Padding" Value="4" />
             <Setter Property="MinHeight" Value="0" />
         </Style>
@@ -362,6 +379,22 @@
         </Style>
         <Style Selector="^.tertiary /template/ Button#PART_SecondaryButton">
             <Setter Property="Padding" Value="3,0" />
+        </Style>
+        <!-- 两半交出叠加权，背板整块由外壳出（见 Forge.SplitButtonPart.NoOverlay 的理由）。 -->
+        <Style Selector="^.tertiary /template/ Button#PART_PrimaryButton">
+            <Setter Property="Theme" Value="{DynamicResource Forge.SplitButtonPart.NoOverlay}" />
+        </Style>
+        <Style Selector="^.tertiary /template/ Button#PART_SecondaryButton">
+            <Setter Property="Theme" Value="{DynamicResource Forge.SplitButtonPart.NoOverlay}" />
+        </Style>
+        <!-- 悬停/按下任一半 → 整块背板，圆角走按钮那档的标准值，与同排图标钮一致。
+             ⚠ 用 PART_Root 的 Background 而不是另加一层：无边框档它本来就是 Transparent，
+               这里赋值不会抹掉任何底色（有边框档才必须走叠加层，见 Forge.Button 的注释）。 -->
+        <Style Selector="^.tertiary:pointerover /template/ Border#PART_Root">
+            <Setter Property="Background" Value="{DynamicResource Forge.Overlay.Hover}" />
+        </Style>
+        <Style Selector="^.tertiary:pressed /template/ Border#PART_Root">
+            <Setter Property="Background" Value="{DynamicResource Forge.Overlay.Pressed}" />
         </Style>
 
         <!-- ★ 选中态。**只有 ToggleSplitButton 会进这个状态**，写在这里对 SplitButton 无害 ——
