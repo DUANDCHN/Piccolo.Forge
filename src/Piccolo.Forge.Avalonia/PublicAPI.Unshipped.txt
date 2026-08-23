@@ -14,3 +14,6 @@ Piccolo.Forge.Avalonia.ForgeNotificationManager.Show(object! content, Avalonia.C
 static readonly Piccolo.Forge.Avalonia.ForgeNotificationManager.DefaultExpiration -> System.TimeSpan
 override Piccolo.Forge.Avalonia.ForgeNotificationManager.OnApplyTemplate(Avalonia.Controls.Primitives.TemplateAppliedEventArgs! e) -> void
 override Piccolo.Forge.Avalonia.ForgeNotificationManager.StyleKeyOverride.get -> System.Type!
+Piccolo.Forge.Avalonia.ForgeNotificationManager.IsPaused.get -> bool
+Piccolo.Forge.Avalonia.ForgeNotificationManager.IsPaused.set -> void
+Piccolo.Forge.Avalonia.ForgeNotificationManager.Close(System.Func<object?, bool>! match) -> int

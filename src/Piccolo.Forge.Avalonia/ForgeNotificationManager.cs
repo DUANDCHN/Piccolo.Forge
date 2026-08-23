@@ -1,6 +1,7 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Controls.Notifications;
 using Avalonia.Input;
@@ -96,6 +97,58 @@ public class ForgeNotificationManager : WindowNotificationManager
         base.Show(content, type, TimeSpan.Zero, onClick, onClose, classes);
     }
 
+    /// <summary>
+    /// 全局暂停自动消隐。窗口失焦时置 <see langword="true"/> ——
+    /// 用户没在看，倒计时就不该走；恢复时各卡片按**剩余**时间续。
+    /// </summary>
+    /// <remarks>与悬停暂停是同一套计时，两者可叠加：悬停且失焦时，两边都恢复了才继续走。</remarks>
+    public bool IsPaused
+    {
+        get;
+        set
+        {
+            if (field == value)
+            {
+                return;
+            }
+
+            field = value;
+
+            foreach (var pending in _pending.Values)
+            {
+                pending.SetGlobalPause(value);
+            }
+        }
+    }
+
+    /// <summary>
+    /// 关掉内容满足条件的通知（走正常的关闭动画）。
+    /// </summary>
+    /// <remarks>
+    /// 给"同键去重"用：同一件事反复触发时，先收走在显的那条再显示新的，
+    /// 才是刷新而不是堆叠。框架的 manager 不暴露卡片集合，所以这件事只能由本类提供。
+    /// </remarks>
+    /// <param name="match">按卡片的 <c>Content</c>（即你 Show 进去的那个对象）判断。</param>
+    /// <returns>关掉了几条。</returns>
+    public int Close(Func<object?, bool> match)
+    {
+        ArgumentNullException.ThrowIfNull(match);
+
+        var hit = 0;
+
+        // 先抓快照：Close 会触发 NotificationClosed → 从容器里摘掉，边遍历边改会抛。
+        foreach (var card in _pending.Keys.ToArray())
+        {
+            if (match(card.Content))
+            {
+                card.Close();
+                hit++;
+            }
+        }
+
+        return hit;
+    }
+
     private void OnCardsChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
         foreach (var item in e.NewItems ?? System.Array.Empty<object>())
@@ -117,17 +170,15 @@ public class ForgeNotificationManager : WindowNotificationManager
 
     private void Attach(NotificationCard card, TimeSpan expiration)
     {
-        if (expiration <= TimeSpan.Zero)
-        {
-            return;   // 常驻，只能手动关
-        }
-
         var pending = new PendingClose(card, expiration);
         _pending[card] = pending;
 
         card.PointerEntered += OnCardPointerEntered;
         card.PointerExited += OnCardPointerExited;
-        pending.Resume();
+
+        // Zero = 常驻：登记但不起计时（登记是为了 Close(match) 能找到它）。
+        pending.SetGlobalPause(IsPaused);
+        pending.Start();
     }
 
     private void Detach(NotificationCard card)
@@ -146,7 +197,7 @@ public class ForgeNotificationManager : WindowNotificationManager
     {
         if (sender is NotificationCard card && _pending.TryGetValue(card, out var pending))
         {
-            pending.Pause();
+            pending.SetHoverPause(true);
         }
     }
 
@@ -154,20 +205,58 @@ public class ForgeNotificationManager : WindowNotificationManager
     {
         if (sender is NotificationCard card && _pending.TryGetValue(card, out var pending))
         {
-            pending.Resume();
+            pending.SetHoverPause(false);
         }
     }
 
-    /// <summary>一张卡片的待关闭计时：可暂停，续的是**剩余**时间而不是重新计满。</summary>
+    /// <summary>
+    /// 一张卡片的待关闭计时：可暂停，续的是**剩余**时间而不是重新计满。
+    /// </summary>
+    /// <remarks>
+    /// ⚠ 暂停有**两个互不相干的来源**（悬停、窗口失焦），必须各记各的：
+    /// 只用一个"暂停中"标志的话，失焦期间把鼠标移出卡片就会错误地恢复计时，
+    /// 反过来也一样。两个都松开才继续走。
+    /// </remarks>
     private sealed class PendingClose(NotificationCard card, TimeSpan expiration) : IDisposable
     {
         private readonly DispatcherTimer _timer = new();
         private readonly System.Diagnostics.Stopwatch _elapsed = new();
         private TimeSpan _remaining = expiration;
+        private bool _hoverPaused;
+        private bool _globalPaused;
 
-        public void Resume()
+        /// <summary>鼠标进出卡片。</summary>
+        public void SetHoverPause(bool paused)
         {
-            if (_remaining <= TimeSpan.Zero)
+            _hoverPaused = paused;
+            Apply();
+        }
+
+        /// <summary>窗口失焦 / 重新激活。</summary>
+        public void SetGlobalPause(bool paused)
+        {
+            _globalPaused = paused;
+            Apply();
+        }
+
+        /// <summary>初次启动计时（Zero 表示常驻，不启）。</summary>
+        public void Start() => Apply();
+
+        private void Apply()
+        {
+            if (_hoverPaused || _globalPaused)
+            {
+                Pause();
+            }
+            else
+            {
+                Resume();
+            }
+        }
+
+        private void Resume()
+        {
+            if (_remaining <= TimeSpan.Zero || _timer.IsEnabled)
             {
                 return;
             }
@@ -179,7 +268,7 @@ public class ForgeNotificationManager : WindowNotificationManager
             _timer.Start();
         }
 
-        public void Pause()
+        private void Pause()
         {
             if (!_timer.IsEnabled)
             {
