@@ -8,3 +8,9 @@ Piccolo.Forge.Avalonia.ForgeControlsTheme
 Piccolo.Forge.Avalonia.ForgeControlsTheme.ForgeControlsTheme() -> void
 Piccolo.Forge.Avalonia.ForgeShellTheme
 Piccolo.Forge.Avalonia.ForgeShellTheme.ForgeShellTheme() -> void
+Piccolo.Forge.Avalonia.ForgeNotificationManager
+Piccolo.Forge.Avalonia.ForgeNotificationManager.ForgeNotificationManager() -> void
+Piccolo.Forge.Avalonia.ForgeNotificationManager.Show(object! content, Avalonia.Controls.Notifications.NotificationType type = Avalonia.Controls.Notifications.NotificationType.Information, System.TimeSpan? expiration = null, System.Action? onClick = null, System.Action? onClose = null, string![]? classes = null) -> void
+static readonly Piccolo.Forge.Avalonia.ForgeNotificationManager.DefaultExpiration -> System.TimeSpan
+override Piccolo.Forge.Avalonia.ForgeNotificationManager.OnApplyTemplate(Avalonia.Controls.Primitives.TemplateAppliedEventArgs! e) -> void
+override Piccolo.Forge.Avalonia.ForgeNotificationManager.StyleKeyOverride.get -> System.Type!
