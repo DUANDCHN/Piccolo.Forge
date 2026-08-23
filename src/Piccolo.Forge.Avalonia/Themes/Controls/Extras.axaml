@@ -1,6 +1,7 @@
 ﻿<ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:notif="using:Avalonia.Controls.Notifications">
+                    xmlns:notif="using:Avalonia.Controls.Notifications"
+                    xmlns:forge="using:Piccolo.Forge.Avalonia">
     <!--
       余下的零散控件。多数只有一个 PART_ContentPresenter，主题的活儿就是"别挡路"：
       给中性的底与内边距，把外观让给宿主。真正需要设计的只有通知卡与校验提示两处。
@@ -27,6 +28,29 @@
         <Setter Property="Height" Value="20" />
         <Setter Property="Padding" Value="0" />
     </ControlTheme>
+
+    <!-- 卡片右上角那排按钮的默认长相（⋮ 与 ✕）。
+         宿主设了 forge:ForgeNotification.CardActionsTemplate 就整排换掉，没设才用这份。
+         ⚠ 必须是**具名资源**而不是塞进 ContentControl.DataTemplates：无 DataType 的
+           DataTemplate 放进 DataTemplates 集合会抛（"must have a DataType set"），
+           而这排按钮跟内容是什么类型无关，本来就不该按类型匹配。 -->
+    <DataTemplate x:Key="Forge.NotificationCardActions">
+        <StackPanel Orientation="Horizontal" Spacing="2">
+            <Button Theme="{DynamicResource Forge.NotificationIconButton}">
+                <Path Data="M 1 0.6 V 0.8 M 1 3.4 V 3.6 M 1 6.2 V 6.4"
+                      Stroke="{Binding $parent[NotificationCard].Foreground}"
+                      StrokeThickness="1.8" StrokeLineCap="Round"
+                      Width="2" Height="7" />
+            </Button>
+            <Button Theme="{DynamicResource Forge.NotificationIconButton}"
+                    Command="{Binding $parent[NotificationCard].Close}">
+                <Path Data="M 0 0 L 8 8 M 8 0 L 0 8"
+                      Stroke="{Binding $parent[NotificationCard].Foreground}"
+                      StrokeThickness="1.2" StrokeLineCap="Round"
+                      Width="8" Height="8" />
+            </Button>
+        </StackPanel>
+    </DataTemplate>
 
     <ControlTheme x:Key="Forge.NotificationCard" TargetType="NotificationCard">
         <Setter Property="UseLayoutRounding" Value="True" />
@@ -100,27 +124,21 @@
                                 </ContentControl.DataTemplates>
                             </ContentControl>
 
-                            <!-- 操作按钮：平时透明，鼠标移到卡片上才显现（Rider 的做法）。 -->
-                            <StackPanel Name="PART_Actions"
-                                        Grid.Column="2"
-                                        Orientation="Horizontal" Spacing="2"
-                                        Margin="12,0,0,0"
-                                        VerticalAlignment="Top"
-                                        Opacity="0">
-                                <Button Theme="{DynamicResource Forge.NotificationIconButton}">
-                                    <Path Data="M 1 0.6 V 0.8 M 1 3.4 V 3.6 M 1 6.2 V 6.4"
-                                          Stroke="{Binding $parent[NotificationCard].Foreground}"
-                                          StrokeThickness="1.8" StrokeLineCap="Round"
-                                          Width="2" Height="7" />
-                                </Button>
-                                <Button Theme="{DynamicResource Forge.NotificationIconButton}"
-                                        Command="{Binding $parent[NotificationCard].Close}">
-                                    <Path Data="M 0 0 L 8 8 M 8 0 L 0 8"
-                                          Stroke="{Binding $parent[NotificationCard].Foreground}"
-                                          StrokeThickness="1.2" StrokeLineCap="Round"
-                                          Width="8" Height="8" />
-                                </Button>
-                            </StackPanel>
+                            <!-- 操作按钮：平时透明，鼠标移到卡片上才显现（Rider 的做法）。
+                                 ★ 整排**可由宿主替换** —— 在 manager（或其祖先）上设
+                                   forge:ForgeNotification.CardActionsTemplate 即可；
+                                   不设就用 Forge.NotificationCardActions 那两颗（⋮ 与 ✕）。
+                                 DataContext 给的是**你 Show 进去的那个对象**（卡片的 Content），
+                                 关闭写 {Binding $parent[NotificationCard].Close}。
+                                 ⚠ Content **不能**绑成 $parent[NotificationCard] —— 那是把卡片
+                                   塞进自己模板里的控件，视觉树成环、布局无限递归直接栈溢出。 -->
+                            <ContentControl Name="PART_Actions"
+                                            Grid.Column="2"
+                                            Margin="12,0,0,0"
+                                            VerticalAlignment="Top"
+                                            Opacity="0"
+                                            Content="{Binding $parent[NotificationCard].Content}"
+                                            ContentTemplate="{Binding (forge:ForgeNotification.CardActionsTemplate), RelativeSource={RelativeSource Self}, TargetNullValue={StaticResource Forge.NotificationCardActions}}" />
                         </Grid>
                     </Border>
                 </LayoutTransformControl>
@@ -134,14 +152,14 @@
                 <BrushTransition Property="BorderBrush" Duration="0:0:0.2" />
             </Transitions>
         </Setter>
-        <Style Selector="^ /template/ StackPanel#PART_Actions">
+        <Style Selector="^ /template/ ContentControl#PART_Actions">
             <Setter Property="Transitions">
                 <Transitions>
                     <DoubleTransition Property="Opacity" Duration="0:0:0.12" />
                 </Transitions>
             </Setter>
         </Style>
-        <Style Selector="^:pointerover /template/ StackPanel#PART_Actions">
+        <Style Selector="^:pointerover /template/ ContentControl#PART_Actions">
             <Setter Property="Opacity" Value="1" />
         </Style>
 

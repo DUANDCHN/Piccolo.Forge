@@ -149,6 +149,34 @@ public class ForgeNotificationManager : WindowNotificationManager
         return hit;
     }
 
+    /// <summary>
+    /// 让内容满足条件的通知**转为常驻**（停掉自动消隐，只能手动关）。
+    /// </summary>
+    /// <remarks>
+    /// 给"用户对这条做了明确动作"的场合：展开详情、开始输入、点开子面板 ——
+    /// 那是"我要读它"的信号，不该在人读到一半把它收走。
+    /// 只进不出：转常驻之后不会再恢复计时，因为"读完了"这件事无从判断。
+    /// </remarks>
+    /// <param name="match">按卡片的 <c>Content</c> 判断。</param>
+    /// <returns>影响了几条。</returns>
+    public int KeepOpen(Func<object?, bool> match)
+    {
+        ArgumentNullException.ThrowIfNull(match);
+
+        var hit = 0;
+
+        foreach (var (card, pending) in _pending)
+        {
+            if (match(card.Content))
+            {
+                pending.KeepOpen();
+                hit++;
+            }
+        }
+
+        return hit;
+    }
+
     private void OnCardsChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
         foreach (var item in e.NewItems ?? System.Array.Empty<object>())
@@ -241,6 +269,14 @@ public class ForgeNotificationManager : WindowNotificationManager
 
         /// <summary>初次启动计时（Zero 表示常驻，不启）。</summary>
         public void Start() => Apply();
+
+        /// <summary>转为常驻：停表并清零剩余，之后任何 Resume 都不会再启。</summary>
+        public void KeepOpen()
+        {
+            _timer.Stop();
+            _elapsed.Stop();
+            _remaining = TimeSpan.Zero;
+        }
 
         private void Apply()
         {
