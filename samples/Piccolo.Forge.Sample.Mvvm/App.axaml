@@ -1,0 +1,19 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:forge="using:Piccolo.Forge.Avalonia"
+             xmlns:local="using:Piccolo.Forge.Sample.Mvvm"
+             x:Class="Piccolo.Forge.Sample.Mvvm.App"
+             RequestedThemeVariant="Dark">
+
+    <!--  完整基础主题（控件 + 外壳），族由 Family 属性定。  -->
+    <Application.Styles>
+        <forge:ForgeTheme Family="ExpUi" />
+    </Application.Styles>
+
+    <!--  ★ 视图解析注册在这里：外壳把面板 VM 交给 ContentPresenter，
+          框架拿着 VM 来问 ViewLocator，按命名约定造出 Views/ 下对应的视图。★  -->
+    <Application.DataTemplates>
+        <local:ViewLocator />
+    </Application.DataTemplates>
+
+</Application>

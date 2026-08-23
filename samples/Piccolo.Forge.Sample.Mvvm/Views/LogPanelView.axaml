@@ -1,0 +1,14 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Piccolo.Forge.Sample.Mvvm.ViewModels"
+             x:Class="Piccolo.Forge.Sample.Mvvm.Views.LogPanelView"
+             x:DataType="vm:LogPanelViewModel">
+    <!--  日志面板：一列只读文本 + 一颗清空。它不认识任务面板 ——
+          日志行是任务面板经构造注入的回调写进来的。  -->
+    <DockPanel Margin="8">
+        <Button DockPanel.Dock="Bottom" Margin="0,8,0,0"
+                HorizontalAlignment="Left"
+                Content="清空" Command="{Binding ClearCommand}" />
+        <ListBox ItemsSource="{Binding Lines}" />
+    </DockPanel>
+</UserControl>

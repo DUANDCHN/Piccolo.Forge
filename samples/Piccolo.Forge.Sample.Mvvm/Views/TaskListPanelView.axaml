@@ -1,0 +1,26 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Piccolo.Forge.Sample.Mvvm.ViewModels"
+             x:Class="Piccolo.Forge.Sample.Mvvm.Views.TaskListPanelView"
+             x:DataType="vm:TaskListPanelViewModel">
+    <!--  任务面板的长相。DataContext 是 TaskListPanelViewModel（ViewLocator 解析时框架设好），
+          x:DataType 让绑定走编译期检查 —— 绑错属性名在这里是编译错误，不是运行期静默失联。  -->
+    <DockPanel Margin="8">
+
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
+            <!--  命令是源生成器从 [RelayCommand] 生成的 AddTaskCommand / RemoveSelectedCommand；
+                  后者带 CanExecute，没选中时按钮自动置灰。  -->
+            <Button Content="添加" Command="{Binding AddTaskCommand}" />
+            <Button Content="删除" Command="{Binding RemoveSelectedCommand}" />
+        </StackPanel>
+
+        <ListBox ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}">
+            <ListBox.ItemTemplate>
+                <DataTemplate DataType="vm:TaskItemViewModel">
+                    <CheckBox Content="{Binding Name}" IsChecked="{Binding IsDone}" />
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+    </DockPanel>
+</UserControl>

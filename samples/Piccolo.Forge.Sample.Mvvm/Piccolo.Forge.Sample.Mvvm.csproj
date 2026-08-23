@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--  ★ MVVM 接法的演示（结构照 Dock 的 MvvmSample：ViewModels/ 与 Views/ 分目录、
+        视图由 ViewLocator 按命名约定解析）。★
+
+        与外壳示例（Sample.ExpUi / .Islands）的分工：那两个演示**外壳长什么样**，
+        视图解析刻意从简（直接塞控件）；本示例演示**宿主该怎么组织代码** ——
+        面板类只有状态与命令，一行控件代码都没有。
+
+        ⚠ CommunityToolkit.Mvvm 必须**直接引用**，不能靠 Piccolo.Forge.Mvvm.CommunityToolkit
+          传递引入：[ObservableProperty] / [RelayCommand] 是源生成器（analyzer），
+          analyzer 不随传递引用流动 —— 只靠传递引用能编译，特性却**静默不生成代码**。  -->
+  <PropertyGroup>
+    <RootNamespace>Piccolo.Forge.Sample.Mvvm</RootNamespace>
+    <OutputType>WinExe</OutputType>
+    <TargetFrameworks></TargetFrameworks>
+    <TargetFramework>net8.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Piccolo.Forge.Themes.ExpUi/Piccolo.Forge.Themes.ExpUi.csproj" />
+    <ProjectReference Include="../../src/Piccolo.Forge.Mvvm.CommunityToolkit/Piccolo.Forge.Mvvm.CommunityToolkit.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,13 +1,14 @@
 ﻿# 示例
 
-四个工程，**三个能跑、一个是内容库**：
+五个工程，**四个能跑、一个是内容库**：
 
 | 工程 | 能跑 | 引哪些资源包 | 入口写法 | 看什么 |
 |---|---|---|---|---|
 | `Piccolo.Forge.Sample` | ✅ | `Themes.ExpUi` **一个** + 两个附加包 | `<forge:ForgeControlsTheme Family="ExpUi"/>` | **控件**：Avalonia 全部 89 个 |
 | `Piccolo.Forge.Sample.ExpUi` | ✅ | `Themes.ExpUi` **一个** | `<forge:ForgeTheme Family="ExpUi"/>` | **外壳布局**：条带 / 停靠区 / 工具窗 / 编辑器标签 |
 | `Piccolo.Forge.Sample.Islands` | ✅ | `Themes.Islands` **一个** | `<forge:ForgeTheme Family="Islands"/>` | 同上，Islands 档 |
-| `Piccolo.Forge.Sample.Shared` | ❌ 类库 | **一个都不引** | — | 上面两个外壳示例的内容 |
+| `Piccolo.Forge.Sample.Mvvm` | ✅ | `Themes.ExpUi` **一个** | `<forge:ForgeTheme Family="ExpUi"/>` | **MVVM 接法**：面板是 VM、视图由 ViewLocator 解析 |
+| `Piccolo.Forge.Sample.Shared` | ❌ 类库 | **一个都不引** | — | 两个外壳示例的内容 |
 
 **入口与包是两回事**：入口类只有三个（`ForgeTheme` 全套 / `ForgeControlsTheme` 只控件 /
 `ForgeShellTheme` 只外壳，都在 `Piccolo.Forge.Avalonia` 里），族由 `Family` 属性定 ——
@@ -19,7 +20,23 @@
 dotnet run --project samples/Piccolo.Forge.Sample            # 控件
 dotnet run --project samples/Piccolo.Forge.Sample.ExpUi      # 外壳（经典档）
 dotnet run --project samples/Piccolo.Forge.Sample.Islands    # 外壳（Islands 档）
+dotnet run --project samples/Piccolo.Forge.Sample.Mvvm       # MVVM 接法
 ```
+
+## `Sample.Mvvm` 演示什么
+
+外壳示例的视图解析刻意从简（直接塞控件）；本示例演示**宿主该怎么组织代码**，
+结构照 Dock 的 MvvmSample：`ViewModels/` 与 `Views/` 分目录、视图由 `ViewLocator` 按命名约定解析。
+
+- 面板即 VM：继承 `ToolWindowPanel` / `EditorPanel`（CommunityToolkit 版），
+  类里只有状态与命令，一行控件代码都没有
+- 命令与通知由源生成器生成：`[ObservableProperty]` / `[RelayCommand]`（含 CanExecute 置灰）
+- 跨面板通信走构造注入（任务面板拿着日志面板的回调，两者互不相识）
+- 装配处唯一：`MainViewModel` 是全应用唯一知道"有哪些面板、各停哪条边"的地方
+- ⚠ `CommunityToolkit.Mvvm` 必须**直接引用**：源生成器不随传递引用流动，
+  只靠传递引用能编译，特性却静默不生成代码
+- ⚠ 示例的 `ViewLocator` 是反射版；AOT / 裁剪发布的宿主换编译期生成的
+  （如 StaticViewLocator）或纯 DataTemplates，机制相同
 
 ## 为什么控件只演示一档、外壳要按档各出一个
 

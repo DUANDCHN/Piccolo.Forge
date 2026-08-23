@@ -1,0 +1,10 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Piccolo.Forge.Sample.Mvvm.ViewModels"
+             x:Class="Piccolo.Forge.Sample.Mvvm.Views.ReadmePanelView"
+             x:DataType="vm:ReadmePanelViewModel">
+    <!--  编辑区页的长相。编辑区塞的同样是 VM，解析走同一个 ViewLocator。  -->
+    <ScrollViewer Padding="16">
+        <TextBlock Text="{Binding Body}" TextWrapping="Wrap" LineHeight="24" />
+    </ScrollViewer>
+</UserControl>
