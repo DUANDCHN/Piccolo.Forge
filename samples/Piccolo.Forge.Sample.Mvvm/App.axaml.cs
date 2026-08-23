@@ -1,4 +1,4 @@
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Piccolo.Forge.Sample.Mvvm.ViewModels;
@@ -16,7 +16,8 @@ public partial class App : Application
     public override void OnFrameworkInitializationCompleted()
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
-            desktop.MainWindow = new MainWindow(new MainViewModel());
+            // 装配处 VM 给到 DataContext，窗口里的一切对接靠绑定。
+            desktop.MainWindow = new MainWindow { DataContext = new MainViewModel() };
 
         base.OnFrameworkInitializationCompleted();
     }

@@ -33,6 +33,9 @@ dotnet run --project samples/Piccolo.Forge.Sample.Mvvm       # MVVM 接法
 - 命令与通知由源生成器生成：`[ObservableProperty]` / `[RelayCommand]`（含 CanExecute 置灰）
 - 跨面板通信走构造注入（任务面板拿着日志面板的回调，两者互不相识）
 - 装配处唯一：`MainViewModel` 是全应用唯一知道"有哪些面板、各停哪条边"的地方
+- 对接全靠绑定：`ForgeControl.Shell` 与 `ForgeEditorControl.Editor` 都是 StyledProperty，
+  主窗口 XAML 两个 `{Binding}` 接完，**没有一行 code-behind 接线**
+  （`Attach()` 那套命令式 API 仍在，给不走绑定的宿主用，两条路等价）
 - ⚠ `CommunityToolkit.Mvvm` 必须**直接引用**：源生成器不随传递引用流动，
   只靠传递引用能编译，特性却静默不生成代码
 - ⚠ 示例的 `ViewLocator` 是反射版；AOT / 裁剪发布的宿主换编译期生成的

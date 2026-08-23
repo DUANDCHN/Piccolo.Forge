@@ -6,7 +6,13 @@
         x:DataType="vm:MainViewModel"
         Title="Piccolo.Forge —— MVVM 接法"
         Width="1000" Height="640">
-    <!--  外框写在 XAML 里；Shell / Editor 与它的对接（Attach）是命令式 API，
-          在 code-behind 里做 —— 那几行是全应用仅有的"控件代码"，只出现一次。  -->
-    <forge:ForgeControl x:Name="Frame" />
+    <!--  ★ 对接全靠绑定，没有一行 code-behind 接线。★
+          Shell 与 Editor 都是 StyledProperty：外壳绑外壳 VM、编辑区控件绑编辑区 VM，
+          EditorContent 里的控件继承本窗口的 DataContext，所以两个绑定同源。
+          （Attach() 那套命令式 API 仍在，给不走绑定的宿主用 —— 两条路等价，选一条。）  -->
+    <forge:ForgeControl Shell="{Binding Shell}">
+        <forge:ForgeControl.EditorContent>
+            <forge:ForgeEditorControl Editor="{Binding Editor}" />
+        </forge:ForgeControl.EditorContent>
+    </forge:ForgeControl>
 </Window>
