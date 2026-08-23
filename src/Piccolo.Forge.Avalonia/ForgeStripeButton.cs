@@ -30,6 +30,10 @@ public class ForgeStripeButton : ForgeSquareButtonBase
     public static readonly StyledProperty<bool> HasBadgeProperty =
         AvaloniaProperty.Register<ForgeStripeButton, bool>(nameof(HasBadge));
 
+    /// <summary><see cref="BadgeMargin"/> 的属性定义。</summary>
+    public static readonly StyledProperty<Thickness> BadgeMarginProperty =
+        AvaloniaProperty.Register<ForgeStripeButton, Thickness>(nameof(BadgeMargin));
+
     /// <summary><see cref="Text"/> 的属性定义。</summary>
     public static readonly StyledProperty<string?> TextProperty =
         AvaloniaProperty.Register<ForgeStripeButton, string?>(nameof(Text));
@@ -107,6 +111,40 @@ public class ForgeStripeButton : ForgeSquareButtonBase
     {
         get => GetValue(HasBadgeProperty);
         set => SetValue(HasBadgeProperty, value);
+    }
+
+    /// <summary>
+    /// 角标（未读圆点）的外边距，供模板绑定 —— 让圆点钉在**背板**的右上角。
+    /// </summary>
+    /// <remarks>
+    /// ⚠ 不能直接绑 <c>BackgroundInsets</c>：方底那一档（宿主收窄按钮时）的背板是
+    /// "显式边长 + 居中"、Insets 为零 —— 角标按零边距贴到**整颗按钮**的右上角，
+    /// 就飘到背板外面去了（实机看出来的）。所以按实际排布尺寸把背板矩形再算一遍，
+    /// 圆点各向外挑 1px（设计注释里"挑出背板角 1px"的那 1px）。
+    /// 在 <see cref="ArrangeOverride"/> 里算：与方底居中同一个理由 —— 度量用的
+    /// ButtonWidth/Height 与实际排到的尺寸可能不等，Margin 相对的是后者。
+    /// </remarks>
+    public Thickness BadgeMargin
+    {
+        get => GetValue(BadgeMarginProperty);
+        private set => SetValue(BadgeMarginProperty, value);
+    }
+
+    /// <inheritdoc />
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        var size = base.ArrangeOverride(finalSize);
+
+        // 背板矩形按实际尺寸重算（HighlightRect 内部已区分方底/铺满/显名三档）。
+        var plate = HighlightRect(size);
+        const double overhang = 1;
+        BadgeMargin = new Thickness(
+            0,
+            Math.Max(0, plate.Top - overhang),
+            Math.Max(0, size.Width - plate.Right - overhang),
+            0);
+
+        return size;
     }
 
     /// <summary>对应的工具窗口当前是否持有焦点。</summary>

@@ -22,3 +22,6 @@ Piccolo.Forge.Avalonia.ForgeNotification
 static readonly Piccolo.Forge.Avalonia.ForgeNotification.CardActionsTemplateProperty -> Avalonia.AttachedProperty<Avalonia.Controls.Templates.IDataTemplate?>!
 static Piccolo.Forge.Avalonia.ForgeNotification.GetCardActionsTemplate(Avalonia.Controls.Control! element) -> Avalonia.Controls.Templates.IDataTemplate?
 static Piccolo.Forge.Avalonia.ForgeNotification.SetCardActionsTemplate(Avalonia.Controls.Control! element, Avalonia.Controls.Templates.IDataTemplate? value) -> void
+Piccolo.Forge.Avalonia.ForgeStripeButton.BadgeMargin.get -> Avalonia.Thickness
+override Piccolo.Forge.Avalonia.ForgeStripeButton.ArrangeOverride(Avalonia.Size finalSize) -> Avalonia.Size
+static readonly Piccolo.Forge.Avalonia.ForgeStripeButton.BadgeMarginProperty -> Avalonia.StyledProperty<Avalonia.Thickness>!

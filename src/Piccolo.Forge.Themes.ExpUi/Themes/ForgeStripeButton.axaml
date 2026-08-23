@@ -34,14 +34,14 @@
 
                     <!--  图标：宿主给的控件、或画 Geometry 的子元素，位置都由槽按 IconRect 安排  -->
                     <forge:ForgeIconHost Name="PART_Icon" />
-                    <!--  角标：图标右上角一颗 7px 圆点，挑出背板角 1px；只在 :badge 时可见。颜色走 StripeBadge 键  -->
+                    <!--  角标：图标右上角一颗 7px 圆点，钉在**背板**右上角、各向外挑 1px（位置由 BadgeMargin 按实际排布算，方底档 Insets 是零、不能用）；只在 :badge 时可见。颜色走 StripeBadge 键  -->
                     <Ellipse
                         Fill="{DynamicResource Forge.ExpUi.StripeBadge}"
                         Height="7"
                         HorizontalAlignment="Right"
                         IsHitTestVisible="False"
                         IsVisible="False"
-                        Margin="{TemplateBinding BackgroundInsets}"
+                        Margin="{TemplateBinding BadgeMargin}"
                         Name="PART_Badge"
                         VerticalAlignment="Top"
                         Width="7" />
