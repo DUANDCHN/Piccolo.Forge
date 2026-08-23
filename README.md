@@ -119,7 +119,7 @@ Either way, changing the family requires a restart. `ForgeThemeManager.ApplyLoca
 CultureInfo.CurrentUICulture)` installs the user-interface strings; it is independent of
 the theme and works with both approaches.
 
-Compose the shell:
+Compose the shell. Building the view models is the same either way:
 
 ```csharp
 // Register panels. Only the docking position is specified; the stripe button
@@ -132,15 +132,33 @@ shell.Add(new TerminalPanel(),  ToolWindowAnchor.Bottom);
 // Editor area: tabs and the split tree.
 var editor = new EditorAreaViewModel();
 editor.Open("readme", "README.md", content: new ReadmeView());
+
+shell.Open("Project");
+```
+
+Then connect them to the controls — **two equivalent ways, pick one**:
+
+**In XAML, via bindings** (`Shell` and `Editor` are styled properties; this is the
+counterpart of Dock's `<DockControl Layout="{Binding Layout}"/>` — see the
+`Sample.Mvvm` sample for the full pattern):
+
+```xml
+<forge:ForgeControl Shell="{Binding Shell}">
+    <forge:ForgeControl.EditorContent>
+        <forge:ForgeEditorControl Editor="{Binding Editor}" />
+    </forge:ForgeControl.EditorContent>
+</forge:ForgeControl>
+```
+
+**In code, via `Attach`** (equivalent to setting the properties):
+
+```csharp
 var editorControl = new ForgeEditorControl();
 editorControl.Attach(editor);
 
-// The frame combines both.
 var frame = new ForgeControl { EditorContent = editorControl };
 frame.Attach(shell);
 window.Content = frame;
-
-shell.Open("Project");
 ```
 
 A panel is any class derived from `ToolWindowPanel` (or its CommunityToolkit variant)
@@ -287,7 +305,7 @@ public override void Initialize()
 `ForgeThemeManager.ApplyLocale(this, CultureInfo.CurrentUICulture)` 安装，
 与主题无关，两种方式下都这么写。
 
-组装外壳：
+组装外壳。VM 侧两种方式完全相同：
 
 ```csharp
 // 注册面板。仅指定停靠位置；条带按钮位置由此推导。
@@ -299,15 +317,32 @@ shell.Add(new TerminalPanel(),  ToolWindowAnchor.Bottom);
 // 编辑区：标签页与分屏树。
 var editor = new EditorAreaViewModel();
 editor.Open("readme", "README.md", content: new ReadmeView());
+
+shell.Open("Project");
+```
+
+再把它们接给控件 —— **两种等价方式，任选其一**：
+
+**方式一：XAML 里绑**（`Shell` / `Editor` 都是可绑定属性，对位 Dock 的
+`<DockControl Layout="{Binding Layout}"/>`；完整形态见 `Sample.Mvvm` 示例）：
+
+```xml
+<forge:ForgeControl Shell="{Binding Shell}">
+    <forge:ForgeControl.EditorContent>
+        <forge:ForgeEditorControl Editor="{Binding Editor}" />
+    </forge:ForgeControl.EditorContent>
+</forge:ForgeControl>
+```
+
+**方式二：代码里 `Attach`**（与设属性等价）：
+
+```csharp
 var editorControl = new ForgeEditorControl();
 editorControl.Attach(editor);
 
-// 外框将二者组合。
 var frame = new ForgeControl { EditorContent = editorControl };
 frame.Attach(shell);
 window.Content = frame;
-
-shell.Open("Project");
 ```
 
 面板为任意派生自 `ToolWindowPanel`（或其 CommunityToolkit 版本）的类，提供 `Id`、`Title`、`Icon` 与 `Content`。
