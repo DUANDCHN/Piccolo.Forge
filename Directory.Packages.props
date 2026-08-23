@@ -5,19 +5,27 @@
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
 
+  <!-- ⚠ 这里的版本同时是**构建版本**与 **nuspec 里的依赖下限**（CPM 的双重身份）。
+       策略：**贴着地板构建** —— 版本定成实测能过的最低版，新 API 一旦误用当场编译失败，
+       地板就不会悄悄抬高。地板的依据（2026-08-23 实测）：
+         · Avalonia 12.0.0 编不过 —— TableView 一族是 12.1 新增的，控件主题覆盖它们；
+           12.1.0 全套通过（build + 747 测试 + sweep 明暗两档）→ 地板 12.1.0
+         · CommunityToolkit.Mvvm 8.2.2（常用版）通过 —— 库只用 ObservableObject/SetProperty；
+           8.4 的 partial 属性语法只有**测试**在用，测试以 VersionOverride 钉 8.4.2，不进 nuspec
+       抬地板必须带着新的实测依据来改这段注释。 -->
   <ItemGroup>
-    <PackageVersion Include="Avalonia" Version="12.1.1" />
-    <PackageVersion Include="Avalonia.Desktop" Version="12.1.1" />
-    <PackageVersion Include="Avalonia.Themes.Fluent" Version="12.1.1" />
-    <PackageVersion Include="Avalonia.Controls.DataGrid" Version="12.1.1" />
-    <PackageVersion Include="Avalonia.Controls.ColorPicker" Version="12.1.1" />
-    <PackageVersion Include="Avalonia.Headless" Version="12.1.1" />
-    <PackageVersion Include="Avalonia.Headless.XUnit" Version="12.1.1" />
-    <PackageVersion Include="Avalonia.Skia" Version="12.1.1" />
+    <PackageVersion Include="Avalonia" Version="12.1.0" />
+    <PackageVersion Include="Avalonia.Desktop" Version="12.1.0" />
+    <PackageVersion Include="Avalonia.Themes.Fluent" Version="12.1.0" />
+    <PackageVersion Include="Avalonia.Controls.DataGrid" Version="12.1.0" />
+    <PackageVersion Include="Avalonia.Controls.ColorPicker" Version="12.1.0" />
+    <PackageVersion Include="Avalonia.Headless" Version="12.1.0" />
+    <PackageVersion Include="Avalonia.Headless.XUnit" Version="12.1.0" />
+    <PackageVersion Include="Avalonia.Skia" Version="12.1.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.2.2" />
   </ItemGroup>
 
   <ItemGroup>

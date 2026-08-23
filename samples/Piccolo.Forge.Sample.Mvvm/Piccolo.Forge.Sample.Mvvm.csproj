@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <!--  ★ MVVM 接法的演示（结构照 Dock 的 MvvmSample：ViewModels/ 与 Views/ 分目录、
         视图由 ViewLocator 按命名约定解析）。★
@@ -7,9 +7,9 @@
         视图解析刻意从简（直接塞控件）；本示例演示**宿主该怎么组织代码** ——
         面板类只有状态与命令，一行控件代码都没有。
 
-        ⚠ CommunityToolkit.Mvvm 必须**直接引用**，不能靠 Piccolo.Forge.Mvvm.CommunityToolkit
-          传递引入：[ObservableProperty] / [RelayCommand] 是源生成器（analyzer），
-          analyzer 不随传递引用流动 —— 只靠传递引用能编译，特性却**静默不生成代码**。  -->
+        CommunityToolkit.Mvvm 这里**直接引用**。技术上可以省 —— CT 带 buildTransitive，
+        源生成器会随传递引用流动（一般 analyzer 不会，CT 特意做了）；但直接引让"这个工程
+        用了哪个版本的生成器语法"可见可控（partial 属性语法 8.4 起才有），仍建议写上。  -->
   <PropertyGroup>
     <RootNamespace>Piccolo.Forge.Sample.Mvvm</RootNamespace>
     <OutputType>WinExe</OutputType>

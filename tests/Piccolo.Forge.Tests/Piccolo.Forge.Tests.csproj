@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <RootNamespace>Piccolo.Forge.Tests</RootNamespace>
@@ -17,6 +17,10 @@
     <PackageReference Include="Avalonia.Headless" />
     <PackageReference Include="Avalonia.Headless.XUnit" />
     <PackageReference Include="Avalonia.Skia" />
+    <!-- 测试用了 [ObservableProperty] 的 partial 属性语法（CT 8.4 才有）。
+         库的地板是 8.2.2；测试不随包发布，钉高不影响 nuspec，运行期向上二进制兼容。
+         （没有这行时 CT 经 Mvvm.CommunityToolkit 的 ProjectReference 传递而来，版本跟地板走。） -->
+    <PackageReference Include="CommunityToolkit.Mvvm" VersionOverride="8.4.2" />
   </ItemGroup>
 
   <ItemGroup>

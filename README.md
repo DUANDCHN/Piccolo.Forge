@@ -55,8 +55,10 @@ content is an ordinary `object` resolved by the host's own `ViewLocator` or
 entry classes live in `Piccolo.Forge.Avalonia`; family resources are resolved at runtime,
 so selecting a family whose package is not referenced fails at startup with a clear message.
 
-All packages must be referenced at the same version. Targets `net8.0` and `net10.0`
-with Avalonia 12; compatible with AOT compilation and trimming.
+All packages must be referenced at the same version. Targets `net8.0` and `net10.0`;
+requires **Avalonia ≥ 12.1.0** (the control themes cover the `TableView` family, which
+is new in 12.1). The CommunityToolkit variant requires **CommunityToolkit.Mvvm ≥ 8.2.2**.
+Compatible with AOT compilation and trimming.
 
 ## Usage
 
@@ -311,7 +313,9 @@ Piccolo.Forge 为 Avalonia 桌面应用程序提供与 IntelliJ IDEA、Rider 类
 **包管"有哪些可用"，`Family` 属性管"用哪个"。** 主题入口类在 `Piccolo.Forge.Avalonia` 里；
 族的资源在运行期解析，`Family` 选了没被引用的族，启动即抛，异常写明缺哪个包。
 
-所有包须引用同一版本。目标框架 `net8.0` 与 `net10.0`，Avalonia 12；兼容 AOT 编译与裁剪。
+所有包须引用同一版本。目标框架 `net8.0` 与 `net10.0`；要求 **Avalonia ≥ 12.1.0**
+（控件主题覆盖 `TableView` 一族，12.1 新增）。CommunityToolkit 变体要求
+**CommunityToolkit.Mvvm ≥ 8.2.2**。兼容 AOT 编译与裁剪。
 
 ## 使用方法
 
