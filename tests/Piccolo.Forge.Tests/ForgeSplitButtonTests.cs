@@ -38,7 +38,12 @@ public class ForgeSplitButtonTests
     {
         var (w, sb) = Host("tertiary");
         Assert.Equal(Brushes.Transparent, Part<Border>(sb, "PART_Root").Background);
-        Assert.False(Part<Border>(sb, "PART_Separator").IsVisible);
+
+        // 分隔线**占位常驻、常态透明**：用 IsVisible 切显隐会改控件总宽，
+        // 悬停一瞬后排按钮全体挪一格（宿主实测到的布局跳动）。
+        var sep = Part<Border>(sb, "PART_Separator");
+        Assert.True(sep.IsVisible);
+        Assert.Equal(Brushes.Transparent, sep.Background);
         w.Close();
     }
 

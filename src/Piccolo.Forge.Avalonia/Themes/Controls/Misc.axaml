@@ -12,10 +12,12 @@
         <Setter Property="CornerRadius" Value="{DynamicResource Forge.Progress.CornerRadius}" />
         <Setter Property="Template">
             <ControlTemplate>
+                <!-- ⚠ 轨道不设 Height、跟着控件走。先前绑的是 MinHeight —— 宿主一写
+                     Height="6" MinHeight="0"（想要更细的条）轨道就直接归零，整条看不见。
+                     粗细默认值仍由控件的 MinHeight 给（上面那条 Setter），语义不变。 -->
                 <Border Name="PART_Track"
                         Background="{TemplateBinding Background}"
                         CornerRadius="{TemplateBinding CornerRadius}"
-                        Height="{TemplateBinding MinHeight}"
                         ClipToBounds="True">
                     <Border Name="PART_Indicator"
                             Background="{TemplateBinding Foreground}"
@@ -374,14 +376,14 @@
             <Setter Property="Padding" Value="4" />
             <Setter Property="MinHeight" Value="0" />
         </Style>
-        <!-- 分隔线：常态不画（工具栏上一排图标钮之间再画竖线就成了栅栏），
-             **悬停时画** —— 那正是需要说清"这是一个控件、但有两半"的时候。
-             常态看着像一颗，悬停才露出分界，与整块背板一起出现。 -->
+        <!-- 分隔线：**占位常驻、只切颜色**。常态透明（一排图标钮之间画竖线成栅栏），
+             悬停显色 —— 那正是需要说清"一个控件、两半"的时候。
+             ⚠ 不许用 IsVisible 切：显隐会改控件总宽，悬停一瞬后排按钮全体挪一格。 -->
         <Style Selector="^.tertiary /template/ Border#PART_Separator">
-            <Setter Property="IsVisible" Value="False" />
+            <Setter Property="Background" Value="Transparent" />
         </Style>
         <Style Selector="^.tertiary:pointerover /template/ Border#PART_Separator">
-            <Setter Property="IsVisible" Value="True" />
+            <Setter Property="Background" Value="{DynamicResource Forge.Button.Border}" />
         </Style>
         <Style Selector="^.tertiary /template/ Button#PART_SecondaryButton">
             <Setter Property="Padding" Value="3,0" />

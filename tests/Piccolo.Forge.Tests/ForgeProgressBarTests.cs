@@ -21,13 +21,16 @@ public class ForgeProgressBarTests
     [AvaloniaFact]
     public void 不确定态的短条要有宽度而不是空轨道()
     {
-        var bar = new ProgressBar { IsIndeterminate = true, Width = 200 };
+        // 宿主的真实写法：想要更细的条时写 Height + MinHeight=0。
+        // 轨道高度曾绑在 MinHeight 上，这一组值会让整条归零消失。
+        var bar = new ProgressBar { IsIndeterminate = true, Width = 200, Height = 6, MinHeight = 0 };
         var window = new Window { Width = 300, Height = 100, Content = bar };
         window.Show();
         Dispatcher.UIThread.RunJobs();
 
         var indicator = Indicator(bar);
         Assert.True(indicator.Bounds.Width > 0, "不确定态的短条宽度为 0 —— 主题没挂动画，进度条整个看不见");
+        Assert.True(indicator.Bounds.Height > 0, "轨道高度为 0 —— 模板把轨道高度绑在 MinHeight 上，宿主一清零整条就没了");
         // 动画跑起来之后 RenderTransform 会被换成动画自己的实例，所以只断言"有位移"，
         // 不断言具体类型。
         Assert.NotNull(indicator.RenderTransform);
