@@ -1,0 +1,265 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+      Menu（顶栏）/ MenuItem / ContextMenu / MenuFlyoutPresenter。
+
+      MenuItem 一个模板要顶四种形态，靠伪类切换，不是四个 ControlTheme：
+        无伪类   普通项
+        :icon    带图标（图标列**恒占位**，否则有图标和没图标的项文本对不齐）
+        :toggle / :radio + :checked   勾选项（勾选标记占图标列）
+        :separator                    分隔线（整项换成一条横线，不再是可点的项）
+        :open                         子菜单已展开
+      菜单栏里的项（Menu 的直接子项）另走 Forge.MenuBarItem —— 它横排、更紧凑、
+      子菜单朝下弹；菜单面板里的项子菜单朝右弹。两者的模板结构不同，分开写。
+    -->
+
+    <!-- 菜单面板的外壳，Menu 的下拉、ContextMenu、MenuFlyout 共用。 -->
+    <ControlTheme x:Key="Forge.MenuPanelBorder" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource Forge.Menu.Background}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Forge.Menu.Border}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Forge.Popup.CornerRadius}" />
+        <Setter Property="Padding" Value="{DynamicResource Forge.Menu.Padding}" />
+    </ControlTheme>
+
+    <!-- ══ 菜单面板里的项 ══ -->
+    <ControlTheme x:Key="Forge.MenuItem" TargetType="MenuItem">
+        <!-- 子菜单里的项继续用本主题（MenuItem 自己也是 ItemsControl）。 -->
+        <Setter Property="ItemContainerTheme" Value="{DynamicResource Forge.MenuItem}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="MinHeight" Value="{DynamicResource Forge.MenuItem.Height}" />
+        <Setter Property="Padding" Value="{DynamicResource Forge.MenuItem.Padding}" />
+
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Name="PART_Root"
+                        Background="{TemplateBinding Background}"
+                        CornerRadius="{DynamicResource Forge.CornerRadius}"
+                        Padding="{TemplateBinding Padding}">
+                    <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                        <!-- 图标 / 勾选列。恒占位，见抬头。 -->
+                        <Panel Grid.Column="0"
+                               Width="{DynamicResource Forge.MenuItem.IconColumnWidth}"
+                               VerticalAlignment="Center">
+                            <ContentPresenter Name="PART_IconPresenter"
+                                              Content="{TemplateBinding Icon}"
+                                              HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <!-- 勾选标记。自绘而非用字体图标：这一层不该依赖任何图标包。 -->
+                            <Path Name="PART_CheckGlyph"
+                                  Data="M 0 3.5 L 3 6.5 L 8.5 1"
+                                  Stroke="{TemplateBinding Foreground}"
+                                  StrokeThickness="1.4"
+                                  StrokeLineCap="Round" StrokeJoin="Round"
+                                  IsVisible="False"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Panel>
+
+                        <ContentPresenter Grid.Column="1"
+                                          Name="PART_HeaderPresenter"
+                                          Content="{TemplateBinding Header}"
+                                          ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                          VerticalAlignment="Center"
+                                          RecognizesAccessKey="True" />
+
+                        <!-- 快捷键提示。比正文弱一档，与右边留出间距。 -->
+                        <TextBlock Grid.Column="2"
+                                   Name="PART_Accelerator"
+                                   Text="{TemplateBinding InputGesture}"
+                                   Foreground="{DynamicResource Forge.MenuItem.Accelerator}"
+                                   Margin="24,0,0,0"
+                                   IsVisible="False"
+                                   VerticalAlignment="Center" />
+
+                        <!-- 子菜单箭头，仅有子项时显示。 -->
+                        <Path Grid.Column="3"
+                              Name="PART_SubMenuChevron"
+                              Data="M 0 0 L 4 4 L 0 8"
+                              Stroke="{TemplateBinding Foreground}"
+                              StrokeThickness="1.2"
+                              StrokeLineCap="Round" StrokeJoin="Round"
+                              Margin="12,0,0,0"
+                              VerticalAlignment="Center" />
+
+                        <Popup Name="PART_Popup"
+                               IsOpen="{TemplateBinding IsSubMenuOpen, Mode=TwoWay}"
+                               PlacementTarget="{TemplateBinding}"
+                               Placement="RightEdgeAlignedTop"
+                               HorizontalOffset="2"
+                               InheritsTransform="True"
+                               WindowManagerAddShadowHint="False"
+                               IsLightDismissEnabled="False">
+                            <Border Theme="{StaticResource Forge.MenuPanelBorder}">
+                                <ItemsPresenter Name="PART_ItemsPresenter"
+                                                ItemsPanel="{TemplateBinding ItemsPanel}" />
+                            </Border>
+                        </Popup>
+                    </Grid>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+
+        <Style Selector="^:selected /template/ Border#PART_Root">
+            <Setter Property="Background" Value="{DynamicResource Forge.MenuItem.SelectedBackground}" />
+        </Style>
+        <Style Selector="^:selected">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.MenuItem.SelectedForeground}" />
+        </Style>
+        <Style Selector="^:selected /template/ TextBlock#PART_Accelerator">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.MenuItem.AcceleratorSelected}" />
+        </Style>
+        <!-- 子菜单展开时保持高亮：鼠标移到子菜单里之后，父项仍要显示"当前在这条路径上"。 -->
+        <Style Selector="^:open /template/ Border#PART_Root">
+            <Setter Property="Background" Value="{DynamicResource Forge.MenuItem.SelectedBackground}" />
+        </Style>
+
+        <!-- 箭头默认在、无子项时隐掉；快捷键反过来。两者不会同时出现。 -->
+        <Style Selector="^:empty /template/ Path#PART_SubMenuChevron">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="^:empty /template/ TextBlock#PART_Accelerator">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+
+        <Style Selector="^:checked /template/ Path#PART_CheckGlyph">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+
+        <Style Selector="^:disabled">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.MenuItem.Disabled}" />
+        </Style>
+        <Style Selector="^:disabled /template/ Border#PART_Root">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+
+        <!-- 分隔项：整项换成一条线。padding 归零，否则线两端会缩进得比菜单边还多。 -->
+        <Style Selector="^:separator">
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Height="1" Margin="0,4"
+                            Background="{DynamicResource Forge.Menu.Separator}" />
+                </ControlTemplate>
+            </Setter>
+        </Style>
+    </ControlTheme>
+
+    <!-- ══ 菜单栏（顶栏）里的项 ══ 横排、更紧凑、子菜单朝下弹。 -->
+    <ControlTheme x:Key="Forge.MenuBarItem" TargetType="MenuItem">
+        <!-- 菜单栏项的下拉里是普通菜单项，不是菜单栏项。 -->
+        <Setter Property="ItemContainerTheme" Value="{DynamicResource Forge.MenuItem}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Padding" Value="{DynamicResource Forge.MenuBarItem.Padding}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Forge.Button.CornerRadius}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Name="PART_Root"
+                        Background="{TemplateBinding Background}"
+                        CornerRadius="{TemplateBinding CornerRadius}"
+                        Padding="{TemplateBinding Padding}">
+                    <Panel>
+                        <ContentPresenter Name="PART_HeaderPresenter"
+                                          Content="{TemplateBinding Header}"
+                                          ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                          VerticalAlignment="Center"
+                                          RecognizesAccessKey="True" />
+                        <Popup Name="PART_Popup"
+                               IsOpen="{TemplateBinding IsSubMenuOpen, Mode=TwoWay}"
+                               PlacementTarget="{TemplateBinding}"
+                               Placement="BottomEdgeAlignedLeft"
+                               VerticalOffset="2"
+                               InheritsTransform="True"
+                               WindowManagerAddShadowHint="False"
+                               IsLightDismissEnabled="True">
+                            <Border Theme="{StaticResource Forge.MenuPanelBorder}">
+                                <ItemsPresenter Name="PART_ItemsPresenter"
+                                                ItemsPanel="{TemplateBinding ItemsPanel}" />
+                            </Border>
+                        </Popup>
+                    </Panel>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+
+        <!-- 菜单栏项用叠加反馈，不用选中蓝底 —— 蓝底在顶栏上太重，上游也是淡淡一层。 -->
+        <Style Selector="^:pointerover /template/ Border#PART_Root">
+            <Setter Property="Background" Value="{DynamicResource Forge.Overlay.Hover}" />
+        </Style>
+        <Style Selector="^:open /template/ Border#PART_Root">
+            <Setter Property="Background" Value="{DynamicResource Forge.Overlay.Pressed}" />
+        </Style>
+        <Style Selector="^:disabled">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.MenuItem.Disabled}" />
+        </Style>
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.Menu" TargetType="Menu">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="{TemplateBinding Background}">
+                    <ItemsPresenter Name="PART_ItemsPresenter"
+                                    ItemsPanel="{TemplateBinding ItemsPanel}" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+        <!-- 直接子项走菜单栏那套（横排、紧凑、朝下弹）。
+             ⚠ 必须用 ItemContainerTheme，**不能**写 `^ > MenuItem` 这种子代选择器 ——
+               ControlTheme 里不允许子代/后代选择器，而且它是**运行期**才抛
+               InvalidOperationException（资源延迟构建），编译期一切正常。 -->
+        <Setter Property="ItemContainerTheme" Value="{DynamicResource Forge.MenuBarItem}" />
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.ContextMenu" TargetType="ContextMenu">
+        <Setter Property="ItemContainerTheme" Value="{DynamicResource Forge.MenuItem}" />
+        <Setter Property="Background" Value="{DynamicResource Forge.Menu.Background}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Forge.Menu.Border}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Forge.Popup.CornerRadius}" />
+        <Setter Property="Padding" Value="{DynamicResource Forge.Menu.Padding}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}"
+                        Padding="{TemplateBinding Padding}">
+                    <ItemsPresenter Name="PART_ItemsPresenter"
+                                    ItemsPanel="{TemplateBinding ItemsPanel}" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.MenuFlyoutPresenter" TargetType="MenuFlyoutPresenter">
+        <Setter Property="ItemContainerTheme" Value="{DynamicResource Forge.MenuItem}" />
+        <Setter Property="Background" Value="{DynamicResource Forge.Menu.Background}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Forge.Menu.Border}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Forge.Popup.CornerRadius}" />
+        <Setter Property="Padding" Value="{DynamicResource Forge.Menu.Padding}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}"
+                        Padding="{TemplateBinding Padding}">
+                    <ItemsPresenter Name="PART_ItemsPresenter"
+                                    ItemsPanel="{TemplateBinding ItemsPanel}" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.Separator" TargetType="Separator">
+        <Setter Property="Height" Value="1" />
+        <Setter Property="Margin" Value="0,4" />
+        <Setter Property="Background" Value="{DynamicResource Forge.Menu.Separator}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="{TemplateBinding Background}" />
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+</ResourceDictionary>

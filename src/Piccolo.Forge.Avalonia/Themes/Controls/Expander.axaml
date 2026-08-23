@@ -1,0 +1,134 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+      Expander。上游没有对应的控件（Swing 那边是 TitledSeparator / CollapsiblePanel），
+      所以这里是**按上游的既有语汇组装**，不是逐条搬运：
+        · 展开标记用 chevron，收起朝右、展开朝下 —— 上游 Tree.collapsedIcon / expandedIcon
+          就是 chevronRight.svg / chevronDown.svg，与树的展开语汇一致
+        · 标题行的悬停用全系统统一的叠加层，不用 DisclosureButton 那组值 ——
+          那是欢迎页那种大按钮的色，且上游只有亮色档有
+        · 内容区左侧缩进，与标题的 chevron 对齐，让层级看得出来
+
+      ⚠ Avalonia 的 Expander **没有 PART_ToggleButton**，标题行的点击要自己接：
+        模板里用 ToggleButton 包住标题，IsChecked 双向绑 IsExpanded。
+        只摆一个 ContentPresenter 的话，点标题不会展开。
+    -->
+
+    <ControlTheme x:Key="Forge.ExpanderHeaderButton" TargetType="ToggleButton" BasedOn="{StaticResource Forge.IconToggleButton}">
+        <!-- 折叠面板的标题行 = 图标钮底盘 + 「chevron + 标题」的内容布局。
+             ⚠ 选中态（展开）不要蓝底：这颗是"展开/收起"，不是"开关"，蓝底会读成被选中。 -->
+        <Setter Property="MinHeight" Value="{DynamicResource Forge.Expander.HeaderHeight}" />
+        <Setter Property="Padding" Value="{DynamicResource Forge.Expander.HeaderPadding}" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="ToggleButton">
+                <Border Name="PART_FocusRing"
+                        BorderBrush="Transparent"
+                        BorderThickness="{DynamicResource Forge.Focus.RingThickness}"
+                        CornerRadius="{DynamicResource Forge.Focus.RingCornerRadius}">
+                <Border Name="PART_Root"
+                        Background="{TemplateBinding Background}"
+                        CornerRadius="{TemplateBinding CornerRadius}">
+                    <Panel>
+                        <Border Name="PART_Overlay" Background="Transparent"
+                                CornerRadius="{TemplateBinding CornerRadius}" />
+                        <Grid ColumnDefinitions="Auto,*" Margin="{TemplateBinding Padding}">
+                            <!-- ⚠ 墨迹是 4×8，框 9×9（要容下旋转 90° 后的 8×4），
+                                 故 Data 平移 (2.5, 0.5) 让墨迹中心落在框中心 ——
+                                 写 `M 0 0 ...` 会贴在左上角，看着就是箭头偏上。 -->
+                            <Path Name="PART_Chevron"
+                                  Grid.Column="0"
+                                  Data="M 2.5 0.5 L 6.5 4.5 L 2.5 8.5"
+                                  Stroke="{TemplateBinding Foreground}"
+                                  StrokeThickness="1.3"
+                                  StrokeLineCap="Round" StrokeJoin="Round"
+                                  Width="9" Height="9"
+                                  Margin="0,0,7,0"
+                                  RenderTransformOrigin="50%,50%"
+                                  VerticalAlignment="Center" />
+                            <ContentPresenter Name="PART_ContentPresenter"
+                                              Grid.Column="1"
+                                              Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                              RecognizesAccessKey="True" />
+                        </Grid>
+                    </Panel>
+                </Border>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+        <!-- 压掉底盘继承来的"选中＝蓝底"，理由见上。
+             ⚠ 这里**不能写 TemplateBinding**：Style 的 Setter 不在模板作用域里，
+               编译期就报 AVLN3000。底盘常态本来就是透明，直接写字面量。 -->
+        <Style Selector="^:checked /template/ Border#PART_Root">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="^:checked">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Text.Primary}" />
+        </Style>
+        <Style Selector="^:checked /template/ Path#PART_Chevron">
+            <Setter Property="RenderTransform" Value="rotate(90deg)" />
+        </Style>
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.Expander" TargetType="Expander">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}">
+                    <DockPanel>
+                        <ToggleButton Name="PART_HeaderButton"
+                                      DockPanel.Dock="Top"
+                                      Theme="{StaticResource Forge.ExpanderHeaderButton}"
+                                      IsChecked="{TemplateBinding IsExpanded, Mode=TwoWay}"
+                                      IsEnabled="{TemplateBinding IsEnabled}">
+                            <ContentPresenter Name="PART_HeaderPresenter"
+                                              Content="{TemplateBinding Header}"
+                                              ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                              VerticalAlignment="Center" />
+                        </ToggleButton>
+
+                        <ContentPresenter Name="PART_ContentPresenter"
+                                          Content="{TemplateBinding Content}"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}"
+                                          Padding="{DynamicResource Forge.Expander.ContentPadding}"
+                                          HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          IsVisible="{TemplateBinding IsExpanded}" />
+                    </DockPanel>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <!-- GroupBox 与 Expander 同族：一条标题 + 一块内容，只是不能折叠。
+         上游用 Group.separatorColor 画那条线。 -->
+    <ControlTheme x:Key="Forge.GroupBox" TargetType="GroupBox">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <DockPanel>
+                    <ContentPresenter Name="PART_HeaderPresenter"
+                                      DockPanel.Dock="Top"
+                                      Content="{TemplateBinding Header}"
+                                      ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                      Margin="0,0,0,4" />
+                    <Border DockPanel.Dock="Top" Height="1" Margin="0,0,0,6"
+                            Background="{DynamicResource Forge.Group.Separator}" />
+                    <ContentPresenter Name="PART_ContentPresenter"
+                                      Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      Padding="{TemplateBinding Padding}" />
+                </DockPanel>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+</ResourceDictionary>

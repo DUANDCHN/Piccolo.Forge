@@ -1,0 +1,553 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:notif="using:Avalonia.Controls.Notifications">
+    <!--
+      余下的零散控件。多数只有一个 PART_ContentPresenter，主题的活儿就是"别挡路"：
+      给中性的底与内边距，把外观让给宿主。真正需要设计的只有通知卡与校验提示两处。
+
+      ⚠ **MaskedTextBox 不在这里**：它继承自 TextBox，TargetType="TextBox" 的
+        ControlTheme 会自动匹配到它（与 ToggleSplitButton 同一条框架规则）。
+        给它单独建主题反而会出问题。
+    -->
+
+    <!--
+      ══ 通知 ══
+      ⚠ 上游有**两种**通知，别混：
+        · Notification.background / foreground —— 右下角弹出的**气泡通知**，深底浅字，
+          **不按严重度换底色**，靠左侧图标区分；右上角有关闭按钮
+          （Notification.iconHoverBackground 就是给它的），带一层极淡的阴影
+        · Notification.ToolWindow.* —— 工具窗里的**横幅**，浅底深字、按严重度换整卡底色，
+          与前者是两回事（色板里留了 Forge.Banner.*，宿主要做横幅时用）
+      Avalonia 的 NotificationCard 是前者。
+    -->
+
+    <!-- 卡片右上角的操作按钮（更多 / 关闭）。**平时透明，鼠标移到卡片上才显现** —— 这是 Rider 的做法。 -->
+    <ControlTheme x:Key="Forge.NotificationIconButton" TargetType="Button" BasedOn="{StaticResource Forge.IconButton}">
+        <Setter Property="Width" Value="20" />
+        <Setter Property="Height" Value="20" />
+        <Setter Property="Padding" Value="0" />
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.NotificationCard" TargetType="NotificationCard">
+        <Setter Property="UseLayoutRounding" Value="True" />
+        <Setter Property="Background" Value="{DynamicResource Forge.Notification.Background}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Forge.Notification.Border}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Forge.Popup.CornerRadius}" />
+        <Setter Property="Padding" Value="14,12" />
+        <Setter Property="Margin" Value="0,0,0,10" />
+        <Setter Property="MinWidth" Value="320" />
+        <Setter Property="MaxWidth" Value="440" />
+        <!-- 前景**不设**，继承宿主正文色：亮底自然得黑字、暗底得浅字。 -->
+
+        <Setter Property="Template">
+            <ControlTemplate TargetType="NotificationCard">
+                <!-- ⚠ 最外层必须是 LayoutTransformControl：退场时把它的 ScaleY 收到 0，
+                     卡片占的**布局高度**才会一起消失，下面那几张才会平滑上移。
+                     只做 RenderTransform 的话卡片飞走了、坑还留在那儿。 -->
+                <LayoutTransformControl Name="PART_LayoutTransformControl" UseRenderTransform="True">
+                    <Border Name="PART_Root"
+                            Margin="{TemplateBinding Margin}"
+                            Padding="{TemplateBinding Padding}"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{TemplateBinding CornerRadius}"
+                            BoxShadow="0 4 12 0 #14000000">
+                        <Grid ColumnDefinitions="Auto,*,Auto"
+                              MinWidth="{TemplateBinding MinWidth}">
+                            <!-- 左侧严重度图标：**实心圆 + 白色符号**，与 Rider 一致。
+                                 默认信息档，靠伪类换色与字形。 -->
+                            <Panel Grid.Column="0" Width="18" Height="18"
+                                   Margin="0,1,12,0" VerticalAlignment="Top">
+                                <Ellipse Name="PART_IconDisc" Width="18" Height="18"
+                                         Fill="{DynamicResource Forge.Button.Accent.Background}" />
+                                <!-- ⚠ 必须设 Width/Height 与圆同尺寸并 Stretch="None"：
+                                     否则 Path 会按 Data 的外接框自适应再居中，
+                                     "i" 的点与竖线的相对位置就被整体居中破坏了。
+                                     设了之后 Data 的坐标就是圆内坐标（圆心 9,9）。
+                                     点用一段极短线段配 Round 端帽画出（长度 0.1，画成直径=线宽的圆点）。 -->
+                                <Path Name="PART_IconGlyph"
+                                      Width="18" Height="18" Stretch="None"
+                                      Data="M 9 5 L 9 5.1 M 9 8 L 9 13.4"
+                                      Stroke="White" StrokeThickness="1.9"
+                                      StrokeLineCap="Round" StrokeJoin="Round" />
+                            </Panel>
+
+                            <ContentControl Name="PART_Content"
+                                            Grid.Column="1"
+                                            Content="{TemplateBinding Content}"
+                                            VerticalAlignment="Center">
+                                <ContentControl.DataTemplates>
+                                    <!-- ⚠ 通过管理器弹出时 Content 是个 Notification 对象，
+                                         没有这个模板就渲染成它的类名。两种内容都要能显示。 -->
+                                    <DataTemplate DataType="notif:INotification">
+                                        <StackPanel Spacing="3">
+                                            <SelectableTextBlock
+                                                Text="{Binding Title}"
+                                                FontWeight="Bold"
+                                                TextWrapping="Wrap"
+                                                IsVisible="{Binding Title, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                            <SelectableTextBlock
+                                                Text="{Binding Message}"
+                                                TextWrapping="Wrap"
+                                                IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                    <DataTemplate DataType="x:String">
+                                        <SelectableTextBlock Text="{Binding}" TextWrapping="Wrap" />
+                                    </DataTemplate>
+                                </ContentControl.DataTemplates>
+                            </ContentControl>
+
+                            <!-- 操作按钮：平时透明，鼠标移到卡片上才显现（Rider 的做法）。 -->
+                            <StackPanel Name="PART_Actions"
+                                        Grid.Column="2"
+                                        Orientation="Horizontal" Spacing="2"
+                                        Margin="12,0,0,0"
+                                        VerticalAlignment="Top"
+                                        Opacity="0">
+                                <Button Theme="{DynamicResource Forge.NotificationIconButton}">
+                                    <Path Data="M 1 0.6 V 0.8 M 1 3.4 V 3.6 M 1 6.2 V 6.4"
+                                          Stroke="{Binding $parent[NotificationCard].Foreground}"
+                                          StrokeThickness="1.8" StrokeLineCap="Round"
+                                          Width="2" Height="7" />
+                                </Button>
+                                <Button Theme="{DynamicResource Forge.NotificationIconButton}"
+                                        Command="{Binding $parent[NotificationCard].Close}">
+                                    <Path Data="M 0 0 L 8 8 M 8 0 L 0 8"
+                                          Stroke="{Binding $parent[NotificationCard].Foreground}"
+                                          StrokeThickness="1.2" StrokeLineCap="Round"
+                                          Width="8" Height="8" />
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </LayoutTransformControl>
+            </ControlTemplate>
+        </Setter>
+
+        <!-- 明暗切换时底色平滑过渡；操作按钮的显隐也走过渡，不是硬闪。 -->
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.2" />
+                <BrushTransition Property="BorderBrush" Duration="0:0:0.2" />
+            </Transitions>
+        </Setter>
+        <Style Selector="^ /template/ StackPanel#PART_Actions">
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.12" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="^:pointerover /template/ StackPanel#PART_Actions">
+            <Setter Property="Opacity" Value="1" />
+        </Style>
+
+        <!-- ★ 入场动画。挂在 ControlTheme.Animations 上：卡片是**新建**出来的，
+             属性从一开始就是终值，Transition 没有触发点（先前那版"看不到动画"就是这个原因）。 -->
+        <ControlTheme.Animations>
+            <Animation Easing="QuadraticEaseOut" FillMode="Forward" Duration="0:0:0.32">
+                <KeyFrame Cue="0%">
+                    <Setter Property="Opacity" Value="0" />
+                    <Setter Property="TranslateTransform.X" Value="60" />
+                </KeyFrame>
+                <KeyFrame Cue="100%">
+                    <Setter Property="Opacity" Value="1" />
+                    <Setter Property="TranslateTransform.X" Value="0" />
+                </KeyFrame>
+            </Animation>
+        </ControlTheme.Animations>
+
+        <!-- ★ 退场：先向右滑走，再把 ScaleY 收到 0 让出布局高度。 -->
+        <Style Selector="^[IsClosing=true] /template/ LayoutTransformControl#PART_LayoutTransformControl">
+            <Setter Property="RenderTransformOrigin" Value="50%,0%" />
+            <Style.Animations>
+                <Animation Easing="QuadraticEaseOut" FillMode="Forward" Duration="0:0:0.5">
+                    <KeyFrame Cue="0%">
+                        <Setter Property="TranslateTransform.X" Value="0" />
+                        <Setter Property="ScaleTransform.ScaleY" Value="1" />
+                    </KeyFrame>
+                    <KeyFrame Cue="70%">
+                        <Setter Property="TranslateTransform.X" Value="600" />
+                        <Setter Property="ScaleTransform.ScaleY" Value="1" />
+                    </KeyFrame>
+                    <KeyFrame Cue="100%">
+                        <Setter Property="TranslateTransform.X" Value="600" />
+                        <Setter Property="ScaleTransform.ScaleY" Value="0" />
+                    </KeyFrame>
+                </Animation>
+            </Style.Animations>
+        </Style>
+
+        <!-- ★ 关闭协议：IsClosing → 动画放完 → **由动画把 IsClosed 置真**，控件才真正移除。
+             少了这一段，卡片会一直挂在那儿关不掉。 -->
+        <Style Selector="^[IsClosing=true]">
+            <Style.Animations>
+                <Animation Easing="QuadraticEaseOut" FillMode="Forward" Duration="0:0:0.85">
+                    <KeyFrame Cue="100%">
+                        <Setter Property="IsClosed" Value="True" />
+                    </KeyFrame>
+                </Animation>
+            </Style.Animations>
+        </Style>
+
+        <!-- ★ 严重度是**伪类**不是 class（NotificationCard.UpdateNotificationType 打的），
+             写成 ^.information 不报错、但永不命中。四档只换图标，卡片底色不动。 -->
+        <Style Selector="^:success /template/ Ellipse#PART_IconDisc">
+            <Setter Property="Fill" Value="{DynamicResource Forge.Progress.Passed}" />
+        </Style>
+        <Style Selector="^:success /template/ Path#PART_IconGlyph">
+            <Setter Property="Data" Value="M 5.2 9.3 L 7.9 12 L 12.9 6" />
+        </Style>
+
+        <Style Selector="^:warning /template/ Ellipse#PART_IconDisc">
+            <Setter Property="Fill" Value="{DynamicResource Forge.Label.Warning}" />
+        </Style>
+        <Style Selector="^:warning /template/ Path#PART_IconGlyph">
+            <Setter Property="Data" Value="M 9 4.6 L 9 10.1 M 9 12.9 L 9 13" />
+        </Style>
+
+        <Style Selector="^:error /template/ Ellipse#PART_IconDisc">
+            <Setter Property="Fill" Value="{DynamicResource Forge.Progress.Failed}" />
+        </Style>
+        <Style Selector="^:error /template/ Path#PART_IconGlyph">
+            <Setter Property="Data" Value="M 6.1 6.1 L 11.9 11.9 M 11.9 6.1 L 6.1 11.9" />
+            <Setter Property="StrokeThickness" Value="1.7" />
+        </Style>
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.WindowNotificationManager" TargetType="WindowNotificationManager">
+        <!-- 通知堆离窗口边缘留一圈，别贴边。 -->
+        <Setter Property="Margin" Value="16" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="WindowNotificationManager">
+                <ReversibleStackPanel Name="PART_Items"
+                                      VerticalAlignment="{TemplateBinding VerticalAlignment}"
+                                      HorizontalAlignment="{TemplateBinding HorizontalAlignment}" />
+            </ControlTemplate>
+        </Setter>
+        <!-- 位置由伪类决定；下方那几档要让新通知从下往上叠。 -->
+        <Style Selector="^:topleft /template/ ReversibleStackPanel#PART_Items">
+            <Setter Property="VerticalAlignment" Value="Top" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+        </Style>
+        <Style Selector="^:topright /template/ ReversibleStackPanel#PART_Items">
+            <Setter Property="VerticalAlignment" Value="Top" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
+        </Style>
+        <Style Selector="^:bottomleft /template/ ReversibleStackPanel#PART_Items">
+            <Setter Property="VerticalAlignment" Value="Bottom" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="ReverseOrder" Value="True" />
+        </Style>
+        <Style Selector="^:bottomright /template/ ReversibleStackPanel#PART_Items">
+            <Setter Property="VerticalAlignment" Value="Bottom" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="ReverseOrder" Value="True" />
+        </Style>
+        <Style Selector="^:topcenter /template/ ReversibleStackPanel#PART_Items">
+            <Setter Property="VerticalAlignment" Value="Top" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="^:bottomcenter /template/ ReversibleStackPanel#PART_Items">
+            <Setter Property="VerticalAlignment" Value="Bottom" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="ReverseOrder" Value="True" />
+        </Style>
+    </ControlTheme>
+
+    <!-- 校验错误：内容照常显示，下面挂一行错误文字（上游给了成套的错误配色）。 -->
+    <ControlTheme x:Key="Forge.DataValidationErrors" TargetType="DataValidationErrors">
+        <Setter Property="Template">
+            <ControlTemplate TargetType="DataValidationErrors">
+                <DockPanel>
+                    <ItemsControl Name="PART_ErrorList"
+                                  DockPanel.Dock="Bottom"
+                                  ItemsSource="{TemplateBinding (DataValidationErrors.Errors)}"
+                                  IsVisible="{TemplateBinding (DataValidationErrors.HasErrors)}"
+                                  Margin="0,3,0,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}"
+                                           Foreground="{DynamicResource Forge.Input.Error}"
+                                           TextWrapping="Wrap" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <ContentPresenter Name="PART_ContentPresenter"
+                                      Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}" />
+                </DockPanel>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <!-- ══ 浮出层 / 窗口 ══ -->
+    <ControlTheme x:Key="Forge.FlyoutPresenter" TargetType="FlyoutPresenter">
+        <Setter Property="Background" Value="{DynamicResource Forge.Popup.Background}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Forge.Popup.Border}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Forge.Popup.CornerRadius}" />
+        <Setter Property="Padding" Value="12" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="FlyoutPresenter">
+                <Border Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}"
+                        Padding="{TemplateBinding Padding}">
+                    <ContentPresenter Name="PART_ContentPresenter"
+                                      Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <!--
+      Window。⚠ 主题层只给**最朴素**的一份：底色 + 内容。
+      本软件的窗口外观走自绘 chrome（ChromedWindow / ToolWindow / NoticeWindow / PanelWindow，
+      在 LDVision.Avalonia 里），主题再画标题栏就会打架。
+      PART_TransparencyFallback 与 PART_VisualLayerManager 是必需部件，缺了透明与浮层都不工作。
+    -->
+    <ControlTheme x:Key="Forge.Window" TargetType="Window">
+        <Setter Property="Background" Value="{DynamicResource Forge.Popup.Background}" />
+        <!-- ⚠ 全局文字色的**唯一入口**：Avalonia 的 TextElement.Foreground 默认值是
+             Brushes.Black 且会向下继承，主题不设它的话亮档看不出来、暗档满屏黑字。
+             设在窗口上而不是每个控件上：控件自己设了就断了继承链，
+             放在蓝底主按钮 / 通知卡里的文字反而跟不上宿主的前景色。 -->
+        <Setter Property="Foreground" Value="{DynamicResource Forge.Text.Primary}" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="Window">
+                <Panel>
+                    <Border Name="PART_TransparencyFallback" IsHitTestVisible="False" />
+                    <Border Background="{TemplateBinding Background}" IsHitTestVisible="False" />
+                    <Panel Background="Transparent" Margin="{TemplateBinding OffScreenMargin}">
+                        <VisualLayerManager Name="PART_VisualLayerManager">
+                            <ContentPresenter Name="PART_ContentPresenter"
+                                              Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              Margin="{TemplateBinding Padding}" />
+                        </VisualLayerManager>
+                    </Panel>
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <!-- ══ 容器类：主题的活儿是"别挡路" ══ -->
+    <ControlTheme x:Key="Forge.ItemsControl" TargetType="ItemsControl">
+        <Setter Property="Template">
+            <ControlTemplate TargetType="ItemsControl">
+                <Border Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}"
+                        Padding="{TemplateBinding Padding}">
+                    <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.TransitioningContentControl" TargetType="TransitioningContentControl">
+        <Setter Property="Template">
+            <ControlTemplate TargetType="TransitioningContentControl">
+                <ContentPresenter Name="PART_ContentPresenter"
+                                  Content="{TemplateBinding Content}"
+                                  ContentTemplate="{TemplateBinding ContentTemplate}"
+                                  Padding="{TemplateBinding Padding}" />
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.Carousel" TargetType="Carousel">
+        <Setter Property="Template">
+            <ControlTemplate TargetType="Carousel">
+                <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}" />
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.Thumb" TargetType="Thumb">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="Thumb">
+                <Border Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}" />
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <!-- 抽屉布局：面板一侧有边、内容在另一侧。 -->
+    <ControlTheme x:Key="Forge.SplitView" TargetType="SplitView">
+        <Setter Property="PaneBackground" Value="{DynamicResource Forge.Popup.Background}" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="SplitView">
+                <Grid Name="PART_Root" ColumnDefinitions="Auto,*">
+                    <Panel Name="PART_PaneRoot"
+                           Grid.Column="0"
+                           Background="{TemplateBinding PaneBackground}"
+                           Width="{TemplateBinding OpenPaneLength}"
+                           HorizontalAlignment="Left">
+                        <ContentPresenter Content="{TemplateBinding Pane}"
+                                          ContentTemplate="{TemplateBinding PaneTemplate}" />
+                        <Border BorderBrush="{DynamicResource Forge.Group.Separator}"
+                                BorderThickness="0,0,1,0" />
+                    </Panel>
+                    <ContentPresenter Name="PART_ContentPresenter"
+                                      Grid.Column="1"
+                                      Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}" />
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:closed /template/ Panel#PART_PaneRoot">
+            <Setter Property="Width" Value="{Binding CompactPaneLength, RelativeSource={RelativeSource TemplatedParent}}" />
+        </Style>
+    </ControlTheme>
+
+    <!-- 圆点分页：当前页实心、其余空心。 -->
+    <ControlTheme x:Key="Forge.PipsPagerItem" TargetType="ListBoxItem">
+        <Setter Property="Padding" Value="3" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="ListBoxItem">
+                <Border Padding="{TemplateBinding Padding}" Background="Transparent">
+                    <Ellipse Name="PART_Pip" Width="6" Height="6"
+                             Fill="{DynamicResource Forge.Input.Placeholder}" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:pointerover /template/ Ellipse#PART_Pip">
+            <Setter Property="Fill" Value="{DynamicResource Forge.Input.Border}" />
+        </Style>
+        <Style Selector="^:selected /template/ Ellipse#PART_Pip">
+            <Setter Property="Fill" Value="{DynamicResource Forge.Button.Accent.Background}" />
+        </Style>
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.PipsPager" TargetType="PipsPager">
+        <Setter Property="Template">
+            <ControlTemplate TargetType="PipsPager">
+                <StackPanel Orientation="Horizontal" Spacing="2">
+                    <Button Name="PART_PreviousButton"
+                            Theme="{DynamicResource Forge.CalendarNavButton}">
+                        <Path Data="M 4.5 0 L 0 4.5 L 4.5 9"
+                              Stroke="{Binding $parent[Button].Foreground}"
+                              StrokeThickness="1.3" StrokeLineCap="Round" StrokeJoin="Round"
+                              Width="5" Height="9" />
+                    </Button>
+                    <ListBox Name="PART_PipsPagerList"
+                             Theme="{DynamicResource Forge.ListBox}"
+                             ItemContainerTheme="{DynamicResource Forge.PipsPagerItem}"
+                             Background="Transparent"
+                             Padding="0">
+                        <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
+                    </ListBox>
+                    <Button Name="PART_NextButton"
+                            Theme="{DynamicResource Forge.CalendarNavButton}">
+                        <Path Data="M 0 0 L 4.5 4.5 L 0 9"
+                              Stroke="{Binding $parent[Button].Foreground}"
+                              StrokeThickness="1.3" StrokeLineCap="Round" StrokeJoin="Round"
+                              Width="5" Height="9" />
+                    </Button>
+                </StackPanel>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <!-- ══ 表格视图（TableView 族，与 DataGrid 并列的另一套表格） ══ -->
+    <ControlTheme x:Key="Forge.TableViewCell" TargetType="TableViewCell">
+        <Setter Property="Padding" Value="{DynamicResource Forge.Table.CellPadding}" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="TableViewCell">
+                <Border Background="{TemplateBinding Background}"
+                        BorderBrush="{DynamicResource Forge.Table.GridLine}"
+                        BorderThickness="0,0,1,0">
+                    <ContentPresenter Name="PART_ContentPresenter"
+                                      Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      Padding="{TemplateBinding Padding}"
+                                      VerticalAlignment="Center" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.TableViewColumnHeader" TargetType="TableViewColumnHeader">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Height" Value="{DynamicResource Forge.Table.HeaderHeight}" />
+        <Setter Property="Padding" Value="{DynamicResource Forge.Table.CellPadding}" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="TableViewColumnHeader">
+                <Border Name="PART_Root"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{DynamicResource Forge.Table.HeaderSeparator}"
+                        BorderThickness="0,0,1,1">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <ContentPresenter Name="PART_ContentPresenter"
+                                          Grid.Column="0"
+                                          Content="{TemplateBinding Content}"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}"
+                                          Padding="{TemplateBinding Padding}"
+                                          VerticalAlignment="Center" />
+                        <!-- 拖拽改列宽的抓手，压在右边线上。 -->
+                        <Thumb Name="PART_Resizer"
+                               Grid.Column="1"
+                               Theme="{DynamicResource Forge.Thumb}"
+                               Width="4"
+                               Background="Transparent"
+                               Cursor="SizeWestEast" />
+                    </Grid>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:pointerover /template/ Border#PART_Root">
+            <Setter Property="Background" Value="{DynamicResource Forge.Item.HoverBackground}" />
+        </Style>
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.TableViewRow" TargetType="TableViewRow">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="MinHeight" Value="{DynamicResource Forge.Table.RowHeight}" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="TableViewRow">
+                <Border Name="PART_Root"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{DynamicResource Forge.Table.GridLine}"
+                        BorderThickness="0,0,0,1">
+                    <Panel>
+                        <TableViewCellsPresenter Name="PART_CellsPresenter" />
+                        <ContentPresenter Name="PART_ContentPresenter"
+                                          Content="{TemplateBinding Content}"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}" />
+                    </Panel>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:pointerover /template/ Border#PART_Root">
+            <Setter Property="Background" Value="{DynamicResource Forge.Item.HoverBackground}" />
+        </Style>
+        <Style Selector="^:selected /template/ Border#PART_Root">
+            <Setter Property="Background" Value="{DynamicResource Forge.Item.SelectedBackground}" />
+        </Style>
+        <Style Selector="^:selected">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Item.SelectedForeground}" />
+        </Style>
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.TableView" TargetType="TableView" BasedOn="{StaticResource Forge.ListBox}">
+        <Setter Property="ItemContainerTheme" Value="{DynamicResource Forge.TableViewRow}" />
+    </ControlTheme>
+
+</ResourceDictionary>

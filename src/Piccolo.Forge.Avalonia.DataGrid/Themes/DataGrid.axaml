@@ -1,0 +1,260 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+      DataGrid 族。部件最多、互相依赖最紧的一族 —— 缺一个部件不是"样式不好看"，
+      是整片空白（2026-08-16 那次拆 Semi，最先暴露的就是它）。
+      部件清单由反射 TemplatePartAttribute 得到，组织方式（哪个 Presenter 落在哪个格子）
+      是框架层的约束，样式与度量则来自上游 IntelliJ：
+        Table.gridColor 网格线 / Table.stripeColor 斑马纹 /
+        TableHeader.separatorColor 表头分隔线 / TableHeader.height 25。
+      行的悬停与选中复用 Forge.Item.*，与列表、树同源。
+
+      ⚠ 主题层给的是**中性**外观：透明底、无外边框。DataGrid 在本软件里是嵌在面板中的，
+        面板本身已经是一张卡片，主题再画一圈就成了框套框。要卡片外观由宿主自己加。
+    -->
+
+    <ControlTheme x:Key="Forge.DataGridColumnHeader" TargetType="DataGridColumnHeader">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Height" Value="{DynamicResource Forge.Table.HeaderHeight}" />
+        <Setter Property="Padding" Value="{DynamicResource Forge.Table.CellPadding}" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="DataGridColumnHeader">
+                <Grid Name="PART_ColumnHeaderRoot" ColumnDefinitions="*,Auto,Auto">
+                    <Border Grid.ColumnSpan="3"
+                            Name="PART_Background"
+                            Background="{TemplateBinding Background}" />
+                    <ContentPresenter Name="PART_ContentPresenter"
+                                      Grid.Column="0"
+                                      Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      Margin="{TemplateBinding Padding}"
+                                      HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                      VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                    <!-- 排序箭头：升序朝上、降序朝下，用同一个 Path 旋转，与树/折叠面板的 chevron 同源。
+                         墨迹 9×5，框同尺寸，天然居中。 -->
+                    <Path Name="PART_SortIcon"
+                          Grid.Column="1"
+                          Data="M 0 5 L 4.5 0 L 9 5"
+                          Stroke="{TemplateBinding Foreground}"
+                          StrokeThickness="1.3"
+                          StrokeLineCap="Round" StrokeJoin="Round"
+                          Width="9" Height="5"
+                          Margin="0,0,8,0"
+                          IsVisible="False"
+                          RenderTransformOrigin="50%,50%"
+                          VerticalAlignment="Center" />
+                    <!-- 列与列之间的竖分隔线（也是拖拽改列宽的抓手所在）。 -->
+                    <Rectangle Name="PART_VerticalSeparator"
+                               Grid.Column="2"
+                               Width="1"
+                               Fill="{DynamicResource Forge.Table.HeaderSeparator}"
+                               VerticalAlignment="Stretch" />
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+
+        <Style Selector="^:pointerover /template/ Border#PART_Background">
+            <Setter Property="Background" Value="{DynamicResource Forge.Item.HoverBackground}" />
+        </Style>
+        <Style Selector="^:pressed /template/ Border#PART_Background">
+            <Setter Property="Background" Value="{DynamicResource Forge.Overlay.Pressed}" />
+        </Style>
+        <Style Selector="^:sortascending /template/ Path#PART_SortIcon">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+        <Style Selector="^:sortdescending /template/ Path#PART_SortIcon">
+            <Setter Property="IsVisible" Value="True" />
+            <Setter Property="RenderTransform" Value="rotate(180deg)" />
+        </Style>
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.DataGridCell" TargetType="DataGridCell">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Padding" Value="{DynamicResource Forge.Table.CellPadding}" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="DataGridCell">
+                <Grid Name="PART_CellRoot" ColumnDefinitions="*,Auto">
+                    <Border Grid.ColumnSpan="2"
+                            Name="PART_Background"
+                            Background="{TemplateBinding Background}" />
+                    <ContentPresenter Name="PART_ContentPresenter"
+                                      Grid.Column="0"
+                                      Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      Margin="{TemplateBinding Padding}"
+                                      HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                      VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                    <Rectangle Name="PART_RightGridLine"
+                               Grid.Column="1"
+                               Width="1"
+                               Fill="{DynamicResource Forge.Table.GridLine}"
+                               VerticalAlignment="Stretch" />
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+
+        <!-- 单元格自身不画选中底 —— 选中是**整行**的事（见 DataGridRow）。
+             这里只处理"当前单元格"的焦点框与校验失败。 -->
+        <Style Selector="^:current /template/ Border#PART_Background">
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Focus.Ring}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+        <Style Selector="^:invalid /template/ Border#PART_Background">
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Input.Error}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.DataGridRowHeader" TargetType="DataGridRowHeader">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="DataGridRowHeader">
+                <Grid Name="PART_Root" ColumnDefinitions="Auto,*">
+                    <Border Grid.ColumnSpan="2"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{DynamicResource Forge.Table.GridLine}"
+                            BorderThickness="0,0,1,0">
+                        <ContentPresenter Name="PART_ContentPresenter"
+                                          Content="{TemplateBinding Content}"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}"
+                                          VerticalAlignment="Center" />
+                    </Border>
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.DataGridRow" TargetType="DataGridRow">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="MinHeight" Value="{DynamicResource Forge.Table.RowHeight}" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="DataGridRow">
+                <Border Name="PART_RowBorder"
+                        Background="{TemplateBinding Background}">
+                    <Panel Name="PART_Root">
+                        <Grid ColumnDefinitions="Auto,*" RowDefinitions="*,Auto,Auto">
+                            <DataGridRowHeader Name="PART_RowHeader"
+                                               Grid.RowSpan="3"
+                                               Theme="{DynamicResource Forge.DataGridRowHeader}"
+                                               IsVisible="{Binding AreRowHeadersVisible,
+                                                           RelativeSource={RelativeSource AncestorType=DataGrid}}" />
+                            <DataGridCellsPresenter Name="PART_CellsPresenter"
+                                                    Grid.Row="0" Grid.Column="1" />
+                            <DataGridDetailsPresenter Name="PART_DetailsPresenter"
+                                                      Grid.Row="1" Grid.Column="1" />
+                            <Rectangle Name="PART_BottomGridLine"
+                                       Grid.Row="2" Grid.Column="1"
+                                       Height="1"
+                                       Fill="{DynamicResource Forge.Table.GridLine}"
+                                       HorizontalAlignment="Stretch" />
+                        </Grid>
+                    </Panel>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+
+        <!-- 选中/悬停画在整行上，与列表、树同一套色。 -->
+        <Style Selector="^:pointerover /template/ Border#PART_RowBorder">
+            <Setter Property="Background" Value="{DynamicResource Forge.Item.HoverBackground}" />
+        </Style>
+        <Style Selector="^:selected /template/ Border#PART_RowBorder">
+            <Setter Property="Background" Value="{DynamicResource Forge.Item.SelectedBackground}" />
+        </Style>
+        <Style Selector="^:selected">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Item.SelectedForeground}" />
+        </Style>
+        <Style Selector="^:selected:pointerover /template/ Border#PART_RowBorder">
+            <Setter Property="Background" Value="{DynamicResource Forge.Item.SelectedBackground}" />
+        </Style>
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.DataGridRowGroupHeader" TargetType="DataGridRowGroupHeader">
+        <Setter Property="Background" Value="{DynamicResource Forge.Table.Stripe}" />
+        <Setter Property="MinHeight" Value="{DynamicResource Forge.Table.RowHeight}" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="DataGridRowGroupHeader">
+                <Border Background="{TemplateBinding Background}">
+                    <Panel Name="PART_Root">
+                        <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*">
+                            <DataGridRowHeader Name="PART_RowHeader"
+                                               Grid.Column="0"
+                                               Theme="{DynamicResource Forge.DataGridRowHeader}" />
+                            <Control Name="PART_IndentSpacer" Grid.Column="1" />
+                            <!-- 展开钮与树的展开钮同一套（chevron，收起朝右、展开朝下）。 -->
+                            <ToggleButton Name="PART_ExpanderButton"
+                                          Grid.Column="2"
+                                          Theme="{DynamicResource Forge.TreeChevronButton}"
+                                          Margin="4,0,5,0"
+                                          VerticalAlignment="Center" />
+                            <TextBlock Name="PART_PropertyNameElement"
+                                       Grid.Column="3"
+                                       Margin="0,0,4,0"
+                                       VerticalAlignment="Center" />
+                            <TextBlock Name="PART_ItemCountElement"
+                                       Grid.Column="4"
+                                       Foreground="{DynamicResource Forge.MenuItem.Accelerator}"
+                                       VerticalAlignment="Center" />
+                        </Grid>
+                    </Panel>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:expanded /template/ ToggleButton#PART_ExpanderButton">
+            <Setter Property="IsChecked" Value="True" />
+        </Style>
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.DataGrid" TargetType="DataGrid">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="RowBackground" Value="Transparent" />
+        <!-- ⚠ Avalonia 的 HeadersVisibility 默认是 **None** —— 不设的话表头根本不画，
+             而模板一切正常，很难看出是这儿的问题。主题该给出这个默认。 -->
+        <Setter Property="HeadersVisibility" Value="Column" />
+        <Setter Property="GridLinesVisibility" Value="Horizontal" />
+        <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource Forge.Table.GridLine}" />
+        <Setter Property="VerticalGridLinesBrush" Value="{DynamicResource Forge.Table.GridLine}" />
+        <Setter Property="RowHeight" Value="{DynamicResource Forge.Table.RowHeight}" />
+        <Setter Property="ColumnHeaderHeight" Value="{DynamicResource Forge.Table.HeaderHeight}" />
+
+        <Setter Property="Template">
+            <ControlTemplate TargetType="DataGrid">
+                <Border Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}">
+                    <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,*,Auto,Auto">
+                        <ContentControl Name="PART_TopLeftCornerHeader" Grid.Row="0" Grid.Column="0" />
+                        <DataGridColumnHeadersPresenter Name="PART_ColumnHeadersPresenter"
+                                                        Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" />
+                        <ContentControl Name="PART_TopRightCornerHeader" Grid.Row="0" Grid.Column="2" />
+                        <!-- 表头与数据之间那条线，是这一族里最能看出"是不是 IDE 表格"的一笔。 -->
+                        <Rectangle Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"
+                                   Height="1"
+                                   Fill="{DynamicResource Forge.Table.HeaderSeparator}"
+                                   VerticalAlignment="Bottom" />
+
+                        <DataGridRowsPresenter Name="PART_RowsPresenter"
+                                               Grid.Row="1" Grid.RowSpan="2"
+                                               Grid.Column="0" Grid.ColumnSpan="3" />
+
+                        <ScrollBar Name="PART_VerticalScrollbar"
+                                   Grid.Row="1" Grid.Column="2"
+                                   Orientation="Vertical" />
+                        <Grid Grid.Row="2" Grid.Column="1" ColumnDefinitions="Auto,*">
+                            <Rectangle Name="PART_FrozenColumnScrollBarSpacer" Grid.Column="0" />
+                            <ScrollBar Name="PART_HorizontalScrollbar"
+                                       Grid.Column="1"
+                                       Orientation="Horizontal" />
+                        </Grid>
+                        <Rectangle Name="PART_BottomRightCorner" Grid.Row="2" Grid.Column="2" />
+                    </Grid>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+</ResourceDictionary>

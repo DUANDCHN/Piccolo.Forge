@@ -1,1 +1,4 @@
-#nullable enable
+﻿#nullable enable
+Piccolo.Forge.Themes.Islands.ForgeIslandsShellTheme
+Piccolo.Forge.Themes.Islands.ForgeIslandsShellTheme.Family.get -> Piccolo.Forge.Themes.ForgeThemeFamily
+Piccolo.Forge.Themes.Islands.ForgeIslandsShellTheme.ForgeIslandsShellTheme() -> void

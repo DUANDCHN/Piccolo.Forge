@@ -1,0 +1,359 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+      一批小控件：ProgressBar / ToolTip / HyperlinkButton / Label / PathIcon /
+      ToggleSwitch / RepeatButton / DropDownButton / SplitButton / ToggleSplitButton。
+      它们要么直接复用已有的色，要么上游只给了一两个键，单独开文件不值当。
+    -->
+
+    <ControlTheme x:Key="Forge.ProgressBar" TargetType="ProgressBar">
+        <Setter Property="Background" Value="{DynamicResource Forge.Progress.Track}" />
+        <Setter Property="Foreground" Value="{DynamicResource Forge.Progress.Bar}" />
+        <Setter Property="MinHeight" Value="{DynamicResource Forge.Progress.Thickness}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Forge.Progress.CornerRadius}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Name="PART_Track"
+                        Background="{TemplateBinding Background}"
+                        CornerRadius="{TemplateBinding CornerRadius}"
+                        Height="{TemplateBinding MinHeight}"
+                        ClipToBounds="True">
+                    <Border Name="PART_Indicator"
+                            Background="{TemplateBinding Foreground}"
+                            CornerRadius="{TemplateBinding CornerRadius}"
+                            HorizontalAlignment="Left" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+        <!-- 上游另有 passed(绿) / failed(红) 两档，给"跑完了/失败了"用；
+             挂 class 即可切换，不必另建控件。 -->
+        <Style Selector="^.passed /template/ Border#PART_Indicator">
+            <Setter Property="Background" Value="{DynamicResource Forge.Progress.Passed}" />
+        </Style>
+        <Style Selector="^.failed /template/ Border#PART_Indicator">
+            <Setter Property="Background" Value="{DynamicResource Forge.Progress.Failed}" />
+        </Style>
+    </ControlTheme>
+
+    <!-- ⚠ 提示气泡在**亮色档也是深底浅字**，这是 IntelliJ 的做法，不是写反了。 -->
+    <ControlTheme x:Key="Forge.ToolTip" TargetType="ToolTip">
+        <Setter Property="Background" Value="{DynamicResource Forge.ToolTip.Background}" />
+        <Setter Property="Foreground" Value="{DynamicResource Forge.ToolTip.Foreground}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Forge.ToolTip.Border}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Forge.ToolTip.CornerRadius}" />
+        <Setter Property="Padding" Value="{DynamicResource Forge.ToolTip.Padding}" />
+        <Setter Property="MaxWidth" Value="360" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}"
+                        Padding="{TemplateBinding Padding}">
+                    <ContentPresenter Name="PART_ContentPresenter"
+                                      Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      TextBlock.Foreground="{TemplateBinding Foreground}"
+                                      TextWrapping="Wrap" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <!-- 链接。新 UI 不分访问态（上游 active/hover/pressed/visited 同值），
+         只在悬停时加下划线。 -->
+    <ControlTheme x:Key="Forge.HyperlinkButton" TargetType="HyperlinkButton">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Foreground" Value="{DynamicResource Forge.Link.Foreground}" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                    <ContentPresenter Name="PART_ContentPresenter"
+                                      Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      RecognizesAccessKey="True" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="TextBlock.TextDecorations" Value="Underline" />
+        </Style>
+        <Style Selector="^:disabled">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Button.Disabled.Foreground}" />
+        </Style>
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.Label" TargetType="Label">
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <ContentPresenter Name="PART_ContentPresenter"
+                                  Content="{TemplateBinding Content}"
+                                  ContentTemplate="{TemplateBinding ContentTemplate}"
+                                  Padding="{TemplateBinding Padding}"
+                                  HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                  VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                  RecognizesAccessKey="True" />
+            </ControlTemplate>
+        </Setter>
+        <!-- 上游给了 Label 的错误 / 警告色（校验提示用），挂 class 切换。 -->
+        <Style Selector="^.error">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Label.Error}" />
+        </Style>
+        <Style Selector="^.warning">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Label.Warning}" />
+        </Style>
+        <Style Selector="^:disabled">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Button.Disabled.Foreground}" />
+        </Style>
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.PathIcon" TargetType="PathIcon">
+        <Setter Property="Width" Value="16" />
+        <Setter Property="Height" Value="16" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="Transparent">
+                    <Path Name="PART_Path"
+                          Data="{TemplateBinding Data}"
+                          Fill="{TemplateBinding Foreground}"
+                          Stretch="Uniform"
+                          HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <!-- 开关。上游没有这个控件（Swing 用复选框代替），按新 UI 设置页里那种开关的观感组装：
+         轨道是胶囊（圆角＝高度一半），选中时轨道变主色、滑块滑到右端。
+
+         ⚠ 部件结构不是随便搭的：ToggleSwitch 要求 PART_SwitchKnob 与 PART_MovingKnobs
+           **都是 Panel**（它靠这两层做拖动与位移），滑块本身画在 PART_MovingKnobs 里面。
+           好在 Avalonia 12 对这个控件有**编译期**部件校验（AVLN2205/2207），写错当场报，
+           不像别处那样要跑起来才发现。 -->
+    <ControlTheme x:Key="Forge.ToggleSwitch" TargetType="ToggleSwitch">
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Cursor" Value="Arrow" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid ColumnDefinitions="Auto,*">
+                    <!-- 轨是胶囊：圆角 8 = 轨高 16 ÷ 2，不是圆角刻度的一档，别顺手改成 4 -->
+                    <Border Name="PART_SwitchTrack"
+                            Grid.Column="0"
+                            Width="{DynamicResource Forge.Switch.TrackWidth}"
+                            Height="{DynamicResource Forge.Switch.TrackHeight}"
+                            Background="{DynamicResource Forge.Check.Border}"
+                            CornerRadius="8"
+                            VerticalAlignment="Center">
+                        <Panel Name="PART_SwitchKnob" HorizontalAlignment="Left" Margin="2,0">
+                            <Panel Name="PART_MovingKnobs">
+                                <Ellipse Name="SwitchKnob"
+                                         Width="{DynamicResource Forge.Switch.KnobSize}"
+                                         Height="{DynamicResource Forge.Switch.KnobSize}"
+                                         Fill="{DynamicResource Forge.Check.Glyph}"
+                                         VerticalAlignment="Center" />
+                            </Panel>
+                        </Panel>
+                    </Border>
+
+                    <!-- 开 / 关两态各自的文案槽（多数用法不填，留空即可）。 -->
+                    <ContentPresenter Name="PART_OnContentPresenter"
+                                      Grid.Column="1"
+                                      Content="{TemplateBinding OnContent}"
+                                      ContentTemplate="{TemplateBinding OnContentTemplate}"
+                                      Margin="{DynamicResource Forge.Check.TextGap}"
+                                      VerticalAlignment="Center"
+                                      IsVisible="False" />
+                    <ContentPresenter Name="PART_OffContentPresenter"
+                                      Grid.Column="1"
+                                      Content="{TemplateBinding OffContent}"
+                                      ContentTemplate="{TemplateBinding OffContentTemplate}"
+                                      Margin="{DynamicResource Forge.Check.TextGap}"
+                                      VerticalAlignment="Center"
+                                      IsVisible="False" />
+                    <ContentPresenter Name="PART_ContentPresenter"
+                                      Grid.Column="1"
+                                      Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      Margin="{DynamicResource Forge.Check.TextGap}"
+                                      VerticalAlignment="Center" />
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+
+        <Style Selector="^:checked /template/ Border#PART_SwitchTrack">
+            <Setter Property="Background" Value="{DynamicResource Forge.Check.SelectedBackground}" />
+        </Style>
+        <Style Selector="^:checked /template/ Panel#PART_SwitchKnob">
+            <Setter Property="HorizontalAlignment" Value="Right" />
+        </Style>
+        <Style Selector="^:disabled /template/ Border#PART_SwitchTrack">
+            <Setter Property="Background" Value="{DynamicResource Forge.Check.Disabled.Border}" />
+        </Style>
+        <Style Selector="^:disabled">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Button.Disabled.Foreground}" />
+        </Style>
+    </ControlTheme>
+
+    <!-- 长按连发按钮：外观与普通按钮一致，差别只在行为。 -->
+    <ControlTheme x:Key="Forge.RepeatButton" TargetType="RepeatButton" BasedOn="{StaticResource Forge.Button}" />
+
+    <!-- 下拉按钮 / 拆分按钮：按钮本体 + 一个 chevron，弹出层复用菜单浮出的外壳。 -->
+    <ControlTheme x:Key="Forge.DropDownButton" TargetType="DropDownButton" BasedOn="{StaticResource Forge.Button}">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Name="PART_FocusRing"
+                        BorderBrush="Transparent"
+                        BorderThickness="{DynamicResource Forge.Focus.RingThickness}"
+                        CornerRadius="{DynamicResource Forge.Focus.RingCornerRadius}">
+                    <Border Name="PART_Root"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{TemplateBinding CornerRadius}">
+                        <Panel>
+                            <Border Name="PART_Overlay" Background="Transparent"
+                                    CornerRadius="{TemplateBinding CornerRadius}" />
+                            <StackPanel Orientation="Horizontal" Margin="{TemplateBinding Padding}">
+                                <ContentPresenter Name="PART_ContentPresenter"
+                                                  Content="{TemplateBinding Content}"
+                                                  ContentTemplate="{TemplateBinding ContentTemplate}"
+                                                  VerticalAlignment="Center"
+                                                  RecognizesAccessKey="True" />
+                                <!-- chevron 墨迹 9×5，框同尺寸，天然居中。 -->
+                                <Path Data="M 0 0 L 4.5 5 L 9 0"
+                                      Stroke="{TemplateBinding Foreground}"
+                                      StrokeThickness="1.3"
+                                      StrokeLineCap="Round" StrokeJoin="Round"
+                                      Width="9" Height="5"
+                                      Margin="8,0,0,0"
+                                      VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Panel>
+                    </Border>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:pointerover /template/ Border#PART_Overlay">
+            <Setter Property="Background" Value="{DynamicResource Forge.Overlay.Hover}" />
+        </Style>
+        <Style Selector="^:pressed /template/ Border#PART_Overlay">
+            <Setter Property="Background" Value="{DynamicResource Forge.Overlay.Pressed}" />
+        </Style>
+        <Style Selector="^:focus-visible /template/ Border#PART_FocusRing">
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Focus.Ring}" />
+        </Style>
+    </ControlTheme>
+
+    <!--
+      SplitButton / ToggleSplitButton。
+
+      结构是**一个整体的框 + 中间一条分隔线**（上游那个键就叫
+      Button.Split.default.separatorColor —— 分隔线，不是"两半之间的缝"），
+      内部两个按钮无边框、只负责各自的点击与叠加反馈。
+
+      ⚠ **ToggleSplitButton 不建自己的主题、不单独注册**：它继承自 SplitButton，
+        TargetType="SplitButton" 的 ControlTheme 会自动匹配到子类；
+        给它单独注册 {x:Type ToggleSplitButton} 反而让整个模板不生效、控件退化成裸文字。
+        所以 :checked 写在本主题里（只有子类会进这个状态，对父类无害）。
+        这条是 Avalonia 的框架行为，不是某个主题库的写法。
+
+      ⚠ 本主题**不 BasedOn Forge.Button**：ControlTheme 一旦 BasedOn 了某个 TargetType=T
+        的主题，它模板里嵌套的 T 类型控件显式设的 Theme 就静默失效
+        （这正是当初两半"裂成独立按钮"的根因）。诊断办法：把内嵌主题的 Background
+        设成 Red 再跑，不变红即没挂上。
+    -->
+
+    <!-- 拆分按钮的两半：无边框（外壳那层已经画了），只有叠加反馈。 -->
+    <ControlTheme x:Key="Forge.SplitButtonPart" TargetType="Button" BasedOn="{StaticResource Forge.IconButton}">
+        <!-- 外框由 SplitButton 自己画，两半只负责各自的悬停/按下叠加，所以不要圆角。 -->
+        <Setter Property="CornerRadius" Value="0" />
+        <Setter Property="MinHeight" Value="{DynamicResource Forge.Button.MinHeight}" />
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.SplitButton" TargetType="SplitButton">
+        <Setter Property="Background" Value="{DynamicResource Forge.Button.Background}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Forge.Button.Border}" />
+        <Setter Property="BorderThickness" Value="{DynamicResource Forge.Button.BorderThickness}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Forge.Button.CornerRadius}" />
+        <Setter Property="Padding" Value="{DynamicResource Forge.Button.Padding}" />
+        <Setter Property="MinHeight" Value="{DynamicResource Forge.Button.MinHeight}" />
+        <Setter Property="Cursor" Value="Arrow" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="SplitButton">
+                <Border Name="PART_Root"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}"
+                        ClipToBounds="True">
+                    <Grid ColumnDefinitions="*,Auto,Auto">
+                        <Button Name="PART_PrimaryButton"
+                                Grid.Column="0"
+                                Theme="{DynamicResource Forge.SplitButtonPart}"
+                                Content="{TemplateBinding Content}"
+                                ContentTemplate="{TemplateBinding ContentTemplate}"
+                                Padding="{TemplateBinding Padding}" />
+                        <!-- 主按钮与下拉之间一条分隔线，上游 Button.Split.default.separatorColor 的位置。 -->
+                        <Border Name="PART_Separator" Grid.Column="1" Width="1"
+                                Background="{DynamicResource Forge.Button.Border}" />
+                        <Button Name="PART_SecondaryButton"
+                                Grid.Column="2"
+                                Theme="{DynamicResource Forge.SplitButtonPart}"
+                                Padding="8,0">
+                            <Path Data="M 0 0 L 4.5 5 L 9 0"
+                                  Stroke="{TemplateBinding Foreground}"
+                                  StrokeThickness="1.3"
+                                  StrokeLineCap="Round" StrokeJoin="Round"
+                                  Width="9" Height="5"
+                                  VerticalAlignment="Center" />
+                        </Button>
+                    </Grid>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+
+        <Style Selector="^:disabled">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Button.Disabled.Foreground}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Button.Disabled.Border}" />
+        </Style>
+
+        <!-- 工具栏里的无边框版：没有外框与底，两半各自留悬停叠加，中间那条分隔也去掉
+             —— 工具栏上一排图标钮之间再画竖线就成了栅栏。与 Button 的 .tertiary 同一个语汇。 -->
+        <Style Selector="^.tertiary">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Padding" Value="4" />
+            <Setter Property="MinHeight" Value="0" />
+        </Style>
+        <Style Selector="^.tertiary /template/ Border#PART_Separator">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="^.tertiary /template/ Button#PART_SecondaryButton">
+            <Setter Property="Padding" Value="3,0" />
+        </Style>
+
+        <!-- ★ 选中态。**只有 ToggleSplitButton 会进这个状态**，写在这里对 SplitButton 无害 ——
+             也正因如此 ToggleSplitButton 不需要（也不能有）自己的主题，见抬头。
+             作用于外层那个框：本控件是"一个整体的框 + 中间一条分隔线"，
+             不是两个各自带框的按钮拼起来的。 -->
+        <Style Selector="^:checked /template/ Border#PART_Root">
+            <Setter Property="Background" Value="{DynamicResource Forge.Button.Accent.Background}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Button.Accent.Background}" />
+        </Style>
+        <Style Selector="^:checked">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Button.Accent.Foreground}" />
+        </Style>
+        <!-- 蓝底上那条分隔线单独换色 —— 上游为此专门给了
+             Button.Split.default.separatorColor（default 指的就是蓝底的主按钮态）。
+             常态那条用 Button.Border，压在蓝底上根本看不见。 -->
+        <Style Selector="^:checked /template/ Border#PART_Separator">
+            <Setter Property="Background" Value="{DynamicResource Forge.Split.AccentSeparator}" />
+        </Style>
+    </ControlTheme>
+
+</ResourceDictionary>

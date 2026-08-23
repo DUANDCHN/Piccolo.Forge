@@ -1,0 +1,160 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+      NumericUpDown = ButtonSpinner 套一个 TextBox。两者都要给主题，缺一个就露出兜底主题的样子。
+      上游 Spinner.minimumSize 是 72,28（比普通输入框的 49 宽），箭头区宽度走 Component.arrowAreaWidth=28。
+      边框与焦点规则复用 Forge.Input.*，与 TextBox 同一套。
+    -->
+
+    <!-- 上下箭头。无边框无底，只有叠加反馈，与 Button 的 .icon 变体同一个量。 -->
+    <ControlTheme x:Key="Forge.SpinnerRepeatButton" TargetType="RepeatButton" BasedOn="{StaticResource Forge.IconButton}">
+        <!-- 上下两半贴着输入框的右内沿，圆角由输入框那圈给，这里不再画。 -->
+        <Setter Property="CornerRadius" Value="0" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Padding" Value="0" />
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.ButtonSpinner" TargetType="ButtonSpinner">
+        <Setter Property="Background" Value="{DynamicResource Forge.Input.Background}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Forge.Input.Border}" />
+        <Setter Property="BorderThickness" Value="{DynamicResource Forge.Input.BorderThickness}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Forge.Input.CornerRadius}" />
+        <Setter Property="Padding" Value="{DynamicResource Forge.Input.Padding}" />
+        <Setter Property="MinWidth" Value="{DynamicResource Forge.Spinner.MinWidth}" />
+        <Setter Property="MinHeight" Value="{DynamicResource Forge.Input.MinHeight}" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Name="PART_FocusRing"
+                        BorderBrush="Transparent"
+                        BorderThickness="{DynamicResource Forge.Focus.RingThickness}"
+                        CornerRadius="{DynamicResource Forge.Focus.RingCornerRadius}">
+                    <Border Name="PART_Root"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{TemplateBinding CornerRadius}"
+                            ClipToBounds="True">
+                        <DockPanel>
+                            <!-- 箭头区。ButtonSpinner 的 ButtonSpinnerLocation 决定它靠哪边，
+                                 两颗按钮上下叠放（上游是 28 宽的一条竖区，不是左右分开）。 -->
+                            <!-- ButtonSpinner 有 :left / :right 伪类（对应 ButtonSpinnerLocation），
+                                 默认停右边，靠下面那条样式改到左边 —— 别把 Dock 写死。 -->
+                            <!-- ⚠ 两颗箭头**平分高度**（Grid 的 * 行），不要写死 Height：
+                                 写死 13+13 就等于给整个数字框钉了 28 的下限，
+                                 使用者在外面设 MinHeight=26 会被它顶回去 ——
+                                 与旁边同样设了 26 的下拉框差一档，看着就是"数字框比下拉框高"。 -->
+                            <Grid Name="PART_SpinnerPanel" DockPanel.Dock="Right"
+                                  RowDefinitions="*,*"
+                                  Width="{DynamicResource Forge.Spinner.ArrowAreaWidth}"
+                                  IsVisible="{TemplateBinding ShowButtonSpinner}">
+                                <RepeatButton Name="PART_IncreaseButton" Grid.Row="0"
+                                              Theme="{StaticResource Forge.SpinnerRepeatButton}"
+                                              Foreground="{TemplateBinding Foreground}">
+                                    <Path Data="M 0 4 L 4 0 L 8 4" Stroke="{TemplateBinding Foreground}"
+                                          StrokeThickness="1.2" StrokeLineCap="Round" StrokeJoin="Round" />
+                                </RepeatButton>
+                                <RepeatButton Name="PART_DecreaseButton" Grid.Row="1"
+                                              Theme="{StaticResource Forge.SpinnerRepeatButton}"
+                                              Foreground="{TemplateBinding Foreground}">
+                                    <Path Data="M 0 0 L 4 4 L 8 0" Stroke="{TemplateBinding Foreground}"
+                                          StrokeThickness="1.2" StrokeLineCap="Round" StrokeJoin="Round" />
+                                </RepeatButton>
+                            </Grid>
+                            <ContentPresenter Name="PART_ContentPresenter"
+                                              Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              Padding="{TemplateBinding Padding}"
+                                              HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+                        </DockPanel>
+                    </Border>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+
+        <Style Selector="^:left /template/ Grid#PART_SpinnerPanel">
+            <Setter Property="DockPanel.Dock" Value="Left" />
+        </Style>
+
+        <Style Selector="^:focus-within /template/ Border#PART_FocusRing">
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Focus.Ring}" />
+        </Style>
+        <Style Selector="^:focus-within /template/ Border#PART_Root">
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Input.FocusedBorder}" />
+        </Style>
+        <Style Selector="^:disabled /template/ Border#PART_Root">
+            <Setter Property="Background" Value="{DynamicResource Forge.Input.Disabled.Background}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Input.Disabled.Border}" />
+        </Style>
+        <Style Selector="^:disabled">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Button.Disabled.Foreground}" />
+        </Style>
+    </ControlTheme>
+
+    <!--
+      NumericUpDown 内嵌的 TextBox 必须**去掉自己的边框、底与焦点环** ——
+      外面的 ButtonSpinner 已经画了一整套，不去掉就是框套框。
+    -->
+    <ControlTheme x:Key="Forge.NumericUpDownTextBox" TargetType="TextBox" BasedOn="{StaticResource Forge.TextBox}">
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <!-- 环的**厚度**在使用处用资源覆盖清零（见 Forge.NumericUpDown 模板里的说明），
+             这里只负责把环涂成透明，两件事都要做：厚度归零省出 4px，涂透明免得聚焦时冒出一圈。 -->
+        <Style Selector="^:focus-within /template/ Border#PART_FocusRing">
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+        <Style Selector="^:disabled /template/ Border#PART_Root">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.NumericUpDown" TargetType="NumericUpDown">
+        <!-- ⚠ 最小高度要在**这一层**给：模板把 MinHeight 转发给内层 ButtonSpinner 了，
+             这儿不给就是转发一个 0 下去，把 ButtonSpinner 自己那份 28 顶掉，
+             数字框会比同排的文本框/下拉框矮一档（与"高一档"是同一个转发引出的两面）。 -->
+        <Setter Property="MinHeight" Value="{DynamicResource Forge.Input.MinHeight}" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <!-- ⚠ MinHeight 要转发下去：ButtonSpinner 自己有一份 28 的下限，
+                     不转发的话外层 NumericUpDown 上设的 MinHeight 够不着它，等于设了个寂寞。 -->
+                <ButtonSpinner Name="PART_Spinner"
+                               Theme="{StaticResource Forge.ButtonSpinner}"
+                               MinHeight="{TemplateBinding MinHeight}"
+                               ButtonSpinnerLocation="{TemplateBinding ButtonSpinnerLocation}"
+                               ShowButtonSpinner="{TemplateBinding ShowButtonSpinner}"
+                               AllowSpin="{TemplateBinding AllowSpin}"
+                               HorizontalContentAlignment="Stretch"
+                               VerticalContentAlignment="Center"
+                               IsTabStop="False">
+                    <TextBox Name="PART_TextBox"
+                             Theme="{StaticResource Forge.NumericUpDownTextBox}"
+                             Text="{TemplateBinding Text, Mode=TwoWay}"
+                             PlaceholderText="{TemplateBinding Watermark}"
+                             IsReadOnly="{TemplateBinding IsReadOnly}"
+                             TextAlignment="{TemplateBinding TextAlignment}"
+                             HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                             VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" >
+                        <!-- ⚠ 把焦点环厚度在这一层覆成 0：外面那圈（ButtonSpinner / ComboBox / 日期框）
+                                  已经画了一次环，里面这个 TextBox 再留 2px 的环，纵向白吃 4px ——
+                                  数字框因此恒比同排的下拉框高 2px，外面设多少 MinHeight 都压不下去。
+                                  ⚠ 用**资源覆盖**而不是 `/template/` 样式：模板里那句
+                                    BorderThickness="{DynamicResource Forge.Focus.RingThickness}"
+                                    压不过（实测样式设不动它），换个作用域把资源本身改掉才生效。 -->
+                        <TextBox.Resources>
+                                <Thickness x:Key="Forge.Focus.RingThickness">0</Thickness>
+                            </TextBox.Resources>
+                    </TextBox>
+                </ButtonSpinner>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+</ResourceDictionary>

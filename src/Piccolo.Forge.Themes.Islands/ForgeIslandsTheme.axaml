@@ -1,4 +1,4 @@
-<!--  ★ 经典（expUI） 主题的入口（REQ-068）。它是**一个自包含的单元**：自己的颜色、
+﻿<!--  ★ 经典（expUI） 主题的入口（REQ-068）。它是**一个自包含的单元**：自己的颜色、
       全部控件的 ControlTheme 都在 Themes/Islands/ 下，与 Themes/ExpUi/ 那套**不共用任何文件**。★
 
       宿主不要直接 StyleInclude 这个文件 —— 走唯一入口：
@@ -39,30 +39,19 @@
     x:Class="Piccolo.Forge.Themes.Islands.ForgeIslandsTheme"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--  ★ 完整基础主题：外壳 + 控件 + 色板，一行装完（对位 SemiTheme）。★
+          只想要外壳、基础主题用别家的，改挂 ForgeIslandsShellTheme。
+
+          ⚠ 次序：色板在前、模板在后只是习惯（取色走 DynamicResource，运行期才解析）；
+            真正有次序要求的是控件模板文件之间（BasedOn 走 StaticResource，加载期解析），
+            那份次序写在 ControlThemes.axaml 里。  -->
     <Styles.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <!--  颜色：本族一份，明暗进 ThemeDictionaries。值从 ForgePalette 转写，
-                      由 ForgeThemeDictionaryTests 逐键守护（那里说明了为什么必须守护）。  -->
                 <ResourceInclude Source="avares://Piccolo.Forge.Themes.Islands/Colors.axaml" />
-
-                <!--  控件模板：**一个控件一份**，文件名即控件名。
-                      次序不影响解析（ControlTheme 按类型作键，互不覆盖），这里按部位排：
-                      条带 → 标题条 → 标签 → 编辑区 → 拖拽。
-                      ★ 新增一个控件要**两套都加** —— 漏了哪套由 ForgeThemeCompletenessTests 当场报红。  -->
-                <ResourceInclude Source="avares://Piccolo.Forge.Themes.Islands/Themes/ForgeStripeButton.axaml" />
-                <ResourceInclude Source="avares://Piccolo.Forge.Themes.Islands/Themes/ForgeStripeSeparator.axaml" />
-                <ResourceInclude Source="avares://Piccolo.Forge.Themes.Islands/Themes/ForgeMoreButton.axaml" />
-                <ResourceInclude Source="avares://Piccolo.Forge.Themes.Islands/Themes/ForgeToolWindowToolbar.axaml" />
-                <ResourceInclude Source="avares://Piccolo.Forge.Themes.Islands/Themes/ForgeToolWindowHeader.axaml" />
-                <ResourceInclude Source="avares://Piccolo.Forge.Themes.Islands/Themes/ForgeHeaderButton.axaml" />
-                <ResourceInclude Source="avares://Piccolo.Forge.Themes.Islands/Themes/ForgeContentTab.axaml" />
-                <ResourceInclude Source="avares://Piccolo.Forge.Themes.Islands/Themes/ForgeEditorTab.axaml" />
-                <ResourceInclude Source="avares://Piccolo.Forge.Themes.Islands/Themes/ForgeEditorSplitter.axaml" />
-                <ResourceInclude Source="avares://Piccolo.Forge.Themes.Islands/Themes/ForgeDragOverlay.axaml" />
-
-                <!--  两个"岛的宿主"（外框与编辑区）：不是那 10 个控件之一，只喂岛描边那一个键  -->
-                <ResourceInclude Source="avares://Piccolo.Forge.Themes.Islands/Themes/ForgeIslandHosts.axaml" />
+                <ResourceInclude Source="avares://Piccolo.Forge.Themes.Islands/Controls.Colors.axaml" />
+                <ResourceInclude Source="avares://Piccolo.Forge.Themes.Islands/Shell.axaml" />
+                <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/ControlThemes.axaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Styles.Resources>

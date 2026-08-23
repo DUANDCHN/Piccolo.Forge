@@ -1,0 +1,166 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+      CheckBox / RadioButton。两者共用同一组色 —— 上游的 SVG 也共用 Checkbox.* 那套 id，
+      单选钮只是把方框换成圆、把勾换成实心点。
+
+      勾与点都是自绘 Path，不引图标包：主题这一层不该有外部资源依赖。
+      路径按上游 SVG 换算过来（上游是 24 画布、框 15、勾 `M8 12.5L11 15.5L16.5 9`，
+      这里是 16 的框，等比平移缩放）。
+
+      聚焦：上游 checkBoxFocused.svg 的做法是**把边框换成选中色、底不变**，
+      与别的控件那圈外环不是一回事，所以这里不套 Forge.Focus.Ring。
+    -->
+
+    <ControlTheme x:Key="Forge.CheckBox" TargetType="CheckBox">
+        <Setter Property="MinHeight" Value="{DynamicResource Forge.MenuItem.Height}" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="Cursor" Value="Arrow" />
+
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid ColumnDefinitions="Auto,*">
+                    <Border Name="PART_Box"
+                            Grid.Column="0"
+                            Width="{DynamicResource Forge.Check.Size}"
+                            Height="{DynamicResource Forge.Check.Size}"
+                            Background="{DynamicResource Forge.Check.Background}"
+                            BorderBrush="{DynamicResource Forge.Check.Border}"
+                            BorderThickness="1"
+                            CornerRadius="{DynamicResource Forge.Check.CornerRadius}"
+                            VerticalAlignment="Center">
+                        <Panel>
+                            <Path Name="PART_CheckGlyph"
+                                  Data="M 3.5 7.5 L 6.3 10.3 L 11.5 4.3"
+                                  Stroke="{DynamicResource Forge.Check.Glyph}"
+                                  StrokeThickness="2"
+                                  StrokeLineCap="Round" StrokeJoin="Round"
+                                  IsVisible="False" />
+                            <!-- 三态的中间态：上游画一条横杠（checkBoxIndeterminateSelected.svg）。 -->
+                            <Border Name="PART_IndeterminateGlyph"
+                                    Width="8" Height="2"
+                                    Background="{DynamicResource Forge.Check.Glyph}"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                                    IsVisible="False" />
+                        </Panel>
+                    </Border>
+
+                    <ContentPresenter Name="PART_ContentPresenter"
+                                      Grid.Column="1"
+                                      Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      Margin="{DynamicResource Forge.Check.TextGap}"
+                                      Padding="{TemplateBinding Padding}"
+                                      HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                      VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                      RecognizesAccessKey="True" />
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+
+        <Style Selector="^:checked /template/ Border#PART_Box">
+            <Setter Property="Background" Value="{DynamicResource Forge.Check.SelectedBackground}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Check.SelectedBorder}" />
+        </Style>
+        <Style Selector="^:checked /template/ Path#PART_CheckGlyph">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+
+        <Style Selector="^:indeterminate /template/ Border#PART_Box">
+            <Setter Property="Background" Value="{DynamicResource Forge.Check.SelectedBackground}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Check.SelectedBorder}" />
+        </Style>
+        <Style Selector="^:indeterminate /template/ Border#PART_IndeterminateGlyph">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+
+        <!-- 悬停只把边框提到选中色，底不动 —— 上游 checkBoxFocused.svg 就是这个做法。 -->
+        <Style Selector="^:pointerover /template/ Border#PART_Box">
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Check.SelectedBorder}" />
+        </Style>
+        <Style Selector="^:checked:pointerover /template/ Border#PART_Box">
+            <Setter Property="Background" Value="{DynamicResource Forge.Check.SelectedBackground}" />
+        </Style>
+
+        <Style Selector="^:disabled /template/ Border#PART_Box">
+            <Setter Property="Background" Value="{DynamicResource Forge.Check.Disabled.Background}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Check.Disabled.Border}" />
+        </Style>
+        <Style Selector="^:disabled /template/ Path#PART_CheckGlyph">
+            <Setter Property="Stroke" Value="{DynamicResource Forge.Check.Disabled.Glyph}" />
+        </Style>
+        <Style Selector="^:disabled /template/ Border#PART_IndeterminateGlyph">
+            <Setter Property="Background" Value="{DynamicResource Forge.Check.Disabled.Glyph}" />
+        </Style>
+        <Style Selector="^:disabled">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Button.Disabled.Foreground}" />
+        </Style>
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.RadioButton" TargetType="RadioButton">
+        <Setter Property="MinHeight" Value="{DynamicResource Forge.MenuItem.Height}" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="Cursor" Value="Arrow" />
+
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid ColumnDefinitions="Auto,*">
+                    <Border Name="PART_Box"
+                            Grid.Column="0"
+                            Width="{DynamicResource Forge.Check.Size}"
+                            Height="{DynamicResource Forge.Check.Size}"
+                            Background="{DynamicResource Forge.Check.Background}"
+                            BorderBrush="{DynamicResource Forge.Check.Border}"
+                            BorderThickness="1"
+                            CornerRadius="{DynamicResource Forge.Radio.CornerRadius}"
+                            VerticalAlignment="Center">
+                        <!-- 实心点。上游是 24 画布里 r=3 对 r=8 的框，等比到 16 的框就是 6 直径。 -->
+                        <Ellipse Name="PART_Dot"
+                                 Width="6" Height="6"
+                                 Fill="{DynamicResource Forge.Check.Glyph}"
+                                 HorizontalAlignment="Center" VerticalAlignment="Center"
+                                 IsVisible="False" />
+                    </Border>
+
+                    <ContentPresenter Name="PART_ContentPresenter"
+                                      Grid.Column="1"
+                                      Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      Margin="{DynamicResource Forge.Check.TextGap}"
+                                      Padding="{TemplateBinding Padding}"
+                                      HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                      VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                      RecognizesAccessKey="True" />
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+
+        <Style Selector="^:checked /template/ Border#PART_Box">
+            <Setter Property="Background" Value="{DynamicResource Forge.Check.SelectedBackground}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Check.SelectedBorder}" />
+        </Style>
+        <Style Selector="^:checked /template/ Ellipse#PART_Dot">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+
+        <Style Selector="^:pointerover /template/ Border#PART_Box">
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Check.SelectedBorder}" />
+        </Style>
+        <Style Selector="^:checked:pointerover /template/ Border#PART_Box">
+            <Setter Property="Background" Value="{DynamicResource Forge.Check.SelectedBackground}" />
+        </Style>
+
+        <Style Selector="^:disabled /template/ Border#PART_Box">
+            <Setter Property="Background" Value="{DynamicResource Forge.Check.Disabled.Background}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Check.Disabled.Border}" />
+        </Style>
+        <Style Selector="^:disabled /template/ Ellipse#PART_Dot">
+            <Setter Property="Fill" Value="{DynamicResource Forge.Check.Disabled.Glyph}" />
+        </Style>
+        <Style Selector="^:disabled">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Button.Disabled.Foreground}" />
+        </Style>
+    </ControlTheme>
+
+</ResourceDictionary>

@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsAotCompatible>true</IsAotCompatible>
+    <RootNamespace>Piccolo.Forge.Avalonia.ColorPicker</RootNamespace>
+    <Description>Piccolo.Forge control theme for Avalonia ColorPicker. Add it next to a Piccolo.Forge theme package (ForgeExpUiTheme / ForgeIslandsTheme), which supplies the colors.</Description>
+  </PropertyGroup>
+
+  <!--  **附加包**：ColorPicker 不在 Avalonia 基础包里，模板塞进主包等于让所有人白背一个 Avalonia.Controls.ColorPicker。
+        做法照 Semi（Semi.Avalonia.DataGrid / .ColorPicker 各自独立）。
+
+        ⚠ 有意**不引用主题包**（Semi 的附加包同样不依赖主包）：少一层版本耦合。
+          代价是使用者必须自己把主题包也挂上、且排在前面 —— 只挂本包的话色板键找不到，
+          表现是控件画得出来但没颜色，**且不报错**。  -->
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Controls.ColorPicker" />
+  </ItemGroup>
+
+</Project>

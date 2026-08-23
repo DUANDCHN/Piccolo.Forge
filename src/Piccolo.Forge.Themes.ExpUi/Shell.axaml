@@ -1,0 +1,18 @@
+﻿<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--  ExpUi 一族的**外壳**模板清单。抽成一份是因为有两个入口都要它
+          （ForgeExpUiTheme 全套 / ForgeExpUiShellTheme 只要外壳），清单双写必然有一份先过期。
+          ★ 新增一个外壳控件要**两族都加** —— 漏了哪族由 ForgeThemeCompletenessTests 当场报红。  -->
+    <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://Piccolo.Forge.Themes.ExpUi/Themes/ForgeStripeButton.axaml" />
+                <ResourceInclude Source="avares://Piccolo.Forge.Themes.ExpUi/Themes/ForgeStripeSeparator.axaml" />
+                <ResourceInclude Source="avares://Piccolo.Forge.Themes.ExpUi/Themes/ForgeMoreButton.axaml" />
+                <ResourceInclude Source="avares://Piccolo.Forge.Themes.ExpUi/Themes/ForgeToolWindowToolbar.axaml" />
+                <ResourceInclude Source="avares://Piccolo.Forge.Themes.ExpUi/Themes/ForgeToolWindowHeader.axaml" />
+                <ResourceInclude Source="avares://Piccolo.Forge.Themes.ExpUi/Themes/ForgeHeaderButton.axaml" />
+                <ResourceInclude Source="avares://Piccolo.Forge.Themes.ExpUi/Themes/ForgeContentTab.axaml" />
+                <ResourceInclude Source="avares://Piccolo.Forge.Themes.ExpUi/Themes/ForgeEditorTab.axaml" />
+                <ResourceInclude Source="avares://Piccolo.Forge.Themes.ExpUi/Themes/ForgeEditorSplitter.axaml" />
+                <ResourceInclude Source="avares://Piccolo.Forge.Themes.ExpUi/Themes/ForgeDragOverlay.axaml" />
+                <ResourceInclude Source="avares://Piccolo.Forge.Themes.ExpUi/Themes/ForgeIslandHosts.axaml" />
+    </ResourceDictionary.MergedDictionaries>
+</ResourceDictionary>

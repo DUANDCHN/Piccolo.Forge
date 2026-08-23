@@ -1,0 +1,256 @@
+﻿<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+      窗口装饰（自绘标题条 + 最小化/最大化/关闭那几颗）。
+
+      Avalonia 12 起，客户区延伸到装饰区的窗口，装饰是**由主题画的一个控件**
+      WindowDrawnDecorations；基础主题不给它模板，窗口就只剩一块没有边框标题的方块。
+
+      ⚠ 上游 IntelliJ 在 Windows 上用的是系统那套按钮观感（悬停浅底、关闭悬停变红），
+        theme.json 里没有对应色板，所以这里用已有语汇：悬停/按下走 Forge.Overlay.*，
+        关闭的悬停红是**字面写死的系统色**（#E81123 / #C50F1F），理由见下面那颗按钮上的注释。
+
+      图标一律是**描边**几何（10×10），与日历箭头、树 chevron 同一套画法；
+      放在资源里共享，按钮各自 new 一个 Path 用它 —— Geometry 可共享，控件实例不行。
+    -->
+
+    <StreamGeometry x:Key="Forge.Glyph.WindowMinimize">M0,5 H10</StreamGeometry>
+    <StreamGeometry x:Key="Forge.Glyph.WindowMaximize">M0.5,0.5 H9.5 V9.5 H0.5 Z</StreamGeometry>
+    <StreamGeometry x:Key="Forge.Glyph.WindowRestore">M2.5,2.5 V0.5 H9.5 V7.5 H7.5 M0.5,2.5 H7.5 V9.5 H0.5 Z</StreamGeometry>
+    <StreamGeometry x:Key="Forge.Glyph.WindowClose">M0.5,0.5 L9.5,9.5 M9.5,0.5 L0.5,9.5</StreamGeometry>
+    <StreamGeometry x:Key="Forge.Glyph.WindowFullScreen">M0.5,3.5 V0.5 H3.5 M6.5,0.5 H9.5 V3.5 M9.5,6.5 V9.5 H6.5 M3.5,9.5 H0.5 V6.5</StreamGeometry>
+    <StreamGeometry x:Key="Forge.Glyph.WindowFullScreenExit">M3.5,0.5 V3.5 H0.5 M9.5,3.5 H6.5 V0.5 M6.5,9.5 V6.5 H9.5 M0.5,6.5 H3.5 V9.5</StreamGeometry>
+
+    <!--
+      标题条上的按钮。⚠ 必须带 ElementRole=DecorationsElement：装饰层默认整块是非客户区，
+      不标这条的话点上去是"拖窗口"而不是"点按钮"。
+    -->
+    <ControlTheme x:Key="Forge.CaptionButton" TargetType="Button" BasedOn="{StaticResource Forge.IconButton}">
+        <!-- 标题条上的按钮：底盘同图标钮，只是**贴边不留圆角**（它们要顶到窗口角）。 -->
+        <Setter Property="CornerRadius" Value="0" />
+        <!--
+          ⚠ 光设 CornerRadius=0 贴不到边：底盘的焦点环（PART_FocusRing）常态透明但**始终占位** 2px
+            （Forge.Focus.RingThickness，见 Forge.Button 的说明），画底色的 PART_Root / PART_Overlay
+            四周各被顶掉 2px —— 悬停那块红就够不到窗口边沿。标题条按钮这一档必须清零：
+            系统的标题条按钮也不画焦点环，它们靠贴边成立。
+
+          ⚠ 但**不能**靠 `^ /template/ Border#PART_FocusRing` 去改厚度 —— 模板是 BasedOn 继承来的，
+            子主题的 /template/ 选择器穿不进去（README「BasedOn 的两个静默限制」第 2 条），
+            改了不报错、也不生效。所以这里**整份重写模板**：三个部件名一字不改
+            （PART_FocusRing → PART_Root → Panel → PART_Overlay，继承来的悬停/按下/禁用样式按名字找它们），
+            只把最外圈的厚度写死成 0。
+        -->
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Name="PART_FocusRing" BorderThickness="0">
+                    <Border Name="PART_Root"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{TemplateBinding CornerRadius}">
+                        <Panel>
+                            <Border Name="PART_Overlay" Background="Transparent"
+                                    CornerRadius="{TemplateBinding CornerRadius}" />
+                            <ContentPresenter Name="PART_ContentPresenter"
+                                              Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              Padding="{TemplateBinding Padding}"
+                                              HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+                        </Panel>
+                    </Border>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+        <Setter Property="Width" Value="44" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="VerticalAlignment" Value="Stretch" />
+        <!-- ⚠ 必须带 ElementRole=DecorationsElement：装饰层默认整块是非客户区，
+             不标这条的话点上去是"拖窗口"而不是"点按钮"。 -->
+        <Setter Property="(WindowDecorationProperties.ElementRole)" Value="DecorationsElement" />
+        <Style Selector="^:disabled">
+            <Setter Property="Opacity" Value="0.35" />
+        </Style>
+        <!--
+          关闭键悬停变红、图标翻白 —— 与系统一致的"这颗不一样"信号。
+
+          ⚠ 这两个红是**字面写死的系统色**，不走色板，也不要改成 Forge.Label.Error：
+            上游 IntelliJ 在 Windows 上用的就是系统那套标题条按钮观感，theme.json 里没有对应键；
+            而这颗红是用户认得的系统信号（认的是这个具体的红，不是"某种错误红"），
+            换成校验错误那档会差一点、看着就不像系统按钮。
+            出处：Windows 11 标题条关闭键 hover #E81123 / pressed #C50F1F。
+            明暗两档同色 —— 系统本身也不随主题变。
+        -->
+        <Style Selector="^.close:pointerover /template/ Border#PART_Overlay">
+            <Setter Property="Background" Value="#E81123" />
+        </Style>
+        <Style Selector="^.close:pressed /template/ Border#PART_Overlay">
+            <Setter Property="Background" Value="#C50F1F" />
+        </Style>
+        <Style Selector="^.close:pointerover, ^.close:pressed">
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.WindowDrawnDecorations" TargetType="WindowDrawnDecorations">
+        <Setter Property="DefaultTitleBarHeight" Value="34" />
+        <Setter Property="DefaultFrameThickness" Value="1" />
+        <Setter Property="DefaultShadowThickness" Value="8" />
+        <Setter Property="Template">
+            <WindowDrawnDecorationsTemplate>
+                <WindowDrawnDecorationsContent>
+                    <!-- 底层：窗口边框 + 标题条底（拖拽区也在这层） -->
+                    <WindowDrawnDecorationsContent.Underlay>
+                        <Panel Name="PART_UnderlayWrapper">
+                            <Border Name="PART_WindowBorder"
+                                    Background="{DynamicResource Forge.Window.Background}"
+                                    BorderBrush="{DynamicResource Forge.Window.Border}"
+                                    BorderThickness="{TemplateBinding FrameThickness}"
+                                    IsHitTestVisible="False" />
+                            <Panel Name="PART_TitleBar"
+                                   VerticalAlignment="Top"
+                                   Height="{TemplateBinding TitleBarHeight}"
+                                   Background="{DynamicResource Forge.Window.TitleBarBackground}"
+                                   IsVisible="{TemplateBinding HasTitleBar}"
+                                   WindowDecorationProperties.ElementRole="TitleBar" />
+                        </Panel>
+                    </WindowDrawnDecorationsContent.Underlay>
+
+                    <!-- 上层：标题文字 + 那几颗按钮（要压在客户区内容之上） -->
+                    <WindowDrawnDecorationsContent.Overlay>
+                        <Panel Name="PART_OverlayWrapper">
+                            <Panel Name="PART_TitleTextPanel"
+                                   VerticalAlignment="Top"
+                                   Height="{TemplateBinding TitleBarHeight}"
+                                   IsHitTestVisible="False"
+                                   IsVisible="{TemplateBinding HasTitleBar}">
+                                <TextBlock Text="{TemplateBinding Title}"
+                                           Margin="12,0,0,0"
+                                           VerticalAlignment="Center" />
+                            </Panel>
+                            <StackPanel Name="PART_OverlayPanel"
+                                        VerticalAlignment="Top"
+                                        HorizontalAlignment="Right"
+                                        Height="{TemplateBinding TitleBarHeight}"
+                                        Orientation="Horizontal"
+                                        IsVisible="{TemplateBinding HasTitleBar}">
+                                <Button Name="PART_FullScreenButton"
+                                        Theme="{StaticResource Forge.CaptionButton}"
+                                        WindowDecorationProperties.ElementRole="FullScreenButton">
+                                    <Path Name="FullScreenButtonPath" Width="10" Height="10" Stretch="None"
+                                          Data="{StaticResource Forge.Glyph.WindowFullScreen}"
+                                          Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1" />
+                                </Button>
+                                <Button Name="PART_MinimizeButton"
+                                        Theme="{StaticResource Forge.CaptionButton}"
+                                        WindowDecorationProperties.ElementRole="MinimizeButton">
+                                    <Path Width="10" Height="10" Stretch="None"
+                                          Data="{StaticResource Forge.Glyph.WindowMinimize}"
+                                          Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1" />
+                                </Button>
+                                <Button Name="PART_MaximizeButton"
+                                        Theme="{StaticResource Forge.CaptionButton}"
+                                        WindowDecorationProperties.ElementRole="MaximizeButton">
+                                    <!-- ⚠ 名字必须是 RestoreButtonPath：最大化时换图标那条样式按名字找它 -->
+                                    <Path Name="RestoreButtonPath" Width="10" Height="10" Stretch="None"
+                                          Data="{StaticResource Forge.Glyph.WindowMaximize}"
+                                          Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1" />
+                                </Button>
+                                <Button Name="PART_CloseButton"
+                                        Classes="close"
+                                        Theme="{StaticResource Forge.CaptionButton}"
+                                        WindowDecorationProperties.ElementRole="CloseButton">
+                                    <Path Width="10" Height="10" Stretch="None"
+                                          Data="{StaticResource Forge.Glyph.WindowClose}"
+                                          Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1" />
+                                </Button>
+                            </StackPanel>
+                        </Panel>
+                    </WindowDrawnDecorationsContent.Overlay>
+
+                    <!-- 全屏时贴顶悬停才出现的那条 -->
+                    <WindowDrawnDecorationsContent.FullscreenPopover>
+                        <Panel Height="{TemplateBinding DefaultTitleBarHeight}"
+                               VerticalAlignment="Top"
+                               Background="{DynamicResource Forge.Window.TitleBarBackground}"
+                               WindowDecorationProperties.ElementRole="TitleBar">
+                            <TextBlock Text="{TemplateBinding Title}"
+                                       Margin="12,0,0,0"
+                                       VerticalAlignment="Center" />
+                            <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                                <Button Name="PART_PopoverFullScreenButton"
+                                        Theme="{StaticResource Forge.CaptionButton}"
+                                        WindowDecorationProperties.ElementRole="FullScreenButton">
+                                    <Path Width="10" Height="10" Stretch="None"
+                                          Data="{StaticResource Forge.Glyph.WindowFullScreenExit}"
+                                          Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1" />
+                                </Button>
+                                <Button Name="PART_PopoverCloseButton"
+                                        Classes="close"
+                                        Theme="{StaticResource Forge.CaptionButton}"
+                                        WindowDecorationProperties.ElementRole="CloseButton">
+                                    <Path Width="10" Height="10" Stretch="None"
+                                          Data="{StaticResource Forge.Glyph.WindowClose}"
+                                          Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1" />
+                                </Button>
+                            </StackPanel>
+                        </Panel>
+                    </WindowDrawnDecorationsContent.FullscreenPopover>
+                </WindowDrawnDecorationsContent>
+            </WindowDrawnDecorationsTemplate>
+        </Setter>
+
+        <!-- 有阴影时整体内缩，阴影画在边框上 -->
+        <Style Selector="^:has-shadow /template/ Panel#PART_UnderlayWrapper">
+            <Setter Property="Margin" Value="{TemplateBinding ShadowThickness}" />
+        </Style>
+        <Style Selector="^:has-shadow /template/ Panel#PART_OverlayWrapper">
+            <Setter Property="Margin" Value="{TemplateBinding ShadowThickness}" />
+        </Style>
+        <Style Selector="^:has-shadow /template/ Border#PART_WindowBorder">
+            <Setter Property="BoxShadow" Value="0 2 10 2 #40000000" />
+        </Style>
+
+        <!-- 有边框时标题条与按钮让开那 1px -->
+        <Style Selector="^:has-border /template/ Panel#PART_TitleTextPanel">
+            <Setter Property="Margin" Value="1,1,1,0" />
+        </Style>
+        <Style Selector="^:has-border /template/ Panel#PART_TitleBar">
+            <Setter Property="Margin" Value="1,1,1,0" />
+        </Style>
+        <Style Selector="^:has-border /template/ StackPanel#PART_OverlayPanel">
+            <Setter Property="Margin" Value="0,1,1,0" />
+        </Style>
+
+        <!-- 最大化后那颗换成"还原"图标 -->
+        <Style Selector="^:maximized /template/ Path#RestoreButtonPath">
+            <Setter Property="Data" Value="{StaticResource Forge.Glyph.WindowRestore}" />
+        </Style>
+
+        <!-- 平台不支持的动作直接不显示，而不是给个点不动的按钮 -->
+        <Style Selector="^:not(:has-minimize) /template/ Button#PART_MinimizeButton">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="^:not(:has-maximize) /template/ Button#PART_MaximizeButton">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="^:not(:has-fullscreen) /template/ Button#PART_FullScreenButton">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="^:not(:has-fullscreen) /template/ Button#PART_PopoverFullScreenButton">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+
+        <!-- 全屏时上面那条整体让位给 popover -->
+        <Style Selector="^:fullscreen /template/ Panel#PART_TitleTextPanel">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="^:fullscreen /template/ StackPanel#PART_OverlayPanel">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="^:fullscreen /template/ Panel#PART_TitleBar">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+    </ControlTheme>
+
+</ResourceDictionary>

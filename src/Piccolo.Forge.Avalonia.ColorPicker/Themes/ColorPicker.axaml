@@ -1,0 +1,473 @@
+﻿<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:cp="using:Avalonia.Controls.Primitives"
+                    xmlns:conv="using:Avalonia.Controls.Converters">
+    <!--
+      取色器族。上游 IntelliJ 的 theme.json **没有**这一族的色板（它的取色器是 Swing 组件，
+      不走主题系统），所以这里是按已有语汇组装：边框走 Forge.Input.Border、
+      聚焦走 Forge.Focus.Ring、弹出层走 Forge.Popup.*，与别处一致。
+
+      这一族里真正有"视觉"的只有色谱、滑条与预览三件；ColorView / ColorPicker 的模板
+      大部分是框架规定的布局与通道绑定（哪个滑条绑哪个分量），照要求拼即可。
+    -->
+
+    <conv:ToBrushConverter x:Key="ForgeColorToBrush" />
+
+    <!-- 调色板的格子：选中靠一圈描边表示，不用通栏底色 —— 底色会把色块本身盖掉。 -->
+    <ControlTheme x:Key="Forge.ColorPaletteItem" TargetType="ListBoxItem">
+        <Setter Property="Padding" Value="2" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="ListBoxItem">
+                <Border Name="PART_Root"
+                        Padding="{TemplateBinding Padding}"
+                        BorderBrush="Transparent"
+                        BorderThickness="2"
+                        CornerRadius="{DynamicResource Forge.CornerRadius}">
+                    <ContentPresenter Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:pointerover /template/ Border#PART_Root">
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Input.Border}" />
+        </Style>
+        <Style Selector="^:selected /template/ Border#PART_Root">
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Focus.Ring}" />
+        </Style>
+    </ControlTheme>
+
+    <!-- 色谱：中间那块渐变由控件自己画，主题只管选择环与外框。 -->
+    <ControlTheme x:Key="Forge.ColorSpectrum" TargetType="cp:ColorSpectrum">
+        <Setter Property="MinWidth" Value="180" />
+        <Setter Property="MinHeight" Value="180" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Forge.Input.CornerRadius}" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="cp:ColorSpectrum">
+                <Panel Name="PART_LayoutRoot">
+                    <Panel Name="PART_SizingPanel">
+                        <Border BorderBrush="{DynamicResource Forge.Input.Border}"
+                                BorderThickness="1"
+                                CornerRadius="{TemplateBinding CornerRadius}"
+                                ClipToBounds="True">
+                            <Panel>
+                                <Rectangle Name="PART_SpectrumRectangle" />
+                                <Rectangle Name="PART_SpectrumOverlayRectangle" />
+                                <Ellipse Name="PART_SpectrumEllipse" />
+                                <Ellipse Name="PART_SpectrumOverlayEllipse" />
+                            </Panel>
+                        </Border>
+                        <Canvas Name="PART_InputTarget" Background="Transparent">
+                            <!-- 选择环：底色任意，所以描双环（外深内浅），任何背景上都看得见。
+                                 :light-selector / :dark-selector 由控件按当前色的明暗切换。 -->
+                            <Panel Name="PART_SelectionEllipsePanel"
+                                   Width="14" Height="14">
+                                <Ellipse Name="SelectionOuter"
+                                         Stroke="Black" StrokeThickness="3" Opacity="0.4" />
+                                <Ellipse Name="SelectionInner"
+                                         Stroke="White" StrokeThickness="1.5" />
+                            </Panel>
+                        </Canvas>
+                    </Panel>
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:light-selector /template/ Ellipse#SelectionInner">
+            <Setter Property="Stroke" Value="White" />
+        </Style>
+        <Style Selector="^:dark-selector /template/ Ellipse#SelectionInner">
+            <Setter Property="Stroke" Value="Black" />
+        </Style>
+        <Style Selector="^:dark-selector /template/ Ellipse#SelectionOuter">
+            <Setter Property="Stroke" Value="White" />
+        </Style>
+        <Style Selector="^:large-selector /template/ Panel#PART_SelectionEllipsePanel">
+            <Setter Property="Width" Value="24" />
+            <Setter Property="Height" Value="24" />
+        </Style>
+    </ControlTheme>
+
+    <!-- 颜色滑条：轨道是控件画的渐变，主题只管 thumb 与外框。
+         thumb 与普通 Slider 同款（圆形描边），但轨道要方，因为渐变要看得清端点。 -->
+    <ControlTheme x:Key="Forge.ColorSliderThumb" TargetType="Thumb">
+        <Setter Property="Width" Value="{DynamicResource Forge.Slider.ThumbSize}" />
+        <Setter Property="Height" Value="{DynamicResource Forge.Slider.ThumbSize}" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="Thumb">
+                <Panel>
+                    <Ellipse Fill="Transparent" Stroke="Black" StrokeThickness="3" Opacity="0.35" />
+                    <Ellipse Fill="Transparent" Stroke="White" StrokeThickness="1.5" />
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.ColorSlider" TargetType="cp:ColorSlider">
+        <Setter Property="MinHeight" Value="18" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Forge.Input.CornerRadius}" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="cp:ColorSlider">
+                <Border Name="PART_Root"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{DynamicResource Forge.Input.Border}"
+                        BorderThickness="1"
+                        CornerRadius="{TemplateBinding CornerRadius}">
+                    <Track Name="PART_Track"
+                           Minimum="{TemplateBinding Minimum}"
+                           Maximum="{TemplateBinding Maximum}"
+                           Value="{TemplateBinding Value, Mode=TwoWay}"
+                           Orientation="{TemplateBinding Orientation}"
+                           IsDirectionReversed="{TemplateBinding IsDirectionReversed}">
+                        <Track.DecreaseButton>
+                            <Button Name="PART_DecreaseButton"
+                                    Theme="{DynamicResource Forge.ColorSliderTrackButton}" />
+                        </Track.DecreaseButton>
+                        <Track.IncreaseButton>
+                            <Button Name="PART_IncreaseButton"
+                                    Theme="{DynamicResource Forge.ColorSliderTrackButton}" />
+                        </Track.IncreaseButton>
+                        <Thumb Theme="{DynamicResource Forge.ColorSliderThumb}" />
+                    </Track>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <!-- 轨道两侧的按钮：完全透明，只负责点击跳转，渐变由 ColorSlider 自己画在 Background 上。 -->
+    <ControlTheme x:Key="Forge.ColorSliderTrackButton" TargetType="Button">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="Button">
+                <Border Background="{TemplateBinding Background}" />
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <!-- 预览条：中间是当前色，两侧各两格深浅变体，点一下就取那一档。 -->
+    <ControlTheme x:Key="Forge.ColorPreviewer" TargetType="cp:ColorPreviewer">
+        <Setter Property="Height" Value="28" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="cp:ColorPreviewer">
+                <Border BorderBrush="{DynamicResource Forge.Input.Border}"
+                        BorderThickness="1"
+                        CornerRadius="{DynamicResource Forge.Input.CornerRadius}"
+                        ClipToBounds="True">
+                    <Grid ColumnDefinitions="*,*,*,*,*">
+                        <Border Name="PART_AccentDecrement2Border" Grid.Column="0" />
+                        <Border Name="PART_AccentDecrement1Border" Grid.Column="1" />
+                        <!-- 中间那格是当前色。它不在声明的部件里，得自己绑（用 Avalonia 自带的转换器）。 -->
+                        <Border Name="PART_CurrentColorBorder" Grid.Column="2"
+                                Background="{Binding HsvColor,
+                                            RelativeSource={RelativeSource TemplatedParent},
+                                            Converter={StaticResource ForgeColorToBrush}}" />
+                        <Border Name="PART_AccentIncrement1Border" Grid.Column="3" />
+                        <Border Name="PART_AccentIncrement2Border" Grid.Column="4" />
+                    </Grid>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <!--
+      ColorView —— 取色面板。模板里的组合方式是框架规定的（哪条滑条绑哪个分量），
+      样式仍是我们的：外框走 Forge.Input.Border、Hex 输入框直接用 Forge.TextBox。
+
+      ⚠ 只做**色谱页**（色谱 + 三条分量滑条 + 预览 + Hex 输入）。
+        Avalonia 的 ColorView 另有调色板页与数值页（IsColorPaletteVisible /
+        IsColorComponentsVisible），本主题未实现 —— 需要时在这里补，别的地方不用改。
+    -->
+    <ControlTheme x:Key="Forge.ColorView" TargetType="ColorView">
+        <Setter Property="MinWidth" Value="240" />
+        <Setter Property="Padding" Value="12" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="ColorView">
+                <Border Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}"
+                        Padding="{TemplateBinding Padding}">
+                    <StackPanel Spacing="10">
+                        <TabControl Theme="{DynamicResource Forge.TabControl}">
+                            <!-- 页一：色谱。色相与饱和度在色谱上选，第三分量与透明度各一条滑条。 -->
+                            <TabItem Header="色谱" IsVisible="{TemplateBinding IsColorSpectrumVisible}">
+                                <StackPanel Spacing="10" Margin="0,10,0,0">
+                                    <cp:ColorSpectrum Name="PART_ColorSpectrum"
+                                                      Theme="{DynamicResource Forge.ColorSpectrum}"
+                                                      Components="{TemplateBinding ColorSpectrumComponents}"
+                                                      Shape="{TemplateBinding ColorSpectrumShape}"
+                                                      HsvColor="{Binding HsvColor, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                                      Height="180" />
+                                    <cp:ColorSlider Theme="{DynamicResource Forge.ColorSlider}"
+                                                    ColorComponent="Component3" ColorModel="Hsva"
+                                                    IsVisible="{TemplateBinding IsColorSpectrumSliderVisible}"
+                                                    HsvColor="{Binding HsvColor, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}" />
+                                    <cp:ColorSlider Theme="{DynamicResource Forge.ColorSlider}"
+                                                    ColorComponent="Alpha" ColorModel="Hsva"
+                                                    IsVisible="{TemplateBinding IsAlphaVisible}"
+                                                    HsvColor="{Binding HsvColor, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}" />
+                                </StackPanel>
+                            </TabItem>
+
+                            <!-- 页二：调色板。列数由 PaletteColumnCount 决定，选中项回写 SelectedIndex。 -->
+                            <TabItem Header="调色板" IsVisible="{TemplateBinding IsColorPaletteVisible}">
+                                <!--  色板列表不另建 ControlTheme：它相对普通 ListBox 只差"容器换成色块 + 去内边距"两项，
+                                      直接写在站点上即可。这么做也解开了本附加包对主包 Forge.ListBox 的唯一一处
+                                      StaticResource 依赖 —— 跨包的 StaticResource 在加载期解析不到，
+                                      而 BasedOn 不接受 DynamicResource。列表外观仍由主包的隐式 ListBox 主题给。  -->
+                                <ListBox ItemContainerTheme="{DynamicResource Forge.ColorPaletteItem}"
+                                         Padding="0"
+                                         ItemsSource="{TemplateBinding PaletteColors}"
+                                         SelectedIndex="{Binding SelectedIndex, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                         Margin="0,10,0,0">
+                                    <ListBox.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <UniformGrid Columns="{Binding PaletteColumnCount, RelativeSource={RelativeSource AncestorType=ColorView}}" />
+                                        </ItemsPanelTemplate>
+                                    </ListBox.ItemsPanel>
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Width="22" Height="22" CornerRadius="{DynamicResource Forge.CornerRadius}"
+                                                    Background="{Binding Converter={StaticResource ForgeColorToBrush}}" />
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </TabItem>
+
+                            <!-- 页三：分量。四条滑条跟随当前 ColorModel —— RGB 时是 R/G/B/A，HSV 时是 H/S/V/A。
+                                 精确输入靠下面的 Hex 框；做数值输入框需要给每个分量各写一个转换器，
+                                 那会让纯 XAML 的主题拖上一串 C#，不值当。 -->
+                            <TabItem Header="分量" IsVisible="{TemplateBinding IsColorComponentsVisible}">
+                                <StackPanel Spacing="8" Margin="0,10,0,0">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8"
+                                          IsVisible="{TemplateBinding IsComponentSliderVisible}">
+                                        <cp:ColorSlider x:Name="Comp1Slider"
+                                                        Grid.Column="0"
+                                                        Theme="{DynamicResource Forge.ColorSlider}"
+                                                        ColorComponent="Component1"
+                                                        ColorModel="{TemplateBinding ColorModel}"
+                                                        VerticalAlignment="Center"
+                                                        HsvColor="{Binding HsvColor, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}" />
+                                        <!-- ⚠ 这四条滑条必须写 x:Name 而不是 Name：Rider 的 Avalonia 分析
+                                             只按 x:Name 建索引，写 Name 时 {Binding #xxx} 会被判成
+                                             "无法解析符号"（运行期两种都对，纯粹是 IDE 侧的误报）。
+                                             名字也不带 PART_ 前缀 —— ColorView 的真部件只有 PART_HexTextBox，
+                                             这几条是模板自己的把手，冒充部件会误导读代码的人。 -->
+                                        <!-- 数值框直接绑滑条的 Value —— ColorSlider 自己负责
+                                             Value ↔ HsvColor 的双向同步，也已按分量与模型设好了
+                                             取值范围（RGB 0-255、色相 0-359、饱和度/明度 0-100），
+                                             所以**不需要任何转换器**，主题仍是纯 XAML。 -->
+                                        <NumericUpDown Grid.Column="1"
+                                                       Theme="{DynamicResource Forge.NumericUpDown}"
+                                                       Width="76"
+                                                       ShowButtonSpinner="False"
+                                                       FormatString="0"
+                                                       Minimum="{Binding #Comp1Slider.Minimum}"
+                                                       Maximum="{Binding #Comp1Slider.Maximum}"
+                                                       Value="{Binding #Comp1Slider.Value, Mode=TwoWay}"
+                                                       IsVisible="{TemplateBinding IsComponentTextInputVisible}" />
+                                    </Grid>
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8"
+                                          IsVisible="{TemplateBinding IsComponentSliderVisible}">
+                                        <cp:ColorSlider x:Name="Comp2Slider"
+                                                        Grid.Column="0"
+                                                        Theme="{DynamicResource Forge.ColorSlider}"
+                                                        ColorComponent="Component2"
+                                                        ColorModel="{TemplateBinding ColorModel}"
+                                                        VerticalAlignment="Center"
+                                                        HsvColor="{Binding HsvColor, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}" />
+                                        <!-- 数值框直接绑滑条的 Value —— ColorSlider 自己负责
+                                             Value ↔ HsvColor 的双向同步，也已按分量与模型设好了
+                                             取值范围（RGB 0-255、色相 0-359、饱和度/明度 0-100），
+                                             所以**不需要任何转换器**，主题仍是纯 XAML。 -->
+                                        <NumericUpDown Grid.Column="1"
+                                                       Theme="{DynamicResource Forge.NumericUpDown}"
+                                                       Width="76"
+                                                       ShowButtonSpinner="False"
+                                                       FormatString="0"
+                                                       Minimum="{Binding #Comp2Slider.Minimum}"
+                                                       Maximum="{Binding #Comp2Slider.Maximum}"
+                                                       Value="{Binding #Comp2Slider.Value, Mode=TwoWay}"
+                                                       IsVisible="{TemplateBinding IsComponentTextInputVisible}" />
+                                    </Grid>
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8"
+                                          IsVisible="{TemplateBinding IsComponentSliderVisible}">
+                                        <cp:ColorSlider x:Name="Comp3Slider"
+                                                        Grid.Column="0"
+                                                        Theme="{DynamicResource Forge.ColorSlider}"
+                                                        ColorComponent="Component3"
+                                                        ColorModel="{TemplateBinding ColorModel}"
+                                                        VerticalAlignment="Center"
+                                                        HsvColor="{Binding HsvColor, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}" />
+                                        <!-- 数值框直接绑滑条的 Value —— ColorSlider 自己负责
+                                             Value ↔ HsvColor 的双向同步，也已按分量与模型设好了
+                                             取值范围（RGB 0-255、色相 0-359、饱和度/明度 0-100），
+                                             所以**不需要任何转换器**，主题仍是纯 XAML。 -->
+                                        <NumericUpDown Grid.Column="1"
+                                                       Theme="{DynamicResource Forge.NumericUpDown}"
+                                                       Width="76"
+                                                       ShowButtonSpinner="False"
+                                                       FormatString="0"
+                                                       Minimum="{Binding #Comp3Slider.Minimum}"
+                                                       Maximum="{Binding #Comp3Slider.Maximum}"
+                                                       Value="{Binding #Comp3Slider.Value, Mode=TwoWay}"
+                                                       IsVisible="{TemplateBinding IsComponentTextInputVisible}" />
+                                    </Grid>
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8"
+                                          IsVisible="{TemplateBinding IsAlphaVisible}">
+                                        <cp:ColorSlider x:Name="AlphaSlider"
+                                                        Grid.Column="0"
+                                                        Theme="{DynamicResource Forge.ColorSlider}"
+                                                        ColorComponent="Alpha"
+                                                        ColorModel="{TemplateBinding ColorModel}"
+                                                        VerticalAlignment="Center"
+                                                        HsvColor="{Binding HsvColor, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}" />
+                                        <!-- 数值框直接绑滑条的 Value —— ColorSlider 自己负责
+                                             Value ↔ HsvColor 的双向同步，也已按分量与模型设好了
+                                             取值范围（RGB 0-255、色相 0-359、饱和度/明度 0-100），
+                                             所以**不需要任何转换器**，主题仍是纯 XAML。 -->
+                                        <NumericUpDown Grid.Column="1"
+                                                       Theme="{DynamicResource Forge.NumericUpDown}"
+                                                       Width="76"
+                                                       ShowButtonSpinner="False"
+                                                       FormatString="0"
+                                                       Minimum="{Binding #AlphaSlider.Minimum}"
+                                                       Maximum="{Binding #AlphaSlider.Maximum}"
+                                                       Value="{Binding #AlphaSlider.Value, Mode=TwoWay}"
+                                                       IsVisible="{TemplateBinding IsComponentTextInputVisible}" />
+                                    </Grid>
+                                </StackPanel>
+                            </TabItem>
+                        </TabControl>
+
+                        <cp:ColorPreviewer Theme="{DynamicResource Forge.ColorPreviewer}"
+                                           HsvColor="{Binding HsvColor, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                           IsAccentColorsVisible="{TemplateBinding IsAccentColorsVisible}"
+                                           IsVisible="{TemplateBinding IsColorPreviewVisible}" />
+
+                        <TextBox Name="PART_HexTextBox"
+                                 Theme="{DynamicResource Forge.TextBox}"
+                                 IsVisible="{TemplateBinding IsHexInputVisible}" />
+                    </StackPanel>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <!--
+      ColorPicker —— 一个显示当前色的按钮，点开弹出 ColorView。
+      ⚠ 它**继承自 ColorView**，所以模板里既要有触发按钮，也要把 PART_HexTextBox 摆进弹出层里。
+    -->
+    <ControlTheme x:Key="Forge.ColorPicker" TargetType="ColorPicker">
+        <Setter Property="Background" Value="{DynamicResource Forge.Input.Background}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Forge.Input.Border}" />
+        <Setter Property="BorderThickness" Value="{DynamicResource Forge.Input.BorderThickness}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Forge.Input.CornerRadius}" />
+        <Setter Property="MinHeight" Value="{DynamicResource Forge.Input.MinHeight}" />
+        <Setter Property="MinWidth" Value="56" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="ColorPicker">
+                <Panel>
+                    <ToggleButton Name="PART_ToggleButton"
+                                  Theme="{DynamicResource Forge.ColorPickerButton}"
+                                  Background="{TemplateBinding Background}"
+                                  BorderBrush="{TemplateBinding BorderBrush}"
+                                  BorderThickness="{TemplateBinding BorderThickness}"
+                                  CornerRadius="{TemplateBinding CornerRadius}"
+                                  MinHeight="{TemplateBinding MinHeight}"
+>
+                        <!-- 按钮上就是当前色那一块。 -->
+                        <Border Name="PART_CurrentColor"
+                                MinWidth="32" Height="14"
+                                CornerRadius="{DynamicResource Forge.CornerRadius}"
+                                Background="{Binding Color,
+                                            RelativeSource={RelativeSource TemplatedParent},
+                                            Converter={StaticResource ForgeColorToBrush}}" />
+                    </ToggleButton>
+
+                    <!-- ⚠ ColorPicker **没有**弹出相关的属性（IsDropDownOpen 之类都不存在），
+                         开合完全由模板自己管：Popup 直接绑那颗 ToggleButton 的 IsChecked。 -->
+                    <Popup Name="PART_Popup"
+                           IsOpen="{Binding #PART_ToggleButton.IsChecked, Mode=TwoWay}"
+                           PlacementTarget="{TemplateBinding}"
+                           Placement="BottomEdgeAlignedLeft"
+                           VerticalOffset="2"
+                           InheritsTransform="True"
+                           WindowManagerAddShadowHint="False"
+                           IsLightDismissEnabled="True">
+                        <Border Background="{DynamicResource Forge.Popup.Background}"
+                                BorderBrush="{DynamicResource Forge.Popup.Border}"
+                                BorderThickness="1"
+                                CornerRadius="{DynamicResource Forge.Popup.CornerRadius}"
+                                Padding="12">
+                            <StackPanel Spacing="10" Width="240">
+                                <!-- ⚠ 弹出层里**内嵌一个 ColorView**，而不是把三页结构再抄一遍 ——
+                                     ColorPicker 继承自 ColorView，两边要的面板完全一样。
+                                     Color 双向绑回宿主，用户在面板里选的色就回到按钮上。
+                                     内嵌那个的 Hex 框关掉：ColorPicker 自己要一个名为
+                                     PART_HexTextBox 的必需部件，摆在下面，两个 Hex 框会重复。 -->
+                                <ColorView Theme="{DynamicResource Forge.ColorView}"
+                                           Color="{Binding Color, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                           ColorModel="{TemplateBinding ColorModel}"
+                                           ColorSpectrumShape="{TemplateBinding ColorSpectrumShape}"
+                                           ColorSpectrumComponents="{TemplateBinding ColorSpectrumComponents}"
+                                           IsAlphaVisible="{TemplateBinding IsAlphaVisible}"
+                                           IsAlphaEnabled="{TemplateBinding IsAlphaEnabled}"
+                                           IsColorSpectrumVisible="{TemplateBinding IsColorSpectrumVisible}"
+                                           IsColorPaletteVisible="{TemplateBinding IsColorPaletteVisible}"
+                                           IsColorComponentsVisible="{TemplateBinding IsColorComponentsVisible}"
+                                           IsColorPreviewVisible="{TemplateBinding IsColorPreviewVisible}"
+                                           IsAccentColorsVisible="{TemplateBinding IsAccentColorsVisible}"
+                                           IsColorSpectrumSliderVisible="{TemplateBinding IsColorSpectrumSliderVisible}"
+                                           IsComponentSliderVisible="{TemplateBinding IsComponentSliderVisible}"
+                                           PaletteColumnCount="{TemplateBinding PaletteColumnCount}"
+                                           Palette="{TemplateBinding Palette}"
+                                           IsHexInputVisible="False"
+                                           BorderThickness="0"
+                                           Padding="0" />
+
+                                <TextBox Name="PART_HexTextBox"
+                                         Theme="{DynamicResource Forge.TextBox}"
+                                         IsVisible="{TemplateBinding IsHexInputVisible}" />
+                            </StackPanel>
+                        </Border>
+                    </Popup>
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <!-- 取色按钮：外观同常规按钮，但内容是色块，所以内边距小一圈。 -->
+    <ControlTheme x:Key="Forge.ColorPickerButton" TargetType="ToggleButton">
+        <Setter Property="Padding" Value="8,4" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Cursor" Value="Arrow" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="ToggleButton">
+                <Border Name="PART_Root"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}">
+                    <Panel>
+                        <Border Name="PART_Overlay" Background="Transparent"
+                                CornerRadius="{TemplateBinding CornerRadius}" />
+                        <ContentPresenter Content="{TemplateBinding Content}"
+                                          Padding="{TemplateBinding Padding}"
+                                          HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Panel>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:pointerover /template/ Border#PART_Overlay">
+            <Setter Property="Background" Value="{DynamicResource Forge.Overlay.Hover}" />
+        </Style>
+        <Style Selector="^:checked /template/ Border#PART_Overlay">
+            <Setter Property="Background" Value="{DynamicResource Forge.Overlay.Pressed}" />
+        </Style>
+    </ControlTheme>
+
+</ResourceDictionary>

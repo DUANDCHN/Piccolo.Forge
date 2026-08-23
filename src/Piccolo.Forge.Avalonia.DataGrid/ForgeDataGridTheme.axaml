@@ -1,0 +1,25 @@
+﻿<Styles x:Class="Piccolo.Forge.Avalonia.DataGrid.ForgeDataGridTheme"
+        xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--  DataGrid 一族的主题入口（附加包）。模板两档共用，故**不分档**，只有这一个入口。
+          与主题包一起挂进 Application.Styles，且主题包在前：
+
+            <themes:ForgeExpUiTheme />
+            <datagrid:ForgeDataGridTheme />
+
+          只挂本入口的话色板键找不到，控件画得出来但没颜色，且不报错。  -->
+    <Styles.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://Piccolo.Forge.Avalonia.DataGrid/Themes/DataGrid.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <ControlTheme x:Key="{x:Type DataGrid}" TargetType="DataGrid" BasedOn="{StaticResource Forge.DataGrid}" />
+            <ControlTheme x:Key="{x:Type DataGridCell}" TargetType="DataGridCell" BasedOn="{StaticResource Forge.DataGridCell}" />
+            <ControlTheme x:Key="{x:Type DataGridColumnHeader}" TargetType="DataGridColumnHeader" BasedOn="{StaticResource Forge.DataGridColumnHeader}" />
+            <ControlTheme x:Key="{x:Type DataGridRow}" TargetType="DataGridRow" BasedOn="{StaticResource Forge.DataGridRow}" />
+            <ControlTheme x:Key="{x:Type DataGridRowHeader}" TargetType="DataGridRowHeader" BasedOn="{StaticResource Forge.DataGridRowHeader}" />
+            <ControlTheme x:Key="{x:Type DataGridRowGroupHeader}" TargetType="DataGridRowGroupHeader" BasedOn="{StaticResource Forge.DataGridRowGroupHeader}" />
+        </ResourceDictionary>
+    </Styles.Resources>
+</Styles>

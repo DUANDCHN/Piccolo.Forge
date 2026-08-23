@@ -1,9 +1,11 @@
-<Solution>
+﻿<Solution>
   <Folder Name="/src/">
     <Project Path="src/Piccolo.Forge.Model/Piccolo.Forge.Model.csproj" />
     <Project Path="src/Piccolo.Forge.Mvvm/Piccolo.Forge.Mvvm.csproj" />
     <Project Path="src/Piccolo.Forge.Mvvm.CommunityToolkit/Piccolo.Forge.Mvvm.CommunityToolkit.csproj" />
     <Project Path="src/Piccolo.Forge.Avalonia/Piccolo.Forge.Avalonia.csproj" />
+    <Project Path="src/Piccolo.Forge.Avalonia.DataGrid/Piccolo.Forge.Avalonia.DataGrid.csproj" />
+    <Project Path="src/Piccolo.Forge.Avalonia.ColorPicker/Piccolo.Forge.Avalonia.ColorPicker.csproj" />
     <Project Path="src/Piccolo.Forge.Themes.ExpUi/Piccolo.Forge.Themes.ExpUi.csproj" />
     <Project Path="src/Piccolo.Forge.Themes.Islands/Piccolo.Forge.Themes.Islands.csproj" />
   </Folder>

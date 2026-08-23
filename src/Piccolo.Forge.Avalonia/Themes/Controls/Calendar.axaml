@@ -1,0 +1,275 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+      日历族。上游 theme.json **没有**日历/日期相关的色板（IntelliJ 用的是自己的日期组件，
+      不走主题系统），所以这一族按已有语汇组装：格子的悬停/选中走 Forge.Item.*，
+      与列表、树、表格同源；今天用主色描边标记；非本月与禁用日走 Disabled 那档。
+
+      关键伪类（决定这族好不好用的就是它们）：
+        :today      今天       —— 描一圈主色边，不填底（填底会和"选中"撞车）
+        :selected   选中的日期 —— 填主色底
+        :inactive   非本月的日 —— 压暗，仍可见（月初月末的补位）
+        :blackout   被禁用的日 —— 更暗且划掉的语义，这里用禁用色
+    -->
+
+    <!-- 日格子。方形、无边框，靠底色与描边区分状态。 -->
+    <ControlTheme x:Key="Forge.CalendarDayButton" TargetType="CalendarDayButton">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Forge.Button.CornerRadius}" />
+        <Setter Property="MinWidth" Value="28" />
+        <Setter Property="MinHeight" Value="28" />
+        <Setter Property="Margin" Value="1" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Cursor" Value="Arrow" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="CalendarDayButton">
+                <Border Name="PART_Root"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}">
+                    <ContentPresenter Name="PART_ContentPresenter"
+                                      Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+
+        <Style Selector="^:pointerover /template/ Border#PART_Root">
+            <Setter Property="Background" Value="{DynamicResource Forge.Item.HoverBackground}" />
+        </Style>
+        <!-- 今天只描边不填底：填了就和"选中"分不开。 -->
+        <Style Selector="^:today /template/ Border#PART_Root">
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Button.Accent.Background}" />
+        </Style>
+        <Style Selector="^:selected /template/ Border#PART_Root">
+            <Setter Property="Background" Value="{DynamicResource Forge.Button.Accent.Background}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Button.Accent.Background}" />
+        </Style>
+        <Style Selector="^:selected">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Button.Accent.Foreground}" />
+        </Style>
+        <!-- 非本月的补位日：压暗但仍可读（用户要看得出这个月是几号起的）。 -->
+        <Style Selector="^:inactive">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Input.Placeholder}" />
+        </Style>
+        <Style Selector="^:blackout">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Button.Disabled.Foreground}" />
+        </Style>
+        <Style Selector="^:dayfocused /template/ Border#PART_Root">
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Focus.Ring}" />
+        </Style>
+        <Style Selector="^:disabled">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Button.Disabled.Foreground}" />
+        </Style>
+    </ControlTheme>
+
+    <!-- 月/年格子（年视图里选月份、十年视图里选年份）。比日格子宽，状态规则相同。 -->
+    <ControlTheme x:Key="Forge.CalendarButton" TargetType="CalendarButton">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Forge.Button.CornerRadius}" />
+        <Setter Property="MinWidth" Value="56" />
+        <Setter Property="MinHeight" Value="34" />
+        <Setter Property="Margin" Value="1" />
+        <Setter Property="Cursor" Value="Arrow" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="CalendarButton">
+                <Border Name="PART_Root"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}">
+                    <ContentPresenter Name="PART_ContentPresenter"
+                                      Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:pointerover /template/ Border#PART_Root">
+            <Setter Property="Background" Value="{DynamicResource Forge.Item.HoverBackground}" />
+        </Style>
+        <Style Selector="^:selected /template/ Border#PART_Root">
+            <Setter Property="Background" Value="{DynamicResource Forge.Button.Accent.Background}" />
+        </Style>
+        <Style Selector="^:selected">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Button.Accent.Foreground}" />
+        </Style>
+        <Style Selector="^:inactive">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Input.Placeholder}" />
+        </Style>
+        <Style Selector="^:btnfocused /template/ Border#PART_Root">
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Focus.Ring}" />
+        </Style>
+    </ControlTheme>
+
+    <!-- 头部的翻页箭头，与别处的 chevron 同源（左右各转 180°）。 -->
+    <ControlTheme x:Key="Forge.CalendarNavButton" TargetType="Button" BasedOn="{StaticResource Forge.IconButton}">
+        <Setter Property="Width" Value="28" />
+        <Setter Property="Height" Value="28" />
+        <Setter Property="Padding" Value="0" />
+    </ControlTheme>
+
+    <!-- 头部的标题按钮（"2026年8月"，点它切到年视图）。 -->
+    <ControlTheme x:Key="Forge.CalendarHeaderButton" TargetType="Button" BasedOn="{StaticResource Forge.CalendarNavButton}">
+        <Setter Property="Width" Value="NaN" />
+        <Setter Property="Padding" Value="8,0" />
+        <Setter Property="FontWeight" Value="Medium" />
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.CalendarItem" TargetType="CalendarItem">
+        <Setter Property="Background" Value="Transparent" />
+        <!-- ⚠ 星期表头**必须**由 DayTitleTemplate 提供：CalendarItem 填月视图时先按它建 7 个表头格，
+             再从第 7 个孩子开始写日期。不给这个模板就只有 42 个日格子，取第 7~48 个直接索引越界崩。 -->
+        <Setter Property="DayTitleTemplate">
+            <Template x:DataType="x:String">
+                <TextBlock Text="{Binding}"
+                           Foreground="{DynamicResource Forge.Button.Disabled.Foreground}"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Template>
+        </Setter>
+        <Setter Property="Template">
+            <ControlTemplate TargetType="CalendarItem">
+                <Border Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}"
+                        Padding="8">
+                    <DockPanel>
+                        <!-- 头部：← 标题 → -->
+                        <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,6">
+                            <Button Name="PART_PreviousButton"
+                                    Grid.Column="0"
+                                    Theme="{DynamicResource Forge.CalendarNavButton}">
+                                <Path Data="M 4.5 0 L 0 4.5 L 4.5 9"
+                                      Stroke="{Binding $parent[Button].Foreground}"
+                                      StrokeThickness="1.3"
+                                      StrokeLineCap="Round" StrokeJoin="Round"
+                                      Width="5" Height="9" />
+                            </Button>
+                            <Button Name="PART_HeaderButton"
+                                    Grid.Column="1"
+                                    Theme="{DynamicResource Forge.CalendarHeaderButton}"
+                                    HorizontalAlignment="Center" />
+                            <Button Name="PART_NextButton"
+                                    Grid.Column="2"
+                                    Theme="{DynamicResource Forge.CalendarNavButton}">
+                                <Path Data="M 0 0 L 4.5 4.5 L 0 9"
+                                      Stroke="{Binding $parent[Button].Foreground}"
+                                      StrokeThickness="1.3"
+                                      StrokeLineCap="Round" StrokeJoin="Round"
+                                      Width="5" Height="9" />
+                            </Button>
+                        </Grid>
+
+                        <!-- 月视图：7 列（周一~周日）× 7 行（表头 + 6 周）。
+                             行列由主题预先定义，格子由 Calendar 自己填进来。 -->
+                        <Grid Name="PART_MonthView" IsVisible="False"
+                              ColumnDefinitions="*,*,*,*,*,*,*"
+                              RowDefinitions="Auto,*,*,*,*,*,*" />
+
+                        <!-- 年视图：4 列 × 3 行（12 个月 / 12 个年份）。 -->
+                        <Grid Name="PART_YearView" IsVisible="False"
+                              ColumnDefinitions="*,*,*,*"
+                              RowDefinitions="*,*,*" />
+                    </DockPanel>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <!-- ⚠ 日格子与月格子的主题**不能**在这里指定（Avalonia 的 CalendarItem 没有
+         DayButtonStyle / MonthButtonStyle，那是 WPF 的写法）——
+         它们靠入口文件里注册的隐式 ControlTheme 生效。 -->
+    <ControlTheme x:Key="Forge.Calendar" TargetType="Calendar">
+        <Setter Property="Background" Value="{DynamicResource Forge.Popup.Background}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Forge.Popup.Border}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Forge.Popup.CornerRadius}" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="Calendar">
+                <Panel Name="PART_Root">
+                    <!-- 这里不设 Theme，靠入口注册的隐式主题生效即可。 -->
+                    <CalendarItem Name="PART_CalendarItem"
+                                  Background="{TemplateBinding Background}"
+                                  BorderBrush="{TemplateBinding BorderBrush}"
+                                  BorderThickness="{TemplateBinding BorderThickness}"
+                                  CornerRadius="{TemplateBinding CornerRadius}" />
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <!-- 带输入框的日期选择器：文本框 + 一颗日历按钮，点开弹出上面那个 Calendar。 -->
+    <ControlTheme x:Key="Forge.CalendarDatePicker" TargetType="CalendarDatePicker">
+        <Setter Property="Background" Value="{DynamicResource Forge.Input.Background}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Forge.Input.Border}" />
+        <Setter Property="BorderThickness" Value="{DynamicResource Forge.Input.BorderThickness}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Forge.Input.CornerRadius}" />
+        <Setter Property="MinHeight" Value="{DynamicResource Forge.Input.MinHeight}" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="CalendarDatePicker">
+                <Border Name="PART_FocusRing"
+                        BorderBrush="Transparent"
+                        BorderThickness="{DynamicResource Forge.Focus.RingThickness}"
+                        CornerRadius="{DynamicResource Forge.Focus.RingCornerRadius}">
+                    <Border Name="PART_Root"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{TemplateBinding CornerRadius}">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBox Name="PART_TextBox"
+                                     Grid.Column="0"
+                                     Theme="{DynamicResource Forge.NumericUpDownTextBox}"
+                                     PlaceholderText="{TemplateBinding Watermark}"
+                                     Padding="{DynamicResource Forge.Input.Padding}" />
+                            <Button Name="PART_Button"
+                                    Grid.Column="1"
+                                    Theme="{DynamicResource Forge.CalendarNavButton}"
+                                    Margin="0,0,2,0">
+                                <!-- 日历图标：自绘，不引图标包。 -->
+                                <Path Data="M 1 3 H 13 V 13 H 1 Z M 4 1 V 4 M 10 1 V 4 M 1 6 H 13"
+                                      Stroke="{Binding $parent[Button].Foreground}"
+                                      StrokeThickness="1.2"
+                                      StrokeLineCap="Round" StrokeJoin="Round"
+                                      Width="14" Height="14" />
+                            </Button>
+
+                            <!-- ⚠ 弹出层里必须放一个名为 PART_Calendar 的 Calendar ——
+                                 它是 CalendarDatePicker 的必需部件，缺了点开就是空弹层。 -->
+                            <Popup Name="PART_Popup"
+                                   PlacementTarget="{TemplateBinding}"
+                                   Placement="BottomEdgeAlignedLeft"
+                                   VerticalOffset="2"
+                                   InheritsTransform="True"
+                                   WindowManagerAddShadowHint="False"
+                                   IsLightDismissEnabled="True">
+                                <Calendar Name="PART_Calendar" />
+                            </Popup>
+                        </Grid>
+                    </Border>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+
+        <Style Selector="^:focus-within /template/ Border#PART_FocusRing">
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Focus.Ring}" />
+        </Style>
+        <Style Selector="^:focus-within /template/ Border#PART_Root">
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Input.FocusedBorder}" />
+        </Style>
+        <Style Selector="^:disabled /template/ Border#PART_Root">
+            <Setter Property="Background" Value="{DynamicResource Forge.Input.Disabled.Background}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Input.Disabled.Border}" />
+        </Style>
+    </ControlTheme>
+
+</ResourceDictionary>

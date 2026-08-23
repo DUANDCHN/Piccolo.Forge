@@ -1,0 +1,162 @@
+﻿<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:cp="using:Avalonia.Controls.Primitives"
+                    xmlns:dialogs="using:Avalonia.Dialogs">
+    <!--
+      ★ 控件主题的总装（Avalonia 全部 89 个公开控件 + 宿主壳一族）。★
+
+      **不含色板，也不分档。** 控件模板两档共用 —— Islands 上游的 parentTheme 就是
+      Experimental*，控件层结构与经典档完全相同，只有色板不同。所以模板放在这里（与族无关），
+      色板放在 Themes.ExpUi / Themes.Islands 各自的 Controls.Colors.axaml（与族有关）。
+
+      ⚠ 因此**控件的色键不带族前缀**（Forge.Button.Background），与外壳那套
+        Forge.ExpUi.* / Forge.Islands.* 的约定**有意不同**：外壳模板每族一份、键可以带族，
+        控件模板只有一份、键就不能带族，否则两档没法共用同一份模板。
+        这不是历史遗留，是两种模板的分档方式不同导致的必然结果。
+
+      宿主不要直接 include 本文件，走 ForgeExpUiTheme / ForgeIslandsTheme 那个唯一入口
+      —— 只装本文件会得到"有模板没颜色"的控件，且不报错。
+
+      ⚠ 这里**没有兜底主题**（不引 Avalonia.Themes.Simple / Fluent）：本套自足。
+        判据取自 Semi —— 它的 nuspec 里也只有 Avalonia。加回兜底就是两套抢同一批隐式
+        ControlTheme，谁赢取决于 Application.Styles 里的先后，且不报错。
+
+      ⚠ DataGrid / ColorPicker 两族**不在这里**：那两个控件在独立的 Avalonia 包里，
+        模板也各自成包（Piccolo.Forge.Avalonia.DataGrid / .ColorPicker），照 Semi 的做法。
+    -->
+    <ResourceDictionary.MergedDictionaries>
+            <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/Controls/Button.axaml" />
+            <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/Controls/TextBox.axaml" />
+            <!-- NumericUpDown 引了 Forge.TextBox，必须排在 TextBox.axaml 之后。 -->
+            <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/Controls/NumericUpDown.axaml" />
+            <!-- ComboBox 的可编辑框复用 Forge.NumericUpDownTextBox，须排在 NumericUpDown.axaml 之后。 -->
+            <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/Controls/ComboBox.axaml" />
+            <!-- ScrollViewer 引 Forge.ScrollBar，须排在 ScrollBar.axaml 之后。 -->
+            <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/Controls/ScrollBar.axaml" />
+            <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/Controls/ScrollViewer.axaml" />
+            <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/Controls/Menu.axaml" />
+            <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/Controls/CheckBox.axaml" />
+            <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/Controls/Expander.axaml" />
+            <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/Controls/ListBox.axaml" />
+            <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/Controls/TabControl.axaml" />
+            <!-- Slider.axaml 里的 ToggleButton 引 Forge.Button，须排在 Button.axaml 之后。 -->
+            <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/Controls/Slider.axaml" />
+            <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/Controls/Misc.axaml" />
+            <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/Controls/Calendar.axaml" />
+            <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/Controls/DateTimePicker.axaml" />
+            <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/Controls/Extras.axaml" />
+            <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/Controls/Pages.axaml" />
+            <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/Controls/WindowChrome.axaml" />
+            <!-- 宿主壳（弹出层根 / 嵌入式根 / 装饰层 / 主题变体域）与托管文件对话框。
+             引了 Forge.Input.Selection*，须排在色板之后 —— 色板本来就是第一行。 -->
+            <ResourceInclude Source="avares://Piccolo.Forge.Avalonia/Themes/Controls/Hosts.axaml" />
+        </ResourceDictionary.MergedDictionaries>
+
+        <!-- 具名定义挂成隐式默认。每接管一个控件，这里加一行。
+             ⚠ DataGrid / ColorPicker 两族**不在这里** —— 它们各自成了附加包
+               （LDVision.Ui.DataGrid / LDVision.Ui.ColorPicker），别名在各自的入口里。
+               理由：那两个控件在独立的 Avalonia 包里，模板塞进主包等于让所有人白背依赖。 -->
+        <ControlTheme x:Key="{x:Type Button}" TargetType="Button"
+                  BasedOn="{StaticResource Forge.Button}" />
+        <ControlTheme x:Key="{x:Type TextBox}" TargetType="TextBox"
+                  BasedOn="{StaticResource Forge.TextBox}" />
+        <ControlTheme x:Key="{x:Type ButtonSpinner}" TargetType="ButtonSpinner"
+                  BasedOn="{StaticResource Forge.ButtonSpinner}" />
+        <ControlTheme x:Key="{x:Type NumericUpDown}" TargetType="NumericUpDown"
+                  BasedOn="{StaticResource Forge.NumericUpDown}" />
+        <ControlTheme x:Key="{x:Type ComboBox}" TargetType="ComboBox"
+                  BasedOn="{StaticResource Forge.ComboBox}" />
+        <ControlTheme x:Key="{x:Type ComboBoxItem}" TargetType="ComboBoxItem"
+                  BasedOn="{StaticResource Forge.ComboBoxItem}" />
+        <ControlTheme x:Key="{x:Type ScrollBar}" TargetType="ScrollBar"
+                  BasedOn="{StaticResource Forge.ScrollBar}" />
+        <ControlTheme x:Key="{x:Type ScrollViewer}" TargetType="ScrollViewer"
+                  BasedOn="{StaticResource Forge.ScrollViewer}" />
+        <ControlTheme x:Key="{x:Type Menu}" TargetType="Menu" BasedOn="{StaticResource Forge.Menu}" />
+        <ControlTheme x:Key="{x:Type MenuItem}" TargetType="MenuItem" BasedOn="{StaticResource Forge.MenuItem}" />
+        <ControlTheme x:Key="{x:Type ContextMenu}" TargetType="ContextMenu" BasedOn="{StaticResource Forge.ContextMenu}" />
+        <ControlTheme x:Key="{x:Type MenuFlyoutPresenter}" TargetType="MenuFlyoutPresenter" BasedOn="{StaticResource Forge.MenuFlyoutPresenter}" />
+        <ControlTheme x:Key="{x:Type Separator}" TargetType="Separator" BasedOn="{StaticResource Forge.Separator}" />
+        <ControlTheme x:Key="{x:Type CheckBox}" TargetType="CheckBox" BasedOn="{StaticResource Forge.CheckBox}" />
+        <ControlTheme x:Key="{x:Type RadioButton}" TargetType="RadioButton" BasedOn="{StaticResource Forge.RadioButton}" />
+        <ControlTheme x:Key="{x:Type Expander}" TargetType="Expander" BasedOn="{StaticResource Forge.Expander}" />
+        <ControlTheme x:Key="{x:Type GroupBox}" TargetType="GroupBox" BasedOn="{StaticResource Forge.GroupBox}" />
+        <ControlTheme x:Key="{x:Type ListBox}" TargetType="ListBox" BasedOn="{StaticResource Forge.ListBox}" />
+        <ControlTheme x:Key="{x:Type ListBoxItem}" TargetType="ListBoxItem" BasedOn="{StaticResource Forge.ListBoxItem}" />
+        <ControlTheme x:Key="{x:Type TreeView}" TargetType="TreeView" BasedOn="{StaticResource Forge.TreeView}" />
+        <ControlTheme x:Key="{x:Type TreeViewItem}" TargetType="TreeViewItem" BasedOn="{StaticResource Forge.TreeViewItem}" />
+        <ControlTheme x:Key="{x:Type TabControl}" TargetType="TabControl" BasedOn="{StaticResource Forge.TabControl}" />
+        <ControlTheme x:Key="{x:Type TabItem}" TargetType="TabItem" BasedOn="{StaticResource Forge.TabItem}" />
+        <ControlTheme x:Key="{x:Type TabStrip}" TargetType="TabStrip" BasedOn="{StaticResource Forge.TabStrip}" />
+        <ControlTheme x:Key="{x:Type TabStripItem}" TargetType="TabStripItem" BasedOn="{StaticResource Forge.TabStripItem}" />
+        <ControlTheme x:Key="{x:Type Slider}" TargetType="Slider" BasedOn="{StaticResource Forge.Slider}" />
+        <ControlTheme x:Key="{x:Type ToggleButton}" TargetType="ToggleButton" BasedOn="{StaticResource Forge.ToggleButton}" />
+        <ControlTheme x:Key="{x:Type GridSplitter}" TargetType="GridSplitter" BasedOn="{StaticResource Forge.GridSplitter}" />
+        <ControlTheme x:Key="{x:Type ProgressBar}" TargetType="ProgressBar" BasedOn="{StaticResource Forge.ProgressBar}" />
+        <ControlTheme x:Key="{x:Type ToolTip}" TargetType="ToolTip" BasedOn="{StaticResource Forge.ToolTip}" />
+        <ControlTheme x:Key="{x:Type Calendar}" TargetType="Calendar" BasedOn="{StaticResource Forge.Calendar}" />
+        <ControlTheme x:Key="{x:Type cp:CalendarItem}" TargetType="cp:CalendarItem" BasedOn="{StaticResource Forge.CalendarItem}" />
+        <!-- 日 / 月格子靠这两条隐式主题生效，CalendarItem 里没法指定它们。 -->
+        <ControlTheme x:Key="{x:Type cp:CalendarDayButton}" TargetType="cp:CalendarDayButton" BasedOn="{StaticResource Forge.CalendarDayButton}" />
+        <ControlTheme x:Key="{x:Type cp:CalendarButton}" TargetType="cp:CalendarButton" BasedOn="{StaticResource Forge.CalendarButton}" />
+        <ControlTheme x:Key="{x:Type CalendarDatePicker}" TargetType="CalendarDatePicker" BasedOn="{StaticResource Forge.CalendarDatePicker}" />
+        <ControlTheme x:Key="{x:Type DatePicker}" TargetType="DatePicker" BasedOn="{StaticResource Forge.DatePicker}" />
+        <ControlTheme x:Key="{x:Type DatePickerPresenter}" TargetType="DatePickerPresenter" BasedOn="{StaticResource Forge.DatePickerPresenter}" />
+        <ControlTheme x:Key="{x:Type TimePicker}" TargetType="TimePicker" BasedOn="{StaticResource Forge.TimePicker}" />
+        <ControlTheme x:Key="{x:Type TimePickerPresenter}" TargetType="TimePickerPresenter" BasedOn="{StaticResource Forge.TimePickerPresenter}" />
+
+        <ControlTheme x:Key="{x:Type NotificationCard}" TargetType="NotificationCard" BasedOn="{StaticResource Forge.NotificationCard}" />
+        <ControlTheme x:Key="{x:Type WindowNotificationManager}" TargetType="WindowNotificationManager" BasedOn="{StaticResource Forge.WindowNotificationManager}" />
+        <ControlTheme x:Key="{x:Type DataValidationErrors}" TargetType="DataValidationErrors" BasedOn="{StaticResource Forge.DataValidationErrors}" />
+        <ControlTheme x:Key="{x:Type FlyoutPresenter}" TargetType="FlyoutPresenter" BasedOn="{StaticResource Forge.FlyoutPresenter}" />
+        <ControlTheme x:Key="{x:Type Window}" TargetType="Window" BasedOn="{StaticResource Forge.Window}" />
+        <ControlTheme x:Key="{x:Type ItemsControl}" TargetType="ItemsControl" BasedOn="{StaticResource Forge.ItemsControl}" />
+        <ControlTheme x:Key="{x:Type TransitioningContentControl}" TargetType="TransitioningContentControl" BasedOn="{StaticResource Forge.TransitioningContentControl}" />
+        <ControlTheme x:Key="{x:Type Carousel}" TargetType="Carousel" BasedOn="{StaticResource Forge.Carousel}" />
+        <ControlTheme x:Key="{x:Type cp:Thumb}" TargetType="cp:Thumb" BasedOn="{StaticResource Forge.Thumb}" />
+        <ControlTheme x:Key="{x:Type SplitView}" TargetType="SplitView" BasedOn="{StaticResource Forge.SplitView}" />
+        <ControlTheme x:Key="{x:Type PipsPager}" TargetType="PipsPager" BasedOn="{StaticResource Forge.PipsPager}" />
+        <ControlTheme x:Key="{x:Type TableView}" TargetType="TableView" BasedOn="{StaticResource Forge.TableView}" />
+        <ControlTheme x:Key="{x:Type TableViewRow}" TargetType="TableViewRow" BasedOn="{StaticResource Forge.TableViewRow}" />
+        <ControlTheme x:Key="{x:Type TableViewCell}" TargetType="TableViewCell" BasedOn="{StaticResource Forge.TableViewCell}" />
+        <ControlTheme x:Key="{x:Type TableViewColumnHeader}" TargetType="TableViewColumnHeader" BasedOn="{StaticResource Forge.TableViewColumnHeader}" />
+        <ControlTheme x:Key="{x:Type CommandBar}" TargetType="CommandBar" BasedOn="{StaticResource Forge.CommandBar}" />
+        <ControlTheme x:Key="{x:Type CommandBarButton}" TargetType="CommandBarButton" BasedOn="{StaticResource Forge.CommandBarButton}" />
+        <ControlTheme x:Key="{x:Type CommandBarToggleButton}" TargetType="CommandBarToggleButton" BasedOn="{StaticResource Forge.CommandBarToggleButton}" />
+        <ControlTheme x:Key="{x:Type CommandBarSeparator}" TargetType="CommandBarSeparator" BasedOn="{StaticResource Forge.CommandBarSeparator}" />
+        <ControlTheme x:Key="{x:Type ContentPage}" TargetType="ContentPage" BasedOn="{StaticResource Forge.ContentPage}" />
+        <ControlTheme x:Key="{x:Type NavigationPage}" TargetType="NavigationPage" BasedOn="{StaticResource Forge.NavigationPage}" />
+        <ControlTheme x:Key="{x:Type TabbedPage}" TargetType="TabbedPage" BasedOn="{StaticResource Forge.TabbedPage}" />
+        <ControlTheme x:Key="{x:Type DrawerPage}" TargetType="DrawerPage" BasedOn="{StaticResource Forge.DrawerPage}" />
+        <ControlTheme x:Key="{x:Type PageNavigationHost}" TargetType="PageNavigationHost" BasedOn="{StaticResource Forge.PageNavigationHost}" />
+        <ControlTheme x:Key="{x:Type AutoCompleteBox}" TargetType="AutoCompleteBox" BasedOn="{StaticResource Forge.AutoCompleteBox}" />
+        <ControlTheme x:Key="{x:Type RefreshContainer}" TargetType="RefreshContainer" BasedOn="{StaticResource Forge.RefreshContainer}" />
+        <ControlTheme x:Key="{x:Type RefreshVisualizer}" TargetType="RefreshVisualizer" BasedOn="{StaticResource Forge.RefreshVisualizer}" />
+        <ControlTheme x:Key="{x:Type cp:TextSelectionHandle}" TargetType="cp:TextSelectionHandle" BasedOn="{StaticResource Forge.TextSelectionHandle}" />
+        <ControlTheme x:Key="{x:Type WindowDrawnDecorations}" TargetType="WindowDrawnDecorations" BasedOn="{StaticResource Forge.WindowDrawnDecorations}" />
+        <ControlTheme x:Key="{x:Type NativeMenuBar}" TargetType="NativeMenuBar" BasedOn="{StaticResource Forge.NativeMenuBar}" />
+        <!-- MaskedTextBox 继承自 TextBox 且 StyleKey 也指向 TextBox，靠子类匹配，**不单独注册**。
+             ⚠ CarouselPage 不在此列：它的 StyleKey 是自己，必须单独注册（见下面宿主壳那批）。 -->
+        <ControlTheme x:Key="{x:Type HyperlinkButton}" TargetType="HyperlinkButton" BasedOn="{StaticResource Forge.HyperlinkButton}" />
+        <ControlTheme x:Key="{x:Type Label}" TargetType="Label" BasedOn="{StaticResource Forge.Label}" />
+        <ControlTheme x:Key="{x:Type PathIcon}" TargetType="PathIcon" BasedOn="{StaticResource Forge.PathIcon}" />
+        <ControlTheme x:Key="{x:Type ToggleSwitch}" TargetType="ToggleSwitch" BasedOn="{StaticResource Forge.ToggleSwitch}" />
+        <ControlTheme x:Key="{x:Type RepeatButton}" TargetType="RepeatButton" BasedOn="{StaticResource Forge.RepeatButton}" />
+        <ControlTheme x:Key="{x:Type DropDownButton}" TargetType="DropDownButton" BasedOn="{StaticResource Forge.DropDownButton}" />
+        <!-- ToggleSplitButton 继承自 SplitButton，这一条会自动匹配到它，**不要**再单独注册
+             （单独注册反而会让整个模板不生效）。选中态写在 Forge.SplitButton 里。 -->
+        <ControlTheme x:Key="{x:Type SplitButton}" TargetType="SplitButton" BasedOn="{StaticResource Forge.SplitButton}" />
+        <!--  ══ 宿主壳与装饰层（Controls/Hosts.axaml）══
+              这一批原先靠 Simple 兜底，补进来是为了让本库自足（对标 Semi：它不依赖任何兜底主题）。
+              它们没有自身外观，但**必须有模板**，缺了不报错、只是弹出层没底、装饰不画。  -->
+        <ControlTheme x:Key="{x:Type PopupRoot}" TargetType="PopupRoot" BasedOn="{StaticResource Forge.PopupRoot}" />
+        <ControlTheme x:Key="{x:Type OverlayPopupHost}" TargetType="OverlayPopupHost" BasedOn="{StaticResource Forge.OverlayPopupHost}" />
+        <ControlTheme x:Key="{x:Type EmbeddableControlRoot}" TargetType="EmbeddableControlRoot" BasedOn="{StaticResource Forge.EmbeddableControlRoot}" />
+        <ControlTheme x:Key="{x:Type AdornerLayer}" TargetType="AdornerLayer" BasedOn="{StaticResource Forge.AdornerLayer}" />
+        <ControlTheme x:Key="{x:Type ThemeVariantScope}" TargetType="ThemeVariantScope" BasedOn="{StaticResource Forge.ThemeVariantScope}" />
+        <ControlTheme x:Key="{x:Type HeaderedContentControl}" TargetType="HeaderedContentControl" BasedOn="{StaticResource Forge.HeaderedContentControl}" />
+        <ControlTheme x:Key="{x:Type CarouselPage}" TargetType="CarouselPage" BasedOn="{StaticResource Forge.CarouselPage}" />
+        <ControlTheme x:Key="{x:Type SelectableTextBlock}" TargetType="SelectableTextBlock" BasedOn="{StaticResource Forge.SelectableTextBlock}" />
+        <ControlTheme x:Key="{x:Type dialogs:ManagedFileChooser}" TargetType="dialogs:ManagedFileChooser" BasedOn="{StaticResource Forge.ManagedFileChooser}" />
+        <ControlTheme x:Key="{x:Type dialogs:ManagedFileChooserOverwritePrompt}" TargetType="dialogs:ManagedFileChooserOverwritePrompt" BasedOn="{StaticResource Forge.ManagedFileChooserOverwritePrompt}" />
+</ResourceDictionary>
