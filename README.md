@@ -92,14 +92,32 @@ between families and the colours follow whatever family the theme entry selected
 </Application.Styles>
 ```
 
-Hosts that ship both families reference both resource packages and bind the property to
-configuration — evaluated once at startup: `Family="{x:Static local:Settings.Family}"`.
-The same entry can also be installed in code after settings have been read:
+Hosts that ship both families reference both resource packages and pick the family from
+configuration. Two equivalent ways to install the entry — use one, not both:
+
+**In XAML** — `{x:Static}` reads the configuration when the XAML loads at startup
+(one-time; not a live binding):
+
+```xml
+<Application.Styles>
+    <forge:ForgeTheme Family="{x:Static local:Settings.Family}" />
+</Application.Styles>
+```
+
+**In code** — for hosts that need logic around it (read settings first, migrate old
+values, etc.). Call it in `Application.Initialize`, before any window is created:
 
 ```csharp
-ForgeThemeManager.Apply(this, new ForgeTheme { Family = settings.Family });
-ForgeThemeManager.ApplyLocale(this, CultureInfo.CurrentUICulture);   // user-interface text
+public override void Initialize()
+{
+    AvaloniaXamlLoader.Load(this);
+    ForgeThemeManager.Apply(this, new ForgeTheme { Family = settings.Family });
+}
 ```
+
+Either way, changing the family requires a restart. `ForgeThemeManager.ApplyLocale(this,
+CultureInfo.CurrentUICulture)` installs the user-interface strings; it is independent of
+the theme and works with both approaches.
 
 Compose the shell:
 
@@ -243,13 +261,31 @@ Piccolo.Forge 为 Avalonia 桌面应用程序提供与 IntelliJ IDEA、Rider 类
 </Application.Styles>
 ```
 
-两档都要的宿主两个资源包都引，属性从配置来（启动时求值一次）：
-`Family="{x:Static local:Settings.Family}"`。也可在读取配置之后以代码安装同一个入口：
+两档都要的宿主两个资源包都引，族从配置来。安装入口有两种等价方式，**任选其一，不要都写**：
+
+**方式一：XAML 里装** —— `{x:Static}` 在 XAML 装载时读一次配置
+（启动时求值一次，不是动态绑定）：
+
+```xml
+<Application.Styles>
+    <forge:ForgeTheme Family="{x:Static local:Settings.Family}" />
+</Application.Styles>
+```
+
+**方式二：代码里装** —— 适合装载前后还有逻辑的宿主（先读配置文件、迁移旧值等）。
+在 `Application.Initialize` 里调用，须在任何窗口创建之前：
 
 ```csharp
-ForgeThemeManager.Apply(this, new ForgeTheme { Family = settings.Family });
-ForgeThemeManager.ApplyLocale(this, CultureInfo.CurrentUICulture);   // 界面文案
+public override void Initialize()
+{
+    AvaloniaXamlLoader.Load(this);
+    ForgeThemeManager.Apply(this, new ForgeTheme { Family = settings.Family });
+}
 ```
+
+两种方式换族都要重启生效。界面文案由
+`ForgeThemeManager.ApplyLocale(this, CultureInfo.CurrentUICulture)` 安装，
+与主题无关，两种方式下都这么写。
 
 组装外壳：
 
