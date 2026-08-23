@@ -1,0 +1,182 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+      Button。变体靠 Classes 选：无 class＝常规、.accent＝主按钮（上游的 default button）、
+      .icon＝工具栏图标钮（上游的 ActionButton）、.tertiary＝无边框的次要动作、
+      .success/.danger/.warning＝按后果着色的确认钮、.small＝压小一档。
+
+      ⚠ 后两个上游**没有**：IntelliJ 只有常规与 default 两档。补它们是因为对话框里
+        "确定/应用/取消" 三颗并排时，只有两档分不出主次；.success 的绿取自上游
+        进度条的 passed 档（同一个 Forge.Progress.Passed），不另发明一个绿。
+      具名 Forge.Button 供逐控件挂载（StyleProbe 的同屏 A/B 靠它）；隐式默认在入口文件里挂。
+    -->
+    <ControlTheme x:Key="Forge.Button" TargetType="Button">
+        <Setter Property="Background" Value="{DynamicResource Forge.Button.Background}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Forge.Button.Border}" />
+        <Setter Property="BorderThickness" Value="{DynamicResource Forge.Button.BorderThickness}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Forge.Button.CornerRadius}" />
+        <Setter Property="Padding" Value="{DynamicResource Forge.Button.Padding}" />
+        <Setter Property="MinWidth" Value="{DynamicResource Forge.Button.MinWidth}" />
+        <Setter Property="MinHeight" Value="{DynamicResource Forge.Button.MinHeight}" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Cursor" Value="Arrow" />
+
+        <Setter Property="Template">
+            <ControlTemplate>
+                <!-- 焦点环画在边框外围（上游 DarculaUIUtil.doPaint），常态透明但始终占位，聚焦不改布局。 -->
+                <Border Name="PART_FocusRing"
+                        BorderBrush="Transparent"
+                        BorderThickness="{DynamicResource Forge.Focus.RingThickness}"
+                        CornerRadius="{DynamicResource Forge.Focus.RingCornerRadius}">
+                <Border Name="PART_Root"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}">
+                    <Panel>
+                        <!-- ⚠ 悬停/按下用叠加层，不要改成 :pointerover 直接设根 Border 的 Background：
+                             半透明色赋给 Background 是**替换**底色，Islands 暗色档的透明底会被抹掉。 -->
+                        <Border Name="PART_Overlay" Background="Transparent"
+                                CornerRadius="{TemplateBinding CornerRadius}" />
+                        <ContentPresenter Name="PART_ContentPresenter"
+                                          Content="{TemplateBinding Content}"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}"
+                                          Padding="{TemplateBinding Padding}"
+                                          HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                          RecognizesAccessKey="True" />
+                    </Panel>
+                </Border>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+
+        <Style Selector="^:pointerover /template/ Border#PART_Overlay">
+            <Setter Property="Background" Value="{DynamicResource Forge.Overlay.Hover}" />
+        </Style>
+        <Style Selector="^:pressed /template/ Border#PART_Overlay">
+            <Setter Property="Background" Value="{DynamicResource Forge.Overlay.Pressed}" />
+        </Style>
+
+        <Style Selector="^:focus-visible /template/ Border#PART_FocusRing">
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Focus.Ring}" />
+        </Style>
+
+        <!-- 禁用只改字色和边框，不改底色（上游的禁用感就不是靠变底传达的）。 -->
+        <Style Selector="^:disabled">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Button.Disabled.Foreground}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Button.Disabled.Border}" />
+        </Style>
+        <Style Selector="^:disabled:pointerover /template/ Border#PART_Overlay">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+
+        <Style Selector="^.accent">
+            <Setter Property="Background" Value="{DynamicResource Forge.Button.Accent.Background}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Button.Accent.Background}" />
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Button.Accent.Foreground}" />
+        </Style>
+        <!-- 禁用的主按钮退回常规禁用观感：上游没有"禁用的蓝按钮"，压暗的蓝会读成另一种可点状态。 -->
+        <Style Selector="^.accent:disabled">
+            <Setter Property="Background" Value="{DynamicResource Forge.Button.Background}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Button.Disabled.Border}" />
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Button.Disabled.Foreground}" />
+        </Style>
+
+        <!-- 次要动作：没有边框和底，只留悬停叠加。上游的 ActionButton 就是这个形状，
+             这里只是把它用在带文字的按钮上。 -->
+        <Style Selector="^.tertiary">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="MinWidth" Value="0" />
+        </Style>
+
+        <!-- 危险 / 警示两档：确认框按后果给按钮上色。上游同样没有这两档
+             （IDE 的危险确认靠文案而不是红按钮），色取校验用的那两支，全局同一个红 / 琥珀。 -->
+        <Style Selector="^.danger">
+            <Setter Property="Background" Value="{DynamicResource Forge.Label.Error}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Label.Error}" />
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Button.Accent.Foreground}" />
+        </Style>
+        <Style Selector="^.warning">
+            <Setter Property="Background" Value="{DynamicResource Forge.Label.Warning}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Label.Warning}" />
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Button.Accent.Foreground}" />
+        </Style>
+
+        <Style Selector="^.success">
+            <Setter Property="Background" Value="{DynamicResource Forge.Progress.Passed}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Progress.Passed}" />
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Button.Accent.Foreground}" />
+        </Style>
+        <Style Selector="^.success:disabled">
+            <Setter Property="Background" Value="{DynamicResource Forge.Button.Background}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Button.Disabled.Border}" />
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Button.Disabled.Foreground}" />
+        </Style>
+
+        <!-- 压小一档：行内的"保存/删除预设"这类跟随内容的小按钮。 -->
+        <Style Selector="^.small">
+            <Setter Property="Padding" Value="7,2" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="MinHeight" Value="22" />
+        </Style>
+
+        <Style Selector="^.icon">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Padding" Value="4" />
+        </Style>
+    </ControlTheme>
+
+    <!-- ToggleButton：外形同普通按钮，多一个选中态（选中走主按钮的蓝底）。
+         放在本文件而不是 Slider.axaml：它是按钮族，而且下面的 Forge.IconToggleButton 要拿它当基。 -->
+    <ControlTheme x:Key="Forge.ToggleButton" TargetType="ToggleButton" BasedOn="{StaticResource Forge.Button}">
+        <Style Selector="^:checked /template/ Border#PART_Root">
+            <Setter Property="Background" Value="{DynamicResource Forge.Button.Accent.Background}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Button.Accent.Background}" />
+        </Style>
+        <Style Selector="^:checked">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Button.Accent.Foreground}" />
+        </Style>
+    </ControlTheme>
+
+    <!--
+      ══ 无背板按钮：常态什么都不画，悬停/按下才出一块圆角底 ══
+
+      这是全库**唯一一份**"图标钮"底盘。控件模板内部挂不了 Classes（Classes 只能写在站点上），
+      所以同一套外观要出两种形态：
+        · 类   `.icon` / `.tertiary` —— 给使用者在 axaml 站点上写 Classes 用；
+        · 具名 Forge.IconButton / Forge.IconToggleButton —— 给**控件模板内部**的按钮 Theme= 用。
+      两者共用同一个模板与同一批悬停/按下/禁用样式，改一处两边都变。
+
+      ⚠ 谁要在这上面改模板，必须保留这三个部件名，否则继承来的样式静默失配：
+        Border#PART_FocusRing → Border#PART_Root → Panel → Border#PART_Overlay
+      悬停/按下画的是 PART_Overlay（半透明叠加），不是 PART_Root 的 Background ——
+      直接改 Background 会把 Islands 暗档的透明底抹掉，见上面 Forge.Button 的说明。
+    -->
+    <ControlTheme x:Key="Forge.IconButton" TargetType="Button" BasedOn="{StaticResource Forge.Button}">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <!-- ⚠ 最小尺寸要清零：普通按钮的 72×28 是给带文字的按钮定的，
+             内部那些小钮（通知的 20×20、树的 9×9）会被它顶大。 -->
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Padding" Value="4" />
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.IconToggleButton" TargetType="ToggleButton" BasedOn="{StaticResource Forge.ToggleButton}">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <!-- ⚠ 最小尺寸要清零：普通按钮的 72×28 是给带文字的按钮定的，
+             内部那些小钮（通知的 20×20、树的 9×9）会被它顶大。 -->
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Padding" Value="4" />
+    </ControlTheme>
+
+</ResourceDictionary>

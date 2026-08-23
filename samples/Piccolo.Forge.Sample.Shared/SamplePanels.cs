@@ -1,8 +1,8 @@
-using Avalonia.Media;
+﻿using Avalonia.Media;
 using Piccolo.Forge.Mvvm;
 using Piccolo.Forge.Mvvm.Controls;
 
-namespace Piccolo.Forge.Sample;
+namespace Piccolo.Forge.Sample.Shared;
 
 /// <summary>
 /// 一块示例工具面板。

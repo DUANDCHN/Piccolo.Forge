@@ -1,0 +1,99 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+      ScrollBar。取上游的 Transparent 那组色（浮在内容上，轨道平时全透明、悬停才微微显现），
+      不是 Opaque 组 —— 后者是给"滚动条占布局空间"的老式版面用的。
+
+      ⚠ thumb 是**直角**不是胶囊：上游 ScrollBarPainter.paint 里 `int arc = 0`，
+        只有 `SystemInfoRt.isMac` 分支才 `arc = Math.min(width, height)` 变胶囊。
+        目标平台是 Windows，按非 mac 分支走。想改成圆的先回来看这段 —— 那是 mac 的样子，不是 IntelliJ 的样子。
+
+      thumb 带 1px 边框（ThumbBorder 比 Thumb 深一档），这是上游的画法：
+      fill 与 draw 两个色分别产出，相同时才省掉边框。
+    -->
+
+    <ControlTheme x:Key="Forge.ScrollBarThumb" TargetType="Thumb">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Name="PART_Root"
+                        Background="{DynamicResource Forge.ScrollBar.Thumb}"
+                        BorderBrush="{DynamicResource Forge.ScrollBar.ThumbBorder}"
+                        BorderThickness="1" />
+            </ControlTemplate>
+        </Setter>
+        <!-- 悬停/拖动都用 hover 档：上游只有两档（常态 / hovered），没有单独的按下色。 -->
+        <Style Selector="^:pointerover /template/ Border#PART_Root">
+            <Setter Property="Background" Value="{DynamicResource Forge.ScrollBar.ThumbHover}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.ScrollBar.ThumbHoverBorder}" />
+        </Style>
+        <Style Selector="^:pressed /template/ Border#PART_Root">
+            <Setter Property="Background" Value="{DynamicResource Forge.ScrollBar.ThumbHover}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.ScrollBar.ThumbHoverBorder}" />
+        </Style>
+    </ControlTheme>
+
+    <!-- 翻页区（thumb 两侧）。上游没有可见的翻页按钮，这里只保留点击行为、不画东西。 -->
+    <ControlTheme x:Key="Forge.ScrollBarPageButton" TargetType="RepeatButton">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="{TemplateBinding Background}" />
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.ScrollBar" TargetType="ScrollBar">
+        <Setter Property="Background" Value="{DynamicResource Forge.ScrollBar.Track}" />
+        <Setter Property="MinWidth" Value="{DynamicResource Forge.ScrollBar.Thickness}" />
+        <Setter Property="MinHeight" Value="{DynamicResource Forge.ScrollBar.Thickness}" />
+
+        <!-- 上游没有行进按钮（那对小箭头），整条就是轨道 + thumb。
+             PART_LineUp/DownButton 仍要在模板里存在：ScrollBar 会去找它们，缺了会拿到 null。
+             做成零尺寸不可见，而不是删掉。 -->
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Name="PART_Track_Root"
+                        Background="{TemplateBinding Background}"
+                        UseLayoutRounding="False">
+                    <Track Name="PART_Track"
+                           Minimum="{TemplateBinding Minimum}"
+                           Maximum="{TemplateBinding Maximum}"
+                           Value="{TemplateBinding Value, Mode=TwoWay}"
+                           ViewportSize="{TemplateBinding ViewportSize}"
+                           Orientation="{TemplateBinding Orientation}"
+                           IsDirectionReversed="True">
+                        <Track.DecreaseButton>
+                            <RepeatButton Name="PART_PageUpButton"
+                                          Theme="{StaticResource Forge.ScrollBarPageButton}" />
+                        </Track.DecreaseButton>
+                        <Track.IncreaseButton>
+                            <RepeatButton Name="PART_PageDownButton"
+                                          Theme="{StaticResource Forge.ScrollBarPageButton}" />
+                        </Track.IncreaseButton>
+                        <Thumb Name="PART_Thumb"
+                               Theme="{StaticResource Forge.ScrollBarThumb}"
+                               Margin="{DynamicResource Forge.ScrollBar.ThumbMargin}" />
+                    </Track>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+
+        <!-- 轨道悬停时才微微显现（Transparent 组的 hoverTrackColor）。 -->
+        <Style Selector="^:pointerover /template/ Border#PART_Track_Root">
+            <Setter Property="Background" Value="{DynamicResource Forge.ScrollBar.TrackHover}" />
+        </Style>
+
+        <Style Selector="^:vertical">
+            <Setter Property="Width" Value="{DynamicResource Forge.ScrollBar.Thickness}" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="VerticalAlignment" Value="Stretch" />
+        </Style>
+        <Style Selector="^:horizontal">
+            <Setter Property="Height" Value="{DynamicResource Forge.ScrollBar.Thickness}" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="VerticalAlignment" Value="Bottom" />
+        </Style>
+    </ControlTheme>
+
+</ResourceDictionary>

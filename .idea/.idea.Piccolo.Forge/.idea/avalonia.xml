@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AvaloniaProject">
+    <option name="projectPerEditor">
+      <map>
+        <entry key="samples/Piccolo.Forge.Sample.ExpUi/App.axaml" value="samples/Piccolo.Forge.Sample.ExpUi/Piccolo.Forge.Sample.ExpUi.csproj" />
+        <entry key="samples/Piccolo.Forge.Sample.Islands/App.axaml" value="samples/Piccolo.Forge.Sample.Islands/Piccolo.Forge.Sample.Islands.csproj" />
+        <entry key="samples/Piccolo.Forge.Sample.Shared/ControlCatalogWindow.axaml" value="samples/Piccolo.Forge.Sample.ExpUi/Piccolo.Forge.Sample.ExpUi.csproj" />
+        <entry key="samples/Piccolo.Forge.Sample/App.axaml" value="samples/Piccolo.Forge.Sample/Piccolo.Forge.Sample.csproj" />
+        <entry key="src/Piccolo.Forge.Themes.ExpUi/Controls.Colors.axaml" value="samples/Piccolo.Forge.Sample.ExpUi/Piccolo.Forge.Sample.ExpUi.csproj" />
+        <entry key="src/Piccolo.Forge.Themes.ExpUi/ForgeExpUiShellTheme.axaml" value="samples/Piccolo.Forge.Sample.ExpUi/Piccolo.Forge.Sample.ExpUi.csproj" />
+      </map>
+    </option>
+  </component>
+</project>

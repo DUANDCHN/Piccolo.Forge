@@ -1,0 +1,372 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:dialogs="using:Avalonia.Dialogs"
+                    xmlns:internal="using:Avalonia.Dialogs.Internal">
+    <!--
+      ══ 宿主壳与装饰层 ══
+
+      这一批不是"控件"，是**承载控件的壳**：弹出层的根、嵌入式根、装饰层、主题变体域。
+      共同点是**自身没有外观、却必须有模板** —— 缺了不报错，只是弹出层没底、装饰画不出来，
+      属于最难靠眼睛发现的那一类。
+
+      为什么现在才补：原先 README 把 PopupRoot / OverlayPopupHost / EmbeddableControlRoot
+      归进了"不需要单独主题的（基类与宿主壳，无自身外观）"。**那个判断只在有 Simple 兜底时成立**
+      —— Simple 是给它们模板的。要去掉 Avalonia.Themes.Simple 这个过渡依赖，就得自己给。
+
+      范围取自 Semi：它不依赖任何兜底主题（nuspec 里只有 Avalonia + Irihi.Shared），
+      靠的就是把这一族做全。本文件与 Semi 的 Controls/ 清单一一对位。
+
+      ⚠ 这一族**不要加视觉**。它们是容器，加了底色/边框就会在每个弹出层外面多一层框。
+        上游 IntelliJ 也没有对应色板（Swing 里没有这层概念）。
+    -->
+
+    <!--
+      弹出层的根。⚠ 三处是框架契约，缺一处就静默出问题：
+        · Border#PART_TransparencyFallback —— 平台不支持透明时拿它铺底，没有就是黑块
+        · VisualLayerManager#PART_VisualLayerManager —— 弹出层里的 ToolTip / 装饰挂在它上面
+        · LayoutTransformControl 绑 Transform —— 缩放显示器上弹出层的变换靠它
+      Background 必须是 {x:Null} 而不是 Transparent：内容自己画底（菜单、下拉各有各的底），
+      这里给了色就是在每个弹出层外面多糊一层。
+    -->
+    <ControlTheme x:Key="Forge.PopupRoot" TargetType="PopupRoot">
+        <Setter Property="Background" Value="{x:Null}" />
+        <Setter Property="TransparencyLevelHint" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Forge.Text.Primary}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <LayoutTransformControl LayoutTransform="{TemplateBinding Transform}">
+                    <Panel>
+                        <Border Name="PART_TransparencyFallback" IsHitTestVisible="False" />
+                        <VisualLayerManager Name="PART_VisualLayerManager">
+                            <ContentPresenter Name="PART_ContentPresenter"
+                                              Padding="{TemplateBinding Padding}"
+                                              Background="{TemplateBinding Background}"
+                                              Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}" />
+                        </VisualLayerManager>
+                    </Panel>
+                </LayoutTransformControl>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <!--
+      弹出层在"叠加层"模式下的宿主（开不了真窗口时走它）。
+      比 PopupRoot 少一层透明兜底 —— 它本来就在窗口内，不涉及平台透明。
+    -->
+    <ControlTheme x:Key="Forge.OverlayPopupHost" TargetType="OverlayPopupHost">
+        <Setter Property="Foreground" Value="{DynamicResource Forge.Text.Primary}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <LayoutTransformControl LayoutTransform="{TemplateBinding Transform}">
+                    <VisualLayerManager Name="PART_VisualLayerManager">
+                        <ContentPresenter Name="PART_ContentPresenter"
+                                          Padding="{TemplateBinding Padding}"
+                                          Background="{TemplateBinding Background}"
+                                          Content="{TemplateBinding Content}"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}" />
+                    </VisualLayerManager>
+                </LayoutTransformControl>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <!--
+      嵌入式根（把 Avalonia 的控件树塞进别人的窗口时的根；无头宿主也走它）。
+      这一档**要铺底**：它是一整块画布，不是浮在别人上面的层。
+    -->
+    <ControlTheme x:Key="Forge.EmbeddableControlRoot" TargetType="EmbeddableControlRoot">
+        <Setter Property="Foreground" Value="{DynamicResource Forge.Text.Primary}" />
+        <Setter Property="Background" Value="{DynamicResource Forge.Window.Background}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Panel>
+                    <Border Name="PART_TransparencyFallback" IsHitTestVisible="False" />
+                    <Border Background="{TemplateBinding Background}">
+                        <VisualLayerManager Name="PART_VisualLayerManager">
+                            <ContentPresenter Name="PART_ContentPresenter"
+                                              Margin="{TemplateBinding Padding}"
+                                              Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}" />
+                        </VisualLayerManager>
+                    </Border>
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <!--
+      装饰层。它没有模板，只提供**默认焦点装饰** —— 那些自己不画焦点的控件靠它出反馈。
+      本库的控件一律自绘 2px 焦点环，所以这一份是给"漏网的"兜底：走虚线框而不是实心环，
+      与自绘那套区分开，一眼能看出"这个控件还没接管焦点画法"。
+    -->
+    <ControlTheme x:Key="Forge.AdornerLayer" TargetType="AdornerLayer">
+        <Setter Property="DefaultFocusAdorner">
+            <FocusAdornerTemplate>
+                <Rectangle Margin="1"
+                           Stroke="{DynamicResource Forge.Focus.Ring}"
+                           StrokeDashArray="1,2"
+                           StrokeThickness="1" />
+            </FocusAdornerTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <!--
+      主题变体域（局部切明暗的容器，例如亮色界面里嵌一块深色预览）。
+      只需把文字色钉在域上，域内控件靠继承拿到对的前景色 —— 与 Forge.Window 上那一档同源：
+      TextElement.Foreground 的默认值是 Brushes.Black 且会继承，不设就是暗档满屏黑字。
+    -->
+    <ControlTheme x:Key="Forge.ThemeVariantScope" TargetType="ThemeVariantScope">
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource Forge.Text.Primary}" />
+    </ControlTheme>
+
+    <!--
+      带标题的内容容器（基类）。GroupBox / Expander 这些派生类各有各的主题、走不到这里；
+      这一份是给**直接用 HeaderedContentControl** 的场合兜底的。
+      故意不画边框底色：基类不替派生类做视觉决定。
+    -->
+    <ControlTheme x:Key="Forge.HeaderedContentControl" TargetType="HeaderedContentControl">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}"
+                        Padding="{TemplateBinding Padding}">
+                    <Grid RowDefinitions="Auto,*">
+                        <ContentPresenter Name="PART_HeaderPresenter"
+                                          Grid.Row="0"
+                                          Content="{TemplateBinding Header}"
+                                          ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                          HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                          RecognizesAccessKey="True" />
+                        <ContentPresenter Name="PART_ContentPresenter"
+                                          Grid.Row="1"
+                                          Content="{TemplateBinding Content}"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}"
+                                          HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                          RecognizesAccessKey="True" />
+                    </Grid>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <!--
+      页面栈里的轮播页。⚠ 部件名必须是 PART_Carousel，三个属性要**逐个转发**，
+      而且 PageTemplate 转给的是 Carousel 的 **ItemTemplate**（名字不一样，照抄会漏）。
+    -->
+    <ControlTheme x:Key="Forge.CarouselPage" TargetType="CarouselPage">
+        <Setter Property="Background" Value="{DynamicResource Forge.Window.Background}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Carousel Name="PART_Carousel"
+                          Background="{TemplateBinding Background}"
+                          ItemTemplate="{TemplateBinding PageTemplate}"
+                          PageTransition="{TemplateBinding PageTransition}"
+                          ItemsPanel="{TemplateBinding ItemsPanel}"
+                          HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch" />
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <!--
+      可选中的文本块。它没有模板（TextBlock 一族自绘文字），主题只管三件事：
+      选中色与输入框同源、启用时光标变 I 形、右键给一个"复制"。
+      ⚠ 缺了这份，选中高亮退回 Avalonia 的默认蓝，和界面里其它选中色对不上 ——
+        属于"能用但不对"，最容易被放过。本仓 AboutWindow / ChangelogWindow 各有几处在用。
+    -->
+    <MenuFlyout x:Key="Forge.TextCopyFlyout">
+        <MenuItem Header="{DynamicResource StringTextFlyoutCopyText}"
+                  Command="{Binding $parent[SelectableTextBlock].Copy}" />
+    </MenuFlyout>
+
+    <ControlTheme x:Key="Forge.SelectableTextBlock" TargetType="SelectableTextBlock">
+        <Setter Property="SelectionBrush" Value="{DynamicResource Forge.Input.SelectionBackground}" />
+        <Setter Property="SelectionForegroundBrush" Value="{DynamicResource Forge.Input.SelectionForeground}" />
+        <Style Selector="^:enabled">
+            <Setter Property="Cursor" Value="IBeam" />
+            <Setter Property="ContextFlyout" Value="{StaticResource Forge.TextCopyFlyout}" />
+        </Style>
+    </ControlTheme>
+
+    <!--
+      ══ 托管文件对话框 ══
+
+      平台没有原生选择器时走它（Linux 无 portal、以及显式 UseManagedSystemDialogs 的场合）。
+      Windows / macOS 走原生，本仓用不到 —— 但库要自足就不能缺，缺了那些平台上是**空白对话框**。
+
+      文案键原先由 Simple 提供，去掉 Simple 就得自己给。
+      ⚠ 搬进 Forge 那天，这些应改走 Forge 的 Locales 机制（ForgeStrings / ApplyLocale，13 种语言），
+        不要留在这里当英文硬编码。
+    -->
+    <x:String x:Key="StringTextFlyoutCopyText">Copy</x:String>
+    <x:String x:Key="StringManagedFileChooserShowHiddenFilesText">Show hidden files</x:String>
+    <x:String x:Key="StringManagedFileChooserFileNamePlaceholder">File name</x:String>
+    <x:String x:Key="StringManagedFileChooserGoUpText">Up</x:String>
+    <x:String x:Key="StringManagedFileChooserRefreshText">Refresh</x:String>
+    <x:String x:Key="StringManagedFileChooserNameColumn">Name</x:String>
+    <x:String x:Key="StringManagedFileChooserDateModifiedColumn">Date modified</x:String>
+    <x:String x:Key="StringManagedFileChooserTypeColumn">Type</x:String>
+    <x:String x:Key="StringManagedFileChooserSizeColumn">Size</x:String>
+    <x:String x:Key="StringManagedFileChooserOkText">OK</x:String>
+    <x:String x:Key="StringManagedFileChooserCancelText">Cancel</x:String>
+    <x:String x:Key="StringManagedFileChooserOverwritePromptConfirmText">Overwrite</x:String>
+    <x:String x:Key="StringManagedFileChooserOverwritePromptCancelText">Cancel</x:String>
+
+    <ControlTheme x:Key="Forge.ManagedFileChooser" TargetType="dialogs:ManagedFileChooser">
+        <Setter Property="Background" Value="{DynamicResource Forge.Window.Background}" />
+        <Setter Property="Template">
+            <!-- ⚠ 关掉编译绑定：绑的是 Avalonia 的对话框 VM，两个 DataTemplate 的项类型在这里
+                 拿不到（编译绑定要求逐个 x:DataType）。这是全库唯一一处例外，别照搬到别处。 -->
+            <ControlTemplate x:CompileBindings="False">
+                <Border Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}"
+                        Padding="{TemplateBinding Padding}">
+                    <DockPanel Margin="8">
+                        <!--  地址栏：路径 + 上一级 + 刷新  -->
+                        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                            <Button DockPanel.Dock="Right" Margin="4,0,0,0"
+                                    Command="{Binding Refresh}"
+                                    Content="{DynamicResource StringManagedFileChooserRefreshText}" />
+                            <Button DockPanel.Dock="Right" Margin="4,0,0,0"
+                                    Command="{Binding GoUp}"
+                                    Content="{DynamicResource StringManagedFileChooserGoUpText}" />
+                            <TextBox Name="Location" Text="{Binding Location}">
+                                <TextBox.KeyBindings>
+                                    <KeyBinding Command="{Binding EnterPressed}" Gesture="Enter" />
+                                </TextBox.KeyBindings>
+                            </TextBox>
+                        </DockPanel>
+
+                        <!--  底部：隐藏文件开关 + 确定/取消  -->
+                        <DockPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
+                            <CheckBox DockPanel.Dock="Left"
+                                      IsChecked="{Binding ShowHiddenFiles}"
+                                      Content="{DynamicResource StringManagedFileChooserShowHiddenFilesText}" />
+                            <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
+                                <Button Classes="accent" Command="{Binding Ok}"
+                                        Content="{DynamicResource StringManagedFileChooserOkText}" />
+                                <Button Command="{Binding Cancel}"
+                                        Content="{DynamicResource StringManagedFileChooserCancelText}" />
+                            </StackPanel>
+                        </DockPanel>
+
+                        <ComboBox DockPanel.Dock="Bottom" Margin="0,8,0,0"
+                                  HorizontalAlignment="Stretch"
+                                  IsVisible="{Binding ShowFilters}"
+                                  ItemsSource="{Binding Filters}"
+                                  SelectedItem="{Binding SelectedFilter}" />
+
+                        <TextBox DockPanel.Dock="Bottom" Margin="0,8,0,0"
+                                 IsVisible="{Binding !SelectingFolder}"
+                                 Text="{Binding FileName}"
+                                 PlaceholderText="{DynamicResource StringManagedFileChooserFileNamePlaceholder}" />
+
+                        <!--  左侧快捷位置  -->
+                        <ListBox Name="PART_QuickLinks"
+                                 DockPanel.Dock="Left"
+                                 MaxWidth="200" Margin="0,0,8,0"
+                                 Focusable="False"
+                                 ItemsSource="{Binding QuickLinks}"
+                                 SelectedIndex="{Binding QuickLinksSelectedIndex}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding DisplayName}" />
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+
+                        <!--  文件列表。表头与行靠 SharedSizeGroup 对齐 ——
+                              **不用 DataGrid**：那会把 Avalonia.Controls.DataGrid 拖成这一族的依赖。  -->
+                        <DockPanel Grid.IsSharedSizeScope="True">
+                            <Grid DockPanel.Dock="Top" Margin="4,0,0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" SharedSizeGroup="Name" />
+                                    <ColumnDefinition Width="140" SharedSizeGroup="Modified" />
+                                    <ColumnDefinition Width="100" SharedSizeGroup="Type" />
+                                    <ColumnDefinition Width="90" SharedSizeGroup="Size" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Foreground="{DynamicResource Forge.Text.Secondary}"
+                                           Text="{DynamicResource StringManagedFileChooserNameColumn}" />
+                                <TextBlock Grid.Column="1" Foreground="{DynamicResource Forge.Text.Secondary}"
+                                           Text="{DynamicResource StringManagedFileChooserDateModifiedColumn}" />
+                                <TextBlock Grid.Column="2" Foreground="{DynamicResource Forge.Text.Secondary}"
+                                           Text="{DynamicResource StringManagedFileChooserTypeColumn}" />
+                                <TextBlock Grid.Column="3" Foreground="{DynamicResource Forge.Text.Secondary}"
+                                           HorizontalAlignment="Right"
+                                           Text="{DynamicResource StringManagedFileChooserSizeColumn}" />
+                            </Grid>
+                            <ListBox Name="PART_Files"
+                                     ItemsSource="{Binding Items}"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                     SelectedItems="{Binding SelectedItems}"
+                                     SelectionMode="{Binding SelectionMode}">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Background="Transparent">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" SharedSizeGroup="Name" />
+                                                <ColumnDefinition Width="140" SharedSizeGroup="Modified" />
+                                                <ColumnDefinition Width="100" SharedSizeGroup="Type" />
+                                                <ColumnDefinition Width="90" SharedSizeGroup="Size" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="{Binding DisplayName}" />
+                                            <TextBlock Grid.Column="1" Text="{Binding Modified}" />
+                                            <TextBlock Grid.Column="2" Text="{Binding Type}" />
+                                            <TextBlock Grid.Column="3" HorizontalAlignment="Right">
+                                                <TextBlock.Text>
+                                                    <Binding Path="Size">
+                                                        <Binding.Converter>
+                                                            <internal:FileSizeStringConverter />
+                                                        </Binding.Converter>
+                                                    </Binding>
+                                                </TextBlock.Text>
+                                            </TextBlock>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </DockPanel>
+                    </DockPanel>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <!--  覆盖确认。与 ManagedFileChooser 同去同留：缺了它，覆盖同名文件时弹出的是个空框。  -->
+    <ControlTheme x:Key="Forge.ManagedFileChooserOverwritePrompt" TargetType="dialogs:ManagedFileChooserOverwritePrompt">
+        <Setter Property="MinWidth" Value="270" />
+        <Setter Property="MaxWidth" Value="400" />
+        <Setter Property="Background" Value="{DynamicResource Forge.Window.Background}" />
+        <Setter Property="Padding" Value="16" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}"
+                        Padding="{TemplateBinding Padding}">
+                    <StackPanel Spacing="12">
+                        <TextBlock TextWrapping="Wrap"
+                                   Text="{Binding FileName, RelativeSource={RelativeSource TemplatedParent}}" />
+                        <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
+                            <Button Classes="accent" IsDefault="True"
+                                    Command="{Binding Confirm, RelativeSource={RelativeSource TemplatedParent}}"
+                                    Content="{DynamicResource StringManagedFileChooserOverwritePromptConfirmText}" />
+                            <Button IsCancel="True"
+                                    Command="{Binding Cancel, RelativeSource={RelativeSource TemplatedParent}}"
+                                    Content="{DynamicResource StringManagedFileChooserOverwritePromptCancelText}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+</ResourceDictionary>

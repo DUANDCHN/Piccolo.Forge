@@ -1,0 +1,336 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+      日期 / 时间选择器。上游同样没有色板，按已有语汇组装。
+
+      结构由框架定死，两层：
+        · DatePicker / TimePicker  —— 一颗按钮，上面分段显示当前值（年|月|日、时:分:秒），
+                                      点开弹出下面那个 Presenter
+        · *PickerPresenter         —— 滚轮选择器：每列一个 DateTimePickerPanel，
+                                      上下各一颗翻动按钮，底部接受 / 取消
+
+      部件极多（Presenter 分别 17 / 19 个），少一个就整片不画，别删。
+    -->
+
+    <!-- 滚轮上下那两颗翻动按钮：无边框，只有叠加反馈。 -->
+    <ControlTheme x:Key="Forge.PickerSpinButton" TargetType="Button">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Height" Value="26" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="Button">
+                <Border Name="PART_Root" Background="{TemplateBinding Background}" CornerRadius="{DynamicResource Forge.CornerRadius}">
+                    <ContentPresenter Content="{TemplateBinding Content}"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:pointerover /template/ Border#PART_Root">
+            <Setter Property="Background" Value="{DynamicResource Forge.Overlay.Hover}" />
+        </Style>
+        <Style Selector="^:pressed /template/ Border#PART_Root">
+            <Setter Property="Background" Value="{DynamicResource Forge.Overlay.Pressed}" />
+        </Style>
+    </ControlTheme>
+
+    <!-- 触发按钮：分段显示当前值，整体是一个输入框的样子。 -->
+    <ControlTheme x:Key="Forge.PickerFlyoutButton" TargetType="Button">
+        <Setter Property="Background" Value="{DynamicResource Forge.Input.Background}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Forge.Input.Border}" />
+        <Setter Property="BorderThickness" Value="{DynamicResource Forge.Input.BorderThickness}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Forge.Input.CornerRadius}" />
+        <Setter Property="MinHeight" Value="{DynamicResource Forge.Input.MinHeight}" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Cursor" Value="Arrow" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="Button">
+                <Border Name="PART_Root"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}">
+                    <ContentPresenter Content="{TemplateBinding Content}"
+                                      HorizontalAlignment="Stretch"
+                                      VerticalAlignment="Center" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:pointerover /template/ Border#PART_Root">
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Focus.Ring}" />
+        </Style>
+    </ControlTheme>
+
+    <!-- 弹出层底部的接受 / 取消：接受用主色，取消用常规。 -->
+    <ControlTheme x:Key="Forge.PickerAcceptButton" TargetType="Button" BasedOn="{StaticResource Forge.Button}">
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="Height" Value="30" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="CornerRadius" Value="0" />
+        <Setter Property="BorderThickness" Value="0" />
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.DatePickerPresenter" TargetType="DatePickerPresenter">
+        <Setter Property="Background" Value="{DynamicResource Forge.Popup.Background}" />
+        <Setter Property="Width" Value="260" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="DatePickerPresenter">
+                <Border Background="{TemplateBinding Background}">
+                    <DockPanel>
+                        <!-- 底部两颗按钮，中间一条竖分隔。 -->
+                        <Grid DockPanel.Dock="Bottom" ColumnDefinitions="*,1,*" Height="30">
+                            <Button Name="PART_AcceptButton" Grid.Column="0"
+                                    Theme="{DynamicResource Forge.PickerAcceptButton}"
+                                    Content="确定" />
+                            <Border Grid.Column="1" Background="{DynamicResource Forge.Group.Separator}" />
+                            <Button Name="PART_DismissButton" Grid.Column="2"
+                                    Theme="{DynamicResource Forge.PickerAcceptButton}"
+                                    Content="取消" />
+                        </Grid>
+                        <Border DockPanel.Dock="Bottom" Height="1"
+                                Background="{DynamicResource Forge.Group.Separator}" />
+
+                        <!-- 三列滚轮：年 | 月 | 日。列的顺序与显隐由控件按区域设置调整。 -->
+                        <Grid Name="PART_PickerContainer"
+                              ColumnDefinitions="*,Auto,*,Auto,*"
+                              Height="180">
+                            <Panel Name="PART_YearHost" Grid.Column="0">
+                                <DateTimePickerPanel Name="PART_YearSelector"
+                                                     PanelType="Year"
+                                                     ItemHeight="30"
+                                                     ShouldLoop="False" />
+                                <Button Name="PART_YearUpButton"
+                                        Theme="{DynamicResource Forge.PickerSpinButton}"
+                                        VerticalAlignment="Top" />
+                                <Button Name="PART_YearDownButton"
+                                        Theme="{DynamicResource Forge.PickerSpinButton}"
+                                        VerticalAlignment="Bottom" />
+                            </Panel>
+                            <Rectangle Name="PART_FirstSpacer" Grid.Column="1" Width="1"
+                                       Fill="{DynamicResource Forge.Group.Separator}" />
+                            <Panel Name="PART_MonthHost" Grid.Column="2">
+                                <DateTimePickerPanel Name="PART_MonthSelector"
+                                                     PanelType="Month"
+                                                     ItemHeight="30"
+                                                     ShouldLoop="True" />
+                                <Button Name="PART_MonthUpButton"
+                                        Theme="{DynamicResource Forge.PickerSpinButton}"
+                                        VerticalAlignment="Top" />
+                                <Button Name="PART_MonthDownButton"
+                                        Theme="{DynamicResource Forge.PickerSpinButton}"
+                                        VerticalAlignment="Bottom" />
+                            </Panel>
+                            <Rectangle Name="PART_SecondSpacer" Grid.Column="3" Width="1"
+                                       Fill="{DynamicResource Forge.Group.Separator}" />
+                            <Panel Name="PART_DayHost" Grid.Column="4">
+                                <DateTimePickerPanel Name="PART_DaySelector"
+                                                     PanelType="Day"
+                                                     ItemHeight="30"
+                                                     ShouldLoop="True" />
+                                <Button Name="PART_DayUpButton"
+                                        Theme="{DynamicResource Forge.PickerSpinButton}"
+                                        VerticalAlignment="Top" />
+                                <Button Name="PART_DayDownButton"
+                                        Theme="{DynamicResource Forge.PickerSpinButton}"
+                                        VerticalAlignment="Bottom" />
+                            </Panel>
+
+                            <!-- 选中行的高亮条，压在滚轮下面。 -->
+                            <Border Grid.ColumnSpan="5"
+                                    Height="30"
+                                    Background="{DynamicResource Forge.Item.SelectedBackground}"
+                                    VerticalAlignment="Center"
+                                    ZIndex="-1" />
+                        </Grid>
+                    </DockPanel>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.TimePickerPresenter" TargetType="TimePickerPresenter">
+        <Setter Property="Background" Value="{DynamicResource Forge.Popup.Background}" />
+        <Setter Property="Width" Value="220" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="TimePickerPresenter">
+                <Border Background="{TemplateBinding Background}">
+                    <DockPanel>
+                        <Grid DockPanel.Dock="Bottom" ColumnDefinitions="*,1,*" Height="30">
+                            <Button Name="PART_AcceptButton" Grid.Column="0"
+                                    Theme="{DynamicResource Forge.PickerAcceptButton}"
+                                    Content="确定" />
+                            <Border Grid.Column="1" Background="{DynamicResource Forge.Group.Separator}" />
+                            <Button Name="PART_DismissButton" Grid.Column="2"
+                                    Theme="{DynamicResource Forge.PickerAcceptButton}"
+                                    Content="取消" />
+                        </Grid>
+                        <Border DockPanel.Dock="Bottom" Height="1"
+                                Background="{DynamicResource Forge.Group.Separator}" />
+
+                        <Grid Name="PART_PickerContainer"
+                              ColumnDefinitions="*,Auto,*,Auto,*,Auto,*"
+                              Height="180">
+                            <Panel Grid.Column="0">
+                                <DateTimePickerPanel Name="PART_HourSelector"
+                                                     PanelType="Hour" ItemHeight="30" ShouldLoop="True" />
+                                <Button Name="PART_HourUpButton"
+                                        Theme="{DynamicResource Forge.PickerSpinButton}" VerticalAlignment="Top" />
+                                <Button Name="PART_HourDownButton"
+                                        Theme="{DynamicResource Forge.PickerSpinButton}" VerticalAlignment="Bottom" />
+                            </Panel>
+                            <Rectangle Grid.Column="1" Width="1" Fill="{DynamicResource Forge.Group.Separator}" />
+                            <Panel Grid.Column="2">
+                                <DateTimePickerPanel Name="PART_MinuteSelector"
+                                                     PanelType="Minute" ItemHeight="30" ShouldLoop="True" />
+                                <Button Name="PART_MinuteUpButton"
+                                        Theme="{DynamicResource Forge.PickerSpinButton}" VerticalAlignment="Top" />
+                                <Button Name="PART_MinuteDownButton"
+                                        Theme="{DynamicResource Forge.PickerSpinButton}" VerticalAlignment="Bottom" />
+                            </Panel>
+                            <Rectangle Name="PART_SecondSpacer" Grid.Column="3" Width="1"
+                                       Fill="{DynamicResource Forge.Group.Separator}" />
+                            <Panel Name="PART_SecondHost" Grid.Column="4">
+                                <DateTimePickerPanel Name="PART_SecondSelector"
+                                                     PanelType="Second" ItemHeight="30" ShouldLoop="True" />
+                                <Button Name="PART_SecondUpButton"
+                                        Theme="{DynamicResource Forge.PickerSpinButton}" VerticalAlignment="Top" />
+                                <Button Name="PART_SecondDownButton"
+                                        Theme="{DynamicResource Forge.PickerSpinButton}" VerticalAlignment="Bottom" />
+                            </Panel>
+                            <Rectangle Name="PART_ThirdSpacer" Grid.Column="5" Width="1"
+                                       Fill="{DynamicResource Forge.Group.Separator}" />
+                            <!-- 12 小时制下的上午/下午列，24 小时制时控件自己隐掉。 -->
+                            <Panel Name="PART_PeriodHost" Grid.Column="6">
+                                <DateTimePickerPanel Name="PART_PeriodSelector"
+                                                     PanelType="TimePeriod" ItemHeight="30" ShouldLoop="False" />
+                                <Button Name="PART_PeriodUpButton"
+                                        Theme="{DynamicResource Forge.PickerSpinButton}" VerticalAlignment="Top" />
+                                <Button Name="PART_PeriodDownButton"
+                                        Theme="{DynamicResource Forge.PickerSpinButton}" VerticalAlignment="Bottom" />
+                            </Panel>
+
+                            <Border Grid.ColumnSpan="7"
+                                    Height="30"
+                                    Background="{DynamicResource Forge.Item.SelectedBackground}"
+                                    VerticalAlignment="Center"
+                                    ZIndex="-1" />
+                        </Grid>
+                    </DockPanel>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.DatePicker" TargetType="DatePicker">
+        <Setter Property="MinWidth" Value="200" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="DatePicker">
+                <Panel>
+                    <Button Name="PART_FlyoutButton"
+                            Theme="{DynamicResource Forge.PickerFlyoutButton}">
+                        <!-- 三段：年 | 月 | 日，段间两条竖线。未选日期时显示占位文案。 -->
+                        <Grid Name="PART_ButtonContentGrid" ColumnDefinitions="*,Auto,*,Auto,*">
+                            <TextBlock Name="PART_YearTextBlock" Grid.Column="0"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       Margin="{DynamicResource Forge.Input.Padding}" />
+                            <Rectangle Name="PART_FirstSpacer" Grid.Column="1" Width="1"
+                                       Margin="0,4" Fill="{DynamicResource Forge.Group.Separator}" />
+                            <TextBlock Name="PART_MonthTextBlock" Grid.Column="2"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       Margin="{DynamicResource Forge.Input.Padding}" />
+                            <Rectangle Name="PART_SecondSpacer" Grid.Column="3" Width="1"
+                                       Margin="0,4" Fill="{DynamicResource Forge.Group.Separator}" />
+                            <TextBlock Name="PART_DayTextBlock" Grid.Column="4"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       Margin="{DynamicResource Forge.Input.Padding}" />
+                        </Grid>
+                    </Button>
+
+                    <Popup Name="PART_Popup"
+                           PlacementTarget="{TemplateBinding}"
+                           Placement="Bottom"
+                           VerticalOffset="2"
+                           InheritsTransform="True"
+                           WindowManagerAddShadowHint="False"
+                           IsLightDismissEnabled="True">
+                        <Border Background="{DynamicResource Forge.Popup.Background}"
+                                BorderBrush="{DynamicResource Forge.Popup.Border}"
+                                BorderThickness="1"
+                                CornerRadius="{DynamicResource Forge.Popup.CornerRadius}"
+                                ClipToBounds="True">
+                            <DatePickerPresenter Name="PART_PickerPresenter" />
+                        </Border>
+                    </Popup>
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+
+        <!-- 未选日期时整段压暗（占位语义）。 -->
+        <Style Selector="^:hasnodate /template/ TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Input.Placeholder}" />
+        </Style>
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.TimePicker" TargetType="TimePicker">
+        <Setter Property="MinWidth" Value="180" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="TimePicker">
+                <Panel>
+                    <Button Name="PART_FlyoutButton"
+                            Theme="{DynamicResource Forge.PickerFlyoutButton}">
+                        <Grid Name="PART_FlyoutButtonContentGrid" ColumnDefinitions="*,Auto,*,Auto,*,Auto,*">
+                            <Border Name="PART_FirstPickerHost" Grid.Column="0">
+                                <TextBlock Name="PART_HourTextBlock"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           Margin="{DynamicResource Forge.Input.Padding}" />
+                            </Border>
+                            <Rectangle Name="PART_FirstColumnDivider" Grid.Column="1" Width="1"
+                                       Margin="0,4" Fill="{DynamicResource Forge.Group.Separator}" />
+                            <Border Name="PART_SecondPickerHost" Grid.Column="2">
+                                <TextBlock Name="PART_MinuteTextBlock"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           Margin="{DynamicResource Forge.Input.Padding}" />
+                            </Border>
+                            <Rectangle Name="PART_SecondColumnDivider" Grid.Column="3" Width="1"
+                                       Margin="0,4" Fill="{DynamicResource Forge.Group.Separator}" />
+                            <Border Name="PART_ThirdPickerHost" Grid.Column="4">
+                                <TextBlock Name="PART_SecondTextBlock"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           Margin="{DynamicResource Forge.Input.Padding}" />
+                            </Border>
+                            <Rectangle Name="PART_ThirdColumnDivider" Grid.Column="5" Width="1"
+                                       Margin="0,4" Fill="{DynamicResource Forge.Group.Separator}" />
+                            <Border Name="PART_FourthPickerHost" Grid.Column="6">
+                                <TextBlock Name="PART_PeriodTextBlock"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           Margin="{DynamicResource Forge.Input.Padding}" />
+                            </Border>
+                        </Grid>
+                    </Button>
+
+                    <Popup Name="PART_Popup"
+                           PlacementTarget="{TemplateBinding}"
+                           Placement="Bottom"
+                           VerticalOffset="2"
+                           InheritsTransform="True"
+                           WindowManagerAddShadowHint="False"
+                           IsLightDismissEnabled="True">
+                        <Border Background="{DynamicResource Forge.Popup.Background}"
+                                BorderBrush="{DynamicResource Forge.Popup.Border}"
+                                BorderThickness="1"
+                                CornerRadius="{DynamicResource Forge.Popup.CornerRadius}"
+                                ClipToBounds="True">
+                            <TimePickerPresenter Name="PART_PickerPresenter" />
+                        </Border>
+                    </Popup>
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+
+        <Style Selector="^:hasnotime /template/ TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Input.Placeholder}" />
+        </Style>
+    </ControlTheme>
+
+</ResourceDictionary>

@@ -1,0 +1,168 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+      ComboBox + ComboBoxItem。边框与聚焦规则复用 Forge.Input.*，与 TextBox 同一套。
+      ⚠ 不可编辑时用 Forge.ComboBox.Background（暗色下比输入框亮一档），可编辑时才用输入框底色 ——
+        上游有意让不可编辑的更像按钮而非输入框（ComboBox.nonEditableBackground）。
+    -->
+
+    <ControlTheme x:Key="Forge.ComboBoxItem" TargetType="ComboBoxItem">
+        <Setter Property="Padding" Value="{DynamicResource Forge.Item.Padding}" />
+        <Setter Property="MinHeight" Value="{DynamicResource Forge.Item.Height}" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <!-- 下拉项**不做圆角**：上游的列表项是通栏色块，圆角会在项之间露出底色缝。 -->
+                <Border Name="PART_Root" Background="{TemplateBinding Background}" CornerRadius="{DynamicResource Forge.CornerRadius}">
+                    <ContentPresenter Name="PART_ContentPresenter"
+                                      Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      Padding="{TemplateBinding Padding}"
+                                      HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                      VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+
+        <Style Selector="^:pointerover /template/ Border#PART_Root">
+            <Setter Property="Background" Value="{DynamicResource Forge.Item.HoverBackground}" />
+        </Style>
+        <Style Selector="^:selected /template/ Border#PART_Root">
+            <Setter Property="Background" Value="{DynamicResource Forge.Item.SelectedBackground}" />
+        </Style>
+        <Style Selector="^:selected">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Item.SelectedForeground}" />
+        </Style>
+        <!-- 选中且悬停仍用选中色，不叠加 —— 叠加会让"当前选中"这条读起来像另一种状态。 -->
+        <Style Selector="^:selected:pointerover /template/ Border#PART_Root">
+            <Setter Property="Background" Value="{DynamicResource Forge.Item.SelectedBackground}" />
+        </Style>
+        <Style Selector="^:disabled">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Button.Disabled.Foreground}" />
+        </Style>
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.ComboBox" TargetType="ComboBox">
+        <Setter Property="Background" Value="{DynamicResource Forge.ComboBox.Background}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Forge.Input.Border}" />
+        <Setter Property="BorderThickness" Value="{DynamicResource Forge.Input.BorderThickness}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Forge.Input.CornerRadius}" />
+        <Setter Property="Padding" Value="{DynamicResource Forge.ComboBox.Padding}" />
+        <Setter Property="MinWidth" Value="{DynamicResource Forge.Input.MinWidth}" />
+        <Setter Property="MinHeight" Value="{DynamicResource Forge.Input.MinHeight}" />
+        <Setter Property="PlaceholderForeground" Value="{DynamicResource Forge.Input.Placeholder}" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Cursor" Value="Arrow" />
+
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Name="PART_FocusRing"
+                        BorderBrush="Transparent"
+                        BorderThickness="{DynamicResource Forge.Focus.RingThickness}"
+                        CornerRadius="{DynamicResource Forge.Focus.RingCornerRadius}">
+                    <Border Name="PART_Root"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{TemplateBinding CornerRadius}">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Name="PART_Placeholder"
+                                       Grid.Column="0"
+                                       Text="{TemplateBinding PlaceholderText}"
+                                       Foreground="{TemplateBinding PlaceholderForeground}"
+                                       Margin="{TemplateBinding Padding}"
+                                       VerticalAlignment="Center"
+                                       IsVisible="{TemplateBinding SelectionBoxItem, Converter={x:Static ObjectConverters.IsNull}}" />
+                            <ContentControl Name="PART_SelectedItem"
+                                            Grid.Column="0"
+                                            Content="{TemplateBinding SelectionBoxItem}"
+                                            ContentTemplate="{TemplateBinding ItemTemplate}"
+                                            Margin="{TemplateBinding Padding}"
+                                            HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                            VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                            IsVisible="{TemplateBinding IsEditable, Converter={x:Static BoolConverters.Not}}" />
+                            <TextBox Name="PART_EditableTextBox"
+                                     Grid.Column="0"
+                                     Theme="{StaticResource Forge.NumericUpDownTextBox}"
+                                     Margin="{TemplateBinding Padding}"
+                                     IsVisible="{TemplateBinding IsEditable}" />
+
+                            <!-- 箭头区。宽度走上游 Component.arrowAreaWidth，与 NumericUpDown 的箭头区同宽。 -->
+                            <Border Grid.Column="1"
+                                    Width="{DynamicResource Forge.ComboBox.ArrowAreaWidth}"
+                                    Background="Transparent">
+                                <Path Name="PART_Chevron"
+                                      Width="9" Height="5"
+                                      Stretch="None"
+                                      Data="M 0 0 L 4.5 5 L 9 0"
+                                      Stroke="{TemplateBinding Foreground}"
+                                      StrokeThickness="1.3"
+                                      StrokeLineCap="Round" StrokeJoin="Round"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+
+                            <!-- MinWidth 跟随框宽：下拉至少与收起时一样宽，否则选项被挤成一条。
+                                 ⚠ 若看到下拉跑到窗口左上角，先别怀疑 PlacementTarget ——
+                                   **Popup 打开后不跟随窗口移动**，用脚本截图时若先开下拉再摆窗口就会这样，
+                                   Semi 的下拉在同样条件下一样跑偏。见 StyleProbe 里那段注释。 -->
+                            <Popup Name="PART_Popup"
+                                   Grid.Column="0" Grid.ColumnSpan="2"
+                                   IsOpen="{TemplateBinding IsDropDownOpen, Mode=TwoWay}"
+                                   MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                                   MinWidth="{Binding Bounds.Width, RelativeSource={RelativeSource TemplatedParent}}"
+                                   PlacementTarget="{TemplateBinding}"
+                                   Placement="BottomEdgeAlignedLeft"
+                                   VerticalOffset="2"
+                                   InheritsTransform="True"
+                                   WindowManagerAddShadowHint="False"
+                                   IsLightDismissEnabled="True">
+                                <Border Background="{DynamicResource Forge.Popup.Background}"
+                                        BorderBrush="{DynamicResource Forge.Popup.Border}"
+                                        BorderThickness="1"
+                                        CornerRadius="{DynamicResource Forge.Popup.CornerRadius}"
+                                        Padding="{DynamicResource Forge.Popup.Padding}">
+                                    <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                                                  VerticalScrollBarVisibility="Auto">
+                                        <ItemsPresenter Name="PART_ItemsPresenter"
+                                                        ItemsPanel="{TemplateBinding ItemsPanel}" />
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </Border>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+
+        <Style Selector="^:pointerover /template/ Border#PART_Root">
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Input.Border}" />
+        </Style>
+
+        <Style Selector="^:focus-visible /template/ Border#PART_FocusRing">
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Focus.Ring}" />
+        </Style>
+        <Style Selector="^:focus-visible /template/ Border#PART_Root">
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Input.FocusedBorder}" />
+        </Style>
+
+        <!-- 下拉展开时箭头翻转，与「已展开」这个状态对应。 -->
+        <Style Selector="^:dropdownopen /template/ Path#PART_Chevron">
+            <Setter Property="RenderTransform" Value="rotate(180deg)" />
+        </Style>
+
+        <Style Selector="^:disabled /template/ Border#PART_Root">
+            <Setter Property="Background" Value="{DynamicResource Forge.ComboBox.Disabled.Background}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Input.Disabled.Border}" />
+        </Style>
+        <Style Selector="^:disabled">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Button.Disabled.Foreground}" />
+        </Style>
+
+        <Style Selector="^[IsEditable=True] /template/ Border#PART_Root">
+            <Setter Property="Background" Value="{DynamicResource Forge.ComboBox.EditableBackground}" />
+        </Style>
+    </ControlTheme>
+
+</ResourceDictionary>

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Avalonia;
 using Piccolo.Forge.Avalonia;
 using Piccolo.Forge.Themes;
@@ -48,10 +48,6 @@ public sealed class ForgeThemeScope : IDisposable
     /// <inheritdoc />
     public void Dispose() => ForgeThemeManager.Apply(Application.Current!, ThemeFor(Default));
 
-    /// <summary>族 → 主题包里的 Styles。两个包都引进来了，测试要两套都能跑。</summary>
-    public static IForgeTheme ThemeFor(ForgeThemeFamily family) => family switch
-    {
-        ForgeThemeFamily.Islands => new Piccolo.Forge.Themes.Islands.ForgeIslandsTheme(),
-        _ => new Piccolo.Forge.Themes.ExpUi.ForgeExpUiTheme(),
-    };
+    /// <summary>族 → 主题单元。入口只有一个（ForgeTheme），族是属性；两个资源包都引进来了，两族都能选。</summary>
+    public static IForgeTheme ThemeFor(ForgeThemeFamily family) => new ForgeTheme { Family = family };
 }

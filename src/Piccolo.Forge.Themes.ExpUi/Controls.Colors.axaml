@@ -1,0 +1,329 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+      经典档（IntelliJ expUI）色板。**本文件由 scripts/gen-forge-palette.py 生成，不要手改。**
+      色值逐条来自上游 expUI_{light,dark}.theme.json（Forge 仓 third_party/intellij-community），
+      改色请改生成器里的 MAP，然后重跑。
+    -->
+    <ResourceDictionary.ThemeDictionaries>
+
+        <ResourceDictionary x:Key="Light">
+            <SolidColorBrush x:Key="Forge.Text.Primary" Color="#FF000000" />  <!-- 继承自父主题的 *.foreground -->
+            <SolidColorBrush x:Key="Forge.Text.Secondary" Color="#FF818594" />
+            <SolidColorBrush x:Key="Forge.Button.Background" Color="#FFF7F8FA" />  <!-- 回落自 *.background -->
+            <SolidColorBrush x:Key="Forge.Button.Border" Color="#FFC9CCD6" />
+            <SolidColorBrush x:Key="Forge.Button.Accent.Background" Color="#FF3574F0" />
+            <SolidColorBrush x:Key="Forge.Button.Accent.Foreground" Color="#FFFFFFFF" />
+            <SolidColorBrush x:Key="Forge.Button.Disabled.Foreground" Color="#FFA8ADBD" />
+            <SolidColorBrush x:Key="Forge.Button.Disabled.Border" Color="#FFDFE1E5" />
+            <SolidColorBrush x:Key="Forge.Overlay.Hover" Color="#12000000" />
+            <SolidColorBrush x:Key="Forge.Overlay.Pressed" Color="#1D000000" />
+            <SolidColorBrush x:Key="Forge.Focus.Ring" Color="#FF3574F0" />
+            <SolidColorBrush x:Key="Forge.Input.Background" Color="#FFFFFFFF" />
+            <SolidColorBrush x:Key="Forge.Input.Border" Color="#FFC9CCD6" />
+            <SolidColorBrush x:Key="Forge.Input.FocusedBorder" Color="#FFFFFFFF" />
+            <SolidColorBrush x:Key="Forge.Input.Disabled.Background" Color="#FFFFFFFF" />
+            <SolidColorBrush x:Key="Forge.Input.Disabled.Border" Color="#FFDFE1E5" />
+            <SolidColorBrush x:Key="Forge.Input.Placeholder" Color="#FF818594" />
+            <SolidColorBrush x:Key="Forge.Input.SelectionBackground" Color="#FFD4E2FF" />
+            <SolidColorBrush x:Key="Forge.Input.SelectionForeground" Color="#FF000000" />
+            <SolidColorBrush x:Key="Forge.Input.Error" Color="#FFDB3B4B" />
+            <SolidColorBrush x:Key="Forge.Input.Warning" Color="#FFFFAF0F" />
+            <SolidColorBrush x:Key="Forge.ComboBox.Background" Color="#FFFFFFFF" />  <!-- 回落自 ComboBox.ArrowButton.nonEditableBackground -->
+            <SolidColorBrush x:Key="Forge.ComboBox.EditableBackground" Color="#FFFFFFFF" />
+            <SolidColorBrush x:Key="Forge.ComboBox.Disabled.Background" Color="#FFF7F8FA" />
+            <SolidColorBrush x:Key="Forge.Popup.Background" Color="#FFFFFFFF" />
+            <SolidColorBrush x:Key="Forge.Popup.Border" Color="#FFB9BDC9" />
+            <SolidColorBrush x:Key="Forge.Item.HoverBackground" Color="#FFEDF3FF" />  <!-- 回落自 *.hoverBackground -->
+            <SolidColorBrush x:Key="Forge.Item.SelectedBackground" Color="#FFD4E2FF" />
+            <SolidColorBrush x:Key="Forge.Item.SelectedForeground" Color="#FF000000" />
+            <SolidColorBrush x:Key="Forge.Item.SelectedInactiveBackground" Color="#FFDFE1E5" />
+            <SolidColorBrush x:Key="Forge.ScrollBar.Thumb" Color="#33737373" />  <!-- 继承自父主题的 ScrollBar.Transparent.thumbColor -->
+            <SolidColorBrush x:Key="Forge.ScrollBar.ThumbBorder" Color="#33595959" />  <!-- 继承自父主题的 ScrollBar.Transparent.thumbBorderColor -->
+            <SolidColorBrush x:Key="Forge.ScrollBar.ThumbHover" Color="#47737373" />  <!-- 继承自父主题的 ScrollBar.Transparent.hoverThumbColor -->
+            <SolidColorBrush x:Key="Forge.ScrollBar.ThumbHoverBorder" Color="#47595959" />  <!-- 继承自父主题的 ScrollBar.Transparent.hoverThumbBorderColor -->
+            <SolidColorBrush x:Key="Forge.ScrollBar.Track" Color="#00808080" />  <!-- 继承自父主题的 ScrollBar.Transparent.trackColor -->
+            <SolidColorBrush x:Key="Forge.ScrollBar.TrackHover" Color="#1A808080" />  <!-- 继承自父主题的 ScrollBar.Transparent.hoverTrackColor -->
+            <SolidColorBrush x:Key="Forge.Menu.Background" Color="#FFFFFFFF" />
+            <SolidColorBrush x:Key="Forge.Menu.Border" Color="#FFB9BDC9" />
+            <SolidColorBrush x:Key="Forge.Menu.Separator" Color="#FFEBECF0" />  <!-- 回落自 *.separatorColor -->
+            <SolidColorBrush x:Key="Forge.MenuItem.SelectedBackground" Color="#FFD4E2FF" />
+            <SolidColorBrush x:Key="Forge.MenuItem.SelectedForeground" Color="#FF000000" />
+            <SolidColorBrush x:Key="Forge.MenuItem.Accelerator" Color="#FF818594" />
+            <SolidColorBrush x:Key="Forge.MenuItem.AcceleratorSelected" Color="#FF818594" />
+            <SolidColorBrush x:Key="Forge.MenuItem.Disabled" Color="#FFA8ADBD" />
+            <SolidColorBrush x:Key="Forge.Check.Background" Color="#FFFFFFFF" />
+            <SolidColorBrush x:Key="Forge.Check.Border" Color="#FFA8ADBD" />
+            <SolidColorBrush x:Key="Forge.Check.SelectedBackground" Color="#FF3574F0" />
+            <SolidColorBrush x:Key="Forge.Check.SelectedBorder" Color="#FF3574F0" />
+            <SolidColorBrush x:Key="Forge.Check.Glyph" Color="#FFFFFFFF" />
+            <SolidColorBrush x:Key="Forge.Check.Disabled.Background" Color="#FFF7F8FA" />
+            <SolidColorBrush x:Key="Forge.Check.Disabled.Border" Color="#FFDFE1E5" />
+            <SolidColorBrush x:Key="Forge.Check.Disabled.Glyph" Color="#FFC9CCD6" />
+            <SolidColorBrush x:Key="Forge.Group.Separator" Color="#FFEBECF0" />  <!-- 回落自 *.separatorColor -->
+            <SolidColorBrush x:Key="Forge.Tab.SelectedBackground" Color="#FFD4E2FF" />
+            <SolidColorBrush x:Key="Forge.Tab.HoverBackground" Color="#FFEBECF0" />
+            <SolidColorBrush x:Key="Forge.Tab.ContentBorder" Color="#FFEBECF0" />
+            <SolidColorBrush x:Key="Forge.Slider.Track" Color="#FFC9CCD6" />
+            <SolidColorBrush x:Key="Forge.Slider.Thumb" Color="#FFF7F8FA" />  <!-- 回落自 *.background -->
+            <SolidColorBrush x:Key="Forge.Slider.ThumbBorder" Color="#FF818594" />
+            <SolidColorBrush x:Key="Forge.Slider.Tick" Color="#FF818594" />
+            <SolidColorBrush x:Key="Forge.Progress.Bar" Color="#FF3574F0" />
+            <SolidColorBrush x:Key="Forge.Progress.Track" Color="#FFDFE1E5" />
+            <SolidColorBrush x:Key="Forge.Progress.Passed" Color="#FF55A76A" />
+            <SolidColorBrush x:Key="Forge.Progress.Failed" Color="#FFE55765" />
+            <SolidColorBrush x:Key="Forge.ToolTip.Background" Color="#FF27282E" />
+            <SolidColorBrush x:Key="Forge.ToolTip.Foreground" Color="#FFFFFFFF" />
+            <SolidColorBrush x:Key="Forge.ToolTip.Border" Color="#FF27282E" />
+            <SolidColorBrush x:Key="Forge.Link.Foreground" Color="#FF315FBD" />
+            <SolidColorBrush x:Key="Forge.Label.Error" Color="#FFDB3B4B" />
+            <SolidColorBrush x:Key="Forge.Label.Warning" Color="#FFA46704" />
+            <SolidColorBrush x:Key="Forge.Split.AccentSeparator" Color="#FF88ADF7" />
+            <SolidColorBrush x:Key="Forge.Table.GridLine" Color="#FFEBECF0" />
+            <SolidColorBrush x:Key="Forge.Table.Stripe" Color="#FFF7F8FA" />
+            <SolidColorBrush x:Key="Forge.Table.HeaderSeparator" Color="#FFEBECF0" />  <!-- 回落自 TableHeader.bottomSeparatorColor -->
+            <SolidColorBrush x:Key="Forge.Notification.Background" Color="#FFFFFFFF" />  <!-- 上游 JSON 未定义，取自 有意偏离上游：亮色档改浅底，暗色档仍用 Notification.background -->
+            <SolidColorBrush x:Key="Forge.Notification.Border" Color="#FFB9BDC9" />  <!-- 上游 JSON 未定义，取自 亮色档用弹出层的边框色，暗色档用上游 Notification.borderColor -->
+            <SolidColorBrush x:Key="Forge.Notification.Link" Color="#FF88ADF7" />
+            <SolidColorBrush x:Key="Forge.Notification.IconHover" Color="#1AFFFFFF" />
+            <SolidColorBrush x:Key="Forge.Notification.Shadow" Color="#10808080" />
+            <SolidColorBrush x:Key="Forge.Window.Background" Color="#FFF7F8FA" />
+            <SolidColorBrush x:Key="Forge.Window.Border" Color="#FFEBECF0" />
+            <SolidColorBrush x:Key="Forge.Window.TitleBarBackground" Color="#FFF7F8FA" />
+            <SolidColorBrush x:Key="Forge.Scrim" Color="#40000000" />  <!-- 上游 JSON 未定义，取自 上游无模态遮罩色，自定 -->
+            <SolidColorBrush x:Key="Forge.Banner.InfoBackground" Color="#FFFFFFFF" />
+            <SolidColorBrush x:Key="Forge.Banner.InfoBorder" Color="#FFDFE1E5" />
+            <SolidColorBrush x:Key="Forge.Banner.WarnBackground" Color="#FFFEE6B1" />
+            <SolidColorBrush x:Key="Forge.Banner.WarnBorder" Color="#FFFED277" />
+            <SolidColorBrush x:Key="Forge.Banner.ErrorBackground" Color="#FFFAD4D8" />
+            <SolidColorBrush x:Key="Forge.Banner.ErrorBorder" Color="#FFF2B6BB" />
+            <SolidColorBrush x:Key="Forge.Banner.Foreground" Color="#FF000000" />
+            <SolidColorBrush x:Key="Forge.Validation.ErrorBackground" Color="#FFFFF2F3" />
+            <SolidColorBrush x:Key="Forge.Validation.ErrorBorder" Color="#FFED99A1" />
+            <SolidColorBrush x:Key="Forge.Validation.ErrorForeground" Color="#FF000000" />
+            <SolidColorBrush x:Key="Forge.Validation.WarningBackground" Color="#FFFFF5DB" />
+            <SolidColorBrush x:Key="Forge.Validation.WarningBorder" Color="#FFFDBD3D" />
+            <SolidColorBrush x:Key="Forge.Validation.WarningForeground" Color="#FF000000" />
+        </ResourceDictionary>
+
+        <ResourceDictionary x:Key="Dark">
+            <SolidColorBrush x:Key="Forge.Text.Primary" Color="#FFDFE1E5" />
+            <SolidColorBrush x:Key="Forge.Text.Secondary" Color="#FF6F737A" />
+            <SolidColorBrush x:Key="Forge.Button.Background" Color="#FF2B2D30" />
+            <SolidColorBrush x:Key="Forge.Button.Border" Color="#FF4E5157" />
+            <SolidColorBrush x:Key="Forge.Button.Accent.Background" Color="#FF3574F0" />
+            <SolidColorBrush x:Key="Forge.Button.Accent.Foreground" Color="#FFFFFFFF" />
+            <SolidColorBrush x:Key="Forge.Button.Disabled.Foreground" Color="#FF5A5D63" />
+            <SolidColorBrush x:Key="Forge.Button.Disabled.Border" Color="#FF43454A" />
+            <SolidColorBrush x:Key="Forge.Overlay.Hover" Color="#16FFFFFF" />
+            <SolidColorBrush x:Key="Forge.Overlay.Pressed" Color="#26FFFFFF" />
+            <SolidColorBrush x:Key="Forge.Focus.Ring" Color="#FF3574F0" />
+            <SolidColorBrush x:Key="Forge.Input.Background" Color="#FF2B2D30" />
+            <SolidColorBrush x:Key="Forge.Input.Border" Color="#FF4E5157" />
+            <SolidColorBrush x:Key="Forge.Input.FocusedBorder" Color="#FF2B2D30" />
+            <SolidColorBrush x:Key="Forge.Input.Disabled.Background" Color="#FF2B2D30" />
+            <SolidColorBrush x:Key="Forge.Input.Disabled.Border" Color="#FF43454A" />
+            <SolidColorBrush x:Key="Forge.Input.Placeholder" Color="#FF6F737A" />
+            <SolidColorBrush x:Key="Forge.Input.SelectionBackground" Color="#FF2E436E" />
+            <SolidColorBrush x:Key="Forge.Input.SelectionForeground" Color="#FFDFE1E5" />
+            <SolidColorBrush x:Key="Forge.Input.Error" Color="#FF9C4E4E" />
+            <SolidColorBrush x:Key="Forge.Input.Warning" Color="#FF9E814A" />
+            <SolidColorBrush x:Key="Forge.ComboBox.Background" Color="#FF393B40" />
+            <SolidColorBrush x:Key="Forge.ComboBox.EditableBackground" Color="#FF2B2D30" />  <!-- 回落自 TextField.background -->
+            <SolidColorBrush x:Key="Forge.ComboBox.Disabled.Background" Color="#FF2B2D30" />  <!-- 回落自 *.disabledBackground -->
+            <SolidColorBrush x:Key="Forge.Popup.Background" Color="#FF2B2D30" />  <!-- 回落自 *.background -->
+            <SolidColorBrush x:Key="Forge.Popup.Border" Color="#FF43454A" />
+            <SolidColorBrush x:Key="Forge.Item.HoverBackground" Color="#FF393B40" />  <!-- 回落自 *.hoverBackground -->
+            <SolidColorBrush x:Key="Forge.Item.SelectedBackground" Color="#FF2E436E" />
+            <SolidColorBrush x:Key="Forge.Item.SelectedForeground" Color="#FFDFE1E5" />
+            <SolidColorBrush x:Key="Forge.Item.SelectedInactiveBackground" Color="#FF43454A" />
+            <SolidColorBrush x:Key="Forge.ScrollBar.Thumb" Color="#47A6A6A6" />  <!-- 上游 JSON 未定义，取自 ScrollBarPainter.THUMB_BACKGROUND -->
+            <SolidColorBrush x:Key="Forge.ScrollBar.ThumbBorder" Color="#47383838" />  <!-- 上游 JSON 未定义，取自 ScrollBarPainter.THUMB_FOREGROUND -->
+            <SolidColorBrush x:Key="Forge.ScrollBar.ThumbHover" Color="#59A6A6A6" />  <!-- 上游 JSON 未定义，取自 ScrollBarPainter.THUMB_HOVERED_BACKGROUND -->
+            <SolidColorBrush x:Key="Forge.ScrollBar.ThumbHoverBorder" Color="#59383838" />  <!-- 上游 JSON 未定义，取自 ScrollBarPainter.THUMB_HOVERED_FOREGROUND -->
+            <SolidColorBrush x:Key="Forge.ScrollBar.Track" Color="#00808080" />  <!-- 上游 JSON 未定义，取自 ScrollBarPainter.TRACK_BACKGROUND -->
+            <SolidColorBrush x:Key="Forge.ScrollBar.TrackHover" Color="#1A808080" />  <!-- 上游 JSON 未定义，取自 ScrollBarPainter.TRACK_HOVERED_BACKGROUND -->
+            <SolidColorBrush x:Key="Forge.Menu.Background" Color="#FF2B2D30" />  <!-- 回落自 *.background -->
+            <SolidColorBrush x:Key="Forge.Menu.Border" Color="#FF43454A" />
+            <SolidColorBrush x:Key="Forge.Menu.Separator" Color="#FF43454A" />
+            <SolidColorBrush x:Key="Forge.MenuItem.SelectedBackground" Color="#FF2E436E" />
+            <SolidColorBrush x:Key="Forge.MenuItem.SelectedForeground" Color="#FFDFE1E5" />
+            <SolidColorBrush x:Key="Forge.MenuItem.Accelerator" Color="#FF6F737A" />
+            <SolidColorBrush x:Key="Forge.MenuItem.AcceleratorSelected" Color="#FF6F737A" />  <!-- 回落自 *.acceleratorForeground -->
+            <SolidColorBrush x:Key="Forge.MenuItem.Disabled" Color="#FF5A5D63" />
+            <SolidColorBrush x:Key="Forge.Check.Background" Color="#FF2B2D30" />  <!-- 上游 JSON 未定义，取自 expUI/icons/dark/checkBox.svg -->
+            <SolidColorBrush x:Key="Forge.Check.Border" Color="#FF5A5D63" />  <!-- 上游 JSON 未定义，取自 expUI/icons/dark/checkBox.svg -->
+            <SolidColorBrush x:Key="Forge.Check.SelectedBackground" Color="#FF3574F0" />  <!-- 上游 JSON 未定义，取自 expUI/icons/dark/checkBoxSelected.svg -->
+            <SolidColorBrush x:Key="Forge.Check.SelectedBorder" Color="#FF3574F0" />  <!-- 上游 JSON 未定义，取自 expUI/icons/dark/checkBoxSelected.svg -->
+            <SolidColorBrush x:Key="Forge.Check.Glyph" Color="#FFFFFFFF" />  <!-- 上游 JSON 未定义，取自 expUI/icons/dark/checkBoxSelected.svg -->
+            <SolidColorBrush x:Key="Forge.Check.Disabled.Background" Color="#FF393B40" />  <!-- 上游 JSON 未定义，取自 expUI/icons/dark/checkBoxDisabled.svg -->
+            <SolidColorBrush x:Key="Forge.Check.Disabled.Border" Color="#FF5A5D63" />  <!-- 上游 JSON 未定义，取自 expUI/icons/dark/checkBoxDisabled.svg -->
+            <SolidColorBrush x:Key="Forge.Check.Disabled.Glyph" Color="#FF6F737A" />  <!-- 上游 JSON 未定义，取自 expUI/icons/dark/checkBoxSelectedDisabled.svg -->
+            <SolidColorBrush x:Key="Forge.Group.Separator" Color="#FF393B40" />  <!-- 回落自 *.separatorColor -->
+            <SolidColorBrush x:Key="Forge.Tab.SelectedBackground" Color="#FF2E436E" />
+            <SolidColorBrush x:Key="Forge.Tab.HoverBackground" Color="#FF43454A" />
+            <SolidColorBrush x:Key="Forge.Tab.ContentBorder" Color="#FF1E1F22" />
+            <SolidColorBrush x:Key="Forge.Slider.Track" Color="#FF5A5D63" />
+            <SolidColorBrush x:Key="Forge.Slider.Thumb" Color="#FF9DA0A8" />
+            <SolidColorBrush x:Key="Forge.Slider.ThumbBorder" Color="#FF2B2D30" />
+            <SolidColorBrush x:Key="Forge.Slider.Tick" Color="#FF868A91" />
+            <SolidColorBrush x:Key="Forge.Progress.Bar" Color="#FF467FF2" />
+            <SolidColorBrush x:Key="Forge.Progress.Track" Color="#FF43454A" />
+            <SolidColorBrush x:Key="Forge.Progress.Passed" Color="#FF57965C" />
+            <SolidColorBrush x:Key="Forge.Progress.Failed" Color="#FFBD5757" />
+            <SolidColorBrush x:Key="Forge.ToolTip.Background" Color="#FF393B40" />
+            <SolidColorBrush x:Key="Forge.ToolTip.Foreground" Color="#FFF0F1F2" />
+            <SolidColorBrush x:Key="Forge.ToolTip.Border" Color="#FF43454A" />
+            <SolidColorBrush x:Key="Forge.Link.Foreground" Color="#FF6B9BFA" />
+            <SolidColorBrush x:Key="Forge.Label.Error" Color="#FFDB5C5C" />
+            <SolidColorBrush x:Key="Forge.Label.Warning" Color="#FFBA9752" />
+            <SolidColorBrush x:Key="Forge.Split.AccentSeparator" Color="#FF83ACFC" />
+            <SolidColorBrush x:Key="Forge.Table.GridLine" Color="#FF1E1F22" />
+            <SolidColorBrush x:Key="Forge.Table.Stripe" Color="#FF2B2D30" />
+            <SolidColorBrush x:Key="Forge.Table.HeaderSeparator" Color="#FF1E1F22" />
+            <SolidColorBrush x:Key="Forge.Notification.Background" Color="#FF393B40" />  <!-- 上游 JSON 未定义，取自 有意偏离上游：亮色档改浅底，暗色档仍用 Notification.background -->
+            <SolidColorBrush x:Key="Forge.Notification.Border" Color="#FF43454A" />  <!-- 上游 JSON 未定义，取自 亮色档用弹出层的边框色，暗色档用上游 Notification.borderColor -->
+            <SolidColorBrush x:Key="Forge.Notification.Link" Color="#FF6B9BFA" />
+            <SolidColorBrush x:Key="Forge.Notification.IconHover" Color="#1AFFFFFF" />
+            <SolidColorBrush x:Key="Forge.Notification.Shadow" Color="#10000000" />
+            <SolidColorBrush x:Key="Forge.Window.Background" Color="#FF2B2D30" />
+            <SolidColorBrush x:Key="Forge.Window.Border" Color="#FF1E1F22" />
+            <SolidColorBrush x:Key="Forge.Window.TitleBarBackground" Color="#FF2B2D30" />  <!-- 回落自 *.background -->
+            <SolidColorBrush x:Key="Forge.Scrim" Color="#73000000" />  <!-- 上游 JSON 未定义，取自 上游无模态遮罩色，自定 -->
+            <SolidColorBrush x:Key="Forge.Banner.InfoBackground" Color="#FF393B40" />
+            <SolidColorBrush x:Key="Forge.Banner.InfoBorder" Color="#FF43454A" />
+            <SolidColorBrush x:Key="Forge.Banner.WarnBackground" Color="#FF3D3223" />
+            <SolidColorBrush x:Key="Forge.Banner.WarnBorder" Color="#FF5E4D33" />
+            <SolidColorBrush x:Key="Forge.Banner.ErrorBackground" Color="#FF5E3838" />
+            <SolidColorBrush x:Key="Forge.Banner.ErrorBorder" Color="#FF7A4343" />
+            <SolidColorBrush x:Key="Forge.Banner.Foreground" Color="#FFDFE1E5" />
+            <SolidColorBrush x:Key="Forge.Validation.ErrorBackground" Color="#FF5E3838" />
+            <SolidColorBrush x:Key="Forge.Validation.ErrorBorder" Color="#FFBD5757" />
+            <SolidColorBrush x:Key="Forge.Validation.ErrorForeground" Color="#FFFFFFFF" />
+            <SolidColorBrush x:Key="Forge.Validation.WarningBackground" Color="#FF5E4D33" />
+            <SolidColorBrush x:Key="Forge.Validation.WarningBorder" Color="#FFBA9752" />
+            <SolidColorBrush x:Key="Forge.Validation.WarningForeground" Color="#FFFFFFFF" />
+        </ResourceDictionary>
+
+    </ResourceDictionary.ThemeDictionaries>
+
+    <!-- ═══ 圆角：全系统**一个值 4**（圆形/胶囊除外）═══
+         上游其实给了整套刻度（arc 是直径，÷2 才是 Avalonia 的 CornerRadius）：
+             Component.arc.compact=6 → 3   紧凑控件
+             Button.arc / Component.arc / MainToolbar.Button.arc.compact = 8 → 4
+             Banner.arc=12（compact 8）→ 6 / 4   提示条
+             Island.arc.compact=16（Island.arc=20）→ 8 / 10   面板
+         本软件**有意不分档**，一律 4：分档只有在层级足够深（IDE 的 Island 套 Banner 套控件）
+         时才读得出来；本软件的面板外形已由 Forge 外壳定，里面再分三档只会显得零碎。
+         2026-08-23 决定，此前上位机 101 处写死值散在 1~21 之间。
+
+         两个例外**不是设计选择、是几何**，别顺手改成 4：
+           · Forge.Focus.RingCornerRadius = 4 + 环厚 2 = 6，改了焦点环与边框不同心；
+           · Forge.Radio.CornerRadius = 尺寸 16 ÷ 2 = 8，那是"画成圆"，不是圆角。 -->
+    <CornerRadius x:Key="Forge.CornerRadius">4</CornerRadius>
+
+    <!-- 按钮前景两档都不给，继承宿主正文色（上游 Light 档也是继承）。
+         主按钮的 Accent.Foreground 是例外：蓝底上必须白字。 -->
+
+    <CornerRadius x:Key="Forge.Button.CornerRadius">4</CornerRadius>
+    <x:Double x:Key="Forge.Button.MinWidth">72</x:Double>
+    <x:Double x:Key="Forge.Button.MinHeight">28</x:Double>
+    <Thickness x:Key="Forge.Button.Padding">14,4</Thickness>
+    <Thickness x:Key="Forge.Button.BorderThickness">1</Thickness>
+
+    <!-- 聚焦环：上游画在边框**外围**（DarculaUIUtil.doPaint），宽 2；
+         外圈圆角＝内圆角＋环宽，才是同心的。 -->
+    <Thickness x:Key="Forge.Focus.RingThickness">2</Thickness>
+    <CornerRadius x:Key="Forge.Focus.RingCornerRadius">6</CornerRadius>
+
+    <!-- 输入类度量：上游 TextField.minimumSize 49,28、Component.arc 8（→半径 4）。 -->
+    <CornerRadius x:Key="Forge.Input.CornerRadius">4</CornerRadius>
+    <x:Double x:Key="Forge.Input.MinWidth">49</x:Double>
+    <x:Double x:Key="Forge.Input.MinHeight">28</x:Double>
+    <Thickness x:Key="Forge.Input.Padding">8,3</Thickness>
+    <Thickness x:Key="Forge.Input.BorderThickness">1</Thickness>
+    <!-- NumericUpDown 走上游 Spinner.minimumSize 72,28；箭头区宽度用 Component.arrowAreaWidth。 -->
+    <x:Double x:Key="Forge.Spinner.MinWidth">72</x:Double>
+    <x:Double x:Key="Forge.Spinner.ArrowAreaWidth">28</x:Double>
+
+    <!-- ComboBox：上游 padding 是 Java Insets(top,left,bottom,right)=1,9,1,6，
+         换成 Avalonia 的 Thickness(left,top,right,bottom)。箭头区同 Component.arrowAreaWidth。 -->
+    <Thickness x:Key="Forge.ComboBox.Padding">9,1,6,1</Thickness>
+    <x:Double x:Key="Forge.ComboBox.ArrowAreaWidth">28</x:Double>
+    <!-- 滚动条：上游没把厚度放进 theme.json（在 Java 侧按 DPI 算），12 是与 IntelliJ 观感相当的值。
+         thumb 内缩 2px 留出轨道边距 —— 上游 mac 分支用 macMargin 做同一件事，非 mac 分支靠布局留白。 -->
+    <x:Double x:Key="Forge.ScrollBar.Thickness">12</x:Double>
+    <Thickness x:Key="Forge.ScrollBar.ThumbMargin">2</Thickness>
+
+    <!-- 进度条：上游没给厚度（Java 侧按 DPI 算），4 是与 IntelliJ 观感相当的值。 -->
+    <x:Double x:Key="Forge.Progress.Thickness">4</x:Double>
+    <CornerRadius x:Key="Forge.Progress.CornerRadius">4</CornerRadius>
+
+    <!-- 提示气泡。 -->
+    <Thickness x:Key="Forge.ToolTip.Padding">8,4</Thickness>
+    <CornerRadius x:Key="Forge.ToolTip.CornerRadius">4</CornerRadius>
+
+    <!-- 开关（ToggleSwitch）。上游没有这个控件（Swing 用复选框代替），
+         尺寸按 IntelliJ 新 UI 里设置页那种开关的观感定：轨道 28×16、滑块 12。 -->
+    <x:Double x:Key="Forge.Switch.TrackWidth">28</x:Double>
+    <x:Double x:Key="Forge.Switch.TrackHeight">16</x:Double>
+    <x:Double x:Key="Forge.Switch.KnobSize">12</x:Double>
+
+    <!-- 选项卡：高度与内边距来自上游 TabbedPane.tabHeight / tabInsets(Java Insets 换序)。
+         ⚠ 圆角直接取 tabSelectionArc=4，**不按 Button.arc 那样折半** ——
+           那个键名是 "SelectionArc"，指的就是选中块的圆角半径，与进 RoundRectangle2D
+           当直径用的 Button.arc 不是同一个口径。 -->
+    <x:Double x:Key="Forge.Tab.Height">40</x:Double>
+    <Thickness x:Key="Forge.Tab.Padding">12,0</Thickness>
+    <CornerRadius x:Key="Forge.Tab.CornerRadius">4</CornerRadius>
+
+    <!-- 表格：表头高度取上游 TableHeader.height 的 os.default（25），
+         行高与列表项同档（上游 List.rowHeight=24）。 -->
+    <x:Double x:Key="Forge.Table.HeaderHeight">25</x:Double>
+    <x:Double x:Key="Forge.Table.RowHeight">24</x:Double>
+    <Thickness x:Key="Forge.Table.CellPadding">8,0</Thickness>
+
+    <!-- 滑块。上游只给了颜色没给尺寸（Java 侧按 DPI 算），这两个数是与 IntelliJ 观感相当的值。 -->
+    <x:Double x:Key="Forge.Slider.ThumbSize">14</x:Double>
+    <x:Double x:Key="Forge.Slider.TrackThickness">4</x:Double>
+
+    <!-- 树的每层缩进 = 上游 Tree.leftChildIndent(7) + rightChildIndent(11)。
+         ⚠ 上游 Tree.paintLines = false —— **不画层级连接线**，层级只靠缩进表达。
+         行高走 Forge.Item.Height（expUI 把 Tree/List 的 rowHeight 都定成 24）。 -->
+    <!-- 直接给成 Thickness：Margin 里不能把 DynamicResource 和字面值拼起来
+         （`{DynamicResource X},0,0,0` 编译得过，运行期抛 Double→Thickness 的转换异常）。 -->
+    <Thickness x:Key="Forge.Tree.ChildMargin">18,0,0,0</Thickness>
+    <Thickness x:Key="Forge.Tree.Padding">12,4</Thickness>
+    <Thickness x:Key="Forge.List.Padding">0,4</Thickness>
+
+    <!-- Expander：标题行比菜单项高一档（它是分组标题，不是列表项）。
+         展开标记用 chevron 而非三角 —— 上游 Tree.collapsedIcon / expandedIcon 就是
+         chevronRight.svg / chevronDown.svg，收起朝右、展开朝下。 -->
+    <x:Double x:Key="Forge.Expander.HeaderHeight">28</x:Double>
+    <Thickness x:Key="Forge.Expander.HeaderPadding">6,0</Thickness>
+    <Thickness x:Key="Forge.Expander.ContentPadding">22,4,0,8</Thickness>
+
+    <!-- 复选框 / 单选钮。上游的 SVG 是 24 画布里 `rect x=4.5 y=4.5 w=15 h=15 rx=2.5`
+         （0.5 偏移是让 1px 描边落在像素中心的老技巧，实际占位含描边是 16），
+         故这里取 16×16（圆角随全局的 4；上游 arc 折半是 3，本软件不分档）。
+         单选钮同上游 `circle r=8`，也是 16 直径、圆角即半径 —— 那是"画成圆"，不参与统一。
+         iconTextGap 4 来自 ui.CheckBox.textIconGap。 -->
+    <x:Double x:Key="Forge.Check.Size">16</x:Double>
+    <CornerRadius x:Key="Forge.Check.CornerRadius">4</CornerRadius>
+    <CornerRadius x:Key="Forge.Radio.CornerRadius">8</CornerRadius>
+    <Thickness x:Key="Forge.Check.TextGap">4,0,0,0</Thickness>
+
+    <!-- 菜单：行高与下拉项同档（上游未在 theme.json 给菜单项高度）。
+         图标/勾选列 20 宽 —— 有图标和没图标的项文本要对齐，这一列恒占位。 -->
+    <x:Double x:Key="Forge.MenuItem.Height">24</x:Double>
+    <x:Double x:Key="Forge.MenuItem.IconColumnWidth">20</x:Double>
+    <Thickness x:Key="Forge.MenuItem.Padding">6,0,10,0</Thickness>
+    <Thickness x:Key="Forge.Menu.Padding">0,4</Thickness>
+    <!-- 菜单栏（顶栏那条）的项更紧凑，且不吃菜单面板的行高。 -->
+    <Thickness x:Key="Forge.MenuBarItem.Padding">10,4</Thickness>
+
+    <!-- 下拉项行高走上游 List.rowHeight=24。 -->
+    <x:Double x:Key="Forge.Item.Height">24</x:Double>
+    <Thickness x:Key="Forge.Item.Padding">8,0</Thickness>
+    <CornerRadius x:Key="Forge.Popup.CornerRadius">4</CornerRadius>
+    <Thickness x:Key="Forge.Popup.Padding">0,4</Thickness>
+</ResourceDictionary>

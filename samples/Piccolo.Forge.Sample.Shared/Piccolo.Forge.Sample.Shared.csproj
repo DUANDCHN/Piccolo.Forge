@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--  外壳演示的**内容**（停靠 / 工具窗 / 编辑器标签），两档共用。
+        ⚠ 有意**不引任何主题包**：装哪一族由各示例壳自己决定，各引一个包 ——
+          这就是设计里的默认姿势。内容只有一份，抄成每档一份必然漂移。
+        ⚠ 内容里一旦写死某族的键（Forge.ExpUi.* / Forge.Islands.*），本工程就编不过，
+          这条约束本身就是护栏。  -->
+  <PropertyGroup>
+    <RootNamespace>Piccolo.Forge.Sample.Shared</RootNamespace>
+    <TargetFrameworks></TargetFrameworks>
+    <TargetFramework>net8.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Piccolo.Forge.Avalonia/Piccolo.Forge.Avalonia.csproj" />
+    <ProjectReference Include="../../src/Piccolo.Forge.Mvvm/Piccolo.Forge.Mvvm.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,34 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+      ScrollViewer。它自己没有外观，作用是把两条 ScrollBar 摆到内容之上。
+      两条滚动条与内容**同处一个 Grid 单元**（不是各占一行一列）：上游的滚动条是浮在内容上的，
+      占布局会让内容宽度随滚动条显隐跳动。
+    -->
+    <ControlTheme x:Key="Forge.ScrollViewer" TargetType="ScrollViewer">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid>
+                    <ScrollContentPresenter Name="PART_ContentPresenter"
+                                            Background="{TemplateBinding Background}"
+                                            Content="{TemplateBinding Content}"
+                                            ContentTemplate="{TemplateBinding ContentTemplate}"
+                                            Margin="{TemplateBinding Padding}"
+                                            HorizontalSnapPointsType="{TemplateBinding HorizontalSnapPointsType}"
+                                            VerticalSnapPointsType="{TemplateBinding VerticalSnapPointsType}"
+                                            HorizontalSnapPointsAlignment="{TemplateBinding HorizontalSnapPointsAlignment}"
+                                            VerticalSnapPointsAlignment="{TemplateBinding VerticalSnapPointsAlignment}" />
+                    <ScrollBar Name="PART_VerticalScrollBar"
+                               Theme="{StaticResource Forge.ScrollBar}"
+                               Orientation="Vertical"
+                               HorizontalAlignment="Right" />
+                    <ScrollBar Name="PART_HorizontalScrollBar"
+                               Theme="{StaticResource Forge.ScrollBar}"
+                               Orientation="Horizontal"
+                               VerticalAlignment="Bottom" />
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+</ResourceDictionary>

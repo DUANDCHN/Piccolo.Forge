@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--  ★ 经典（expUI）档的**外壳布局**演示：条带 / 停靠区 / 工具窗 / 编辑器标签。★
+
+        外壳是两档差别最大的地方（11 个模板文件逐个 diff，无一相同），所以按档各出一个。
+        控件的演示只要一档就够（两档只有色板不同），见 Piccolo.Forge.Sample。
+
+        全工程**只引一个主题包** —— 这是设计里的默认姿势：谁用哪一档，就引哪一个包。
+        它同时是一道构建期的证明：Themes.ExpUi 若不足以单独装出一整套界面，这个示例会当场编不过。  -->
+  <PropertyGroup>
+    <RootNamespace>Piccolo.Forge.Sample.ExpUi</RootNamespace>
+    <OutputType>WinExe</OutputType>
+    <TargetFrameworks></TargetFrameworks>
+    <TargetFramework>net8.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Piccolo.Forge.Sample.Shared/Piccolo.Forge.Sample.Shared.csproj" />
+    <ProjectReference Include="../../src/Piccolo.Forge.Themes.ExpUi/Piccolo.Forge.Themes.ExpUi.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,4 +1,4 @@
-# Piccolo.Forge
+﻿# Piccolo.Forge
 
 Tool windows, docking and editor tabs for [Avalonia](https://avaloniaui.net/), with a layout similar to the IntelliJ Platform.
 [中文说明](#中文说明)
@@ -14,8 +14,11 @@ to that of IntelliJ IDEA and Rider:
   with visibility and auto-hide rules modelled on the IntelliJ Platform.
 - An **editor area** with tabs, pin / close / tab-limit policies, and a binary split tree
   that can be rearranged by dragging tabs.
-- Two visual families delivered as separate packages, **expUI** and **Islands**, each with
-  light and dark variants.
+- A **complete control theme** — all 89 concrete Avalonia controls (buttons, inputs, lists,
+  trees, menus, pickers…) in the IntelliJ visual language, usable as a full base theme that
+  replaces the default base theme; DataGrid and ColorPicker themes ship as add-on packages.
+- Two visual families, **expUI** and **Islands**, each with light and dark variants; the
+  family is selected by a single `Family` property.
 - Layout persistence, context menus, an overflow ("More") button, stripe-button badges,
   accessibility names, and user-interface text in 13 languages.
 
@@ -40,33 +43,81 @@ content is an ordinary `object` resolved by the host's own `ViewLocator` or
 
 | Package | Purpose |
 |---|---|
-| `Piccolo.Forge.Avalonia` | The controls. References `Model` and `Mvvm`. |
-| `Piccolo.Forge.Themes.ExpUi` | The expUI visual family. Reference this package or Islands. |
-| `Piccolo.Forge.Themes.Islands` | The Islands visual family. |
+| `Piccolo.Forge.Avalonia` | Shell controls, control templates and the three theme entry classes. |
+| `Piccolo.Forge.Themes.ExpUi` | expUI resources (palettes + shell templates). Resource-only. |
+| `Piccolo.Forge.Themes.Islands` | Islands resources. Reference one family or both. |
+| `Piccolo.Forge.Avalonia.DataGrid` | DataGrid theme add-on (only if you use DataGrid). |
+| `Piccolo.Forge.Avalonia.ColorPicker` | ColorPicker theme add-on. |
 | `Piccolo.Forge.Mvvm.CommunityToolkit` | Optional panel base classes for CommunityToolkit.Mvvm. |
 | `Piccolo.Forge.Model`, `Piccolo.Forge.Mvvm` | Model and view models; referenced transitively. |
+
+**Packages define what is available; the `Family` property picks what is used.** The theme
+entry classes live in `Piccolo.Forge.Avalonia`; family resources are resolved at runtime,
+so selecting a family whose package is not referenced fails at startup with a clear message.
 
 All packages must be referenced at the same version. Targets `net8.0` and `net10.0`
 with Avalonia 12; compatible with AOT compilation and trimming.
 
 ## Usage
 
-Install one theme in `Application.Styles`. Changing the theme requires an application
-restart.
+Install one theme entry in `Application.Styles` — pick the layer you need
+(`xmlns:forge="using:Piccolo.Forge.Avalonia"`). Changing the family requires a restart.
 
 ```xml
 <Application.Styles>
-    <FluentTheme />
-    <themes:ForgeExpUiTheme />   <!-- xmlns:themes="using:Piccolo.Forge.Themes.ExpUi" -->
+    <forge:ForgeTheme Family="ExpUi" />           <!-- everything: controls + shell -->
 </Application.Styles>
 ```
 
-Alternatively, install the theme in code after the application settings have been read:
+```xml
+<forge:ForgeControlsTheme Family="ExpUi" />       <!-- controls only: a full base theme,
+                                                       no docking — a base theme on its own -->
+```
+
+```xml
+<FluentTheme />                                   <!-- your own base theme, first -->
+<forge:ForgeShellTheme Family="ExpUi" />          <!-- shell only, on top of it -->
+```
+
+If you use DataGrid or ColorPicker, add the matching add-on package and install its entry
+**after** the theme entry (the theme supplies the colour keys; without it the controls render
+but stay uncoloured, with no error). The add-ons have no `Family` — templates are shared
+between families and the colours follow whatever family the theme entry selected:
+
+```xml
+<Application.Styles>
+    <forge:ForgeTheme Family="ExpUi" />
+    <forgedg:ForgeDataGridTheme />    <!-- xmlns:forgedg="using:Piccolo.Forge.Avalonia.DataGrid" -->
+    <forgecpk:ForgeColorPickerTheme /><!-- xmlns:forgecpk="using:Piccolo.Forge.Avalonia.ColorPicker" -->
+</Application.Styles>
+```
+
+Hosts that ship both families reference both resource packages and pick the family from
+configuration. Two equivalent ways to install the entry — use one, not both:
+
+**In XAML** — `{x:Static}` reads the configuration when the XAML loads at startup
+(one-time; not a live binding):
+
+```xml
+<Application.Styles>
+    <forge:ForgeTheme Family="{x:Static local:Settings.Family}" />
+</Application.Styles>
+```
+
+**In code** — for hosts that need logic around it (read settings first, migrate old
+values, etc.). Call it in `Application.Initialize`, before any window is created:
 
 ```csharp
-ForgeThemeManager.Apply(this, new ForgeIslandsTheme());
-ForgeThemeManager.ApplyLocale(this, CultureInfo.CurrentUICulture);   // user-interface text
+public override void Initialize()
+{
+    AvaloniaXamlLoader.Load(this);
+    ForgeThemeManager.Apply(this, new ForgeTheme { Family = settings.Family });
+}
 ```
+
+Either way, changing the family requires a restart. `ForgeThemeManager.ApplyLocale(this,
+CultureInfo.CurrentUICulture)` installs the user-interface strings; it is independent of
+the theme and works with both approaches.
 
 Compose the shell:
 
@@ -100,7 +151,7 @@ Appearance is configured once on the frame and inherited by the editor area:
 ```csharp
 frame.Appearance = ForgeAppearance.Default with
 {
-    Family = ForgeThemeFamily.Islands,   // must match the installed theme package
+    Family = ForgeThemeFamily.Islands,   // must match the Family on the theme entry
     HeaderHeight = 32,
 };
 ```
@@ -110,7 +161,8 @@ Layouts are saved and restored with `ToolWindowLayoutSerializer` and
 built-in string can be replaced by redefining the corresponding `Forge.Strings.*`
 resource key in the application resources.
 
-A complete example is provided in `samples/Piccolo.Forge.Sample` in the repository.
+Three samples are provided in `samples/`: `Piccolo.Forge.Sample` (the control catalog),
+`Piccolo.Forge.Sample.ExpUi` and `.Islands` (the shell layout, one family each).
 
 ## Acknowledgements
 
@@ -120,6 +172,11 @@ A complete example is provided in `samples/Piccolo.Forge.Sample` in the reposito
 - **Dock** ([wieslawsoltes/Dock](https://github.com/wieslawsoltes/Dock), MIT License).
   The tab-move semantics of the editor area (detach, attach, commit) and its drag lifecycle
   were developed with reference to Dock.
+- **Semi.Avalonia** ([irihitech/Semi.Avalonia](https://github.com/irihitech/Semi.Avalonia), MIT License).
+  The locale mechanism (`ApplyLocale`), the add-on package layout (DataGrid / ColorPicker as
+  separate packages) and a number of control-templating framework facts were developed with
+  reference to Semi.Avalonia. Piccolo.Forge contains no Semi source code; visual structure
+  and colours follow the IntelliJ Platform, not Semi.
 
 Full notices are provided in `THIRD-PARTY-NOTICES.md`.
 
@@ -137,7 +194,10 @@ Piccolo.Forge 为 Avalonia 桌面应用程序提供与 IntelliJ IDEA、Rider 类
 - **工具窗口**停靠于窗口四边，每边划分为两个半区，以 IntelliJ 新版界面的竖向图标**条带**呈现。
 - **视图模式**：停靠（固定或不固定）、取消停靠、浮动、独立窗口，显示与自动隐藏规则参考 IntelliJ Platform。
 - **编辑区**：标签页、固定 / 关闭 / 数量上限策略，以及可通过拖拽标签重排的二叉分屏树。
-- 两种视觉风格以独立包提供：**expUI** 与 **Islands**，各含明、暗两种变体。
+- **完整的控件主题**：Avalonia 全部 89 个具体控件（按钮、输入、列表、树、菜单、选择器…）
+  的 IntelliJ 视觉语言实现，可作为完整基础主题独立使用（无需再装其它基础主题）；
+  DataGrid 与 ColorPicker 的主题以附加包提供。
+- 两种视觉风格：**expUI** 与 **Islands**，各含明、暗两种变体；族由一个 `Family` 属性选定。
 - 布局持久化、上下文菜单、溢出（「更多」）按钮、条带按钮角标、无障碍名称，以及 13 种语言的界面文案。
 
 ## 设计
@@ -155,31 +215,77 @@ Piccolo.Forge 为 Avalonia 桌面应用程序提供与 IntelliJ IDEA、Rider 类
 
 | 包 | 用途 |
 |---|---|
-| `Piccolo.Forge.Avalonia` | 控件。引用 `Model` 与 `Mvvm`。 |
-| `Piccolo.Forge.Themes.ExpUi` | expUI 视觉风格。与 Islands 二选一。 |
-| `Piccolo.Forge.Themes.Islands` | Islands 视觉风格。 |
+| `Piccolo.Forge.Avalonia` | 外壳控件、控件模板与三个主题入口类。 |
+| `Piccolo.Forge.Themes.ExpUi` | expUI 资源（色板 + 外壳模板）。纯资源包。 |
+| `Piccolo.Forge.Themes.Islands` | Islands 资源。按需引一族或两族。 |
+| `Piccolo.Forge.Avalonia.DataGrid` | DataGrid 主题附加包（用到才引）。 |
+| `Piccolo.Forge.Avalonia.ColorPicker` | ColorPicker 主题附加包。 |
 | `Piccolo.Forge.Mvvm.CommunityToolkit` | 可选：面向 CommunityToolkit.Mvvm 的面板基类。 |
 | `Piccolo.Forge.Model`、`Piccolo.Forge.Mvvm` | 模型与视图模型，由传递引用引入。 |
+
+**包管"有哪些可用"，`Family` 属性管"用哪个"。** 主题入口类在 `Piccolo.Forge.Avalonia` 里；
+族的资源在运行期解析，`Family` 选了没被引用的族，启动即抛，异常写明缺哪个包。
 
 所有包须引用同一版本。目标框架 `net8.0` 与 `net10.0`，Avalonia 12；兼容 AOT 编译与裁剪。
 
 ## 使用方法
 
-在 `Application.Styles` 中安装一种主题。更换主题需重启应用程序。
+在 `Application.Styles` 中安装一个主题入口，按需要的层挑
+（`xmlns:forge="using:Piccolo.Forge.Avalonia"`）。更换族需重启应用程序。
 
 ```xml
 <Application.Styles>
-    <FluentTheme />
-    <themes:ForgeExpUiTheme />   <!-- xmlns:themes="using:Piccolo.Forge.Themes.ExpUi" -->
+    <forge:ForgeTheme Family="ExpUi" />           <!-- 全套：控件 + 外壳 -->
 </Application.Styles>
 ```
 
-亦可在读取应用程序配置之后以代码安装：
+```xml
+<forge:ForgeControlsTheme Family="ExpUi" />       <!-- 只要控件：完整基础主题，
+                                                       不含停靠，自身即是基础主题 -->
+```
+
+```xml
+<FluentTheme />                                   <!-- 自己的基础主题在前 -->
+<forge:ForgeShellTheme Family="ExpUi" />          <!-- 只要外壳，叠在其上 -->
+```
+
+用到 DataGrid / ColorPicker 时，引对应附加包并把其入口挂在主题入口**之后**
+（色板键由主题入口提供，顺序反了控件画得出来但没颜色，且不报错）。
+附加包没有 `Family` —— 模板两档共用，颜色自动跟主题入口选的族走：
+
+```xml
+<Application.Styles>
+    <forge:ForgeTheme Family="ExpUi" />
+    <forgedg:ForgeDataGridTheme />    <!-- xmlns:forgedg="using:Piccolo.Forge.Avalonia.DataGrid" -->
+    <forgecpk:ForgeColorPickerTheme /><!-- xmlns:forgecpk="using:Piccolo.Forge.Avalonia.ColorPicker" -->
+</Application.Styles>
+```
+
+两档都要的宿主两个资源包都引，族从配置来。安装入口有两种等价方式，**任选其一，不要都写**：
+
+**方式一：XAML 里装** —— `{x:Static}` 在 XAML 装载时读一次配置
+（启动时求值一次，不是动态绑定）：
+
+```xml
+<Application.Styles>
+    <forge:ForgeTheme Family="{x:Static local:Settings.Family}" />
+</Application.Styles>
+```
+
+**方式二：代码里装** —— 适合装载前后还有逻辑的宿主（先读配置文件、迁移旧值等）。
+在 `Application.Initialize` 里调用，须在任何窗口创建之前：
 
 ```csharp
-ForgeThemeManager.Apply(this, new ForgeIslandsTheme());
-ForgeThemeManager.ApplyLocale(this, CultureInfo.CurrentUICulture);   // 界面文案
+public override void Initialize()
+{
+    AvaloniaXamlLoader.Load(this);
+    ForgeThemeManager.Apply(this, new ForgeTheme { Family = settings.Family });
+}
 ```
+
+两种方式换族都要重启生效。界面文案由
+`ForgeThemeManager.ApplyLocale(this, CultureInfo.CurrentUICulture)` 安装，
+与主题无关，两种方式下都这么写。
 
 组装外壳：
 
@@ -211,7 +317,7 @@ shell.Open("Project");
 ```csharp
 frame.Appearance = ForgeAppearance.Default with
 {
-    Family = ForgeThemeFamily.Islands,   // 须与已安装的主题包一致
+    Family = ForgeThemeFamily.Islands,   // 须与主题入口上的 Family 一致
     HeaderHeight = 32,
 };
 ```
@@ -219,7 +325,8 @@ frame.Appearance = ForgeAppearance.Default with
 布局通过 `ToolWindowLayoutSerializer` 与 `EditorLayoutSerializer` 保存与恢复，XML 结构参考 IntelliJ 的
 `window.xml`。任何内置文案均可通过在应用程序资源中重定义对应的 `Forge.Strings.*` 资源键予以替换。
 
-完整示例见仓库中的 `samples/Piccolo.Forge.Sample`。
+示例见仓库 `samples/`：`Piccolo.Forge.Sample`（控件目录）、
+`Piccolo.Forge.Sample.ExpUi` 与 `.Islands`（外壳布局，各演示一族）。
 
 ## 致谢
 
@@ -227,6 +334,10 @@ frame.Appearance = ForgeAppearance.Default with
   工具窗口模型、布局规则、度量以及 expUI / Islands 配色方案参考其源码实现。Piccolo.Forge 不包含 JetBrains 的源代码与图标资产。
 - **Dock**（[wieslawsoltes/Dock](https://github.com/wieslawsoltes/Dock)，MIT License）。
   编辑区标签搬移的语义（分离、附加、提交）与拖拽生命周期参考 Dock 实现。
+- **Semi.Avalonia**（[irihitech/Semi.Avalonia](https://github.com/irihitech/Semi.Avalonia)，MIT License）。
+  语言文案机制（`ApplyLocale`）、附加包拆分惯例（DataGrid / ColorPicker 独立成包）
+  及若干控件模板化的框架事实参考 Semi.Avalonia。Piccolo.Forge 不包含 Semi 的源代码；
+  视觉结构与颜色以 IntelliJ Platform 为依据，而非 Semi。
 
 完整声明见 `THIRD-PARTY-NOTICES.md`。
 

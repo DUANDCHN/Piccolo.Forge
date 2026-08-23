@@ -1,0 +1,702 @@
+﻿<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+      命令栏与页面导航族（Avalonia 12 的移动端控件）。
+
+      ⚠ 上游 IntelliJ **完全没有**这一族 —— 它是桌面 IDE，没有页面栈、抽屉页这些概念。
+        上游的 MainToolbar / StatusBar 是 IDE 外壳的东西，那一层归 Piccolo.Forge 管，
+        不该拿来套在这儿。所以这一族按已有语汇组装：
+        栏底走 Forge.Popup.Background、分隔走 Forge.Group.Separator、
+        图标钮的反馈量与命令栏、菜单栏一致（Forge.Overlay.*）。
+
+      ⚠ CommandBarSeparator 继承 Separator、CommandBarButton 继承 Button —— 但**仍单独建主题**：
+        命令栏里的按钮该是无边框图标钮，直接继承普通按钮会带上边框与最小宽度。
+        （对比 MaskedTextBox 那种"外观本就该和父类一样"的，才靠继承。）
+    -->
+
+    <!--
+      命令栏按钮 = **默认的图标钮底盘 + 一套 Icon/Label 的内容布局**。
+      外观（透明底、悬停/按下叠加、禁用、焦点环、圆角）全部继承 Forge.IconButton，
+      这里只换模板里内容那一段 —— 命令栏是个外壳，里面装的就是我们的默认按钮。
+
+      ⚠ 换模板必须保留底盘那三个部件名（PART_FocusRing / PART_Root / PART_Overlay），
+        继承来的悬停/按下样式是按名字找它们的，改名就静默没反馈。
+      ⚠ 显示走 Icon / Label 两个独有属性，**不是 Content**：照普通 Button 抄会得到一排空白按钮。
+    -->
+    <ControlTheme x:Key="Forge.CommandBarButton" TargetType="CommandBarButton" BasedOn="{StaticResource Forge.IconButton}">
+        <Setter Property="Padding" Value="7,3" />
+        <Setter Property="MinHeight" Value="28" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="CommandBarButton">
+                <Border Name="PART_FocusRing"
+                        BorderBrush="Transparent"
+                        BorderThickness="{DynamicResource Forge.Focus.RingThickness}"
+                        CornerRadius="{DynamicResource Forge.Focus.RingCornerRadius}">
+                <Border Name="PART_Root"
+                        Background="{TemplateBinding Background}"
+                        CornerRadius="{TemplateBinding CornerRadius}">
+                    <Panel>
+                        <Border Name="PART_Overlay" Background="Transparent"
+                                CornerRadius="{TemplateBinding CornerRadius}" />
+                        <StackPanel Name="PART_LayoutRoot" Orientation="Horizontal" Spacing="5"
+                                    Margin="{TemplateBinding Padding}"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <ContentPresenter Name="PART_IconPresenter"
+                                              Content="{TemplateBinding Icon}"
+                                              Foreground="{TemplateBinding Foreground}"
+                                              IsVisible="{Binding Icon, RelativeSource={RelativeSource TemplatedParent}, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                              VerticalAlignment="Center" />
+                            <TextBlock Name="PART_Label"
+                                       Text="{TemplateBinding Label}"
+                                       Foreground="{TemplateBinding Foreground}"
+                                       VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis" />
+                            <!-- 兼容直接塞 Content 的写法 -->
+                            <ContentPresenter Name="PART_ContentPresenter"
+                                              Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              Foreground="{TemplateBinding Foreground}"
+                                              VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Panel>
+                </Border>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+        <!-- 竖排：图标在上、文字在下 -->
+        <Style Selector="^[LabelPosition=Bottom] /template/ StackPanel#PART_LayoutRoot">
+            <Setter Property="Orientation" Value="Vertical" />
+            <Setter Property="Spacing" Value="2" />
+        </Style>
+        <Style Selector="^[LabelPosition=Collapsed] /template/ TextBlock#PART_Label">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="^[IsCompact=True] /template/ TextBlock#PART_Label">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <!-- 溢出层里按菜单项排：整行左对齐、图标占固定槽位 -->
+        <Style Selector="^[IsInOverflow=True]">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="MinHeight" Value="24" />
+            <Setter Property="Padding" Value="6,2" />
+        </Style>
+        <Style Selector="^[IsInOverflow=True] /template/ StackPanel#PART_LayoutRoot">
+            <Setter Property="Orientation" Value="Horizontal" />
+            <Setter Property="Spacing" Value="0" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+        </Style>
+        <Style Selector="^[IsInOverflow=True] /template/ ContentPresenter#PART_IconPresenter">
+            <Setter Property="Width" Value="16" />
+            <Setter Property="Height" Value="16" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+        <Style Selector="^[IsInOverflow=True] /template/ TextBlock#PART_Label">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+    </ControlTheme>
+
+    <!-- 开关版：底盘换成带选中态的那个，模板一模一样。 -->
+    <ControlTheme x:Key="Forge.CommandBarToggleButton" TargetType="CommandBarToggleButton" BasedOn="{StaticResource Forge.IconToggleButton}">
+        <Setter Property="Padding" Value="7,3" />
+        <Setter Property="MinHeight" Value="28" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="CommandBarToggleButton">
+                <Border Name="PART_FocusRing"
+                        BorderBrush="Transparent"
+                        BorderThickness="{DynamicResource Forge.Focus.RingThickness}"
+                        CornerRadius="{DynamicResource Forge.Focus.RingCornerRadius}">
+                <Border Name="PART_Root"
+                        Background="{TemplateBinding Background}"
+                        CornerRadius="{TemplateBinding CornerRadius}">
+                    <Panel>
+                        <Border Name="PART_Overlay" Background="Transparent"
+                                CornerRadius="{TemplateBinding CornerRadius}" />
+                        <StackPanel Name="PART_LayoutRoot" Orientation="Horizontal" Spacing="5"
+                                    Margin="{TemplateBinding Padding}"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <ContentPresenter Name="PART_IconPresenter"
+                                              Content="{TemplateBinding Icon}"
+                                              Foreground="{TemplateBinding Foreground}"
+                                              IsVisible="{Binding Icon, RelativeSource={RelativeSource TemplatedParent}, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                              VerticalAlignment="Center" />
+                            <TextBlock Name="PART_Label"
+                                       Text="{TemplateBinding Label}"
+                                       Foreground="{TemplateBinding Foreground}"
+                                       VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis" />
+                            <!-- 兼容直接塞 Content 的写法 -->
+                            <ContentPresenter Name="PART_ContentPresenter"
+                                              Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              Foreground="{TemplateBinding Foreground}"
+                                              VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Panel>
+                </Border>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+        <!-- 竖排：图标在上、文字在下 -->
+        <Style Selector="^[LabelPosition=Bottom] /template/ StackPanel#PART_LayoutRoot">
+            <Setter Property="Orientation" Value="Vertical" />
+            <Setter Property="Spacing" Value="2" />
+        </Style>
+        <Style Selector="^[LabelPosition=Collapsed] /template/ TextBlock#PART_Label">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="^[IsCompact=True] /template/ TextBlock#PART_Label">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <!-- 溢出层里按菜单项排：整行左对齐、图标占固定槽位 -->
+        <Style Selector="^[IsInOverflow=True]">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="MinHeight" Value="24" />
+            <Setter Property="Padding" Value="6,2" />
+        </Style>
+        <Style Selector="^[IsInOverflow=True] /template/ StackPanel#PART_LayoutRoot">
+            <Setter Property="Orientation" Value="Horizontal" />
+            <Setter Property="Spacing" Value="0" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+        </Style>
+        <Style Selector="^[IsInOverflow=True] /template/ ContentPresenter#PART_IconPresenter">
+            <Setter Property="Width" Value="16" />
+            <Setter Property="Height" Value="16" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+        <Style Selector="^[IsInOverflow=True] /template/ TextBlock#PART_Label">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+    </ControlTheme>
+
+    <!-- 竖分隔；进溢出层要翻成横分隔（那儿是竖排菜单）。 -->
+    <ControlTheme x:Key="Forge.CommandBarSeparator" TargetType="CommandBarSeparator">
+        <Setter Property="Width" Value="1" />
+        <Setter Property="MinHeight" Value="18" />
+        <Setter Property="Margin" Value="5,4" />
+        <Setter Property="Background" Value="{DynamicResource Forge.Group.Separator}" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="CommandBarSeparator">
+                <Border Background="{TemplateBinding Background}"
+                        Width="{TemplateBinding Width}"
+                        Height="{TemplateBinding Height}"
+                        MinHeight="{TemplateBinding MinHeight}" />
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^[IsInOverflow=True]">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="Width" Value="NaN" />
+            <Setter Property="Height" Value="1" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Margin" Value="0,3" />
+        </Style>
+    </ControlTheme>
+
+    <!--
+      命令栏本体。⚠ 主命令**必须**由模板里的 ItemsControl 绑 VisiblePrimaryCommands 渲染
+      —— PrimaryCommands 不是 Items，框架不会替你摆；溢出项同理绑 OverflowItems。
+      ItemWidth* 三个都给 NaN：按内容定宽，不要 Fluent 那种等宽格子。
+    -->
+    <ControlTheme x:Key="Forge.CommandBar" TargetType="CommandBar">
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="Background" Value="{DynamicResource Forge.Popup.Background}" />
+        <Setter Property="MinHeight" Value="34" />
+        <Setter Property="Padding" Value="4,2" />
+        <Setter Property="DefaultLabelPosition" Value="Right" />
+        <Setter Property="ItemWidthBottom" Value="NaN" />
+        <Setter Property="ItemWidthRight" Value="NaN" />
+        <Setter Property="ItemWidthCollapsed" Value="NaN" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="CommandBar">
+                <Border Background="{TemplateBinding Background}"
+                        BorderBrush="{DynamicResource Forge.Group.Separator}"
+                        BorderThickness="0,0,0,1"
+                        CornerRadius="{TemplateBinding CornerRadius}"
+                        Padding="{TemplateBinding Padding}"
+                        MinHeight="{TemplateBinding MinHeight}">
+                    <Panel>
+                        <DockPanel KeyboardNavigation.TabNavigation="Cycle">
+                            <!-- 放不下的命令收进这颗"更多"按钮的弹出层 -->
+                            <Button Name="PART_OverflowButton"
+                                    DockPanel.Dock="Right"
+                                    Theme="{DynamicResource Forge.CalendarNavButton}"
+                                    VerticalAlignment="Center"
+                                    IsVisible="{TemplateBinding IsOverflowButtonVisible}">
+                                <Path Data="M 1 0.6 V 0.8 M 1 3.4 V 3.6 M 1 6.2 V 6.4"
+                                      Stroke="{Binding $parent[Button].Foreground}"
+                                      StrokeThickness="1.8" StrokeLineCap="Round"
+                                      Width="2" Height="7" />
+                            </Button>
+
+                            <ContentPresenter Name="PART_ContentPresenter"
+                                              Content="{TemplateBinding Content}"
+                                              DockPanel.Dock="Left"
+                                              VerticalAlignment="Center" />
+
+                            <ItemsControl Name="PART_PrimaryCommands"
+                                          ItemsSource="{Binding VisiblePrimaryCommands, RelativeSource={RelativeSource TemplatedParent}}"
+                                          HorizontalAlignment="Left"
+                                          VerticalAlignment="Center"
+                                          ClipToBounds="True">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal" Spacing="1" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+                        </DockPanel>
+
+                        <Popup Name="PART_OverflowPopup"
+                               IsOpen="{TemplateBinding IsOpen, Mode=TwoWay}"
+                               PlacementTarget="{Binding #PART_OverflowButton}"
+                               Placement="BottomEdgeAlignedRight"
+                               VerticalOffset="2"
+                               InheritsTransform="True"
+                               WindowManagerAddShadowHint="False"
+                               IsLightDismissEnabled="True">
+                            <Border Background="{DynamicResource Forge.Menu.Background}"
+                                    BorderBrush="{DynamicResource Forge.Menu.Border}"
+                                    BorderThickness="1"
+                                    CornerRadius="{DynamicResource Forge.Popup.CornerRadius}"
+                                    Padding="{DynamicResource Forge.Menu.Padding}"
+                                    MinWidth="150">
+                                <ItemsControl Name="PART_OverflowPresenter"
+                                              ItemsSource="{Binding OverflowItems, RelativeSource={RelativeSource TemplatedParent}}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Spacing="1" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                </ItemsControl>
+                            </Border>
+                        </Popup>
+                    </Panel>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <!-- ══ 页面导航族 ══ 主题只给中性外壳，页面内容的样子归使用者。 -->
+
+    <ControlTheme x:Key="Forge.ContentPage" TargetType="ContentPage">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="ContentPage">
+                <Border Background="{TemplateBinding Background}">
+                    <DockPanel>
+                        <ContentPresenter Name="PART_TopCommandBar" DockPanel.Dock="Top" />
+                        <ContentPresenter Name="PART_BottomCommandBar" DockPanel.Dock="Bottom" />
+                        <ContentPresenter Name="PART_ContentPresenter"
+                                          Content="{TemplateBinding Content}"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}"
+                                          Padding="{TemplateBinding Padding}" />
+                    </DockPanel>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <!--
+      导航页。三处是框架要求、不能省的：
+        · 标题绑 CurrentPage?.Header（页面自己不画标题，标题在导航栏上）；
+        · 顶/底命令栏绑 CurrentPage 上的附加属性，不是本控件的属性；
+        · 导航栏**浮在内容之上**（ZIndex），靠 PART_NavBarSpacer 在 :nav-bar-inset 时占位 ——
+          直接 Dock 一条栏会让 Overlay 模式失效。
+    -->
+    <ControlTheme x:Key="Forge.NavigationPage" TargetType="NavigationPage">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BarHeight" Value="40" />
+        <Setter Property="PageTransition">
+            <PageSlide Duration="0:0:0.2" Orientation="Horizontal" FillMode="Forward" />
+        </Setter>
+        <Setter Property="ModalTransition">
+            <PageSlide Duration="0:0:0.2" Orientation="Vertical" FillMode="Forward" />
+        </Setter>
+        <Setter Property="Template">
+            <ControlTemplate TargetType="NavigationPage">
+                <Panel ClipToBounds="True">
+                    <DockPanel>
+                        <Border Name="PART_NavBarSpacer"
+                                DockPanel.Dock="Top"
+                                Height="{TemplateBinding EffectiveBarHeight}"
+                                IsVisible="False" />
+
+                        <ContentPresenter Name="PART_BottomCommandBar"
+                                          DockPanel.Dock="Bottom"
+                                          HorizontalContentAlignment="Stretch"
+                                          Content="{Binding CurrentPage?.(NavigationPage.BottomCommandBar), RelativeSource={RelativeSource TemplatedParent}, FallbackValue={x:Null}}" />
+
+                        <!-- 前后两层各一个 presenter，切页时才能滑动而不用回收控件 -->
+                        <Panel Name="PART_ContentHost"
+                               Background="{TemplateBinding Background}"
+                               ClipToBounds="True">
+                            <ContentPresenter Name="PART_PageBackPresenter" />
+                            <ContentPresenter Name="PART_PagePresenter" />
+                        </Panel>
+                    </DockPanel>
+
+                    <Border Name="PART_NavigationBar"
+                            ZIndex="1"
+                            VerticalAlignment="Top"
+                            ClipToBounds="True"
+                            Background="{DynamicResource Forge.Popup.Background}"
+                            BorderBrush="{DynamicResource Forge.Group.Separator}"
+                            BorderThickness="0,0,0,1"
+                            Height="{TemplateBinding EffectiveBarHeight}">
+                        <Grid ColumnDefinitions="Auto,*,Auto" Margin="6,0">
+                            <Button Name="PART_BackButton"
+                                    Grid.Column="0"
+                                    Theme="{DynamicResource Forge.CalendarNavButton}"
+                                    IsVisible="{TemplateBinding IsBackButtonEffectivelyVisible}"
+                                    VerticalAlignment="Center">
+                                <!-- 并列而非嵌套：往 ContentPresenter 里塞子元素会触发编译器内部错误 -->
+                                <Panel>
+                                    <Path Name="PART_BackButtonDefaultIcon"
+                                          Data="M 4.5 0 L 0 4.5 L 4.5 9"
+                                          Stroke="{Binding $parent[Button].Foreground}"
+                                          StrokeThickness="1.3"
+                                          StrokeLineCap="Round" StrokeJoin="Round"
+                                          Width="5" Height="9" />
+                                    <ContentPresenter Name="PART_BackButtonContentPresenter"
+                                                      HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Panel>
+                            </Button>
+
+                            <ContentPresenter Name="PART_Header"
+                                              Grid.Column="1"
+                                              Margin="6,0,12,0"
+                                              VerticalAlignment="Center"
+                                              HorizontalContentAlignment="Left"
+                                              Content="{Binding CurrentPage?.Header, RelativeSource={RelativeSource TemplatedParent}, FallbackValue={x:Null}}"
+                                              ContentTemplate="{Binding CurrentPage?.HeaderTemplate, RelativeSource={RelativeSource TemplatedParent}, FallbackValue={x:Null}}" />
+
+                            <ContentPresenter Name="PART_TopCommandBar"
+                                              Grid.Column="2"
+                                              HorizontalAlignment="Right"
+                                              VerticalContentAlignment="Stretch"
+                                              Content="{Binding CurrentPage?.(NavigationPage.TopCommandBar), RelativeSource={RelativeSource TemplatedParent}, FallbackValue={x:Null}}">
+                                <ContentPresenter.Styles>
+                                    <!-- 栏里的命令栏不再自带底、也不再自带高度 -->
+                                    <Style Selector="CommandBar">
+                                        <Setter Property="Background" Value="Transparent" />
+                                        <Setter Property="BorderThickness" Value="0" />
+                                        <Setter Property="MinHeight" Value="0" />
+                                        <Setter Property="Padding" Value="0" />
+                                        <Setter Property="VerticalAlignment" Value="Stretch" />
+                                    </Style>
+                                </ContentPresenter.Styles>
+                            </ContentPresenter>
+                        </Grid>
+                    </Border>
+
+                    <!-- 栏下的一点投影，Overlay 模式下用来把栏和内容分开；Margin.Top 由控件代码设 -->
+                    <Border Name="PART_NavBarShadow"
+                            ZIndex="1"
+                            VerticalAlignment="Top"
+                            Height="4"
+                            IsVisible="False"
+                            IsHitTestVisible="False">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                                <GradientStop Color="#0C000000" Offset="0" />
+                                <GradientStop Color="#00000000" Offset="1" />
+                            </LinearGradientBrush>
+                        </Border.Background>
+                    </Border>
+
+                    <!-- 模态层：99 是切换时不动的那层，100 是正在动的那层 -->
+                    <ContentPresenter Name="PART_ModalBackPresenter"
+                                      ZIndex="99" IsVisible="False"
+                                      Background="{TemplateBinding Background}" />
+                    <ContentPresenter Name="PART_ModalPresenter"
+                                      ZIndex="100" IsVisible="False"
+                                      Background="{TemplateBinding Background}" />
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+
+        <Style Selector="^:nav-bar-inset /template/ Border#PART_NavBarSpacer">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+        <!-- 栏太矮时命令栏只留图标 -->
+        <Style Selector="^:nav-bar-compact /template/ ContentPresenter#PART_TopCommandBar CommandBar">
+            <Setter Property="DefaultLabelPosition" Value="Collapsed" />
+        </Style>
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.TabbedPage" TargetType="TabbedPage">
+        <Setter Property="Template">
+            <ControlTemplate TargetType="TabbedPage">
+                <!-- 页签内容由 TabbedPage 自己往 PART_TabControl 里填，主题不绑数据源。 -->
+                <TabControl Name="PART_TabControl"
+                            Theme="{DynamicResource Forge.TabControl}" />
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <!--
+      抽屉页 = 一个 SplitView + 顶栏上的汉堡钮。⚠ 抽屉里的东西**必须逐个 TemplateBinding**
+      （Drawer / DrawerHeader / DrawerFooter 三个内容 + 各自的模板），
+      只放空的 ContentPresenter 会得到一条空白抽屉。
+      汉堡钮与 SplitView.IsPaneOpen 双向绑，才点得开点得上。
+    -->
+    <ControlTheme x:Key="Forge.DrawerPage" TargetType="DrawerPage">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="DrawerBackground" Value="{DynamicResource Forge.Popup.Background}" />
+        <Setter Property="BackdropBrush" Value="{DynamicResource Forge.Scrim}" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="DrawerPage">
+                <SplitView Name="PART_SplitView"
+                           Theme="{DynamicResource Forge.SplitView}"
+                           DisplayMode="{TemplateBinding DisplayMode}"
+                           OpenPaneLength="{TemplateBinding DrawerLength}"
+                           CompactPaneLength="{TemplateBinding CompactDrawerLength}"
+                           PaneBackground="{TemplateBinding DrawerBackground}"
+                           IsPaneOpen="{Binding IsOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
+                    <SplitView.Pane>
+                        <DockPanel Background="{TemplateBinding DrawerBackground}">
+                            <!-- 紧凑模式下抽屉自己带的开合钮 -->
+                            <ToggleButton Name="PART_CompactPaneToggle"
+                                          DockPanel.Dock="Top"
+                                          Theme="{DynamicResource Forge.CommandBarToggleButton}"
+                                          IsChecked="{Binding #PART_SplitView.IsPaneOpen, Mode=TwoWay}"
+                                          IsVisible="False"
+                                          HorizontalAlignment="Left"
+                                          Width="{TemplateBinding CompactDrawerLength}"
+                                          Height="{TemplateBinding CompactDrawerLength}">
+                                <Panel>
+                                    <Path Data="M 0 0 H 12 M 0 4 H 12 M 0 8 H 12"
+                                          Stroke="{Binding $parent[ToggleButton].Foreground}"
+                                          StrokeThickness="1.4" StrokeLineCap="Round"
+                                          Width="12" Height="8"
+                                          IsVisible="{Binding DrawerIcon, RelativeSource={RelativeSource TemplatedParent}, Converter={x:Static ObjectConverters.IsNull}}" />
+                                    <ContentPresenter Name="PART_CompactPaneIconPresenter"
+                                                      Content="{TemplateBinding DrawerIcon}"
+                                                      ContentTemplate="{TemplateBinding DrawerIconTemplate}"
+                                                      HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Panel>
+                            </ToggleButton>
+
+                            <ContentPresenter Name="PART_DrawerHeader"
+                                              DockPanel.Dock="Top"
+                                              Padding="10,8"
+                                              Content="{TemplateBinding DrawerHeader}"
+                                              ContentTemplate="{TemplateBinding DrawerHeaderTemplate}"
+                                              Background="{TemplateBinding DrawerHeaderBackground}"
+                                              IsVisible="{TemplateBinding DrawerHeader, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                            <ContentPresenter Name="PART_DrawerFooter"
+                                              DockPanel.Dock="Bottom"
+                                              Padding="10,8"
+                                              Content="{TemplateBinding DrawerFooter}"
+                                              ContentTemplate="{TemplateBinding DrawerFooterTemplate}"
+                                              Background="{TemplateBinding DrawerFooterBackground}"
+                                              IsVisible="{TemplateBinding DrawerFooter, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                            <ContentPresenter Name="PART_DrawerPresenter"
+                                              HorizontalContentAlignment="Stretch"
+                                              VerticalContentAlignment="Stretch"
+                                              Content="{TemplateBinding Drawer}"
+                                              ContentTemplate="{TemplateBinding DrawerTemplate}" />
+                        </DockPanel>
+                    </SplitView.Pane>
+
+                    <Grid>
+                        <DockPanel Name="PART_ContentDock">
+                            <Border Name="PART_TopBar"
+                                    DockPanel.Dock="Top"
+                                    Background="{DynamicResource Forge.Popup.Background}"
+                                    BorderBrush="{DynamicResource Forge.Group.Separator}"
+                                    BorderThickness="0,0,0,1"
+                                    Height="40"
+                                    Padding="6,2">
+                                <DockPanel>
+                                    <ToggleButton Name="PART_PaneButton"
+                                                  DockPanel.Dock="Left"
+                                                  Theme="{DynamicResource Forge.CommandBarToggleButton}"
+                                                  IsChecked="{Binding #PART_SplitView.IsPaneOpen, Mode=TwoWay}">
+                                        <Panel>
+                                            <!-- 汉堡钮，自绘三横线；使用者给了 DrawerIcon 就换成它 -->
+                                            <Path Data="M 0 0 H 12 M 0 4 H 12 M 0 8 H 12"
+                                                  Stroke="{Binding $parent[ToggleButton].Foreground}"
+                                                  StrokeThickness="1.4" StrokeLineCap="Round"
+                                                  Width="12" Height="8"
+                                                  IsVisible="{Binding DrawerIcon, RelativeSource={RelativeSource TemplatedParent}, Converter={x:Static ObjectConverters.IsNull}}" />
+                                            <ContentPresenter Name="PART_PaneIconPresenter"
+                                                              Content="{TemplateBinding DrawerIcon}"
+                                                              ContentTemplate="{TemplateBinding DrawerIconTemplate}"
+                                                              HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        </Panel>
+                                    </ToggleButton>
+                                    <ContentPresenter Name="PART_TitlePresenter"
+                                                      Margin="8,0,0,0"
+                                                      VerticalAlignment="Center"
+                                                      Content="{TemplateBinding Header}"
+                                                      ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                                      IsVisible="{TemplateBinding Header, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                                </DockPanel>
+                            </Border>
+
+                            <ContentPresenter Name="PART_ContentPresenter"
+                                              Background="{TemplateBinding Background}"
+                                              HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                              Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}" />
+                        </DockPanel>
+
+                        <!-- 浮层模式下压在内容上的遮罩，点它关抽屉 -->
+                        <Border Name="PART_Backdrop"
+                                Background="{TemplateBinding BackdropBrush}"
+                                IsVisible="False"
+                                IsHitTestVisible="False" />
+                    </Grid>
+                </SplitView>
+            </ControlTemplate>
+        </Setter>
+
+        <!-- 抽屉锁死 / 禁用时不需要顶栏那颗汉堡钮 -->
+        <Style Selector="^[DrawerBehavior=Locked] /template/ Border#PART_TopBar">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="^[DrawerBehavior=Disabled] /template/ Border#PART_TopBar">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <!-- 紧凑模式：开合钮挪进抽屉自己那一栏 -->
+        <Style Selector="^[DisplayMode=CompactOverlay] /template/ Border#PART_TopBar">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="^[DisplayMode=CompactOverlay] /template/ ToggleButton#PART_CompactPaneToggle">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+        <Style Selector="^[DisplayMode=CompactInline] /template/ Border#PART_TopBar">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="^[DisplayMode=CompactInline] /template/ ToggleButton#PART_CompactPaneToggle">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+        <!-- 外面已经是导航页时，那儿有栏了，这儿就别再来一条 -->
+        <Style Selector="^[IsInNavigationPage=True] /template/ Border#PART_TopBar">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="^:detail-is-navpage /template/ Border#PART_TopBar">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="^:placement-right /template/ ToggleButton#PART_PaneButton">
+            <Setter Property="DockPanel.Dock" Value="Right" />
+        </Style>
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.PageNavigationHost" TargetType="PageNavigationHost">
+        <Setter Property="Template">
+            <ControlTemplate TargetType="PageNavigationHost">
+                <ContentPresenter Name="PART_ContentPresenter"
+                                  Content="{TemplateBinding Content}"
+                                  ContentTemplate="{TemplateBinding ContentTemplate}" />
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <!-- ══ 剩下几个零散的 ══ -->
+
+    <!-- 自动补全：输入框 + 候选列表弹出层，两部分都复用已有的。 -->
+    <ControlTheme x:Key="Forge.AutoCompleteBox" TargetType="AutoCompleteBox">
+        <Setter Property="MinWidth" Value="{DynamicResource Forge.Input.MinWidth}" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="AutoCompleteBox">
+                <Panel>
+                    <TextBox Name="PART_TextBox"
+                             Theme="{DynamicResource Forge.TextBox}"
+                             PlaceholderText="{TemplateBinding Watermark}" />
+                    <Popup Name="PART_Popup"
+                           PlacementTarget="{Binding #PART_TextBox}"
+                           Placement="BottomEdgeAlignedLeft"
+                           VerticalOffset="2"
+                           MinWidth="{Binding #PART_TextBox.Bounds.Width}"
+                           MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                           InheritsTransform="True"
+                           WindowManagerAddShadowHint="False"
+                           IsLightDismissEnabled="True">
+                        <Border Background="{DynamicResource Forge.Popup.Background}"
+                                BorderBrush="{DynamicResource Forge.Popup.Border}"
+                                BorderThickness="1"
+                                CornerRadius="{DynamicResource Forge.Popup.CornerRadius}"
+                                Padding="{DynamicResource Forge.Popup.Padding}">
+                            <ListBox Name="PART_SelectingItemsControl"
+                                     Theme="{DynamicResource Forge.ListBox}"
+                                     Background="Transparent" />
+                        </Border>
+                    </Popup>
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <!-- 下拉刷新：容器本身不画东西，指示器是一个转圈的弧。 -->
+    <ControlTheme x:Key="Forge.RefreshContainer" TargetType="RefreshContainer">
+        <Setter Property="Template">
+            <ControlTemplate TargetType="RefreshContainer">
+                <ContentPresenter Name="PART_ContentPresenter"
+                                  Content="{TemplateBinding Content}"
+                                  ContentTemplate="{TemplateBinding ContentTemplate}" />
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <!--
+      ⚠ 刷新指示器的**指示图形放在 Content 里**，不是放在 Template 里 ——
+        控件自己按下拉进度给它加旋转、改透明度、摆位置；模板只提供一个 PART_Root 当底。
+        把图形画进模板会得到一个不跟手、甚至根本不显示的指示器。
+    -->
+    <ControlTheme x:Key="Forge.RefreshVisualizer" TargetType="RefreshVisualizer">
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="IsHitTestVisible" Value="False" />
+        <Setter Property="Height" Value="60" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Content">
+            <Template>
+                <!-- 3/4 圆弧，取上游 AsyncProcessIcon（spinner.svg）的缺口画法 -->
+                <Path Width="18" Height="18" Stretch="None"
+                      Data="M 9 1 A 8 8 0 1 1 1.6 6"
+                      Stroke="{DynamicResource Forge.Button.Accent.Background}"
+                      StrokeThickness="2" StrokeLineCap="Round" />
+            </Template>
+        </Setter>
+        <Setter Property="Template">
+            <ControlTemplate TargetType="RefreshVisualizer">
+                <Grid Name="PART_Root" Background="{TemplateBinding Background}" />
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <!-- 触屏选区手柄：一个主色圆点，拖它调整选区。圆角 7 = 直径 14 ÷ 2，是"画成圆"不是圆角刻度。 -->
+    <ControlTheme x:Key="Forge.TextSelectionHandle" TargetType="TextSelectionHandle">
+        <Setter Property="Template">
+            <ControlTemplate TargetType="TextSelectionHandle">
+                <Border Name="PART_Indicator"
+                        Width="14" Height="14"
+                        CornerRadius="7"
+                        Background="{DynamicResource Forge.Button.Accent.Background}" />
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <!--
+      系统菜单栏。⚠ **故意不设 Template** —— 这是全库唯一一个"主题不该管模板"的控件。
+
+      NativeMenuBar 在静态构造里给 TemplateProperty 覆盖了默认值，默认模板放的是内部类
+      NativeMenuBarPresenter；把 NativeMenuItem 翻译成菜单项的逻辑（Header / Icon /
+      Gesture→InputGesture / Command / IsChecked / ToggleType / 子 Menu.Items→ItemsSource）
+      **全在那个 presenter 里**，而它是 internal，XAML 造不出来。
+      拿普通 <Menu> 顶掉它，控件基类只会把裸的 NativeMenuItem 对象绑成 ItemsSource，
+      菜单栏于是显示一排 "Avalonia.Controls.NativeMenuItem"（对象的 ToString）。
+
+      外观不用担心：presenter 自己 StyleKeyOverride => typeof(Menu)、子项 => typeof(MenuItem)，
+      隐式主题查的是 StyleKey，所以照样落到 Forge.Menu / Forge.MenuBarItem / Forge.MenuItem。
+
+      也不要在这里设 IsVisible：显隐由控件绑到 TopLevel 的 IsNativeMenuExported
+      （macOS 上系统接管 → 自动隐藏；Win/Linux → 自动显示），绑定会盖掉本地值，设了也是死的。
+    -->
+    <ControlTheme x:Key="Forge.NativeMenuBar" TargetType="NativeMenuBar" />
+
+</ResourceDictionary>

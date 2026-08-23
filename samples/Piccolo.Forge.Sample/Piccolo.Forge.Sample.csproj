@@ -1,12 +1,16 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
+  <!--  ★ 控件演示：Avalonia 全部 89 个控件在本主题下的样子。★
+
+        只引**一个**主题包（经典档）—— 控件模板两档共用，两档只有色板不同，
+        所以控件演示一档就够；**外壳**两档差别很大（11 个模板文件无一相同），
+        那才需要按档各出一个示例，见 Piccolo.Forge.Sample.ExpUi / .Islands。  -->
   <PropertyGroup>
     <RootNamespace>Piccolo.Forge.Sample</RootNamespace>
     <OutputType>WinExe</OutputType>
-    <IsPackable>false</IsPackable>
     <TargetFrameworks></TargetFrameworks>
     <TargetFramework>net8.0</TargetFramework>
-    <!-- 不是对外 API，不强制 XML 注释 -->
+    <IsPackable>false</IsPackable>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
@@ -14,16 +18,15 @@
   <ItemGroup>
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Desktop" />
-    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <!--  目录里 new 了 DataGrid / ColorPicker，需要控件本身；它们的**主题**是下面两个附加包。  -->
+    <PackageReference Include="Avalonia.Controls.DataGrid" />
+    <PackageReference Include="Avalonia.Controls.ColorPicker" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../../src/Piccolo.Forge.Model/Piccolo.Forge.Model.csproj" />
-    <ProjectReference Include="../../src/Piccolo.Forge.Mvvm/Piccolo.Forge.Mvvm.csproj" />
-    <ProjectReference Include="../../src/Piccolo.Forge.Mvvm.CommunityToolkit/Piccolo.Forge.Mvvm.CommunityToolkit.csproj" />
-    <ProjectReference Include="../../src/Piccolo.Forge.Avalonia/Piccolo.Forge.Avalonia.csproj" />
     <ProjectReference Include="../../src/Piccolo.Forge.Themes.ExpUi/Piccolo.Forge.Themes.ExpUi.csproj" />
-    <ProjectReference Include="../../src/Piccolo.Forge.Themes.Islands/Piccolo.Forge.Themes.Islands.csproj" />
+    <ProjectReference Include="../../src/Piccolo.Forge.Avalonia.DataGrid/Piccolo.Forge.Avalonia.DataGrid.csproj" />
+    <ProjectReference Include="../../src/Piccolo.Forge.Avalonia.ColorPicker/Piccolo.Forge.Avalonia.ColorPicker.csproj" />
   </ItemGroup>
 
 </Project>

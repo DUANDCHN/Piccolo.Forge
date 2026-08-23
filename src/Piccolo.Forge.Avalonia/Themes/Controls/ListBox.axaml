@@ -1,0 +1,199 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+      ListBox / ListBoxItem / TreeView / TreeViewItem。
+      四者的项共用 Forge.Item.* 那组色 —— 与 ComboBoxItem 同源，上游也是同一套
+      （*.selectionBackground / List.hoverBackground），所以下拉、列表、树的选中观感天然一致。
+
+      ⚠ 树**不画层级连接线**（上游 Tree.paintLines = false），层级只靠缩进。
+        别加竖线，那是别的 IDE 的做法。
+    -->
+
+    <ControlTheme x:Key="Forge.ListBoxItem" TargetType="ListBoxItem">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="MinHeight" Value="{DynamicResource Forge.Item.Height}" />
+        <Setter Property="Padding" Value="{DynamicResource Forge.Item.Padding}" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <!-- 悬停/选中的色块与按钮同一档圆角（全局 Forge.CornerRadius）。
+                     多选时相邻两行之间会有一点缺口 —— 上游新 UI 也是这么画的，
+                     比"通栏直角"更容易看出这是一项而不是一整片。 -->
+                <Border Name="PART_Root" Background="{TemplateBinding Background}" CornerRadius="{DynamicResource Forge.CornerRadius}">
+                    <ContentPresenter Name="PART_ContentPresenter"
+                                      Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      Padding="{TemplateBinding Padding}"
+                                      HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                      VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+
+        <Style Selector="^:pointerover /template/ Border#PART_Root">
+            <Setter Property="Background" Value="{DynamicResource Forge.Item.HoverBackground}" />
+        </Style>
+        <Style Selector="^:selected /template/ Border#PART_Root">
+            <Setter Property="Background" Value="{DynamicResource Forge.Item.SelectedBackground}" />
+        </Style>
+        <Style Selector="^:selected">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Item.SelectedForeground}" />
+        </Style>
+        <Style Selector="^:selected:pointerover /template/ Border#PART_Root">
+            <Setter Property="Background" Value="{DynamicResource Forge.Item.SelectedBackground}" />
+        </Style>
+        <!-- 列表失去焦点时选中项退一档：上游用 *.selectionInactiveBackground 表达
+             "这一项还选着，但键盘焦点不在这儿"。 -->
+        <Style Selector="^:selected:not(:focus-within) /template/ Border#PART_Root">
+            <Setter Property="Background" Value="{DynamicResource Forge.Item.SelectedInactiveBackground}" />
+        </Style>
+        <Style Selector="^:disabled">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Button.Disabled.Foreground}" />
+        </Style>
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.ListBox" TargetType="ListBox">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Padding" Value="{DynamicResource Forge.List.Padding}" />
+        <Setter Property="ItemContainerTheme" Value="{DynamicResource Forge.ListBoxItem}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}">
+                    <ScrollViewer Name="PART_ScrollViewer"
+                                  HorizontalScrollBarVisibility="{TemplateBinding (ScrollViewer.HorizontalScrollBarVisibility)}"
+                                  VerticalScrollBarVisibility="{TemplateBinding (ScrollViewer.VerticalScrollBarVisibility)}">
+                        <ItemsPresenter Name="PART_ItemsPresenter"
+                                        ItemsPanel="{TemplateBinding ItemsPanel}"
+                                        Margin="{TemplateBinding Padding}" />
+                    </ScrollViewer>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <!-- 树的展开钮。方框 + 墨迹居中：墨迹是 4×8，框取 9×9（要能容下旋转 90° 后的 8×4），
+         故 Data 平移 ((9-4)/2, (9-8)/2) = (2.5, 0.5)，让墨迹中心落在框中心 (4.5, 4.5)。
+         ⚠ 直接写 `M 0 0 L 4 4 L 0 8` 会让墨迹贴在框的左上角，看着就是"箭头偏上偏左"。
+           chevron 这种非对称图形的视觉重心不等于外框中心，摆之前要先算。 -->
+    <!-- 树的展开箭头：**有意不套 Forge.IconToggleButton 那个底盘** ——
+         行本身已经有悬停/选中色块，箭头再来一块就是块中块；而且它只有 9×9，
+         套底盘要把最小尺寸、内边距、圆角、焦点环一路压掉，比直接写还长。 -->
+    <ControlTheme x:Key="Forge.TreeChevronButton" TargetType="ToggleButton">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Width" Value="9" />
+        <Setter Property="Height" Value="9" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="{TemplateBinding Background}">
+                    <Path Name="PART_Chevron"
+                          Data="M 2.5 0.5 L 6.5 4.5 L 2.5 8.5"
+                          Stroke="{TemplateBinding Foreground}"
+                          StrokeThickness="1.3"
+                          StrokeLineCap="Round" StrokeJoin="Round"
+                          RenderTransformOrigin="50%,50%" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:checked /template/ Path#PART_Chevron">
+            <Setter Property="RenderTransform" Value="rotate(90deg)" />
+        </Style>
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.TreeViewItem" TargetType="TreeViewItem">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="MinHeight" Value="{DynamicResource Forge.Item.Height}" />
+        <Setter Property="Padding" Value="{DynamicResource Forge.Item.Padding}" />
+        <!-- TreeViewItem 是 HeaderedItemsControl，没有 HorizontalContentAlignment /
+             VerticalContentAlignment（与 MenuItem 同理），模板里直接写死。 -->
+        <Setter Property="ItemContainerTheme" Value="{DynamicResource Forge.TreeViewItem}" />
+
+        <Setter Property="Template">
+            <ControlTemplate>
+                <StackPanel>
+                    <Border Name="PART_Header"
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="{DynamicResource Forge.CornerRadius}"
+                            MinHeight="{TemplateBinding MinHeight}">
+                        <Grid ColumnDefinitions="Auto,*">
+                            <!-- 展开箭头与 Expander 同一套 chevron：收起朝右、展开朝下
+                                 （上游 Tree.collapsedIcon / expandedIcon）。无子项时隐掉但**保留占位**，
+                                 否则有子项和没子项的行文本会左右错开。
+                                 ⚠ 必须是可点的（ToggleButton），光摆一个 Path 点不动 ——
+                                   树就只能靠双击行展开、收不起来。 -->
+                            <ToggleButton Name="PART_ExpandButton"
+                                          Grid.Column="0"
+                                          Theme="{StaticResource Forge.TreeChevronButton}"
+                                          IsChecked="{TemplateBinding IsExpanded, Mode=TwoWay}"
+                                          Margin="4,0,5,0"
+                                          VerticalAlignment="Center" />
+                            <ContentPresenter Name="PART_HeaderPresenter"
+                                              Grid.Column="1"
+                                              Content="{TemplateBinding Header}"
+                                              ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                              Padding="{TemplateBinding Padding}"
+                                              VerticalAlignment="Center" />
+                        </Grid>
+                    </Border>
+
+                    <!-- 子项靠这条 Margin 缩进；TreeViewItem 是嵌套的，每层自然累加。 -->
+                    <ItemsPresenter Name="PART_ItemsPresenter"
+                                    ItemsPanel="{TemplateBinding ItemsPanel}"
+                                    Margin="{DynamicResource Forge.Tree.ChildMargin}"
+                                    IsVisible="{TemplateBinding IsExpanded}" />
+                </StackPanel>
+            </ControlTemplate>
+        </Setter>
+
+        <!-- ⚠ 无子项时用 Opacity 隐藏而**不是 IsVisible** —— IsVisible=False 不占位，
+             子项的文本就会和父项左对齐，缩进白设了。同时禁掉，免得点到看不见的按钮。 -->
+        <Style Selector="^:empty /template/ ToggleButton#PART_ExpandButton">
+            <Setter Property="Opacity" Value="0" />
+            <Setter Property="IsHitTestVisible" Value="False" />
+        </Style>
+
+        <Style Selector="^:pointerover /template/ Border#PART_Header">
+            <Setter Property="Background" Value="{DynamicResource Forge.Item.HoverBackground}" />
+        </Style>
+        <Style Selector="^:selected /template/ Border#PART_Header">
+            <Setter Property="Background" Value="{DynamicResource Forge.Item.SelectedBackground}" />
+        </Style>
+        <Style Selector="^:selected">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Item.SelectedForeground}" />
+        </Style>
+        <Style Selector="^:selected:pointerover /template/ Border#PART_Header">
+            <Setter Property="Background" Value="{DynamicResource Forge.Item.SelectedBackground}" />
+        </Style>
+        <Style Selector="^:disabled">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Button.Disabled.Foreground}" />
+        </Style>
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.TreeView" TargetType="TreeView">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Padding" Value="{DynamicResource Forge.Tree.Padding}" />
+        <Setter Property="ItemContainerTheme" Value="{DynamicResource Forge.TreeViewItem}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}">
+                    <ScrollViewer Name="PART_ScrollViewer"
+                                  HorizontalScrollBarVisibility="{TemplateBinding (ScrollViewer.HorizontalScrollBarVisibility)}"
+                                  VerticalScrollBarVisibility="{TemplateBinding (ScrollViewer.VerticalScrollBarVisibility)}">
+                        <ItemsPresenter Name="PART_ItemsPresenter"
+                                        ItemsPanel="{TemplateBinding ItemsPanel}"
+                                        Margin="{TemplateBinding Padding}" />
+                    </ScrollViewer>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+</ResourceDictionary>

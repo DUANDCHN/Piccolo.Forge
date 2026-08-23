@@ -1,4 +1,4 @@
-# Third-party notices
+﻿# Third-party notices
 
 ## Dock
 
@@ -35,6 +35,21 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+## Semi.Avalonia
+
+以下内容参考 Semi.Avalonia 实现（借的是**做法**，不含其源代码）：
+
+- 语言文案机制：文案进资源字典、`ApplyLocale` 按 culture 换字典，与 `SemiTheme.Locale` 同一机制；
+- 附加包拆分惯例：DataGrid / ColorPicker 的主题独立成包、只依赖对应的 Avalonia 控件包、不依赖主题主包；
+- 控件模板化过程中的若干框架事实（必需的 PART 名、ControlTheme 对子类的匹配行为等）。
+
+视觉结构与颜色不参考 Semi —— 那些以 IntelliJ Platform 源码为依据（见下一节）。
+
+- Project: Semi.Avalonia
+- Repository: https://github.com/irihitech/Semi.Avalonia
+- License: MIT
+- Copyright (c) IRIHI Technology
 
 ## IntelliJ Platform
 

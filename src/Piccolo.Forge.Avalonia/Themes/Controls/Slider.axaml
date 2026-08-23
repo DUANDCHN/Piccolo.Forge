@@ -1,0 +1,97 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+      Slider / GridSplitter —— 两个轻量控件，共用已有的色。
+      （ToggleButton 已挪到 Button.axaml：它是按钮族，且要给 Forge.IconToggleButton 当基。）
+
+      Slider 的轨道分两段：已走过的那段用主色（与主按钮同蓝），未走的用 Slider.trackColor。
+      上游只给了颜色没给尺寸，thumb 14 / 轨道 4 是与 IntelliJ 观感相当的值。
+    -->
+
+    <ControlTheme x:Key="Forge.SliderThumb" TargetType="Thumb">
+        <Setter Property="Width" Value="{DynamicResource Forge.Slider.ThumbSize}" />
+        <Setter Property="Height" Value="{DynamicResource Forge.Slider.ThumbSize}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Ellipse Name="PART_Dot"
+                         Fill="{DynamicResource Forge.Slider.Thumb}"
+                         Stroke="{DynamicResource Forge.Slider.ThumbBorder}"
+                         StrokeThickness="1" />
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:pointerover /template/ Ellipse#PART_Dot">
+            <Setter Property="Stroke" Value="{DynamicResource Forge.Focus.Ring}" />
+        </Style>
+        <Style Selector="^:pressed /template/ Ellipse#PART_Dot">
+            <Setter Property="Stroke" Value="{DynamicResource Forge.Focus.Ring}" />
+        </Style>
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.SliderTrackButton" TargetType="RepeatButton">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="{TemplateBinding Background}"
+                        CornerRadius="{DynamicResource Forge.CornerRadius}" />
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <ControlTheme x:Key="Forge.Slider" TargetType="Slider">
+        <Setter Property="Background" Value="{DynamicResource Forge.Slider.Track}" />
+        <Setter Property="Foreground" Value="{DynamicResource Forge.Button.Accent.Background}" />
+        <Setter Property="MinHeight" Value="24" />
+
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid>
+                    <Track Name="PART_Track"
+                           Minimum="{TemplateBinding Minimum}"
+                           Maximum="{TemplateBinding Maximum}"
+                           Value="{TemplateBinding Value, Mode=TwoWay}"
+                           Orientation="{TemplateBinding Orientation}"
+                           IsDirectionReversed="{TemplateBinding IsDirectionReversed}">
+                        <Track.DecreaseButton>
+                            <!-- 已走过的那段：主色。 -->
+                            <RepeatButton Name="PART_DecreaseButton"
+                                          Theme="{StaticResource Forge.SliderTrackButton}"
+                                          Background="{TemplateBinding Foreground}"
+                                          Height="{DynamicResource Forge.Slider.TrackThickness}"
+                                          VerticalAlignment="Center" />
+                        </Track.DecreaseButton>
+                        <Track.IncreaseButton>
+                            <RepeatButton Name="PART_IncreaseButton"
+                                          Theme="{StaticResource Forge.SliderTrackButton}"
+                                          Background="{TemplateBinding Background}"
+                                          Height="{DynamicResource Forge.Slider.TrackThickness}"
+                                          VerticalAlignment="Center" />
+                        </Track.IncreaseButton>
+                        <Thumb Name="PART_Thumb" Theme="{StaticResource Forge.SliderThumb}" />
+                    </Track>
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+
+        <Style Selector="^:disabled">
+            <Setter Property="Opacity" Value="0.5" />
+        </Style>
+    </ControlTheme>
+
+
+    <!-- GridSplitter：平时就是一条分隔线，悬停时提示可拖。 -->
+    <ControlTheme x:Key="Forge.GridSplitter" TargetType="GridSplitter">
+        <Setter Property="Background" Value="{DynamicResource Forge.Group.Separator}" />
+        <Setter Property="MinWidth" Value="1" />
+        <Setter Property="MinHeight" Value="1" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Name="PART_Root" Background="{TemplateBinding Background}" />
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:pointerover /template/ Border#PART_Root">
+            <Setter Property="Background" Value="{DynamicResource Forge.Focus.Ring}" />
+        </Style>
+    </ControlTheme>
+
+</ResourceDictionary>
