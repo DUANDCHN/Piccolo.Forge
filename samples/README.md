@@ -36,6 +36,9 @@ dotnet run --project samples/Piccolo.Forge.Sample.Mvvm       # MVVM 接法
 - 对接全靠绑定：`ForgeControl.Shell` 与 `ForgeEditorControl.Editor` 都是 StyledProperty，
   主窗口 XAML 两个 `{Binding}` 接完，**没有一行 code-behind 接线**
   （`Attach()` 那套命令式 API 仍在，给不走绑定的宿主用，两条路等价）
+- 布局持久化：启动恢复（没有/坏档退默认摆放，不挡启动）、退出保存
+  （`ShutdownRequested`）；编辑区内容按标签 id 由 `contentFactory` 重建。
+  验证方法：跑起来把面板拖一拖、关掉重开 —— 日志面板第一行会写"已恢复上次布局"
 - ⚠ `CommunityToolkit.Mvvm` 必须**直接引用**：源生成器不随传递引用流动，
   只靠传递引用能编译，特性却静默不生成代码
 - ⚠ 示例的 `ViewLocator` 是反射版；AOT / 裁剪发布的宿主换编译期生成的
