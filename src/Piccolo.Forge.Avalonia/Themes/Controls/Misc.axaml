@@ -374,11 +374,24 @@
             <Setter Property="Padding" Value="4" />
             <Setter Property="MinHeight" Value="0" />
         </Style>
+        <!-- 分隔线：常态不画（工具栏上一排图标钮之间再画竖线就成了栅栏），
+             **悬停时画** —— 那正是需要说清"这是一个控件、但有两半"的时候。
+             常态看着像一颗，悬停才露出分界，与整块背板一起出现。 -->
         <Style Selector="^.tertiary /template/ Border#PART_Separator">
             <Setter Property="IsVisible" Value="False" />
         </Style>
+        <Style Selector="^.tertiary:pointerover /template/ Border#PART_Separator">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
         <Style Selector="^.tertiary /template/ Button#PART_SecondaryButton">
             <Setter Property="Padding" Value="3,0" />
+        </Style>
+        <!-- ⚠ 两半的最小尺寸也要清零。Forge.SplitButtonPart 给的是 Forge.Button.MinHeight
+             （带文字按钮的高度），无边框档里控件自己 MinHeight=0 了、两半却还撑着那个高度，
+             于是整块背板比同排图标钮高出一截（宿主实测到的"背板比别的按钮大"）。 -->
+        <Style Selector="^.tertiary /template/ Button#PART_PrimaryButton, ^.tertiary /template/ Button#PART_SecondaryButton">
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="MinWidth" Value="0" />
         </Style>
         <!-- 两半交出叠加权，背板整块由外壳出（见 Forge.SplitButtonPart.NoOverlay 的理由）。 -->
         <Style Selector="^.tertiary /template/ Button#PART_PrimaryButton">

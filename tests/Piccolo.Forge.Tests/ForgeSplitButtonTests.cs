@@ -66,6 +66,17 @@ public class ForgeSplitButtonTests
     }
 
     [AvaloniaFact]
+    public void 无边框档_两半不撑高度()
+    {
+        var (w, sb) = Host("tertiary");
+
+        // 两半沿用带文字按钮的 MinHeight 时，整块背板会比同排图标钮高一截。
+        Assert.Equal(0, Part<Button>(sb, "PART_PrimaryButton").MinHeight);
+        Assert.Equal(0, Part<Button>(sb, "PART_SecondaryButton").MinHeight);
+        w.Close();
+    }
+
+    [AvaloniaFact]
     public void 有边框档_照旧由两半各自反馈()
     {
         var (w, sb) = Host();
