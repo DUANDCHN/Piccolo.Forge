@@ -174,8 +174,12 @@ frame.Appearance = ForgeAppearance.Default with
 };
 ```
 
-Layouts are saved and restored with `ToolWindowLayoutSerializer` and
-`EditorLayoutSerializer`, using an XML structure modelled on IntelliJ's `window.xml`. Any
+Layouts are saved and restored in one call with `ForgeLayoutSerializer`
+(`Write(shell, editor).Save(path)` / `TryRead(path, shell, editor, contentFactory)`,
+the counterpart of Dock's `DockSerializer`; a missing or corrupt archive returns `false`
+instead of throwing). The per-part serializers (`ToolWindowLayoutSerializer`,
+`EditorLayoutSerializer`) remain public; the XML structure is modelled on IntelliJ's
+`window.xml`. Any
 built-in string can be replaced by redefining the corresponding `Forge.Strings.*`
 resource key in the application resources.
 
@@ -357,8 +361,11 @@ frame.Appearance = ForgeAppearance.Default with
 };
 ```
 
-布局通过 `ToolWindowLayoutSerializer` 与 `EditorLayoutSerializer` 保存与恢复，XML 结构参考 IntelliJ 的
-`window.xml`。任何内置文案均可通过在应用程序资源中重定义对应的 `Forge.Strings.*` 资源键予以替换。
+布局用 `ForgeLayoutSerializer` 一次保存与恢复（`Write(shell, editor).Save(path)` /
+`TryRead(path, shell, editor, contentFactory)`，对位 Dock 的 `DockSerializer`；
+没有存档或存档坏掉返回 `false` 而不抛）。分块的 `ToolWindowLayoutSerializer` 与
+`EditorLayoutSerializer` 照旧公开；XML 结构参考 IntelliJ 的 `window.xml`。
+任何内置文案均可通过在应用程序资源中重定义对应的 `Forge.Strings.*` 资源键予以替换。
 
 示例见仓库 `samples/`：`Piccolo.Forge.Sample`（控件目录）、
 `Piccolo.Forge.Sample.ExpUi` 与 `.Islands`（外壳布局，各演示一族）。

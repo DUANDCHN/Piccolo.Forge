@@ -1,6 +1,3 @@
-using System.IO;
-using System.Linq;
-using System.Xml.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Piccolo.Forge.Model;
 using Piccolo.Forge.Mvvm;
@@ -27,7 +24,7 @@ public sealed class MainViewModel : ObservableObject
 
         // ② 登记：把面板本身交出去，身份（Id / Title / Icon）从它自己来；
         //    只说停哪条边 —— 条带按钮画在哪根条带是外壳算出来的。
-        //    ⚠ 恢复存档必须在**全部 Add 之后**（RestoreLayout 只认已登记的 id），
+        //    ⚠ 恢复存档必须在**全部 Add 之后**（摆放只认已登记的 id），
         //      所以登记在构造里、恢复在 TryRestoreLayout 里，天然分了先后。
         Shell = new ToolWindowShellViewModel();
         Shell.Add(tasks, ToolWindowAnchor.Left);
@@ -52,56 +49,30 @@ public sealed class MainViewModel : ObservableObject
     }
 
     /// <summary>
-    /// 读存档。两块分开存的（工具窗口的摆放 / 编辑区的标签与分屏树），这里一起恢复。
+    /// 读存档。<see cref="ForgeLayoutSerializer"/> 一次恢复两块（工具窗口摆放 + 编辑区标签/分屏树）；
+    /// 没有存档、存档坏掉都返回假且不抛 —— 调用方接着走 <see cref="OpenDefaultLayout"/> 即可。
     /// </summary>
     /// <param name="path">存档路径。</param>
-    /// <returns>恢复成功为真；没有存档或存档坏掉为假 —— 调用方接着走 <see cref="OpenDefaultLayout"/>。</returns>
+    /// <returns>恢复成功为真。</returns>
     public bool TryRestoreLayout(string path)
     {
-        if (!File.Exists(path))
+        // 编辑区内容按标签 id 重建（存档里只有 id 与结构）——新加的页种类在 switch 里补一行。
+        if (!ForgeLayoutSerializer.TryRead(path, Shell, Editor, CreateEditorContent))
             return false;
 
-        try
-        {
-            var root = XElement.Load(path);
-
-            // 工具窗口：摆放套回已登记的面板。存档里多出来的 id 被忽略、缺的保持默认摆放，
-            // 这两条库替宿主兜住了（版本升级不炸），见接入指南 §5.5。
-            if (root.Element("tools")?.Elements().FirstOrDefault() is { } tools)
-                Shell.RestoreLayout(tools);
-
-            // 编辑区：存档里只有标签 id 与分屏结构，**内容由宿主重建** —— 这就是 contentFactory。
-            // 认不出来的 id 返回 null，那一页被丢掉并报回（与上游解析不到文件时 warn + 跳过一致）。
-            if (root.Element("editor")?.Elements().FirstOrDefault() is { } editor)
-                Editor.Restore(editor, CreateEditorContent);
-
-            _log.Append("已恢复上次布局。");
-            return true;
-        }
-        catch (System.Xml.XmlException)
-        {
-            // 存档坏掉（XML 解析不了）会抛，这是宿主该 catch 的：
-            // 记一条、退回默认布局，不要让它挡住启动（接入指南 §5.5 的规矩）。
-            _log.Append("布局存档损坏，退回默认布局。");
-            return false;
-        }
+        _log.Append("已恢复上次布局。");
+        return true;
     }
 
     /// <summary>存档。退出时由 App 调用；用户点"保存布局"之类的入口也是走它。</summary>
     /// <param name="path">存档路径。存到哪、什么时候存是宿主的事，格式是库的事。</param>
     public void SaveLayout(string path)
     {
-        // 两块各自的 XML 包在具名容器里再落盘 —— 读的时候按容器取，
-        // 不依赖序列化器根元素的名字（空编辑区与分屏编辑区的根元素不同名）。
-        var root = new XElement("forge-sample-layout",
-            new XElement("tools", Shell.SaveLayout()),
-            new XElement("editor", EditorLayoutSerializer.Write(Editor.Area)));
-
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        root.Save(path);
+        System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path)!);
+        ForgeLayoutSerializer.Write(Shell, Editor).Save(path);
     }
 
-    /// <summary>编辑区恢复时按标签 id 重建内容。新加的页种类在这里补一行。</summary>
+    /// <summary>编辑区恢复时按标签 id 重建内容。认不出的 id 返回 null，那一页被丢掉并报回。</summary>
     private static object? CreateEditorContent(string id) => id switch
     {
         "readme" => new ReadmePanelViewModel(),

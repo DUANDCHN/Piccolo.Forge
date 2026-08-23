@@ -1,1 +1,9 @@
-#nullable enable
+﻿#nullable enable
+Piccolo.Forge.Mvvm.ForgeLayoutSerializer
+const Piccolo.Forge.Mvvm.ForgeLayoutSerializer.EditorTag = "editor" -> string!
+const Piccolo.Forge.Mvvm.ForgeLayoutSerializer.RootTag = "forge-layout" -> string!
+const Piccolo.Forge.Mvvm.ForgeLayoutSerializer.ToolsTag = "tools" -> string!
+static Piccolo.Forge.Mvvm.ForgeLayoutSerializer.TryRead(string! path, Piccolo.Forge.Mvvm.ToolWindowShellViewModel! shell, Piccolo.Forge.Mvvm.EditorAreaViewModel! editor, System.Func<string!, object?>? contentFactory = null) -> bool
+static Piccolo.Forge.Mvvm.ForgeLayoutSerializer.TryRead(System.Xml.Linq.XElement! root, Piccolo.Forge.Mvvm.ToolWindowShellViewModel! shell, Piccolo.Forge.Mvvm.EditorAreaViewModel! editor, System.Func<string!, object?>? contentFactory = null) -> bool
+static Piccolo.Forge.Mvvm.ForgeLayoutSerializer.Write(Piccolo.Forge.Mvvm.ToolWindowShellViewModel! shell, Piccolo.Forge.Mvvm.EditorAreaViewModel! editor) -> System.Xml.Linq.XElement!
+
