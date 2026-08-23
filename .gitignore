@@ -2,3 +2,6 @@ bin/
 obj/
 # 上游源码只作本地参考，不进本仓历史（几百 MB，且它有自己的版本管理）
 third_party/intellij-community/
+
+# Rider 每次打开都会改写的 IDE 状态（Avalonia 预览器的窗口记忆），不进库
+.idea/.idea.Piccolo.Forge/.idea/avalonia.xml
