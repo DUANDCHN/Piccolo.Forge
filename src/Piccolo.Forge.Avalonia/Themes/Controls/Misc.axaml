@@ -32,6 +32,33 @@
         <Style Selector="^.failed /template/ Border#PART_Indicator">
             <Setter Property="Background" Value="{DynamicResource Forge.Progress.Failed}" />
         </Style>
+
+        <!-- ★ 不确定态（IsIndeterminate=true）：一条短条来回扫。
+             ⚠ 这件事**必须由主题做**。框架只在确定态里按 Value 算 PART_Indicator 的宽度；
+               不确定态它只把宽度和起止位置算好放进 TemplateSettings，动画得主题自己挂。
+               没挂就是**一条空轨道**——不报错、也不是"动画不好看"，是进度条整个看不见。
+             起止位置取 TemplateSettings（框架按轨道实际宽度算的），不写死数字：
+             写死了面板一拉宽短条就扫不到头。 -->
+        <Style Selector="^:indeterminate /template/ Border#PART_Indicator">
+            <Setter Property="Width" Value="{Binding $parent[ProgressBar].TemplateSettings.ContainerWidth}" />
+            <Setter Property="RenderTransform">
+                <TranslateTransform />
+            </Setter>
+        </Style>
+        <Style Selector="^:indeterminate /template/ Border#PART_Indicator">
+            <Style.Animations>
+                <Animation IterationCount="Infinite" Duration="0:0:1.8" Easing="CubicEaseInOut">
+                    <KeyFrame Cue="0%">
+                        <Setter Property="TranslateTransform.X"
+                                Value="{Binding $parent[ProgressBar].TemplateSettings.ContainerAnimationStartPosition}" />
+                    </KeyFrame>
+                    <KeyFrame Cue="100%">
+                        <Setter Property="TranslateTransform.X"
+                                Value="{Binding $parent[ProgressBar].TemplateSettings.ContainerAnimationEndPosition}" />
+                    </KeyFrame>
+                </Animation>
+            </Style.Animations>
+        </Style>
     </ControlTheme>
 
     <!-- ⚠ 提示气泡在**亮色档也是深底浅字**，这是 IntelliJ 的做法，不是写反了。 -->
