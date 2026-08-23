@@ -318,6 +318,14 @@
         <Style Selector="^:pressed /template/ Border#PART_Overlay">
             <Setter Property="Background" Value="Transparent" />
         </Style>
+        <!-- ⚠ 焦点环也交出去。Button 模板外圈那层 PART_FocusRing 常驻占位（每边 2px），
+             两半各带一层就把外壳撑到 32 —— 邻居图标钮的背板画在焦点环**以内**、只有 28，
+             这 4px 正是"背板比同排大一圈"的主项（探针量出 32 vs 28）。
+             键盘焦点落在两半上时的视觉提示随之消失，这一档先接受：工具栏图标钮
+             本就以悬停背板为主要反馈。 -->
+        <Style Selector="^ /template/ Border#PART_FocusRing">
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
     </ControlTheme>
 
     <ControlTheme x:Key="Forge.SplitButton" TargetType="SplitButton">
@@ -372,6 +380,9 @@
         <Style Selector="^.tertiary">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderBrush" Value="Transparent" />
+            <!-- ⚠ 厚度也要清零，不只是把边刷透明：透明的 1px 边仍占位，
+                 外壳比邻居的背板高出上下各 1（探针量出 34 vs 32 的那 2px）。 -->
+            <Setter Property="BorderThickness" Value="0" />
             <Setter Property="CornerRadius" Value="{DynamicResource Forge.Button.CornerRadius}" />
             <Setter Property="Padding" Value="4" />
             <Setter Property="MinHeight" Value="0" />

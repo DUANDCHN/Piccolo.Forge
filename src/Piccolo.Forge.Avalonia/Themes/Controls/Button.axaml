@@ -23,10 +23,12 @@
 
         <Setter Property="Template">
             <ControlTemplate>
-                <!-- 焦点环画在边框外围（上游 DarculaUIUtil.doPaint），常态透明但始终占位，聚焦不改布局。 -->
+                <!-- 焦点环画在边框外围（上游 DarculaUIUtil.doPaint），常态透明但始终占位，聚焦不改布局。
+                     ⚠ 厚度不在这里内联写：模板内联是本地值、任何样式都盖不过，
+                       派生主题（如拆分按钮两半的 NoOverlay 档）就没法收掉这 2px 占位。
+                       值由下面的 ^ /template/ 样式给，效果相同。 -->
                 <Border Name="PART_FocusRing"
                         BorderBrush="Transparent"
-                        BorderThickness="{DynamicResource Forge.Focus.RingThickness}"
                         CornerRadius="{DynamicResource Forge.Focus.RingCornerRadius}">
                 <Border Name="PART_Root"
                         Background="{TemplateBinding Background}"
@@ -51,6 +53,9 @@
             </ControlTemplate>
         </Setter>
 
+        <Style Selector="^ /template/ Border#PART_FocusRing">
+            <Setter Property="BorderThickness" Value="{DynamicResource Forge.Focus.RingThickness}" />
+        </Style>
         <Style Selector="^:pointerover /template/ Border#PART_Overlay">
             <Setter Property="Background" Value="{DynamicResource Forge.Overlay.Hover}" />
         </Style>
