@@ -174,12 +174,75 @@ frame.Appearance = ForgeAppearance.Default with
 };
 ```
 
-Layouts are saved and restored in one call with `ForgeLayoutSerializer`
-(`Write(shell, editor).Save(path)` / `TryRead(path, shell, editor, contentFactory)`,
-the counterpart of Dock's `DockSerializer`; a missing or corrupt archive returns `false`
-instead of throwing). The per-part serializers (`ToolWindowLayoutSerializer`,
-`EditorLayoutSerializer`) remain public; the XML structure is modelled on IntelliJ's
-`window.xml`. Any
+### Layout persistence
+
+Panel positions, widths, open states and the editor split tree survive a restart with
+`ForgeLayoutSerializer` (the counterpart of Dock's `DockSerializer`). The archive stores
+**how things are laid out**; **what exists** always comes from your `Add` calls — that is
+why a layout file from an older version of your app can never break the UI.
+
+The complete wiring, in the application entry point:
+
+```csharp
+public override void OnFrameworkInitializationCompleted()
+{
+    if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        var vm = new MainViewModel();               // all panels are Add-ed in the ctor
+
+        // Restore AFTER all Add calls. A missing, corrupt or foreign file returns
+        // false instead of throwing — fall back to your default layout and move on.
+        if (!ForgeLayoutSerializer.TryRead(LayoutPath, vm.Shell, vm.Editor, CreateContent))
+            vm.OpenDefaultLayout();
+
+        // Save on exit. ShutdownRequested covers normal close; it does NOT cover a
+        // killed process — offer a "save layout" action too if that matters to you.
+        desktop.ShutdownRequested += (_, _) =>
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(LayoutPath)!);
+            ForgeLayoutSerializer.Write(vm.Shell, vm.Editor).Save(LayoutPath);
+        };
+
+        desktop.MainWindow = new MainWindow { DataContext = vm };
+    }
+    base.OnFrameworkInitializationCompleted();
+}
+
+private static string LayoutPath => Path.Combine(
+    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+    "YourApp", "layout.xml");
+```
+
+Editor tabs are restored by identity: the archive holds tab ids and the split tree,
+the **content** is yours — rebuild it in the factory. Return `null` for an id you no
+longer recognise and that tab is dropped (and reported back), never failing the restore:
+
+```csharp
+private static object? CreateContent(string id) => id switch
+{
+    "readme" => new ReadmePanelViewModel(),
+    var file when File.Exists(file) => OpenDocument(file),
+    _ => null,   // unknown → drop this tab, keep everything else
+};
+```
+
+Three rules, all enforced by the API shape rather than by convention:
+
+- **Restore after every `Add`.** Restoring earlier does not throw — archive ids simply
+  match nothing and are ignored (the classic "restore did nothing" symptom).
+- **`TryRead` returning `false` is the only failure mode** — first start, corrupt file
+  and foreign file all take the same exit. Never let an archive block startup.
+- **Version upgrades are absorbed**: ids in the archive that no longer exist are
+  ignored; new panels missing from the archive keep their default placement.
+
+To embed the layout into your own settings file instead of a standalone one, use the
+`XElement` overloads (`Write(...)` returns the element, `TryRead(element, ...)` reads it).
+The per-part serializers (`ToolWindowLayoutSerializer`, `EditorLayoutSerializer`) remain
+public for hosts that store the two halves separately. The XML structure is modelled on
+IntelliJ's `window.xml` and only writes non-default values, so archives stay small and
+human-readable. A full working example is `samples/Piccolo.Forge.Sample.Mvvm`.
+
+Any
 built-in string can be replaced by redefining the corresponding `Forge.Strings.*`
 resource key in the application resources.
 
@@ -361,10 +424,69 @@ frame.Appearance = ForgeAppearance.Default with
 };
 ```
 
-布局用 `ForgeLayoutSerializer` 一次保存与恢复（`Write(shell, editor).Save(path)` /
-`TryRead(path, shell, editor, contentFactory)`，对位 Dock 的 `DockSerializer`；
-没有存档或存档坏掉返回 `false` 而不抛）。分块的 `ToolWindowLayoutSerializer` 与
-`EditorLayoutSerializer` 照旧公开；XML 结构参考 IntelliJ 的 `window.xml`。
+### 布局持久化
+
+面板位置、宽窄、开合与编辑区分屏树用 `ForgeLayoutSerializer` 存读（对位 Dock 的
+`DockSerializer`）。存档只描述**摆成什么样**；**有什么**永远以宿主的 `Add` 为准 ——
+所以旧版本应用留下的存档不可能弄坏界面。
+
+完整接线（应用入口处）：
+
+```csharp
+public override void OnFrameworkInitializationCompleted()
+{
+    if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        var vm = new MainViewModel();               // 全部面板在构造里 Add 完
+
+        // 恢复必须在**所有 Add 之后**。没有存档、存档坏掉、别家的文件都返回
+        // false 而不抛 —— 走你的默认摆放即可，存档出任何问题都不该挡住启动。
+        if (!ForgeLayoutSerializer.TryRead(LayoutPath, vm.Shell, vm.Editor, CreateContent))
+            vm.OpenDefaultLayout();
+
+        // 退出时存。ShutdownRequested 覆盖正常关闭；**覆盖不了进程被杀** ——
+        // 在意就再提供一个"保存布局"入口，调的是同一个 Write。
+        desktop.ShutdownRequested += (_, _) =>
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(LayoutPath)!);
+            ForgeLayoutSerializer.Write(vm.Shell, vm.Editor).Save(LayoutPath);
+        };
+
+        desktop.MainWindow = new MainWindow { DataContext = vm };
+    }
+    base.OnFrameworkInitializationCompleted();
+}
+
+private static string LayoutPath => Path.Combine(
+    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+    "你的应用名", "layout.xml");
+```
+
+编辑区按身份恢复：存档里只有标签 id 与分屏树，**内容是宿主的** —— 在 factory 里按 id
+重建。认不出的 id 返回 `null`，那一页被丢掉并报回，绝不让整个恢复失败：
+
+```csharp
+private static object? CreateContent(string id) => id switch
+{
+    "readme" => new ReadmePanelViewModel(),
+    var file when File.Exists(file) => OpenDocument(file),
+    _ => null,   // 认不出 → 丢这一页，其余照常
+};
+```
+
+三条规矩，都由 API 的形状保证而不是靠自觉：
+
+- **恢复在所有 `Add` 之后。** 调早了不报错 —— 存档里的 id 一个都对不上、全被忽略
+  （"恢复了但什么都没变"这个经典症状的来源）。
+- **`TryRead` 返回 `false` 是唯一的失败形态** —— 首次启动、坏档、别家文件同一个出口。
+- **版本升级被吸收**：存档里已删面板的 id 被忽略；存档里没有的新面板保持默认摆放。
+
+要把布局埋进自己的设置文件而不单独落盘，用 `XElement` 重载（`Write(...)` 返回元素、
+`TryRead(element, ...)` 读它）。分块的 `ToolWindowLayoutSerializer` /
+`EditorLayoutSerializer` 照旧公开，给两块分开存的宿主。XML 结构参考 IntelliJ 的
+`window.xml` 且只写非默认值，存档小而可读。完整可运行的例子见
+`samples/Piccolo.Forge.Sample.Mvvm`。
+
 任何内置文案均可通过在应用程序资源中重定义对应的 `Forge.Strings.*` 资源键予以替换。
 
 示例见仓库 `samples/`：`Piccolo.Forge.Sample`（控件目录）、
