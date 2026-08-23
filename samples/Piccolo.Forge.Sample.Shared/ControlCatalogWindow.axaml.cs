@@ -137,9 +137,13 @@ public partial class ControlCatalogWindow : Window
             : all.FirstOrDefault(x => x.item.Tag is Entry e && e.Name == name);
         if (hit.item is null)
             hit = all.FirstOrDefault(x => x.item.Tag is Entry { Adopted: true });
-        if (hit.item is null) return;
-        hit.group.IsExpanded = true;
-        hit.item.IsSelected = true;
+
+        // ⚠ 元组用 default 表示"没找到"时，group 与 item **一起**是 null，
+        //   但只检查其中一个**不会**让另一个也收窄 —— 于是 hit.group 仍是"可能为空"。
+        //   用位置模式整对一起判，两个同时收窄，也把"它们成对出现"这件事写进代码。
+        if (hit is not ({ } group, { } item)) return;
+        group.IsExpanded = true;
+        item.IsSelected = true;
     }
 
     /// <summary>渲染一个控件的演示页：每行一个用途。</summary>
