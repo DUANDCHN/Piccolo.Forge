@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 Piccolo.Forge.Avalonia.DockWeightChangedEventArgs
 Piccolo.Forge.Avalonia.DockWeightChangedEventArgs.Anchor.get -> Piccolo.Forge.Model.ToolWindowAnchor
 Piccolo.Forge.Avalonia.DockWeightChangedEventArgs.DockWeightChangedEventArgs(Piccolo.Forge.Model.ToolWindowAnchor anchor, float weight, bool isSideWeight = false, double pixels = NaN) -> void
@@ -1102,3 +1102,29 @@ virtual Piccolo.Forge.Avalonia.ForgeSquareButtonBase.ResolveForeground() -> Aval
 virtual Piccolo.Forge.Avalonia.ForgeSquareButtonBase.ShowsName.get -> bool
 ~override Piccolo.Forge.Themes.ForgeInsets.Equals(object obj) -> bool
 ~override Piccolo.Forge.Themes.ForgeInsets.ToString() -> string
+Piccolo.Forge.Avalonia.ForgeThemeBase
+Piccolo.Forge.Avalonia.ForgeThemeBase.Family.get -> Piccolo.Forge.Themes.ForgeThemeFamily
+Piccolo.Forge.Avalonia.ForgeThemeBase.Family.set -> void
+Piccolo.Forge.Avalonia.ForgeTheme
+Piccolo.Forge.Avalonia.ForgeTheme.ForgeTheme() -> void
+Piccolo.Forge.Avalonia.ForgeControlsTheme
+Piccolo.Forge.Avalonia.ForgeControlsTheme.ForgeControlsTheme() -> void
+Piccolo.Forge.Avalonia.ForgeShellTheme
+Piccolo.Forge.Avalonia.ForgeShellTheme.ForgeShellTheme() -> void
+Piccolo.Forge.Avalonia.ForgeNotificationManager
+Piccolo.Forge.Avalonia.ForgeNotificationManager.ForgeNotificationManager() -> void
+Piccolo.Forge.Avalonia.ForgeNotificationManager.Show(object! content, Avalonia.Controls.Notifications.NotificationType type = Avalonia.Controls.Notifications.NotificationType.Information, System.TimeSpan? expiration = null, System.Action? onClick = null, System.Action? onClose = null, string![]? classes = null) -> void
+static readonly Piccolo.Forge.Avalonia.ForgeNotificationManager.DefaultExpiration -> System.TimeSpan
+override Piccolo.Forge.Avalonia.ForgeNotificationManager.OnApplyTemplate(Avalonia.Controls.Primitives.TemplateAppliedEventArgs! e) -> void
+override Piccolo.Forge.Avalonia.ForgeNotificationManager.StyleKeyOverride.get -> System.Type!
+Piccolo.Forge.Avalonia.ForgeNotificationManager.IsPaused.get -> bool
+Piccolo.Forge.Avalonia.ForgeNotificationManager.IsPaused.set -> void
+Piccolo.Forge.Avalonia.ForgeNotificationManager.Close(System.Func<object?, bool>! match) -> int
+Piccolo.Forge.Avalonia.ForgeNotificationManager.KeepOpen(System.Func<object?, bool>! match) -> int
+Piccolo.Forge.Avalonia.ForgeNotification
+static readonly Piccolo.Forge.Avalonia.ForgeNotification.CardActionsTemplateProperty -> Avalonia.AttachedProperty<Avalonia.Controls.Templates.IDataTemplate?>!
+static Piccolo.Forge.Avalonia.ForgeNotification.GetCardActionsTemplate(Avalonia.Controls.Control! element) -> Avalonia.Controls.Templates.IDataTemplate?
+static Piccolo.Forge.Avalonia.ForgeNotification.SetCardActionsTemplate(Avalonia.Controls.Control! element, Avalonia.Controls.Templates.IDataTemplate? value) -> void
+Piccolo.Forge.Avalonia.ForgeStripeButton.BadgeMargin.get -> Avalonia.Thickness
+override Piccolo.Forge.Avalonia.ForgeStripeButton.ArrangeOverride(Avalonia.Size finalSize) -> Avalonia.Size
+static readonly Piccolo.Forge.Avalonia.ForgeStripeButton.BadgeMarginProperty -> Avalonia.StyledProperty<Avalonia.Thickness>!

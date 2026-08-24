@@ -1,3 +1,1 @@
 ﻿#nullable enable
-Piccolo.Forge.Avalonia.ColorPicker.ForgeColorPickerTheme
-Piccolo.Forge.Avalonia.ColorPicker.ForgeColorPickerTheme.ForgeColorPickerTheme(System.IServiceProvider? serviceProvider = null) -> void
