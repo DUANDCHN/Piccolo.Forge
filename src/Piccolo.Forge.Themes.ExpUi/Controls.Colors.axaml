@@ -250,9 +250,12 @@
     <Thickness x:Key="Forge.ComboBox.Padding">9,1,6,1</Thickness>
     <x:Double x:Key="Forge.ComboBox.ArrowAreaWidth">28</x:Double>
     <!-- 滚动条：上游没把厚度放进 theme.json（在 Java 侧按 DPI 算），12 是与 IntelliJ 观感相当的值。
-         thumb 内缩 2px 留出轨道边距 —— 上游 mac 分支用 macMargin 做同一件事，非 mac 分支靠布局留白。 -->
+         thumb 两档粗细都由内缩做：常态缩 3（宽 6，细的那条），指针在滚动条上时缩 1（宽 10）。
+         半径 6 = 厚度的一半，两档都被钳成半圆头，粗细一变不用跟着改半径。 -->
     <x:Double x:Key="Forge.ScrollBar.Thickness">12</x:Double>
-    <Thickness x:Key="Forge.ScrollBar.ThumbMargin">2</Thickness>
+    <Thickness x:Key="Forge.ScrollBar.ThumbMargin">3</Thickness>
+    <Thickness x:Key="Forge.ScrollBar.ThumbHoverMargin">1</Thickness>
+    <CornerRadius x:Key="Forge.ScrollBar.ThumbRadius">6</CornerRadius>
 
     <!-- 进度条：上游没给厚度（Java 侧按 DPI 算），4 是与 IntelliJ 观感相当的值。 -->
     <x:Double x:Key="Forge.Progress.Thickness">4</x:Double>

@@ -3,31 +3,52 @@
       ScrollBar。取上游的 Transparent 那组色（浮在内容上，轨道平时全透明、悬停才微微显现），
       不是 Opaque 组 —— 后者是给"滚动条占布局空间"的老式版面用的。
 
-      ⚠ thumb 是**直角**不是胶囊：上游 ScrollBarPainter.paint 里 `int arc = 0`，
-        只有 `SystemInfoRt.isMac` 分支才 `arc = Math.min(width, height)` 变胶囊。
-        目标平台是 Windows，按非 mac 分支走。想改成圆的先回来看这段 —— 那是 mac 的样子，不是 IntelliJ 的样子。
+      ⚠ thumb 是**胶囊**。这里原先照 ScrollBarPainter 的 `int arc = 0` 画成直角，并注明
+        "只有 isMac 分支才变胶囊" —— 那份参照是**旧版**的画法。新 UI（Rider 2024 起）
+        两个平台都是圆头：常态一条细的、无边框；指针进到滚动条上才涨粗、加一圈描边。
+        本主题按新 UI 走。CornerRadius 给的是"够大即可"的 6（= 厚度的一半），
+        任何宽度下都被钳成半圆头，所以粗细一变不用跟着改半径。
 
-      thumb 带 1px 边框（ThumbBorder 比 Thumb 深一档），这是上游的画法：
-      fill 与 draw 两个色分别产出，相同时才省掉边框。
+      两档粗细都由 thumb 的**内缩**做（Padding → 模板内层 Border 的 Margin）：
+      常态 ThumbMargin（细）、指针在滚动条上时 ThumbHoverMargin（粗）。
+      判据挂在 **ScrollBar** 上而不是 thumb 上 —— 指针落在轨道上也该涨粗（上游如此）；
+      描边与填色那两档才挂在 thumb 自己身上。
+
+      ⚠ **内缩绝不能写成 thumb 自己的 Margin**（这里踩过）：Track 按
+        `密度 = (轨道长 − 滑块长) ÷ 数值范围` 换算拖动，它眼里的"滑块长"是**布局**长度。
+        写 Margin 会让布局长度比画出来的那条长 2×margin，于是拖一像素走的值比该走的多 ——
+        实测 400 长的轨道、范围 900，拖满整条得到 915（多 1.7%），拖越远偏越多。
+        写 Padding 则只是往里缩着画，布局长度不变，拖动严格 1:1（ScrollBarDragTests 盯着这条）。
     -->
 
     <ControlTheme x:Key="Forge.ScrollBarThumb" TargetType="Thumb">
+        <Setter Property="Padding" Value="{DynamicResource Forge.ScrollBar.ThumbMargin}" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <ThicknessTransition Property="Padding" Duration="0:0:0.12" />
+            </Transitions>
+        </Setter>
         <Setter Property="Template">
             <ControlTemplate>
                 <Border Name="PART_Root"
+                        Margin="{TemplateBinding Padding}"
                         Background="{DynamicResource Forge.ScrollBar.Thumb}"
                         BorderBrush="{DynamicResource Forge.ScrollBar.ThumbBorder}"
-                        BorderThickness="1" />
+                        BorderThickness="0"
+                        CornerRadius="{DynamicResource Forge.ScrollBar.ThumbRadius}" />
             </ControlTemplate>
         </Setter>
-        <!-- 悬停/拖动都用 hover 档：上游只有两档（常态 / hovered），没有单独的按下色。 -->
+        <!-- 悬停/拖动都用 hover 档：上游只有两档（常态 / hovered），没有单独的按下色。
+             描边也在这一档才出现（常态 BorderThickness=0）—— 细的那条上游是纯色块。 -->
         <Style Selector="^:pointerover /template/ Border#PART_Root">
             <Setter Property="Background" Value="{DynamicResource Forge.ScrollBar.ThumbHover}" />
             <Setter Property="BorderBrush" Value="{DynamicResource Forge.ScrollBar.ThumbHoverBorder}" />
+            <Setter Property="BorderThickness" Value="1" />
         </Style>
         <Style Selector="^:pressed /template/ Border#PART_Root">
             <Setter Property="Background" Value="{DynamicResource Forge.ScrollBar.ThumbHover}" />
             <Setter Property="BorderBrush" Value="{DynamicResource Forge.ScrollBar.ThumbHoverBorder}" />
+            <Setter Property="BorderThickness" Value="1" />
         </Style>
     </ControlTheme>
 
@@ -72,8 +93,7 @@
                                           Theme="{StaticResource Forge.ScrollBarPageButton}" />
                         </Track.IncreaseButton>
                         <Thumb Name="PART_Thumb"
-                               Theme="{StaticResource Forge.ScrollBarThumb}"
-                               Margin="{DynamicResource Forge.ScrollBar.ThumbMargin}" />
+                               Theme="{StaticResource Forge.ScrollBarThumb}" />
                     </Track>
                 </Border>
             </ControlTemplate>
@@ -82,6 +102,17 @@
         <!-- 轨道悬停时才微微显现（Transparent 组的 hoverTrackColor）。 -->
         <Style Selector="^:pointerover /template/ Border#PART_Track_Root">
             <Setter Property="Background" Value="{DynamicResource Forge.ScrollBar.TrackHover}" />
+        </Style>
+
+        <!-- 指针在滚动条上（**轨道也算**）→ thumb 涨粗。判据不能挂在 thumb 的 :pointerover 上：
+             那样只有正好压在细条上才涨，从旁边挪过去够不着，与上游的手感不同。 -->
+        <Style Selector="^:pointerover /template/ Thumb#PART_Thumb">
+            <Setter Property="Padding" Value="{DynamicResource Forge.ScrollBar.ThumbHoverMargin}" />
+        </Style>
+        <!-- 拖着往轨道外面甩时指针已不在滚动条上，:pointerover 会掉 —— 这条把粗细钉住，
+             免得拖到一半自己缩回去。 -->
+        <Style Selector="^ /template/ Thumb#PART_Thumb:pressed">
+            <Setter Property="Padding" Value="{DynamicResource Forge.ScrollBar.ThumbHoverMargin}" />
         </Style>
 
         <Style Selector="^:vertical">
