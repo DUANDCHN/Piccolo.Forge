@@ -82,8 +82,7 @@
                            Maximum="{TemplateBinding Maximum}"
                            Value="{TemplateBinding Value, Mode=TwoWay}"
                            ViewportSize="{TemplateBinding ViewportSize}"
-                           Orientation="{TemplateBinding Orientation}"
-                           IsDirectionReversed="True">
+                           Orientation="{TemplateBinding Orientation}">
                         <Track.DecreaseButton>
                             <RepeatButton Name="PART_PageUpButton"
                                           Theme="{StaticResource Forge.ScrollBarPageButton}" />
@@ -113,6 +112,15 @@
              免得拖到一半自己缩回去。 -->
         <Style Selector="^ /template/ Thumb#PART_Thumb:pressed">
             <Setter Property="Padding" Value="{DynamicResource Forge.ScrollBar.ThumbHoverMargin}" />
+        </Style>
+
+        <!-- ⚠ 方向翻转**只对竖向**开：Track 的 IsDirectionReversed 表达的是"值 0 在哪一端"。
+             竖向滚动条 0 在**顶端**（往下拖值变大）→ 要翻；横向 0 在**左端**（往右拖值变大）→ 不翻。
+             一份模板两个方向共用，曾经把它写死成 True，于是横向滚动条拖起来整个是反的
+             （2026-08-24 实机发现；ScrollBarDragTests 两个方向各有一条守着）。
+             Avalonia 自带主题是竖横**两份模板**各写各的，所以那边没有这个问题。 -->
+        <Style Selector="^:vertical /template/ Track#PART_Track">
+            <Setter Property="IsDirectionReversed" Value="True" />
         </Style>
 
         <Style Selector="^:vertical">

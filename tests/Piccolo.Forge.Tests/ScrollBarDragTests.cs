@@ -19,6 +19,44 @@ namespace Piccolo.Forge.Tests;
 /// </remarks>
 public class ScrollBarDragTests
 {
+    /// <summary>竖向：往下拖，值变大（0 在顶端）。</summary>
+    [AvaloniaFact]
+    public void Vertical_drag_down_increases_value()
+    {
+        var track = Layout(Orientation.Vertical);
+        Assert.True(track.ValueFromDistance(0, 50) > 0, "往下拖应当让值变大");
+    }
+
+    /// <summary>横向：往右拖，值变大（0 在左端）。</summary>
+    /// <remarks>
+    /// 这条曾经是反的：模板里 <c>Track.IsDirectionReversed</c> 被**写死成 true**，
+    /// 一份模板两个方向共用。竖向需要 true（值 0 在顶端），横向需要 false（值 0 在左端），
+    /// 于是横向滚动条拖起来整个是反的。⚠ 别再图省事把这个属性写成常量。
+    /// </remarks>
+    [AvaloniaFact]
+    public void Horizontal_drag_right_increases_value()
+    {
+        var track = Layout(Orientation.Horizontal);
+        Assert.True(track.ValueFromDistance(50, 0) > 0, "往右拖应当让值变大");
+    }
+
+    private static Track Layout(Orientation orientation)
+    {
+        var bar = new ScrollBar
+        {
+            Orientation = orientation,
+            Minimum = 0,
+            Maximum = 900,
+            ViewportSize = 100,
+        };
+        if (orientation == Orientation.Vertical) bar.Height = 400; else bar.Width = 400;
+
+        var window = new Window { Content = bar, Width = 400, Height = 400 };
+        window.Show();
+        window.UpdateLayout();
+        return bar.GetVisualDescendants().OfType<Track>().Single();
+    }
+
     [AvaloniaFact]
     public void Vertical_thumb_travels_pixel_for_pixel_with_the_pointer()
     {
