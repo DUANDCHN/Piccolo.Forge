@@ -1,4 +1,5 @@
-<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:forge="using:Piccolo.Forge.Avalonia">
     <!--
       Expander。上游没有对应的控件（Swing 那边是 TitledSeparator / CollapsiblePanel），
       所以这里是**按上游的既有语汇组装**，不是逐条搬运：
@@ -7,6 +8,9 @@
         · 标题行的悬停用全系统统一的叠加层，不用 DisclosureButton 那组值 ——
           那是欢迎页那种大按钮的色，且上游只有亮色档有
         · 内容区左侧缩进，与标题的 chevron 对齐，让层级看得出来
+
+      标记摆哪一侧由附加属性 ForgeExpander.ChevronPlacement 定（默认左）。它**可继承**，
+      所以设在装着一列面板的容器上即可整片生效，不用逐个设。
 
       ⚠ Avalonia 的 Expander **没有 PART_ToggleButton**，标题行的点击要自己接：
         模板里用 ToggleButton 包住标题，IsChecked 双向绑 IsExpanded。
@@ -33,7 +37,10 @@
                     <Panel>
                         <Border Name="PART_Overlay" Background="Transparent"
                                 CornerRadius="{TemplateBinding CornerRadius}" />
-                        <Grid ColumnDefinitions="Auto,*" Margin="{TemplateBinding Padding}">
+                        <!-- 三列：标记在左时占第 0 列，在右时占第 2 列，标题恒在第 1 列。
+                             ⚠ 用**同一个** Path 换列，不是画两个再互相显隐：两个的话旋转、
+                               描边、对齐要维护两份，迟早漂。 -->
+                        <Grid ColumnDefinitions="Auto,*,Auto" Margin="{TemplateBinding Padding}">
                             <!-- ⚠ 墨迹是 4×8，框 9×9（要容下旋转 90° 后的 8×4），
                                  故 Data 平移 (2.5, 0.5) 让墨迹中心落在框中心 ——
                                  写 `M 0 0 ...` 会贴在左上角，看着就是箭头偏上。 -->
@@ -71,6 +78,13 @@
         </Style>
         <Style Selector="^:checked /template/ Path#PART_Chevron">
             <Setter Property="RenderTransform" Value="rotate(90deg)" />
+        </Style>
+
+        <!-- 标记摆右边：换到第 2 列，那 7px 的间距也跟着从右边挪到左边。
+             值是从 Expander 继承下来的（属性 inherits: true），所以这里能直接选到。 -->
+        <Style Selector="^[(forge|ForgeExpander.ChevronPlacement)=Right] /template/ Path#PART_Chevron">
+            <Setter Property="Grid.Column" Value="2" />
+            <Setter Property="Margin" Value="7,0,0,0" />
         </Style>
     </ControlTheme>
 
