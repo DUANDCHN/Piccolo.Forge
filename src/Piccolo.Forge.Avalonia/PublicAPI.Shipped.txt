@@ -1135,3 +1135,6 @@ Piccolo.Forge.Avalonia.ForgeExpander
 static readonly Piccolo.Forge.Avalonia.ForgeExpander.ChevronPlacementProperty -> Avalonia.AttachedProperty<Piccolo.Forge.Avalonia.ForgeChevronPlacement>!
 static Piccolo.Forge.Avalonia.ForgeExpander.GetChevronPlacement(Avalonia.Controls.Control! element) -> Piccolo.Forge.Avalonia.ForgeChevronPlacement
 static Piccolo.Forge.Avalonia.ForgeExpander.SetChevronPlacement(Avalonia.Controls.Control! element, Piccolo.Forge.Avalonia.ForgeChevronPlacement value) -> void
+Piccolo.Forge.Avalonia.ForgeEditorTab.BlockCornerRadius.get -> Avalonia.CornerRadius
+Piccolo.Forge.Avalonia.ForgeEditorTab.BlockCornerRadius.set -> void
+static readonly Piccolo.Forge.Avalonia.ForgeEditorTab.BlockCornerRadiusProperty -> Avalonia.StyledProperty<Avalonia.CornerRadius>!

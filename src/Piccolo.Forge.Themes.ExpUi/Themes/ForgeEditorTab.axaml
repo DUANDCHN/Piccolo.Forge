@@ -1,4 +1,4 @@
-<!--  ★ 编辑区的文档标签。★ **真模板**：底与描边、下划线、标题、两个图标都在模板里。
+﻿<!--  ★ 编辑区的文档标签。★ **真模板**：底与描边、下划线、标题、两个图标都在模板里。
 
       与其它控件不同的一点：底与描边是 **5 态 × 2 族**，两族还是两个 painter
       （expUI 整条贴边 + 下划线；Islands 改画内缩圆角块、完全不画下划线），
@@ -103,6 +103,11 @@
             </ControlTemplate>
         </Setter>
 
+        <!--  Islands 那个内缩块的圆角：与全库其余矩形同一个键（4），不再用上游那个 12/2。
+              刻意的分歧与那半像素的来由，见 ForgeEditorTab.BlockCornerRadius 的注释。
+              expUI 一族根本不画这个块（DecorationCornerRadius 恒为 0），设了也不起作用，
+              但两套主题的 Setter 保持同构 —— 差异只该出现在**值**上，不该出现在"有没有这一条"上。  -->
+        <Setter Property="BlockCornerRadius" Value="{DynamicResource Forge.CornerRadius}" />
         <Setter Property="Foreground" Value="{DynamicResource Forge.ExpUi.Foreground}" />
         <Setter Property="SelectedBackgroundBrush" Value="{DynamicResource Forge.ExpUi.EditorTabSelectedBackground}" />
         <Setter Property="SelectedBorderBrush" Value="{DynamicResource Forge.ExpUi.EditorTabSelectedBorder}" />
@@ -120,11 +125,23 @@
             <Setter Property="Background" Value="{TemplateBinding InactiveUnderlineBrush}" />
         </Style>
 
-        <!--  右边那个图标：能关或已固定才出；固定住时换成图钉且改为填充  -->
-        <Style Selector="^:has-tab-icon /template/ forge|ForgeGeometryIcon#PART_TabIcon">
+        <!--  ★ 右边那个图标分两种，显隐规矩不一样。★
+
+              · **关闭的叉**：只在**选中或悬停**时出。一直画着的话，一排标签就是一排 ×，
+                噪点盖过标题本身，而且容易误点（实机反馈）。
+              · **图钉**：任何时候都要看得见 —— 它不是动作，是**状态指示**；
+                藏起来就没有任何地方能看出这个标签被固定住了。
+
+              ⚠ 藏起来**不会**让标题变宽或跳动：右边那块位置是由 TabIconMargin / insetRight
+                预留出来的，与图标可见与否无关（见 SyncParts）。  -->
+        <Style Selector="^:has-tab-icon:selected /template/ forge|ForgeGeometryIcon#PART_TabIcon">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+        <Style Selector="^:has-tab-icon:pointerover /template/ forge|ForgeGeometryIcon#PART_TabIcon">
             <Setter Property="IsVisible" Value="True" />
         </Style>
         <Style Selector="^:pinned /template/ forge|ForgeGeometryIcon#PART_TabIcon">
+            <Setter Property="IsVisible" Value="True" />
             <Setter Property="Icon" Value="{x:Static themes:ForgeIcons.Pin}" />
             <Setter Property="IsFilled" Value="True" />
         </Style>

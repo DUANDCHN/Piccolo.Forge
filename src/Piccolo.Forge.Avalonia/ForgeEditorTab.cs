@@ -195,6 +195,9 @@ public class ForgeEditorTab : TabStripItem
         AffectsMeasure<ForgeEditorTab>(
             TitleProperty, CanBeClosedProperty, IconProperty, TitleFontWeightProperty,
             RowHeightOverrideProperty);
+
+        // 块的形状在 ArrangeOverride 里算（要最终尺寸），所以改圆角要重排一次才生效。
+        AffectsArrange<ForgeEditorTab>(BlockCornerRadiusProperty);
     }
 
     /// <summary>配色。</summary>
@@ -384,11 +387,38 @@ public class ForgeEditorTab : TabStripItem
         private set => SetValue(DecorationMarginProperty, value);
     }
 
-    /// <summary>底那块的圆角：expUI 是 0，Islands 是 <c>arc / 2 + 0.5</c>（见 <see cref="DecorationMargin"/>）。</summary>
+    /// <summary>底那块的圆角：expUI 是 0，Islands 是 <see cref="BlockCornerRadius"/> + 0.5（见 <see cref="DecorationMargin"/>）。</summary>
     public CornerRadius DecorationCornerRadius
     {
         get => GetValue(DecorationCornerRadiusProperty);
         private set => SetValue(DecorationCornerRadiusProperty, value);
+    }
+
+    /// <summary><see cref="BlockCornerRadius"/> 的属性定义。</summary>
+    public static readonly StyledProperty<CornerRadius> BlockCornerRadiusProperty =
+        AvaloniaProperty.Register<ForgeEditorTab, CornerRadius>(
+            nameof(BlockCornerRadius), new CornerRadius(ForgeMetrics.IslandsEditorTabArc / 2));
+
+    /// <summary>
+    /// Islands 那个内缩块的圆角**半径**，由 <c>ControlTheme</c> 从资源键给。
+    /// </summary>
+    /// <remarks>
+    /// ★ <b>这里与上游有一处刻意的分歧。</b>上游取的是主工具栏按钮的
+    /// <c>MainToolbar.Button.hoverArc()</c>（<see cref="ForgeMetrics.IslandsEditorTabArc"/> = 12
+    /// 是**直径**，故半径 6），而本库其余所有矩形统一走 <c>Forge.CornerRadius</c>（4）。
+    /// 两者摆在一起时标签明显比旁边的东西圆一圈 —— 实机反馈就是"圆角明显大很多"。
+    /// 于是主题把这个值改喂 <c>Forge.CornerRadius</c>，让一套界面只有一种圆角；
+    /// 上游那个数字仍原样记在 <see cref="ForgeMetrics.IslandsEditorTabArc"/> 里，
+    /// 并作为**代码兜底**（一个主题都没装时用它），不算丢失出处。
+    /// <para>
+    /// ⚠ 画出来的圆角还要**再加 0.5** —— 那半像素与 <see cref="DecorationMargin"/> 的外扩是同一件事，
+    /// 理由见那里。所以键写 4，视觉上就是 4。
+    /// </para>
+    /// </remarks>
+    public CornerRadius BlockCornerRadius
+    {
+        get => GetValue(BlockCornerRadiusProperty);
+        set => SetValue(BlockCornerRadiusProperty, value);
     }
 
     /// <summary><see cref="UnderlineHeight"/> 的属性定义。</summary>
@@ -557,7 +587,9 @@ public class ForgeEditorTab : TabStripItem
             block.Y,
             Math.Max(0, size.Width - block.Right),
             Math.Max(0, size.Height - block.Bottom));
-        DecorationCornerRadius = new CornerRadius((ForgeMetrics.IslandsEditorTabArc / 2) + 0.5);
+        var r = BlockCornerRadius;
+        DecorationCornerRadius = new CornerRadius(
+            r.TopLeft + 0.5, r.TopRight + 0.5, r.BottomRight + 0.5, r.BottomLeft + 0.5);
     }
 
     /// <summary>把标题、两个图标的位置与内容刷进供模板绑定的属性。</summary>
