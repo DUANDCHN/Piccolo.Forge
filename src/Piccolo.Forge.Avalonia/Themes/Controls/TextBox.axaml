@@ -14,7 +14,13 @@
         <Setter Property="MinHeight" Value="{DynamicResource Forge.Input.MinHeight}" />
         <Setter Property="SelectionBrush" Value="{DynamicResource Forge.Input.SelectionBackground}" />
         <Setter Property="SelectionForegroundBrush" Value="{DynamicResource Forge.Input.SelectionForeground}" />
-        <Setter Property="CaretBrush" Value="{DynamicResource Forge.Input.Border}" />
+        <!-- 光标取**正文色**，不是边框色：边框色在暗色档是 #40434A 这种深灰，
+             落在同样深的输入框底上几乎看不见（实测 Islands 暗色下等于没有光标）。
+             光标是"我在这儿打字"的指示，它该和字一样显眼 —— 各家（IntelliJ / VS Code / 系统）
+             都是取正文色。
+             ⚠ 粗细改不了：Avalonia 12 只暴露 CaretBrush（还有闪烁间隔），
+               没有 CaretWidth 这类属性，光标恒为 1px，要变粗只能自绘 TextPresenter。 -->
+        <Setter Property="CaretBrush" Value="{DynamicResource Forge.Text.Primary}" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="Cursor" Value="IBeam" />
 
