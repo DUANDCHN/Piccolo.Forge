@@ -1,4 +1,4 @@
-<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+﻿<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <!--
       NumericUpDown = ButtonSpinner 套一个 TextBox。两者都要给主题，缺一个就露出兜底主题的样子。
       上游 Spinner.minimumSize 是 72,28（比普通输入框的 49 宽），箭头区宽度走 Component.arrowAreaWidth=28。
@@ -11,6 +11,17 @@
         <Setter Property="CornerRadius" Value="0" />
         <Setter Property="MinHeight" Value="0" />
         <Setter Property="Padding" Value="0" />
+
+        <!-- ★ 不要按钮那种底板。★ 继承来的 Forge.Button 会在悬停/按下时铺一层 PART_Overlay，
+             那是给"看得出边界的按钮"用的反馈；这两颗箭头贴在输入框内沿、没有自己的边界，
+             铺一块底就像框里凭空多出个按钮（宿主实机反馈）。
+             反馈改由**箭头自己**给：变粗变深，见 Forge.ButtonSpinner 里那条。 -->
+        <Style Selector="^:pointerover /template/ Border#PART_Overlay">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="^:pressed /template/ Border#PART_Overlay">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
     </ControlTheme>
 
     <ControlTheme x:Key="Forge.ButtonSpinner" TargetType="ButtonSpinner">
@@ -52,14 +63,18 @@
                                 <RepeatButton Name="PART_IncreaseButton" Grid.Row="0"
                                               Theme="{StaticResource Forge.SpinnerRepeatButton}"
                                               Foreground="{TemplateBinding Foreground}">
-                                    <Path Data="M 0 4 L 4 0 L 8 4" Stroke="{TemplateBinding Foreground}"
-                                          StrokeThickness="1.2" StrokeLineCap="Round" StrokeJoin="Round" />
+                                    <Path Data="M 0 4 L 4 0 L 8 4"
+                                          Stroke="{DynamicResource Forge.Input.Border}"
+                                          StrokeThickness="{DynamicResource Forge.Input.GlyphThickness}"
+                                          StrokeLineCap="Round" StrokeJoin="Round" />
                                 </RepeatButton>
                                 <RepeatButton Name="PART_DecreaseButton" Grid.Row="1"
                                               Theme="{StaticResource Forge.SpinnerRepeatButton}"
                                               Foreground="{TemplateBinding Foreground}">
-                                    <Path Data="M 0 0 L 4 4 L 8 0" Stroke="{TemplateBinding Foreground}"
-                                          StrokeThickness="1.2" StrokeLineCap="Round" StrokeJoin="Round" />
+                                    <Path Data="M 0 0 L 4 4 L 8 0"
+                                          Stroke="{DynamicResource Forge.Input.Border}"
+                                          StrokeThickness="{DynamicResource Forge.Input.GlyphThickness}"
+                                          StrokeLineCap="Round" StrokeJoin="Round" />
                                 </RepeatButton>
                             </Grid>
                             <ContentPresenter Name="PART_ContentPresenter"
@@ -90,6 +105,19 @@
         </Style>
         <Style Selector="^:disabled">
             <Setter Property="Foreground" Value="{DynamicResource Forge.Button.Disabled.Foreground}" />
+        </Style>
+
+        <!-- ★ 悬停：**被指的那一个**箭头自己变粗变深，不铺底板。★
+             ⚠ 选择器必须写成 `/template/ RepeatButton:pointerover Path` ——
+               箭头是 RepeatButton 的**内容**，写成 `/template/ Path` 选不中它
+               （实测：选空，不报错，于是"改了没反应"）。
+               按 RepeatButton 分档也正是要的：上下两个各管各的，指哪个亮哪个。 -->
+        <Style Selector="^ /template/ RepeatButton:pointerover Path">
+            <Setter Property="StrokeThickness" Value="{DynamicResource Forge.Input.GlyphHoverThickness}" />
+            <Setter Property="Stroke" Value="{DynamicResource Forge.Text.Secondary}" />
+        </Style>
+        <Style Selector="^:disabled /template/ RepeatButton Path">
+            <Setter Property="Stroke" Value="{DynamicResource Forge.Input.Disabled.Border}" />
         </Style>
     </ControlTheme>
 

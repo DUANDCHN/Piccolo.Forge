@@ -1,4 +1,4 @@
-<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+﻿<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <!--
       ComboBox + ComboBoxItem。边框与聚焦规则复用 Forge.Input.*，与 TextBox 同一套。
       ⚠ 不可编辑时用 Forge.ComboBox.Background（暗色下比输入框亮一档），可编辑时才用输入框底色 ——
@@ -97,8 +97,8 @@
                                       Width="9" Height="5"
                                       Stretch="None"
                                       Data="M 0 0 L 4.5 5 L 9 0"
-                                      Stroke="{TemplateBinding Foreground}"
-                                      StrokeThickness="1.3"
+                                      Stroke="{DynamicResource Forge.Input.Border}"
+                                      StrokeThickness="{DynamicResource Forge.Input.GlyphThickness}"
                                       StrokeLineCap="Round" StrokeJoin="Round"
                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
@@ -145,6 +145,18 @@
         </Style>
         <Style Selector="^:focus-visible /template/ Border#PART_Root">
             <Setter Property="BorderBrush" Value="{DynamicResource Forge.Input.FocusedBorder}" />
+        </Style>
+
+        <!-- ★ 箭头的常态与边框同粗同色（Forge.Input.Border）：它是**指示**不是内容，
+             与正文同黑会压过框里的值本身（宿主实机反馈）。
+             悬停时不铺底板，而是**箭头自己变粗变深** —— 底板那种反馈是给按钮的，
+             而这个箭头整块框都可点，铺一块底反而像框里多了个按钮。 -->
+        <Style Selector="^:pointerover /template/ Path#PART_Chevron">
+            <Setter Property="StrokeThickness" Value="{DynamicResource Forge.Input.GlyphHoverThickness}" />
+            <Setter Property="Stroke" Value="{DynamicResource Forge.Text.Secondary}" />
+        </Style>
+        <Style Selector="^:disabled /template/ Path#PART_Chevron">
+            <Setter Property="Stroke" Value="{DynamicResource Forge.Input.Disabled.Border}" />
         </Style>
 
         <!-- 下拉展开时箭头翻转，与「已展开」这个状态对应。 -->

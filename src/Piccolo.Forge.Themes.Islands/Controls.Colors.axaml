@@ -1,4 +1,4 @@
-<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+﻿<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <!--
       Islands 档色板。**本文件由 scripts/gen-forge-palette.py 生成，不要手改。**
       来源：上游 themes/islands/ManyIslands{Light,Dark}.theme.json。
@@ -245,6 +245,12 @@
     <x:Double x:Key="Forge.Input.MinHeight">28</x:Double>
     <Thickness x:Key="Forge.Input.Padding">8,1</Thickness>
     <Thickness x:Key="Forge.Input.BorderThickness">1</Thickness>
+
+    <!-- 输入框里那些**指示箭头**（下拉的 chevron、数字框的上下箭头）的线宽。
+         常态与边框同粗同色 —— 它是指示不是内容，与正文同黑会压过框里的值本身。
+         悬停时不铺底板，改由箭头自己变粗变深（各控件主题里那两条 :pointerover）。 -->
+    <x:Double x:Key="Forge.Input.GlyphThickness">1</x:Double>
+    <x:Double x:Key="Forge.Input.GlyphHoverThickness">1.6</x:Double>
     <!-- NumericUpDown 走上游 Spinner.minimumSize 72,28；箭头区宽度用 Component.arrowAreaWidth。 -->
     <x:Double x:Key="Forge.Spinner.MinWidth">72</x:Double>
     <x:Double x:Key="Forge.Spinner.ArrowAreaWidth">28</x:Double>
