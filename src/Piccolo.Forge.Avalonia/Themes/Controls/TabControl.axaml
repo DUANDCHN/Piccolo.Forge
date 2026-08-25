@@ -5,8 +5,13 @@
       这是对话框与设置页里的那种标签（上游 TabbedPane）。**不是编辑器标签** ——
       那套（带底色的文档页签）在 Forge 外壳里，两者分工不重叠。
 
-      选中态是**浅底色块**而非下划线：expUI 给的就是 TabbedPane.focusColor，
-      老 UI 里 DefaultTabs.underlineColor 那套下划线做法在新 UI 已不用。
+      ⚠ 选中态**两族画法不同**（2026-08-25 对着 Rider 实机订正）：
+        · 经典（expUI）：底透明 + 底部一条 2px 的蓝线（DefaultTabs.underlineColor 那套）
+        · Islands：浅底药丸，不画线
+      差异全部落在色板键上（Forge.Tab.SelectedBackground / Underline / UnderlineHeight），
+      模板只有一份 —— 别按族分两份模板。
+      此前这里写着"下划线是老 UI 的做法、新 UI 已不用"，并让两族共用块底 ——
+      那句话是错的，Rider 经典档现在画的就是下划线。**改这块前先开一次 Rider 两个主题对着看**。
     -->
 
     <ControlTheme x:Key="Forge.TabItem" TargetType="TabItem">
@@ -23,6 +28,13 @@
                         Background="{TemplateBinding Background}"
                         CornerRadius="{TemplateBinding CornerRadius}"
                         Margin="2,4">
+                  <Panel>
+                    <!-- 选中态的下划线：贴底、通栏。高度由族给（经典 2 / Islands 0），
+                         高度为 0 时等于不存在，不用再写显隐。 -->
+                    <Border Name="PART_Underline"
+                            VerticalAlignment="Bottom"
+                            Height="0"
+                            Background="Transparent" />
                     <!-- ⚠ 标签文字的部件名是 PART_HeaderPresenter，不是 PART_ContentPresenter ——
                          后者在 TabItem 上指的是**页内容**。名字用反了不报错。 -->
                     <ContentPresenter Name="PART_HeaderPresenter"
@@ -32,9 +44,15 @@
                                       HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
                                       VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
                                       RecognizesAccessKey="True" />
+                  </Panel>
                 </Border>
             </ControlTemplate>
         </Setter>
+
+        <Style Selector="^:selected /template/ Border#PART_Underline">
+            <Setter Property="Height" Value="{DynamicResource Forge.Tab.UnderlineHeight}" />
+            <Setter Property="Background" Value="{DynamicResource Forge.Tab.Underline}" />
+        </Style>
 
         <Style Selector="^:pointerover /template/ Border#PART_Root">
             <Setter Property="Background" Value="{DynamicResource Forge.Tab.HoverBackground}" />
@@ -85,15 +103,26 @@
                         Background="{TemplateBinding Background}"
                         CornerRadius="{TemplateBinding CornerRadius}"
                         Margin="2,4">
+                  <Panel>
+                    <!-- 同 TabItem：选中态的下划线，高度由族给（经典 2 / Islands 0）。 -->
+                    <Border Name="PART_Underline"
+                            VerticalAlignment="Bottom"
+                            Height="0"
+                            Background="Transparent" />
                     <ContentPresenter Name="PART_ContentPresenter"
                                       Content="{TemplateBinding Content}"
                                       ContentTemplate="{TemplateBinding ContentTemplate}"
                                       Padding="{TemplateBinding Padding}"
                                       HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
                                       VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+                  </Panel>
                 </Border>
             </ControlTemplate>
         </Setter>
+        <Style Selector="^:selected /template/ Border#PART_Underline">
+            <Setter Property="Height" Value="{DynamicResource Forge.Tab.UnderlineHeight}" />
+            <Setter Property="Background" Value="{DynamicResource Forge.Tab.Underline}" />
+        </Style>
         <Style Selector="^:pointerover /template/ Border#PART_Root">
             <Setter Property="Background" Value="{DynamicResource Forge.Tab.HoverBackground}" />
         </Style>

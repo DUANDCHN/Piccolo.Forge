@@ -61,7 +61,9 @@
             <SolidColorBrush x:Key="Forge.Check.Disabled.Border" Color="#FFDFE1E5" />
             <SolidColorBrush x:Key="Forge.Check.Disabled.Glyph" Color="#FFC9CCD6" />
             <SolidColorBrush x:Key="Forge.Group.Separator" Color="#FFE9EAEE" />  <!-- 回落自 *.separatorColor -->
+            <!-- Islands 档选中态是**药丸底**，不画下划线（Rider 实机对照）。 -->
             <SolidColorBrush x:Key="Forge.Tab.SelectedBackground" Color="#FFE3EBFE" />
+            <SolidColorBrush x:Key="Forge.Tab.Underline" Color="#00000000" />
             <SolidColorBrush x:Key="Forge.Tab.HoverBackground" Color="#12000000" />
             <SolidColorBrush x:Key="Forge.Tab.ContentBorder" Color="#FFE9EAEE" />
             <SolidColorBrush x:Key="Forge.Slider.Track" Color="#FFC9CCD6" />
@@ -161,6 +163,7 @@
             <SolidColorBrush x:Key="Forge.Check.Disabled.Glyph" Color="#FF6F737A" />  <!-- 上游 JSON 未定义，取自 expUI/icons/dark/checkBoxSelectedDisabled.svg -->
             <SolidColorBrush x:Key="Forge.Group.Separator" Color="#FF33353B" />  <!-- 回落自 *.separatorColor -->
             <SolidColorBrush x:Key="Forge.Tab.SelectedBackground" Color="#FF233558" />
+            <SolidColorBrush x:Key="Forge.Tab.Underline" Color="#00000000" />
             <SolidColorBrush x:Key="Forge.Tab.HoverBackground" Color="#17FFFFFF" />
             <SolidColorBrush x:Key="Forge.Tab.ContentBorder" Color="#FF26282C" />
             <SolidColorBrush x:Key="Forge.Slider.Track" Color="#FF5A5D63" />
@@ -279,6 +282,8 @@
     <x:Double x:Key="Forge.Tab.Height">40</x:Double>
     <Thickness x:Key="Forge.Tab.Padding">12,0</Thickness>
     <CornerRadius x:Key="Forge.Tab.CornerRadius">4</CornerRadius>
+    <!-- 选中态的下划线高度。Islands 档 0（用药丸底表达选中）；经典档是 2。 -->
+    <x:Double x:Key="Forge.Tab.UnderlineHeight">0</x:Double>
 
     <!-- 表格：表头高度取上游 TableHeader.height 的 os.default（25），
          行高与列表项同档（上游 List.rowHeight=24）。 -->
