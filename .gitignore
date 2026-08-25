@@ -5,3 +5,8 @@ third_party/intellij-community/
 
 # Rider 每次打开都会改写的 IDE 状态（Avalonia 预览器的窗口记忆），不进库
 .idea/.idea.Piccolo.Forge/.idea/avalonia.xml
+
+# dotnet pack 的产物：CI 用 `dotnet pack -c Release -o artifacts` 打包再 push 到 nuget
+# （.github/workflows/ci.yml），本地跑同一条命令就会在这里堆一地 nupkg/snupkg。
+# 它们是**构建产物**，权威副本在 nuget.org 与 CI 的 artifact 上，不进历史。
+artifacts/
