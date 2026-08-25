@@ -1128,3 +1128,10 @@ static Piccolo.Forge.Avalonia.ForgeNotification.SetCardActionsTemplate(Avalonia.
 Piccolo.Forge.Avalonia.ForgeStripeButton.BadgeMargin.get -> Avalonia.Thickness
 override Piccolo.Forge.Avalonia.ForgeStripeButton.ArrangeOverride(Avalonia.Size finalSize) -> Avalonia.Size
 static readonly Piccolo.Forge.Avalonia.ForgeStripeButton.BadgeMarginProperty -> Avalonia.StyledProperty<Avalonia.Thickness>!
+Piccolo.Forge.Avalonia.ForgeChevronPlacement
+Piccolo.Forge.Avalonia.ForgeChevronPlacement.Left = 0 -> Piccolo.Forge.Avalonia.ForgeChevronPlacement
+Piccolo.Forge.Avalonia.ForgeChevronPlacement.Right = 1 -> Piccolo.Forge.Avalonia.ForgeChevronPlacement
+Piccolo.Forge.Avalonia.ForgeExpander
+static readonly Piccolo.Forge.Avalonia.ForgeExpander.ChevronPlacementProperty -> Avalonia.AttachedProperty<Piccolo.Forge.Avalonia.ForgeChevronPlacement>!
+static Piccolo.Forge.Avalonia.ForgeExpander.GetChevronPlacement(Avalonia.Controls.Control! element) -> Piccolo.Forge.Avalonia.ForgeChevronPlacement
+static Piccolo.Forge.Avalonia.ForgeExpander.SetChevronPlacement(Avalonia.Controls.Control! element, Piccolo.Forge.Avalonia.ForgeChevronPlacement value) -> void
