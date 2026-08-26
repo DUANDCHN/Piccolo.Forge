@@ -325,7 +325,6 @@ Piccolo.Forge.Avalonia.ForgeSquareButtonBase.ArcRadius.get -> double
 Piccolo.Forge.Avalonia.ForgeSquareButtonBase.BackgroundBrush.get -> Avalonia.Media.IBrush?
 Piccolo.Forge.Avalonia.ForgeSquareButtonBase.BackgroundInsets.get -> Avalonia.Thickness
 Piccolo.Forge.Avalonia.ForgeSquareButtonBase.BackgroundRect(Avalonia.Rect cell) -> Avalonia.Rect
-Piccolo.Forge.Avalonia.ForgeSquareButtonBase.BackgroundSize.get -> double
 Piccolo.Forge.Avalonia.ForgeSquareButtonBase.ButtonHeight.get -> double
 Piccolo.Forge.Avalonia.ForgeSquareButtonBase.ButtonWidth.get -> double
 Piccolo.Forge.Avalonia.ForgeSquareButtonBase.ForgeSquareButtonBase() -> void
@@ -808,7 +807,6 @@ override Piccolo.Forge.Avalonia.ForgeStrings.Equals(object? obj) -> bool
 override Piccolo.Forge.Avalonia.ForgeStrings.GetHashCode() -> int
 override Piccolo.Forge.Avalonia.ForgeStrings.ToString() -> string!
 override Piccolo.Forge.Avalonia.ForgeStripeButton.ContentCell(Avalonia.Size size) -> Avalonia.Rect
-override Piccolo.Forge.Avalonia.ForgeStripeButton.IconRect(Avalonia.Size size) -> Avalonia.Rect
 override Piccolo.Forge.Avalonia.ForgeStripeButton.MeasureOverride(Avalonia.Size availableSize) -> Avalonia.Size
 override Piccolo.Forge.Avalonia.ForgeStripeButton.OnApplyTemplate(Avalonia.Controls.Primitives.TemplateAppliedEventArgs! e) -> void
 override Piccolo.Forge.Avalonia.ForgeStripeButton.OnPropertyChanged(Avalonia.AvaloniaPropertyChangedEventArgs! change) -> void
@@ -1039,7 +1037,6 @@ static readonly Piccolo.Forge.Avalonia.ForgeMoreButton.SideProperty -> Avalonia.
 static readonly Piccolo.Forge.Avalonia.ForgeSquareButtonBase.ArcCornerRadiusProperty -> Avalonia.StyledProperty<Avalonia.CornerRadius>!
 static readonly Piccolo.Forge.Avalonia.ForgeSquareButtonBase.BackgroundBrushProperty -> Avalonia.StyledProperty<Avalonia.Media.IBrush?>!
 static readonly Piccolo.Forge.Avalonia.ForgeSquareButtonBase.BackgroundInsetsProperty -> Avalonia.StyledProperty<Avalonia.Thickness>!
-static readonly Piccolo.Forge.Avalonia.ForgeSquareButtonBase.BackgroundSizeProperty -> Avalonia.StyledProperty<double>!
 static readonly Piccolo.Forge.Avalonia.ForgeSquareButtonBase.HighlightInsetHorizontalProperty -> Avalonia.StyledProperty<double>!
 static readonly Piccolo.Forge.Avalonia.ForgeSquareButtonBase.HighlightInsetVerticalProperty -> Avalonia.StyledProperty<double>!
 static readonly Piccolo.Forge.Avalonia.ForgeSquareButtonBase.HighlightSizeProperty -> Avalonia.StyledProperty<double>!
@@ -1138,3 +1135,8 @@ static Piccolo.Forge.Avalonia.ForgeExpander.SetChevronPlacement(Avalonia.Control
 Piccolo.Forge.Avalonia.ForgeEditorTab.BlockCornerRadius.get -> Avalonia.CornerRadius
 Piccolo.Forge.Avalonia.ForgeEditorTab.BlockCornerRadius.set -> void
 static readonly Piccolo.Forge.Avalonia.ForgeEditorTab.BlockCornerRadiusProperty -> Avalonia.StyledProperty<Avalonia.CornerRadius>!
+Piccolo.Forge.Avalonia.ForgeThemeBase.AccentDark.get -> Avalonia.Media.Color?
+Piccolo.Forge.Avalonia.ForgeThemeBase.AccentDark.set -> void
+Piccolo.Forge.Avalonia.ForgeThemeBase.AccentLight.get -> Avalonia.Media.Color?
+Piccolo.Forge.Avalonia.ForgeThemeBase.AccentLight.set -> void
+Piccolo.Forge.Avalonia.ForgeSquareButtonBase.PlateInsets.get -> Avalonia.Thickness

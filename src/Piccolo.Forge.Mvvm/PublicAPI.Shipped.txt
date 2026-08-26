@@ -109,3 +109,5 @@ const Piccolo.Forge.Mvvm.ForgeLayoutSerializer.ToolsTag = "tools" -> string!
 static Piccolo.Forge.Mvvm.ForgeLayoutSerializer.TryRead(string! path, Piccolo.Forge.Mvvm.ToolWindowShellViewModel! shell, Piccolo.Forge.Mvvm.EditorAreaViewModel! editor, System.Func<string!, object?>? contentFactory = null) -> bool
 static Piccolo.Forge.Mvvm.ForgeLayoutSerializer.TryRead(System.Xml.Linq.XElement! root, Piccolo.Forge.Mvvm.ToolWindowShellViewModel! shell, Piccolo.Forge.Mvvm.EditorAreaViewModel! editor, System.Func<string!, object?>? contentFactory = null) -> bool
 static Piccolo.Forge.Mvvm.ForgeLayoutSerializer.Write(Piccolo.Forge.Mvvm.ToolWindowShellViewModel! shell, Piccolo.Forge.Mvvm.EditorAreaViewModel! editor) -> System.Xml.Linq.XElement!
+Piccolo.Forge.Mvvm.ToolWindowViewModel.IconFactory.get -> System.Func<object?>?
+Piccolo.Forge.Mvvm.ToolWindowViewModel.IconFactory.set -> void

@@ -1,9 +1,1 @@
 ﻿#nullable enable
-Piccolo.Forge.Avalonia.ForgeThemeBase.AccentDark.get -> Avalonia.Media.Color?
-Piccolo.Forge.Avalonia.ForgeThemeBase.AccentDark.set -> void
-Piccolo.Forge.Avalonia.ForgeThemeBase.AccentLight.get -> Avalonia.Media.Color?
-Piccolo.Forge.Avalonia.ForgeThemeBase.AccentLight.set -> void
-Piccolo.Forge.Avalonia.ForgeSquareButtonBase.PlateInsets.get -> Avalonia.Thickness
-*REMOVED*Piccolo.Forge.Avalonia.ForgeSquareButtonBase.BackgroundSize.get -> double
-*REMOVED*static readonly Piccolo.Forge.Avalonia.ForgeSquareButtonBase.BackgroundSizeProperty -> Avalonia.StyledProperty<double>!
-*REMOVED*override Piccolo.Forge.Avalonia.ForgeStripeButton.IconRect(Avalonia.Size size) -> Avalonia.Rect
