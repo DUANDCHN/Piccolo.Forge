@@ -37,9 +37,14 @@
 
         <Setter Property="Template">
             <ControlTemplate>
+                    <!-- ⚠ 外环厚度 **0，不占布局**。原先是 Forge.Focus.RingThickness（2），
+                         常态透明但始终占位 —— 于是控件上写 Height=30，看得见的框只有 26
+                         （2026-08-26 实测：控件 30 / PART_Root 26 / 内容 24）。
+                         聚焦现在画在 PART_Root 自己的边框上、不再点亮外环，这 2px 就成了纯占位，
+                         留着只会让"设了高度却不是那个高度"。元素保留：模板部件名对外是契约。 -->
                 <Border Name="PART_FocusRing"
                         BorderBrush="Transparent"
-                        BorderThickness="{DynamicResource Forge.Focus.RingThickness}"
+                        BorderThickness="0"
                         CornerRadius="{DynamicResource Forge.Focus.RingCornerRadius}">
                     <Border Name="PART_Root"
                             Background="{TemplateBinding Background}"
@@ -97,8 +102,8 @@
              上游 expUI 画的是「框外一圈 2px 的 focusColor 光晕 + 内边框转成与底同色」；
              本库去掉那圈光晕（宿主反馈：看着像边框加粗，而框里文字位置又没动，别扭），
              颜色改由内边框自己扛 —— Forge.Input.FocusedBorder 因此不再是"与底同色"，就是主题色。
-             ⚠ PART_FocusRing 这个元素**保留**（它占 2px 布局），只是永远透明。删掉会让每个输入框
-               外沿缩 2px，全应用的间距跟着变。 -->
+             ⚠ 外环（PART_FocusRing）已经**不占布局**了（厚度 0，见它自己那段说明），
+               所以控件上写 Height=N，看得见的框就是 N。 -->
         <Style Selector="^:focus-within /template/ Border#PART_Root">
             <Setter Property="BorderBrush" Value="{DynamicResource Forge.Input.FocusedBorder}" />
         </Style>

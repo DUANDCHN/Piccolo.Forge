@@ -120,6 +120,46 @@ public class InputStateTests
         window.Close();
     }
 
+    /// <summary>宿主在控件上写死 <c>Height</c>，**画边框那层就是那个高度**。</summary>
+    /// <remarks>
+    /// <b>反面（本条的由来，2026-08-26 宿主实测）。</b>模板最外层套着 <c>PART_FocusRing</c>，
+    /// 原先厚度 2、常态透明但**始终占位**。于是设置窗里给每个控件写 <c>Height="30"</c>，
+    /// 量出来是：控件 30 / <c>PART_Root</c> 26 / 内容 24 —— 看得见的框比写的矮 4px，
+    /// 而且哪层吃掉的从界面上看不出来。宿主换了三种写法都没用，根因在库里。
+    /// <para>
+    /// 聚焦既然已经改画在 <c>PART_Root</c> 自己的边框上，那圈环就是纯占位，厚度归 0。
+    /// 这条钉住的是**契约**：写 Height=N 就得到 N，宿主不必去猜模板套了几层。
+    /// </para>
+    /// </remarks>
+    [AvaloniaTheory]
+    [InlineData(ForgeThemeFamily.ExpUi)]
+    [InlineData(ForgeThemeFamily.Islands)]
+    public void 写死高度时画边框那层就是那个高度(ForgeThemeFamily family)
+    {
+        using var theme = ForgeThemeScope.Use(family);
+
+        var text = new TextBox { Width = 160, Height = 30, Text = "x" };
+        var numeric = new NumericUpDown { Width = 160, Height = 30, Value = 1 };
+        var combo = new ComboBox { Width = 160, Height = 30, ItemsSource = new[] { "x" }, SelectedIndex = 0 };
+        var button = new Button { Width = 160, Height = 30, Content = "x" };
+        var window = new Window
+        {
+            Width = 240,
+            Height = 320,
+            Content = new StackPanel { Spacing = 8, Children = { text, numeric, combo, button } },
+        };
+        window.Show();
+        Relayout(window);
+
+        foreach (var c in new Control[] { text, numeric, combo, button })
+        {
+            Assert.Equal(30, c.Bounds.Height);
+            Assert.Equal(30, Part(c, "PART_Root").Bounds.Height);
+        }
+
+        window.Close();
+    }
+
     private static Window Host(out TextBox text, out NumericUpDown numeric, out ComboBox combo)
     {
         text = new TextBox { Width = 110, Text = "abc" };

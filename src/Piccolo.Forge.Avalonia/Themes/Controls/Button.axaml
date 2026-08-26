@@ -1,4 +1,4 @@
-<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+﻿<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <!--
       Button。变体靠 Classes 选：无 class＝常规、.accent＝主按钮（上游的 default button）、
       .icon＝工具栏图标钮（上游的 ActionButton）、.tertiary＝无边框的次要动作、
@@ -53,8 +53,12 @@
             </ControlTemplate>
         </Setter>
 
+        <!-- ⚠ 厚度 0，**不占布局**。原先是 Forge.Focus.RingThickness（2），常态透明但始终占位 ——
+             于是按钮上写 Height=30，看得见的框只有 26（2026-08-26 量过）。
+             焦点改画在**内侧**（PART_Overlay 的 1px 边），见下面那条：内侧不改布局，
+             而且实心档（.accent / .success）上也看得见 —— 外环与实心底同色时是看不出来的。 -->
         <Style Selector="^ /template/ Border#PART_FocusRing">
-            <Setter Property="BorderThickness" Value="{DynamicResource Forge.Focus.RingThickness}" />
+            <Setter Property="BorderThickness" Value="0" />
         </Style>
         <Style Selector="^:pointerover /template/ Border#PART_Overlay">
             <Setter Property="Background" Value="{DynamicResource Forge.Overlay.Hover}" />
@@ -63,8 +67,11 @@
             <Setter Property="Background" Value="{DynamicResource Forge.Overlay.Pressed}" />
         </Style>
 
-        <Style Selector="^:focus-visible /template/ Border#PART_FocusRing">
+        <!-- 键盘聚焦：内侧一圈 1px 主题色。PART_Overlay 本来就贴在 PART_Root 内壁上、
+             只用来铺悬停/按下的半透明色，给它加边不移动任何东西。 -->
+        <Style Selector="^:focus-visible /template/ Border#PART_Overlay">
             <Setter Property="BorderBrush" Value="{DynamicResource Forge.Focus.Ring}" />
+            <Setter Property="BorderThickness" Value="1" />
         </Style>
 
         <!-- 禁用只改字色和边框，不改底色（上游的禁用感就不是靠变底传达的）。 -->
