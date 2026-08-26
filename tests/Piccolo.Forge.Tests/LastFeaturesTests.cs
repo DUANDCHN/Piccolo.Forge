@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Threading;
@@ -14,6 +16,54 @@ namespace Piccolo.Forge.Tests;
 /// 「更多」按钮。
 public class ForgeMoreButtonTests
 {
+    /// <summary>
+    /// **每一颗方按钮**在同一份外观下几何完全一致 —— 按反射遍历，不点名。
+    /// </summary>
+    /// <remarks>
+    /// <b>防的是今天出过三次的那一类错</b>（2026-08-26）：条带按钮与「更多」按钮是兄弟，
+    /// 度量本该同源，但每加一处几何都要记得喂两颗 —— 忘一处的症状全是
+    /// "编得过、不报错、只是看着不对"（图标被撑大、按钮 40 而邻居 31、悬停底铺满）。
+    /// <para>
+    /// 判据取「同一份输入下算出来的东西相等」，并且**名单靠反射扫出来** ——
+    /// 以后再多一颗方按钮，漏喂当场红，不必有人记得回来加用例。
+    /// 这也是"两颗按钮的几何必须同源"这条约定唯一机器可查的形式。
+    /// </para>
+    /// </remarks>
+    [AvaloniaFact]
+    public void 每颗方按钮的几何都同源()
+    {
+        var kinds = typeof(ForgeSquareButtonBase).Assembly.GetTypes()
+            .Where(t => !t.IsAbstract && typeof(ForgeSquareButtonBase).IsAssignableFrom(t))
+            .OrderBy(t => t.Name)
+            .ToList();
+        Assert.True(kinds.Count >= 2, "至少该有条带按钮与「更多」按钮两颗");
+
+        var made = kinds.Select(t =>
+        {
+            var b = (ForgeSquareButtonBase)Activator.CreateInstance(t)!;
+            b.IsLeftStripe = true;
+            b.HighlightSize = 26;
+            b.HighlightInsetHorizontal = 2.5;
+            b.HighlightInsetVertical = 2.5;
+            b.IconSizeOverride = 16;
+            return (t.Name, Button: b);
+        }).ToList();
+
+        var (firstName, first) = made[0];
+        var size = new Size(first.ButtonWidth, first.ButtonHeight);
+        foreach (var (name, button) in made.Skip(1))
+        {
+            Assert.Equal(first.ButtonWidth, button.ButtonWidth);
+            Assert.Equal(first.ButtonHeight, button.ButtonHeight);
+            Assert.Equal(first.IconSize, button.IconSize);
+            Assert.Equal(first.PlateInsets, button.PlateInsets);
+            Assert.Equal(first.IconPlacement(size), button.IconPlacement(size));
+            Assert.Equal(first.BackgroundRect(new Rect(size)), button.BackgroundRect(new Rect(size)));
+        }
+
+        _ = firstName;
+    }
+
     /// <summary>它与工具窗口按钮**同尺寸、同图标大小**（宿主给了外观时也一样）。</summary>
     /// <remarks>
     /// <b>反面（2026-08-26 宿主实机："三个点歪了、背板大小也不一样"）。</b>两层原因叠着：
