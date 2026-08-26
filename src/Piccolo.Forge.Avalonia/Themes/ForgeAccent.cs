@@ -70,6 +70,8 @@ internal static class ForgeAccent
         ("Forge.Input.HoverBorder", Tier.Seed),
         // 聚焦时边框自己变主题色（本库不画上游那圈光晕，颜色只能由边框扛）。
         ("Forge.Input.FocusedBorder", Tier.Seed),
+        // 菜单选中是**实心**一行（不是列表那种淡底），跟着种子走。
+        ("Forge.MenuItem.SelectedBackground", Tier.Seed),
         ("Forge.Check.SelectedBackground", Tier.Seed),
         ("Forge.Check.SelectedBorder", Tier.Seed),
         // ⚠ Islands 的这支是**全透明**（那一族不画标签下划线）。派生保留原值的 alpha，
@@ -80,7 +82,6 @@ internal static class ForgeAccent
         ("Forge.Progress.Bar", Tier.Seed),
 
         ("Forge.Item.SelectedBackground", Tier.Derived),
-        ("Forge.MenuItem.SelectedBackground", Tier.Derived),
         ("Forge.Input.SelectionBackground", Tier.Derived),
     ];
 
