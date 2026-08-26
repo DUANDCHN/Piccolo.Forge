@@ -8,6 +8,10 @@
 生成没有这个失败模式，而且"色值搬自上游"从一句注释变成可复核的映射表。
 
 上游更新时重跑本脚本即可。改色请改 MAP 里的来源路径，不要去改生成物。
+
+⚠ 生成物是**跑得起来的那份**，改它当场见效、忘了回填这里就会在下次重跑时被静默冲掉
+  （2026-08-26 清过一次，度量漂了 4 条、还多出 6 个本文件不知道的键）。
+  PaletteGeneratorSyncTests 钉住了不依赖上游的那部分：度量块逐字相同、色板键与 MAP 同序。
 """
 import json, os, re, sys
 
@@ -43,8 +47,38 @@ class Lit:
     def value(self, variant):
         return self.light if variant == 'Light' else self.dark
 
+
+class Own:
+    """本软件自定的色值：两档写死，**不带出处注释**。
+
+    ⚠ 与 Lit 不是一回事：Lit 是"上游一路继承到顶都没有"的兜底，Own 是"上游有也不要"的
+      覆盖 —— 上游取得到值，但那个值表达的是上游的画法，本软件这一处画法不同。
+      为什么不要，写在条目的档首注释里（那是要落进生成物给人看的）。
+    """
+
+    def __init__(self, light, dark):
+        self.light, self.dark = light, dark
+
+    def value(self, variant):
+        return self.light if variant == 'Light' else self.dark
+
+
+class ByFamily:
+    """按档分叉的来源或档首注释。两档只有这一条不同时用它，别为此另开一张 MAP。"""
+
+    def __init__(self, ExpUi, Islands):
+        self.by = {'ExpUi': ExpUi, 'Islands': Islands}
+
+    def value(self, family):
+        return self.by[family]
+
 # Forge 键 ← 上游 ui 路径（按顺序回落，第一个取到的为准）。
 # 上游自己就是这么回落的：某档不写某个键时落到更通用的那条（如 *.background）。
+#
+# 条目是 (Forge 键, 来源) 或 (Forge 键, 来源, 档首注释)。
+# 来源：上游路径列表 ／ Own（不取上游）／ ByFamily（两档不同）。
+# 档首注释是**要写进生成物**的一段 <!-- -->，按行给（list of str），只在 Light 块出一次 ——
+# 它解释的是这条键为什么这么取，两档各印一遍没有信息量。
 MAP = [
     # 全局文字色。⚠ 少了这一档所有控件都是**黑字**：Avalonia 的 TextElement.Foreground
     # 默认值就是 Brushes.Black 且会继承，主题不设它时亮档看不出来、暗档全是黑字。
@@ -162,9 +196,18 @@ MAP = [
     ('Forge.Group.Separator', ['Group.separatorColor', '*.separatorColor']),
 
     # 选项卡。上游的 TabbedPane 是对话框/设置页里那种标签（不是编辑器标签 —— 那套在 Forge 外壳里）。
-    # 选中态是**浅底色块**而非下划线：expUI 给的是 focusColor，老 UI 的 DefaultTabs.underlineColor
-    # 那套下划线做法在新 UI 里已经不用了。
-    ('Forge.Tab.SelectedBackground', ['TabbedPane.focusColor']),
+    # ⚠ 选中态的**画法两档不同**（Rider 实机对照）：经典档画下划线、Islands 档铺药丸底。
+    #   所以下面这两条各自按档分叉 —— 不画的那一档给透明，而不是把键删掉：
+    #   模板两档共用，键缺一个就是运行期找不到资源，不是"不画"。
+    #   下划线色走 `*.underlineColor`（expUI 两档都是 Blue4=#3574F0，与焦点环同色），
+    #   不走老 UI 的 TabbedPane.underlineColor —— 那条会继承到 Darcula 的旧蓝。
+    ('Forge.Tab.SelectedBackground',
+     ByFamily(ExpUi=Own('#00000000', '#00000000'), Islands=['TabbedPane.focusColor']),
+     ByFamily(ExpUi=['经典档选中态是**下划线**，不是块底（Rider 实机对照：经典画线、Islands 画药丸）。',
+                     '底留透明，选中的表达全交给下面那条线。'],
+              Islands=['Islands 档选中态是**药丸底**，不画下划线（Rider 实机对照）。'])),
+    ('Forge.Tab.Underline',
+     ByFamily(ExpUi=['*.underlineColor'], Islands=Own('#00000000', '#00000000'))),
     ('Forge.Tab.HoverBackground', ['TabbedPane.hoverColor']),
     ('Forge.Tab.ContentBorder', ['TabbedPane.contentAreaColor']),
 
@@ -271,7 +314,7 @@ METRICS = '''    <!-- ═══ 圆角：全系统**一个值 4**（圆形/胶�
     <CornerRadius x:Key="Forge.Button.CornerRadius">4</CornerRadius>
     <x:Double x:Key="Forge.Button.MinWidth">72</x:Double>
     <x:Double x:Key="Forge.Button.MinHeight">28</x:Double>
-    <Thickness x:Key="Forge.Button.Padding">14,4</Thickness>
+    <Thickness x:Key="Forge.Button.Padding">14,1</Thickness>
     <Thickness x:Key="Forge.Button.BorderThickness">1</Thickness>
 
     <!-- 聚焦环：上游画在边框**外围**（DarculaUIUtil.doPaint），宽 2；
@@ -283,25 +326,34 @@ METRICS = '''    <!-- ═══ 圆角：全系统**一个值 4**（圆形/胶�
     <CornerRadius x:Key="Forge.Input.CornerRadius">4</CornerRadius>
     <x:Double x:Key="Forge.Input.MinWidth">49</x:Double>
     <x:Double x:Key="Forge.Input.MinHeight">28</x:Double>
-    <Thickness x:Key="Forge.Input.Padding">8,3</Thickness>
+    <Thickness x:Key="Forge.Input.Padding">8,1</Thickness>
     <Thickness x:Key="Forge.Input.BorderThickness">1</Thickness>
     <!-- 输入框左右两个内嵌槽（前缀标签、框内小按钮）与正文之间的间距。
          取 8 = Forge.Input.Padding 的水平档，跟同一条水平节奏；不另调一个数。
          ⚠ 没有它时标签与正文**贴在一起**，读起来像正文的一部分（宿主实机 2026-08-26）。 -->
     <Thickness x:Key="Forge.Input.AffixLeftMargin">0,0,8,0</Thickness>
     <Thickness x:Key="Forge.Input.AffixRightMargin">8,0,0,0</Thickness>
+
+    <!-- 输入框里那些**指示箭头**（下拉的 chevron、数字框的上下箭头）的线宽。
+         常态与边框同粗同色 —— 它是指示不是内容，与正文同黑会压过框里的值本身。
+         悬停时不铺底板，改由箭头自己变粗变深（各控件主题里那两条 :pointerover）。 -->
+    <x:Double x:Key="Forge.Input.GlyphThickness">1</x:Double>
+    <x:Double x:Key="Forge.Input.GlyphHoverThickness">1.6</x:Double>
     <!-- NumericUpDown 走上游 Spinner.minimumSize 72,28；箭头区宽度用 Component.arrowAreaWidth。 -->
     <x:Double x:Key="Forge.Spinner.MinWidth">72</x:Double>
     <x:Double x:Key="Forge.Spinner.ArrowAreaWidth">28</x:Double>
 
     <!-- ComboBox：上游 padding 是 Java Insets(top,left,bottom,right)=1,9,1,6，
          换成 Avalonia 的 Thickness(left,top,right,bottom)。箭头区同 Component.arrowAreaWidth。 -->
-    <Thickness x:Key="Forge.ComboBox.Padding">9,1,6,1</Thickness>
+    <Thickness x:Key="Forge.ComboBox.Padding">9,0,6,0</Thickness>
     <x:Double x:Key="Forge.ComboBox.ArrowAreaWidth">28</x:Double>
     <!-- 滚动条：上游没把厚度放进 theme.json（在 Java 侧按 DPI 算），12 是与 IntelliJ 观感相当的值。
-         thumb 内缩 2px 留出轨道边距 —— 上游 mac 分支用 macMargin 做同一件事，非 mac 分支靠布局留白。 -->
+         thumb 两档粗细都由内缩做：常态缩 3（宽 6，细的那条），指针在滚动条上时缩 1（宽 10）。
+         半径 6 = 厚度的一半，两档都被钳成半圆头，粗细一变不用跟着改半径。 -->
     <x:Double x:Key="Forge.ScrollBar.Thickness">12</x:Double>
-    <Thickness x:Key="Forge.ScrollBar.ThumbMargin">2</Thickness>
+    <Thickness x:Key="Forge.ScrollBar.ThumbMargin">3</Thickness>
+    <Thickness x:Key="Forge.ScrollBar.ThumbHoverMargin">1</Thickness>
+    <CornerRadius x:Key="Forge.ScrollBar.ThumbRadius">6</CornerRadius>
 
     <!-- 进度条：上游没给厚度（Java 侧按 DPI 算），4 是与 IntelliJ 观感相当的值。 -->
     <x:Double x:Key="Forge.Progress.Thickness">4</x:Double>
@@ -324,6 +376,7 @@ METRICS = '''    <!-- ═══ 圆角：全系统**一个值 4**（圆形/胶�
     <x:Double x:Key="Forge.Tab.Height">40</x:Double>
     <Thickness x:Key="Forge.Tab.Padding">12,0</Thickness>
     <CornerRadius x:Key="Forge.Tab.CornerRadius">4</CornerRadius>
+@TAB_UNDERLINE_HEIGHT@
 
     <!-- 表格：表头高度取上游 TableHeader.height 的 os.default（25），
          行高与列表项同档（上游 List.rowHeight=24）。 -->
@@ -378,6 +431,16 @@ METRICS = '''    <!-- ═══ 圆角：全系统**一个值 4**（圆形/胶�
     <CornerRadius x:Key="Forge.Popup.CornerRadius">4</CornerRadius>
     <Thickness x:Key="Forge.Popup.Padding">0,4</Thickness>
 '''
+
+# 下划线高度也按档分叉（同 Forge.Tab.Underline：经典画线、Islands 画药丸），
+# 在 METRICS 里以 @TAB_UNDERLINE_HEIGHT@ 占位。0 是"不画"，键本身两档都得在 ——
+# 模板两档共用，缺键是运行期找不到资源，不是"不画"。
+TAB_UNDERLINE_HEIGHT = {
+    'ExpUi': '''    <!-- 选中态的下划线高度。经典档 2；Islands 档为 0（那一族用药丸底表达选中）。 -->
+    <x:Double x:Key="Forge.Tab.UnderlineHeight">2</x:Double>''',
+    'Islands': '''    <!-- 选中态的下划线高度。Islands 档 0（用药丸底表达选中）；经典档是 2。 -->
+    <x:Double x:Key="Forge.Tab.UnderlineHeight">0</x:Double>''',
+}
 
 HEAD = {
     'ExpUi': '''      经典档（IntelliJ expUI）色板。**本文件由 scripts/gen-forge-palette.py 生成，不要手改。**
@@ -486,22 +549,34 @@ def main():
         for variant in ('Light', 'Dark'):
             theme = load(SRC[(family, variant)])
             lines = []
-            for key, sources in MAP:
-                val, note = resolve(theme, sources, variant)
-                if not val:
-                    sys.exit(f'{family}.{variant}: 键 {key} 在上游取不到值（来源 {sources}）')
+            for entry in MAP:
+                key, sources, lead = entry[0], entry[1], entry[2] if len(entry) > 2 else None
+                if isinstance(sources, ByFamily):
+                    sources = sources.value(family)
+                if isinstance(lead, ByFamily):
+                    lead = lead.value(family)
+                if isinstance(sources, Own):
+                    val, note = sources.value(variant), ''
+                else:
+                    val, note = resolve(theme, sources, variant)
+                    if not val:
+                        sys.exit(f'{family}.{variant}: 键 {key} 在上游取不到值（来源 {sources}）')
+                if lead and variant == 'Light':
+                    lines.append('            <!-- ' + '\n                 '.join(lead) + ' -->')
                 lines.append(f'            <SolidColorBrush x:Key="{key}" Color="{val}" />{note}')
             blocks.append(f'        <ResourceDictionary x:Key="{variant}">\n'
                           + '\n'.join(lines) + '\n        </ResourceDictionary>')
 
+        metrics = METRICS.replace('@TAB_UNDERLINE_HEIGHT@', TAB_UNDERLINE_HEIGHT[family])
         out = (f'<ResourceDictionary xmlns="https://github.com/avaloniaui" '
                f'xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">\n'
                f'    <!--\n{HEAD[family]}\n    -->\n'
                f'    <ResourceDictionary.ThemeDictionaries>\n\n'
                + '\n\n'.join(blocks)
-               + f'\n\n    </ResourceDictionary.ThemeDictionaries>\n\n{METRICS}</ResourceDictionary>\n')
+               + f'\n\n    </ResourceDictionary.ThemeDictionaries>\n\n{metrics}</ResourceDictionary>\n')
         path = os.path.join(ROOT, 'src', f'Piccolo.Forge.Themes.{family}', 'Controls.Colors.axaml')
-        with open(path, 'w', encoding='utf-8') as fh:
+        # ⚠ utf-8-sig：生成物带 BOM。少了它每次重跑都在首行留一条无谓的 diff。
+        with open(path, 'w', encoding='utf-8-sig') as fh:
             fh.write(out)
         print(f'✓ {os.path.relpath(path, ROOT)}  ({len(MAP)} 键 × 2 档)')
 
