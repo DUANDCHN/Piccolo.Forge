@@ -26,6 +26,12 @@
         <!-- 子菜单里的项继续用本主题（MenuItem 自己也是 ItemsControl）。 -->
         <Setter Property="ItemContainerTheme" Value="{DynamicResource Forge.MenuItem}" />
         <Setter Property="Background" Value="Transparent" />
+        <!-- ⚠ 前景色必须**显式给一次**，不能靠继承。
+             选中态把 Foreground 设成白色是设在 MenuItem 自己身上的，而它的子菜单就挂在它的
+             模板里 —— 子项没有自己的值时会把这个白色**继承下去**，于是二级菜单在白底上一片空白
+             （2026-08-26 宿主实机：亮色主题下二级子菜单"文字不见了"；无头量到三级项的
+             Foreground=White）。给一个自己的值，继承链就在每一项这里断开。 -->
+        <Setter Property="Foreground" Value="{DynamicResource Forge.Text.Primary}" />
         <Setter Property="MinHeight" Value="{DynamicResource Forge.MenuItem.Height}" />
         <Setter Property="Padding" Value="{DynamicResource Forge.MenuItem.Padding}" />
 
