@@ -88,6 +88,27 @@ internal static class ForgeMorePopup
     /// <c>Clear</c> 在前：它把上一批菜单项连同宿主的图标控件一起摘下来，
     /// 下面才挂得上去（理由见 <see cref="Attach"/>）。
     /// </remarks>
+    /// <summary>
+    /// 菜单项该画什么图标。
+    /// </summary>
+    /// <remarks>
+    /// ⚠ <b>绝不直接用 <c>vm.Icon</c> 的控件实例。</b>一个 Avalonia 控件只能有一个父，
+    /// 条带按钮和菜单项同时想挂它，后来的那个当场抛「已经有父级」——
+    /// 2026-08-26 两个方向各踩了一次（菜单占着条带拿不回去 / 条带占着菜单挂不上），
+    /// 而异常抛在布局测量里，表现是"菜单弹不出来"，看不出跟图标有关。
+    /// <para>
+    /// 规矩：<see cref="ToolWindowViewModel.IconFactory"/> 给了就**造一个新的**；
+    /// 没给就只接受**能共享的**（几何图形、字符这类不可变的东西），是控件就不画。
+    /// 宁可少个图标，也不能抛。
+    /// </para>
+    /// </remarks>
+    private static object? MenuIcon(ToolWindowViewModel? vm)
+    {
+        if (vm is null) return null;
+        if (vm.IconFactory?.Invoke() is { } made) return made;
+        return vm.Icon is Control ? null : vm.Icon;
+    }
+
     /// <param name="items">菜单的条目集合（可观察，改了 presenter 才跟）。</param>
     /// <param name="flyout">要重建的菜单 —— 条目点中之后要关掉它。</param>
     /// <param name="shell">外壳 VM。</param>
@@ -115,7 +136,7 @@ internal static class ForgeMorePopup
             var item = new MenuItem
             {
                 Header = vm?.Title ?? id,
-                Icon = vm?.Icon,
+                Icon = MenuIcon(vm),
             };
 
             var toolWindowId = id;

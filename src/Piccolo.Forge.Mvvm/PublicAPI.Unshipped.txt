@@ -1,1 +1,3 @@
 ﻿#nullable enable
+Piccolo.Forge.Mvvm.ToolWindowViewModel.IconFactory.get -> System.Func<object?>?
+Piccolo.Forge.Mvvm.ToolWindowViewModel.IconFactory.set -> void
