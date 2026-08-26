@@ -1,6 +1,9 @@
+using System;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Presenters;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Layout;
@@ -156,6 +159,75 @@ public class InputStateTests
             Assert.Equal(30, c.Bounds.Height);
             Assert.Equal(30, Part(c, "PART_Root").Bounds.Height);
         }
+
+        window.Close();
+    }
+
+    /// <summary>输入框左右两个内嵌槽里的东西**竖直居中**。</summary>
+    /// <remarks>
+    /// <b>反面（2026-08-26 宿主实机：保存路径框左边那个「保存根目录」比框里的路径高一截）。</b>
+    /// 两个槽停靠在模板的 <c>DockPanel</c> 上，默认被拉满整条高度，里面的字就贴到顶。
+    /// 控件上的 <c>VerticalContentAlignment</c> 管的是正文那条 ScrollViewer，管不到这两个槽 ——
+    /// 所以宿主设了它也没用，只能在模板里治。
+    /// <para>
+    /// ⚠ <b>判据落在"字有没有被拉伸"上。</b>没修的时候槽与字都被拉满整条高度 ——
+    /// 竖直拉满的 <c>TextBlock</c> 把字画在**顶部**，而它的 Bounds 中线仍在正中。
+    /// 所以"比中线"的写法**抓不住**：第一版这么写，撤掉修复反而绿。
+    /// </para>
+    /// <para>
+    /// 容差 1px：字的墨迹高度是奇是偶取决于字体与字号，居中之后天然会差半个像素。
+    /// </para>
+    /// </remarks>
+    [AvaloniaTheory]
+    [InlineData(ForgeThemeFamily.ExpUi)]
+    [InlineData(ForgeThemeFamily.Islands)]
+    public void 输入框内嵌槽里的东西竖直居中(ForgeThemeFamily family)
+    {
+        using var theme = ForgeThemeScope.Use(family);
+
+        var text = new TextBox
+        {
+            Width = 240,
+            Height = 30,
+            Text = "C:/x",
+            InnerLeftContent = "保存根目录",
+            InnerRightContent = "…",
+        };
+        var window = new Window { Width = 320, Height = 120, Content = text };
+        window.Show();
+        Relayout(window);
+
+        var root = Part(text, "PART_Root");
+        var presenter = text.GetVisualDescendants().OfType<TextPresenter>().First(x => x.Name == "PART_TextPresenter");
+        var textCenter = presenter.TranslatePoint(new Point(0, presenter.Bounds.Height / 2), root)!.Value.Y;
+
+        foreach (var name in new[] { "PART_InnerLeftContent", "PART_InnerRightContent" })
+        {
+            var slot = text.GetVisualDescendants().OfType<ContentPresenter>().First(x => x.Name == name);
+            var label = slot.GetVisualDescendants().OfType<TextBlock>().Single();
+
+            // ★ 判据一：**没被拉伸**。竖直拉满的 TextBlock 把字画在顶部 —— 这正是当初的症状，
+            //   而它的 Bounds 中线仍然落在正中，所以只比中线的写法抓不住（第一版就这么假绿过）。
+            Assert.True(label.Bounds.Height < slot.Bounds.Height,
+                $"{name} 里的字被拉满了（{label.Bounds.Height} vs 槽 {slot.Bounds.Height}）—— 字会贴到顶");
+
+            // ★ 判据二：与**正文**对齐，不是与框对齐。容差 1px：标签的行高与正文的行高
+            //   天然差一格（实测 17 vs 16），居中之后必然差半个像素。
+            var labelCenter = label.TranslatePoint(new Point(0, label.Bounds.Height / 2), root)!.Value.Y;
+            Assert.True(Math.Abs(labelCenter - textCenter) <= 1,
+                $"{name} 里的字与正文差了 {labelCenter - textCenter:0.##}px");
+
+            // ★ 判据三：**颜色压一档**。与正文同色时前缀标签读起来就是正文的一部分。
+            Assert.Equal(Resource(text, "Forge.Text.Secondary"), ColorOf(label.Foreground));
+            Assert.NotEqual(Resource(text, "Forge.Text.Primary"), ColorOf(label.Foreground));
+        }
+
+        // ★ 判据四：**与正文之间有间距**。没有间距时标签与正文贴在一起，同样读成一体
+        //   （实测修前：标签右边缘 x=69、正文起点也是 x=69）。
+        var leftSlot = text.GetVisualDescendants().OfType<ContentPresenter>().First(x => x.Name == "PART_InnerLeftContent");
+        var slotRight = leftSlot.TranslatePoint(new Point(leftSlot.Bounds.Width, 0), root)!.Value.X;
+        var textLeft = presenter.TranslatePoint(default, root)!.Value.X;
+        Assert.True(textLeft - slotRight > 0, $"前缀标签与正文之间没有间距（标签右沿 {slotRight}、正文起点 {textLeft}）");
 
         window.Close();
     }

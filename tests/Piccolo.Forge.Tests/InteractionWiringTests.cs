@@ -148,31 +148,34 @@ public class ForgeMorePopupTests
     }
 
     /// <summary>
-    /// 从弹窗里挑一项之后，宿主那个**图标控件**能挂到条带按钮上。
+    /// 菜单**绝不占用**宿主那个图标控件实例；给了工厂就自己造一份。
     /// </summary>
     /// <remarks>
-    /// 一个 Avalonia 控件只能有一个父。宿主给的图标多半是控件实例
-    /// （<c>ToolWindowViewModel.Icon</c> 是 <c>object?</c>，LDVision 给的就是一个 SymbolIcon），
-    /// 菜单项还挂着它的时候条带按钮去挂就当场抛「已经有父级」。
-    /// 所以点击处理里必须**先把 Icon 置 null 再 Activate**，这条钉的就是那个顺序。
+    /// <b>由来（2026-08-26 两个方向各踩一次）。</b>一个 Avalonia 控件只能有一个父。
+    /// 菜单项与条带按钮共用同一个实例时，谁后挂谁抛「已经有父级」——
+    /// 先是菜单占着、条带按钮拿不回去，改了之后又反过来。堵路径堵不完，
+    /// 契约改成：菜单要显示图标就**自己造一个**（<see cref="ToolWindowViewModel.IconFactory"/>），
+    /// 没给工厂就不画（宁可少个图标，也不能抛）。
+    /// <para>
+    /// 判据落在"实例不是同一个"上 —— 只断言"有图标"抓不住共用。
+    /// </para>
     /// </remarks>
     [AvaloniaFact]
-    public void Picking_an_item_releases_the_icon_control()
+    public void The_menu_never_takes_the_hosts_icon_control()
     {
         var shell = Hidden(out var vm);
         var icon = new Border();
         vm.Icon = icon;
 
-        var item = Items(Menu(shell, out _)).OfType<MenuItem>().Single();
-        Assert.Same(icon, item.Icon);
-
-        item.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
-
-        Assert.Null(item.Icon);
-        Assert.True(shell.Manager.Layout.GetInfo(vm.Id)!.IsShowStripeButton);
-
-        // 摘干净了才挂得上去 —— 挂不上会抛，这一句就是判据
+        // 没给工厂：控件图标不画 —— 宿主那份仍然自由，条带按钮随时挂得上
+        Assert.Null(Items(Menu(shell, out _)).OfType<MenuItem>().Single().Icon);
         new Panel().Children.Add(icon);
+
+        // 给了工厂：造出来的是**另一个**实例
+        vm.IconFactory = () => new Border();
+        var made = Items(Menu(shell, out _)).OfType<MenuItem>().Single().Icon;
+        Assert.NotNull(made);
+        Assert.NotSame(icon, made);
     }
 
     /// <summary>
@@ -287,6 +290,86 @@ public class ForgeMorePopupTests
         Assert.Equal(vm.Title, rendered[0].Header);
 
         window.Close();
+    }
+
+    /// <summary>
+    /// 面板**全部恢复到条带、再重新藏起来**之后，菜单照样弹得出来。
+    /// </summary>
+    /// <remarks>
+    /// <b>反面（2026-08-26 宿主实机）。</b>把菜单里的面板全挑出来 → 三个点消失 →
+    /// 再隐藏两个 → 三个点回来 → 点它，弹不出来。抛的是：
+    /// <code>The control ... already has a visual parent ContentPresenter (Name = PART_IconPresenter)
+    /// while trying to add it as a child of ForgeIconHost (Name = PART_Icon)</code>
+    /// —— 与前一条**方向相反**：菜单项还攥着宿主那个图标控件，条带按钮要拿回去时抛。
+    /// <para>
+    /// 上一轮只堵了"点条目时释放"那一条路，面板从别处恢复（右键菜单、程序里 Activate）
+    /// 就绕过去了。根子是**一个图标控件实例被两处共用**，堵路径堵不完 ——
+    /// 现在改成菜单**自己造一份**（<see cref="ToolWindowViewModel.IconFactory"/>），
+    /// 没给工厂就不画图标。
+    /// </para>
+    /// <para>
+    /// ⚠ 走整机 + 真鼠标：异常抛在**布局测量**里，不是点击处理里，单元级调用复现不出来。
+    /// </para>
+    /// </remarks>
+    [AvaloniaFact]
+    public void The_menu_survives_panels_coming_back_and_hiding_again()
+    {
+        var shell = new ToolWindowShellViewModel();
+        foreach (var id in new[] { "A", "B", "C" })
+        {
+            var vm = shell.Add(id, "面板" + id, ToolWindowAnchor.Left, false);
+            vm.Icon = new Border { Width = 16, Height = 16 };          // 宿主给的是控件实例
+            vm.IconFactory = () => new Border { Width = 16, Height = 16 };   // 第二处显示时自己造
+        }
+        ToolWindowContextMenu.Hide(shell.Manager, "A");
+        ToolWindowContextMenu.Hide(shell.Manager, "B");
+
+        var frame = new ForgeControl();
+        frame.Attach(shell);
+        var window = new Window { Width = 800, Height = 500, Content = frame };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        ClickMore();
+        Assert.True(Flyout().IsOpen);
+        Click(new Point(600, 400));                                    // 点别处关掉
+        Assert.False(Flyout().IsOpen);
+
+        // 全部恢复到条带 —— 从别处恢复（不是点菜单条目），这正是绕过旧修复的那条路
+        foreach (var id in new[] { "A", "B" })
+        {
+            var info = shell.Manager.Layout.GetInfo(id)!;
+            shell.Manager.Layout.SetInfo(info with { IsShowStripeButton = true });
+            shell.Manager.Activate(id);
+        }
+        Dispatcher.UIThread.RunJobs();
+        Assert.False(Button().IsAvailable);                            // 没东西可挑，按钮该收起来
+
+        ToolWindowContextMenu.Hide(shell.Manager, "A");
+        ToolWindowContextMenu.Hide(shell.Manager, "B");
+        Dispatcher.UIThread.RunJobs();
+        Assert.True(Button().IsAvailable);
+
+        ClickMore();
+        Assert.True(Flyout().IsOpen, "藏回去之后菜单又弹不出来了 —— 就是当初那个 bug");
+
+        window.Close();
+
+        ForgeMoreButton Button()
+            => frame.GetVisualDescendants().OfType<ForgeMoreButton>().First(x => x.Side == StripeSide.Left);
+        MenuFlyout Flyout() => (MenuFlyout)Button().Flyout!;
+        void ClickMore()
+        {
+            var b = Button();
+            Click(b.TranslatePoint(new Point(b.Bounds.Width / 2, b.Bounds.Height / 2), window)!.Value);
+        }
+
+        void Click(Point at)
+        {
+            window.MouseDown(at, MouseButton.Left);
+            window.MouseUp(at, MouseButton.Left);
+            Dispatcher.UIThread.RunJobs();
+        }
     }
 
     /// <summary>菜单的条目集合 —— 走 ItemsSource（普通 Items 改了 presenter 不跟，见 Attach 的说明）。</summary>

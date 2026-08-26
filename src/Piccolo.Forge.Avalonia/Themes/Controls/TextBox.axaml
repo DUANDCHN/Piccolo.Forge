@@ -41,9 +41,24 @@
                             BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="{TemplateBinding CornerRadius}">
                         <DockPanel Margin="{TemplateBinding Padding}">
+                            <!-- ⚠ 两个内嵌槽必须**自己居中**：它们停靠在 DockPanel 上，默认被拉满整条高度，
+                                 里面的字就贴到顶（宿主实机 2026-08-26：保存路径框左边那个「保存根目录」
+                                 比框里的路径高一截）。控件上的 VerticalContentAlignment 管的是正文那条
+                                 ScrollViewer，管不到这两个槽。 -->
+                            <!-- ★ 两个内嵌槽是**附加物**，不是正文：颜色压一档、与正文留出间距。★
+                                 前缀标签（「保存根目录」这种）与正文同色又贴在一起时，读起来就是正文的一部分
+                                 （宿主实机 2026-08-26）。压到 Forge.Text.Secondary 之后它退成"框的一部分"。
+                                 ⚠ 只设在**槽**上，靠继承落到里面的字；宿主放控件进来时（框内小按钮）
+                                   控件自己的主题会赢，不会被这一档染色。 -->
                             <ContentPresenter Name="PART_InnerLeftContent" DockPanel.Dock="Left"
+                                              VerticalContentAlignment="Center"
+                                              Foreground="{DynamicResource Forge.Text.Secondary}"
+                                              Margin="{DynamicResource Forge.Input.AffixLeftMargin}"
                                               Content="{TemplateBinding InnerLeftContent}" />
                             <ContentPresenter Name="PART_InnerRightContent" DockPanel.Dock="Right"
+                                              VerticalContentAlignment="Center"
+                                              Foreground="{DynamicResource Forge.Text.Secondary}"
+                                              Margin="{DynamicResource Forge.Input.AffixRightMargin}"
                                               Content="{TemplateBinding InnerRightContent}" />
                             <ScrollViewer Name="PART_ScrollViewer"
                                           HorizontalScrollBarVisibility="{TemplateBinding (ScrollViewer.HorizontalScrollBarVisibility)}"

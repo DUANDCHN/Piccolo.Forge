@@ -1,3 +1,4 @@
+﻿using System;
 using Piccolo.Forge.Model;
 
 namespace Piccolo.Forge.Mvvm;
@@ -46,6 +47,26 @@ public sealed class ToolWindowViewModel : ForgeObservableObject
         get => _title;
         set => SetProperty(ref _title, value);
     }
+
+    /// <summary>
+    /// **再造一个**同样的图标，给条带按钮之外的地方用（「更多」菜单）。
+    /// </summary>
+    /// <remarks>
+    /// <b>为什么不能直接复用 <see cref="Icon"/>。</b>宿主给的多半是个**控件实例**，
+    /// 而一个 Avalonia 控件只能有一个父 —— 条带按钮和菜单项同时想挂它，后来的那个当场抛
+    /// 「已经有父级」。2026-08-26 两个方向各踩了一次：先是菜单占着、条带按钮拿不回去，
+    /// 再是条带按钮占着、菜单挂不上。
+    /// <para>
+    /// 所以第二处显示要的不是"同一个图标"，是"**一个一样的图标**"。宿主本来就有造它的代码
+    /// （LDVision 的 <c>ShellHost.CreateIcon</c>），把那句给过来即可：
+    /// <code>vm.IconFactory = () => CreateIcon(Symbol.Image);</code>
+    /// </para>
+    /// <para>
+    /// 不给也能跑：那时「更多」菜单里那一项**不画图标**（宁可少个图标，也不能抛异常）。
+    /// 图标是不可变的几何图形或字符时不受这条限制 —— 那种本来就能共享。
+    /// </para>
+    /// </remarks>
+    public Func<object?>? IconFactory { get; set; }
 
     /// <summary>
     /// 条带按钮上的图标。
