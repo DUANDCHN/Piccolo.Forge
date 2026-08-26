@@ -72,7 +72,10 @@ public class ForgeMoreButtonTests
             => button.GetVisualDescendants().OfType<Border>().First(x => x.Name == "PART_Background");
     }
 
-    [Theory]
+    // ⚠ 必须 AvaloniaTheory：new ForgeMoreButton() 会走到 ForgeIcons（取几何图形需要渲染接口），
+    //   裸 [Theory] 没有 Avalonia 会话，跑到的顺序不同就抛 TypeInitializationException ——
+    //   全量跑时**时绿时红**（2026-08-26 撞到）。
+    [AvaloniaTheory]
     // MoreSquareStripeButton.kt:77-79 —— 边要对得上，且有东西可挑
     [InlineData(StripeSide.Left, StripeSide.Left, true, true)]
     [InlineData(StripeSide.Right, StripeSide.Left, true, false)]
@@ -92,7 +95,10 @@ public class ForgeMoreButtonTests
         Assert.Equal(default, button.DesiredSize);
     }
 
-    [Theory]
+    // ⚠ 必须 AvaloniaTheory：new ForgeMoreButton() 会走到 ForgeIcons（取几何图形需要渲染接口），
+    //   裸 [Theory] 没有 Avalonia 会话，跑到的顺序不同就抛 TypeInitializationException ——
+    //   全量跑时**时绿时红**（2026-08-26 撞到）。
+    [AvaloniaTheory]
     // MoreSquareStripeButton.kt:118-121
     [InlineData(StripeSide.Left, 41d, 41d)]
     [InlineData(StripeSide.Right, 41d, -300d)]
