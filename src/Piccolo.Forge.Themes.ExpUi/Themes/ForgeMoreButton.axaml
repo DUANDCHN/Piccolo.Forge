@@ -1,4 +1,4 @@
-<!--  ★ 「更多」按钮。★ **真模板**
+﻿<!--  ★ 「更多」按钮。★ **真模板**
       与条带按钮同族（SquareStripeButton.kt:62-80 是兄弟），底色规则也一样
       （按钮矩形 − 图标内边距）。不可用时整块不画、也不吃鼠标。
 
@@ -23,5 +23,17 @@
                 </Panel>
             </ControlTemplate>
         </Setter>
+
+        <!--  方底那一档：显式边长 + 居中 —— **与条带按钮逐字同一条**（见 ForgeStripeButton.axaml）。
+              ⚠ 这条原先只有条带按钮有。宿主收窄条带（IsHostSized）时，BackgroundInsets 归零、
+                BackgroundSize 给出边长，靠这条把背板收成居中的方块；「更多」按钮少了它，
+                背板就铺满整颗按钮 —— 于是"三个点的悬停底比旁边的大一圈"
+                （2026-08-26 宿主实机看出来的）。两颗是兄弟按钮，底就该一样大。  -->
+        <Style Selector="^:square-background /template/ Border#PART_Background">
+            <Setter Property="Width" Value="{TemplateBinding BackgroundSize}" />
+            <Setter Property="Height" Value="{TemplateBinding BackgroundSize}" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
     </ControlTheme>
 </ResourceDictionary>
