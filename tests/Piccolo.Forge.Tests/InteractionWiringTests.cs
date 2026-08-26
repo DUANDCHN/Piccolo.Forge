@@ -1,8 +1,10 @@
 ﻿using Avalonia;
 using Avalonia.Headless;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
+using System.Collections.ObjectModel;
 using System.Linq;
 using Avalonia.Controls;
 using Avalonia.VisualTree;
@@ -111,19 +113,193 @@ public class ForgeMorePopupTests
 
     [AvaloniaFact]
     public void Nothing_to_show_means_no_popup()
-        => Assert.Null(ForgeMorePopup.Create(new ToolWindowManager(DefaultToolWindowLayout.CreateV2())));
+        => Assert.Empty(Items(Menu(new ToolWindowShellViewModel(), out _)));
 
+    /// <summary>菜单按内容撑，不钉宽度。</summary>
+    /// <remarks>
+    /// 上游那个 300（<c>MoreSquareStripeButton.kt:106</c>，<see cref="ForgeMetrics.MorePopupMinWidth"/>）
+    /// 是给 IntelliJ 那一长串英文工具窗口名定的。本库一度把它当成每个菜单项的 <c>MinWidth</c>，
+    /// 而宿主的名字是「图像对比」这种四个字 —— 右边空掉一大片（2026-08-26 实机反馈）。
+    /// 这条钉住"别再给条目钉死宽度"。
+    /// </remarks>
     [AvaloniaFact]
-    public void The_popup_is_at_least_300_wide()
+    public void The_menu_sizes_to_its_content()
     {
-        // MoreSquareStripeButton.kt:106
-        var manager = new ToolWindowManager(DefaultToolWindowLayout.CreateV2());
-        ToolWindowContextMenu.Hide(manager, "Maven");
+        var flyout = Menu(Hidden(out _), out _);
 
-        var flyout = ForgeMorePopup.Create(manager);
+        Assert.All(Items(flyout).OfType<MenuItem>(), x => Assert.Equal(0, x.MinWidth));
+    }
 
-        Assert.NotNull(flyout);
-        Assert.Equal(ForgeMetrics.MorePopupMinWidth, ((StackPanel)flyout.Content!).MinWidth);
+    /// <summary>弹窗里每一项显示的是**标题**，不是工具窗口的内部 id。</summary>
+    /// <remarks>
+    /// 反面（2026-08-26 宿主实机）：原实现拿 <c>Button.Content = id</c>，界面上露出的是
+    /// <c>ImageCompare</c> 这种开发者才认得的字符串。id 与标题在多数用例里长得一样，
+    /// 所以这条特意让它俩**不同**，否则断言看着绿、其实什么都没验。
+    /// </remarks>
+    [AvaloniaFact]
+    public void The_popup_shows_titles_not_ids()
+    {
+        var shell = Hidden(out var vm);
+        vm.Title = "图像对比";
+
+        var item = Assert.Single(Items(Menu(shell, out _)).OfType<MenuItem>());
+        Assert.Equal("图像对比", item.Header);
+        Assert.NotEqual(vm.Id, item.Header);
+    }
+
+    /// <summary>
+    /// 从弹窗里挑一项之后，宿主那个**图标控件**能挂到条带按钮上。
+    /// </summary>
+    /// <remarks>
+    /// 一个 Avalonia 控件只能有一个父。宿主给的图标多半是控件实例
+    /// （<c>ToolWindowViewModel.Icon</c> 是 <c>object?</c>，LDVision 给的就是一个 SymbolIcon），
+    /// 菜单项还挂着它的时候条带按钮去挂就当场抛「已经有父级」。
+    /// 所以点击处理里必须**先把 Icon 置 null 再 Activate**，这条钉的就是那个顺序。
+    /// </remarks>
+    [AvaloniaFact]
+    public void Picking_an_item_releases_the_icon_control()
+    {
+        var shell = Hidden(out var vm);
+        var icon = new Border();
+        vm.Icon = icon;
+
+        var item = Items(Menu(shell, out _)).OfType<MenuItem>().Single();
+        Assert.Same(icon, item.Icon);
+
+        item.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+
+        Assert.Null(item.Icon);
+        Assert.True(shell.Manager.Layout.GetInfo(vm.Id)!.IsShowStripeButton);
+
+        // 摘干净了才挂得上去 —— 挂不上会抛，这一句就是判据
+        new Panel().Children.Add(icon);
+    }
+
+    /// <summary>
+    /// 图标是**控件实例**时，菜单反复点也弹得出来。
+    /// </summary>
+    /// <remarks>
+    /// <b>反面（2026-08-26 宿主实机：第一次点得出、第二次点不出）。</b>两个独立的坑叠在一起：
+    /// <list type="number">
+    /// <item>原先每次点击 <c>new</c> 一份 flyout 再 <c>ShowAt</c>。上一份的菜单项还攥着宿主那个
+    /// 图标控件，第二份去挂就抛「已经有父级」—— 异常在点击处理里被吞掉，表现是"菜单再也弹不出来"。
+    /// 所以本条**必须给真的控件图标**，给 null 就复现不出来。</item>
+    /// <item>自己 <c>Click += ShowAt</c> 的话，菜单开着时再点按钮，那一下会被浮层的
+    /// "点外面关掉"吃掉、Click 根本不触发 —— 每隔一次才响应。改走 <c>Button.Flyout</c>，
+    /// 开合交给 Button 自己管。</item>
+    /// </list>
+    /// 判据走**真鼠标事件**而不是直接调 API：这两条都只在真实的点击/浮层路径上才出得来。
+    /// </remarks>
+    [AvaloniaFact]
+    public void The_menu_reopens_after_being_dismissed()
+    {
+        var shell = Hidden(out var vm);
+        vm.Icon = new Border { Width = 16, Height = 16 };   // 宿主给的是控件实例
+
+        var flyout = Menu(shell, out var button);
+        button.Width = 40;
+        button.Height = 40;
+        var window = new Window { Width = 300, Height = 300, Content = new Panel { Children = { button } } };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        var onButton = button.TranslatePoint(new Point(20, 20), window)!.Value;
+        var elsewhere = new Point(250, 250);
+
+        Click(onButton);
+        Assert.True(flyout.IsOpen, "第一次就该弹出来");
+
+        Click(elsewhere);
+        Assert.False(flyout.IsOpen, "点别处该关掉");
+
+        Click(onButton);
+        Assert.True(flyout.IsOpen, "关掉之后再点，还得弹得出来 —— 这就是当初坏掉的那一下");
+
+        Click(onButton);
+        Assert.False(flyout.IsOpen, "开着时再点按钮 = 关掉（菜单按钮就该是开合）");
+
+        window.Close();
+
+        void Click(Point at)
+        {
+            window.MouseDown(at, MouseButton.Left);
+            window.MouseUp(at, MouseButton.Left);
+            Dispatcher.UIThread.RunJobs();
+        }
+    }
+
+    /// <summary>挂好菜单，把条目建出来（Populate 平时由 Opening 触发）。</summary>
+    private static MenuFlyout Menu(ToolWindowShellViewModel shell, out ForgeMoreButton button)
+    {
+        button = new ForgeMoreButton
+        {
+            Side = StripeSide.Left,
+            ActiveSide = StripeSide.Left,
+            HasHiddenToolWindows = true,
+            IsLeftStripe = true,
+        };
+        ForgeMorePopup.Attach(button, shell);
+        var flyout = (MenuFlyout)button.Flyout!;
+        ForgeMorePopup.Populate(Items(flyout), flyout, shell);
+        return flyout;
+    }
+
+    /// <summary>
+    /// 菜单**真的画出来了** —— 弹出层里有条目，不是一个空壳。
+    /// </summary>
+    /// <remarks>
+    /// <b>反面（2026-08-26 宿主实机：点开只有一个小方块）。</b>条目原先加在
+    /// <c>MenuFlyout.Items</c> 上，而那是个普通列表：presenter 在弹出层建起来时就绑好了，
+    /// 之后往里增删**收不到变更通知**。于是 <c>flyout.Items.Count == 2</c> 而 presenter 的
+    /// 子项数是 <b>0</b>，屏幕上是个 2×10 的小块。改走 <c>ItemsSource</c> + 可观察集合。
+    /// <para>
+    /// ⚠ <b>这条存在的理由就是"集合有 ≠ 画得出"。</b>本类另外几条断言的是集合内容，
+    /// 功能坏成那样它们照样全绿 —— 判据必须落到**弹出层的视觉树**上。
+    /// </para>
+    /// </remarks>
+    [AvaloniaFact]
+    public void The_menu_actually_renders_its_items()
+    {
+        var shell = Hidden(out var vm);
+        vm.Icon = new Border { Width = 16, Height = 16 };
+
+        var flyout = Menu(shell, out var button);
+        button.Width = 40;
+        button.Height = 40;
+        var window = new Window { Width = 600, Height = 400, Content = new Panel { Children = { button } } };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        var at = button.TranslatePoint(new Point(20, 20), window)!.Value;
+        window.MouseDown(at, MouseButton.Left);
+        window.MouseUp(at, MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.True(flyout.IsOpen);
+
+        var presenter = Assert.Single(window.GetVisualDescendants().OfType<MenuFlyoutPresenter>());
+        var rendered = presenter.GetVisualDescendants().OfType<MenuItem>().ToList();
+        Assert.Single(rendered);
+        // 判据是"条目真的占了地方"，不是某个具体宽度 —— 宽度按内容走，钉死了改文案就假红。
+        Assert.True(rendered[0].Bounds.Width > 0, "条目宽度是 0 —— 没被 presenter 认领");
+        Assert.True(presenter.Bounds.Width >= rendered[0].Bounds.Width,
+            $"弹出层只有 {presenter.Bounds.Width} 宽、装不下 {rendered[0].Bounds.Width} 的条目");
+        Assert.Equal(vm.Title, rendered[0].Header);
+
+        window.Close();
+    }
+
+    /// <summary>菜单的条目集合 —— 走 ItemsSource（普通 Items 改了 presenter 不跟，见 Attach 的说明）。</summary>
+    private static ObservableCollection<object> Items(MenuFlyout flyout)
+        => (ObservableCollection<object>)flyout.ItemsSource!;
+
+    /// <summary>造一个「有一个被摘掉的工具窗口」的外壳。</summary>
+    private static ToolWindowShellViewModel Hidden(out ToolWindowViewModel vm)
+    {
+        var shell = new ToolWindowShellViewModel();
+        vm = shell.Add("ImageCompare", "ImageCompare", ToolWindowAnchor.Left, false);
+        ToolWindowContextMenu.Hide(shell.Manager, vm.Id);
+        return shell;
     }
 }
 

@@ -124,8 +124,13 @@ MAP = [
     ('Forge.Menu.Background', ['PopupMenu.background', 'Menu.background', 'Popup.background', '*.background']),
     ('Forge.Menu.Border', ['Menu.borderColor', 'Popup.borderColor']),
     ('Forge.Menu.Separator', ['Menu.separatorColor', '*.separatorColor']),
-    ('Forge.MenuItem.SelectedBackground', ['*.selectionBackground']),
-    ('Forge.MenuItem.SelectedForeground', ['*.selectionForeground']),
+    # 菜单选中：**实心主题色 + 白字**。
+    # ⚠ 刻意偏离上游的 *.selectionBackground（淡蓝底 + 黑字）：那一档在列表/树里合适
+    #   （一屏几十行，淡底才不闹），菜单是一次只选一行的短列表，淡底读起来"像没选中"
+    #   （2026-08-26 宿主实机："感觉很淡"）。Rider 自己的动作菜单也是实心蓝 + 白字。
+    # ⚠ 底色归 ForgeAccent 的实心填充档，跟着宿主的种子色走；前景取与主按钮同一支白。
+    ('Forge.MenuItem.SelectedBackground', ['*.focusColor']),
+    ('Forge.MenuItem.SelectedForeground', ['Button.default.foreground']),
     # 快捷键提示（Ctrl+S 那截）比正文弱一档，选中时上游也不提亮 —— 有 acceleratorSelectionForeground
     # 的档位它与常态同值，没有的档位就回落到常态，两种情况结果一致。
     ('Forge.MenuItem.Accelerator', ['*.acceleratorForeground', '*.shortcutForeground']),

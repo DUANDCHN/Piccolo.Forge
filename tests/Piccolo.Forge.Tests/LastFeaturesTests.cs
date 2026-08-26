@@ -1,4 +1,6 @@
 using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Threading;
 using Avalonia.Headless.XUnit;
 using Avalonia.VisualTree;
 using Piccolo.Forge.Avalonia;
@@ -12,6 +14,64 @@ namespace Piccolo.Forge.Tests;
 /// 「更多」按钮。
 public class ForgeMoreButtonTests
 {
+    /// <summary>它与工具窗口按钮**同尺寸、同图标大小**（宿主给了外观时也一样）。</summary>
+    /// <remarks>
+    /// <b>反面（2026-08-26 宿主实机："三个点歪了、背板大小也不一样"）。</b>两层原因叠着：
+    /// <list type="number">
+    /// <item>它没覆盖 <c>IconRect</c>，落到基类的「整块背板都是图标区」，图标被撑大一圈；</item>
+    /// <item>更要命的是 <c>ForgeControl</c> 只给条带按钮喂 <c>Appearance</c> 里那套度量，
+    /// 「更多」按钮一个都没拿到 —— 于是它 <c>IsHostSized</c> 为假，退回上游的 40×40 与
+    /// Islands 的**左右不对称内边距**（5/2），比邻居大一圈、图标还偏一边。</item>
+    /// </list>
+    /// <para>
+    /// ⚠ <b>所以这条必须走整机 + 宿主外观。</b>先前那版直接 new 两颗裸按钮比图标矩形，
+    /// 两颗都没喂外观、自然相等 —— 功能坏成那样它照样绿。判据要落在
+    /// <c>ForgeControl</c> 真正排出来的那两颗上。
+    /// </para>
+    /// </remarks>
+    [AvaloniaFact]
+    public void 它与条带按钮同尺寸同图标()
+    {
+        var shell = new ToolWindowShellViewModel();
+        var hidden = shell.Add("Hidden", "藏起来的", ToolWindowAnchor.Left, false);
+        shell.Add("Shown", "露着的", ToolWindowAnchor.Left, false);
+        ToolWindowContextMenu.Hide(shell.Manager, hidden.Id);
+
+        var frame = new ForgeControl();
+        frame.Attach(shell);
+        // 宿主收窄条带（LDVision 就是这么用的）—— 正是这一档下两颗按钮会长得不一样
+        frame.Appearance = ForgeAppearance.Default with
+        {
+            StripeHighlightSize = 26,
+            StripeHighlightInsetHorizontal = 2.5,
+            StripeHighlightInsetVertical = 2.5,
+            StripeIconSize = 16,
+        };
+        var window = new Window { Width = 900, Height = 600, Content = frame };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        var more = frame.GetVisualDescendants().OfType<ForgeMoreButton>().First(x => x.IsAvailable);
+        var stripe = frame.GetVisualDescendants().OfType<ForgeStripeButton>().First();
+
+        Assert.Equal(stripe.ButtonWidth, more.ButtonWidth);
+        Assert.Equal(stripe.ButtonHeight, more.ButtonHeight);
+        Assert.Equal(stripe.IconSize, more.IconSize);
+
+        var size = new Size(stripe.ButtonWidth, stripe.ButtonHeight);
+        Assert.Equal(stripe.IconPlacement(size), more.IconPlacement(size));
+
+        // ⚠ 还要比**画出来的背板**（悬停底）：上面那几个属性对得上，模板里少一条
+        //   :square-background 样式，底照样铺满整颗按钮 —— 实机就是"三个点的悬停底大一圈"。
+        //   判据只能落在渲染出来的 Bounds 上。
+        Assert.Equal(Plate(stripe).Bounds.Size, Plate(more).Bounds.Size);
+
+        window.Close();
+
+        static Border Plate(Control button)
+            => button.GetVisualDescendants().OfType<Border>().First(x => x.Name == "PART_Background");
+    }
+
     [Theory]
     // MoreSquareStripeButton.kt:77-79 —— 边要对得上，且有东西可挑
     [InlineData(StripeSide.Left, StripeSide.Left, true, true)]

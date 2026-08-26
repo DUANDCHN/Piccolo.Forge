@@ -4,7 +4,6 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
-using Avalonia.Styling;
 using Avalonia.VisualTree;
 using Piccolo.Forge.Model;
 using Piccolo.Forge.Mvvm;
@@ -911,24 +910,13 @@ public class ForgeControl : TemplatedControl
             };
         }
 
-        button.Palette = Palette;
         // 菜单每次同步重建，理由同 SyncStripes 里那处：勾选状态要跟着走
         button.ContextMenu = ForgeMenuBuilder.ForStripeButton(
             _shell!.Manager, vm.Id, () => ShowToolWindowNames = !ShowToolWindowNames, ShowToolWindowNames);
-        // 内边距按左右取不同的键；Islands 下两侧镜像不对称，设错边图标会朝窗口里侧挤。
-        // 按钮实例是**复用**的，拖到另一条带时这里要跟着改，不能只在新建时设。
-        button.IsLeftStripe = side == StripeSide.Left;
-        // 外观里给的是**半径**，ArcOverride 收的是**直径** —— 在这一处换算，别让两边都换
-        button.ArcOverride = Appearance.StripeButtonCornerRadius is { } radius
-            ? radius * 2
-            : StripeButtonArc;
-        button.HighlightSize = Appearance.StripeHighlightSize;
-        button.IconSizeOverride = Appearance.StripeIconSize;
+        ApplySquareButtonAppearance(button, side);
         button.NameFontSizeOverride = Appearance.StripeNameFontSize;
         button.NameFontWeightOverride = Appearance.StripeNameFontWeight;
         button.NamedContentInset = Appearance.StripeNamedContentInset;
-        button.HighlightInsetHorizontal = Appearance.StripeHighlightInsetHorizontal;
-        button.HighlightInsetVertical = Appearance.StripeHighlightInsetVertical;
         button.Icon = vm.Icon;
         button.Text = vm.Icon is null ? vm.Title[..1] : null;
         button.Title = vm.Title;
@@ -1357,24 +1345,50 @@ public class ForgeControl : TemplatedControl
         }
     }
 
+    /// <summary>
+    /// 把外观里那套**方按钮**的度量交给按钮 —— 条带按钮与「更多」按钮共用。
+    /// </summary>
+    /// <remarks>
+    /// <b>它们是兄弟按钮</b>（<c>SquareStripeButton.kt:62-80</c>），尺寸、圆角、图标大小、
+    /// 高亮内边距本来就该同一档。
+    /// <para>
+    /// ⚠ <b>由来（2026-08-26 宿主实机："三个点歪了、背板大小也不一样"）。</b>
+    /// 这一段原先只写在条带按钮那条路上，「更多」按钮只设了 Palette / Side / 有没有可挑的，
+    /// 于是它 <c>IsHostSized</c> 为假 —— 退回上游那套 40×40 与 Islands 的**左右不对称内边距**
+    /// （5/2，本意是把窄按钮在宽条带里推向外缘）。结果就是它比邻居大一圈、图标还偏一边。
+    /// 抽成一处之后，宿主再加外观键时不会只喂到其中一颗。
+    /// </para>
+    /// </remarks>
+    /// <param name="button">要喂参数的按钮。</param>
+    /// <param name="side">它长在哪根条带上 —— 内边距按左右取不同的键（Islands 两侧镜像）。</param>
+    private void ApplySquareButtonAppearance(ForgeSquareButtonBase button, StripeSide side)
+    {
+        button.Palette = Palette;
+        // 内边距按左右取不同的键；Islands 下两侧镜像不对称，设错边图标会朝窗口里侧挤。
+        // 按钮实例是**复用**的，拖到另一条带时这里要跟着改，不能只在新建时设。
+        button.IsLeftStripe = side == StripeSide.Left;
+        // 外观里给的是**半径**，ArcOverride 收的是**直径** —— 在这一处换算，别让两边都换
+        button.ArcOverride = Appearance.StripeButtonCornerRadius is { } radius
+            ? radius * 2
+            : StripeButtonArc;
+        button.HighlightSize = Appearance.StripeHighlightSize;
+        button.IconSizeOverride = Appearance.StripeIconSize;
+        button.HighlightInsetHorizontal = Appearance.StripeHighlightInsetHorizontal;
+        button.HighlightInsetVertical = Appearance.StripeHighlightInsetVertical;
+    }
+
     private ForgeMoreButton GetMoreButton(StripeSide side)
     {
         if (!_moreButtons.TryGetValue(side, out var button))
         {
             button = new ForgeMoreButton { Side = side, IsLeftStripe = side == StripeSide.Left };
-            var self = button;
-            button.Click += (_, _) =>
-            {
-                if (self.IsAvailable)
-                {
-                    ForgeMorePopup.Create(_shell!.Manager)?.ShowAt(self);
-                }
-            };
+            // 菜单挂在按钮的 Flyout 上、条目每次打开前重建 —— 两条都是必须的，理由见 ForgeMorePopup.Attach。
+            ForgeMorePopup.Attach(button, _shell!);
 
             _moreButtons[side] = button;
         }
 
-        button.Palette = Palette;
+        ApplySquareButtonAppearance(button, side);
         button.ActiveSide = MoreButtonSide;
         // 有条带按钮被摘掉（isShowStripeButton=false）时才有东西可挑
         button.HasHiddenToolWindows = ForgeMorePopup.ResolveItems(_shell!.Manager.Layout).Count > 0;

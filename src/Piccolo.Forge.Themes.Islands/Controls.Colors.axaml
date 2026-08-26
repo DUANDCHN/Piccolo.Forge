@@ -48,8 +48,8 @@
             <SolidColorBrush x:Key="Forge.Menu.Background" Color="#FFFFFFFF" />
             <SolidColorBrush x:Key="Forge.Menu.Border" Color="#FFD1D3D9" />
             <SolidColorBrush x:Key="Forge.Menu.Separator" Color="#FFE9EAEE" />  <!-- 回落自 *.separatorColor -->
-            <SolidColorBrush x:Key="Forge.MenuItem.SelectedBackground" Color="#FFD0DFFE" />
-            <SolidColorBrush x:Key="Forge.MenuItem.SelectedForeground" Color="#FF000000" />
+            <SolidColorBrush x:Key="Forge.MenuItem.SelectedBackground" Color="#FF3871E1" />
+            <SolidColorBrush x:Key="Forge.MenuItem.SelectedForeground" Color="#FFFFFFFF" />
             <SolidColorBrush x:Key="Forge.MenuItem.Accelerator" Color="#FF73767C" />
             <SolidColorBrush x:Key="Forge.MenuItem.AcceleratorSelected" Color="#FF73767C" />
             <SolidColorBrush x:Key="Forge.MenuItem.Disabled" Color="#FF9FA2A8" />
@@ -150,8 +150,8 @@
             <SolidColorBrush x:Key="Forge.Menu.Background" Color="#FF26282C" />
             <SolidColorBrush x:Key="Forge.Menu.Border" Color="#FF33353B" />
             <SolidColorBrush x:Key="Forge.Menu.Separator" Color="#FF33353B" />
-            <SolidColorBrush x:Key="Forge.MenuItem.SelectedBackground" Color="#FF2A4371" />
-            <SolidColorBrush x:Key="Forge.MenuItem.SelectedForeground" Color="#FFD1D3D9" />
+            <SolidColorBrush x:Key="Forge.MenuItem.SelectedBackground" Color="#FF3871E1" />
+            <SolidColorBrush x:Key="Forge.MenuItem.SelectedForeground" Color="#FFFFFFFF" />
             <SolidColorBrush x:Key="Forge.MenuItem.Accelerator" Color="#FF73767C" />
             <SolidColorBrush x:Key="Forge.MenuItem.AcceleratorSelected" Color="#FF73767C" />  <!-- 回落自 *.acceleratorForeground -->
             <SolidColorBrush x:Key="Forge.MenuItem.Disabled" Color="#FF4C4F56" />

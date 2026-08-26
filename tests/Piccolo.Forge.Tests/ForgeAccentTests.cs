@@ -58,6 +58,8 @@ public class ForgeAccentTests
                      // 输入框悬停时边框变主题色，同样得跟着种子走 —— 漏了它的症状是
                      // "整屏都换了颜色，只有输入框悬停还是库里那支蓝"。
                      "Forge.Input.HoverBorder",
+                     // 菜单选中是实心一行，也跟着种子走。
+                     "Forge.MenuItem.SelectedBackground",
                  })
         {
             Assert.Equal(Blue, BrushColor(theme, key, ThemeVariant.Light));
