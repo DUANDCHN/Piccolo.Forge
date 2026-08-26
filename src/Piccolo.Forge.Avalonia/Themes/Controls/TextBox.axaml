@@ -1,4 +1,4 @@
-<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+﻿<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <!--
       TextBox。与 NumericUpDown / ComboBox 共用上游的 Component.* 那套边框与焦点规则。
       聚焦机制：外圈画 2px 的 Focus.Ring，同时内圈边框换成 Input.FocusedBorder（与底同色，
@@ -76,9 +76,12 @@
             </ControlTemplate>
         </Setter>
 
-        <Style Selector="^:focus-within /template/ Border#PART_FocusRing">
-            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Focus.Ring}" />
-        </Style>
+        <!-- ★ 聚焦：边框自己变主题色，**不点亮外面那圈环**。★
+             上游 expUI 画的是「框外一圈 2px 的 focusColor 光晕 + 内边框转成与底同色」；
+             本库去掉那圈光晕（宿主反馈：看着像边框加粗，而框里文字位置又没动，别扭），
+             颜色改由内边框自己扛 —— Forge.Input.FocusedBorder 因此不再是"与底同色"，就是主题色。
+             ⚠ PART_FocusRing 这个元素**保留**（它占 2px 布局），只是永远透明。删掉会让每个输入框
+               外沿缩 2px，全应用的间距跟着变。 -->
         <Style Selector="^:focus-within /template/ Border#PART_Root">
             <Setter Property="BorderBrush" Value="{DynamicResource Forge.Input.FocusedBorder}" />
         </Style>
@@ -93,9 +96,6 @@
 
         <!-- 校验失败：边框与焦点环都换成错误色（上游 Outline.error 走的是同一条画法）。 -->
         <Style Selector="^:error /template/ Border#PART_Root">
-            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Input.Error}" />
-        </Style>
-        <Style Selector="^:error:focus-within /template/ Border#PART_FocusRing">
             <Setter Property="BorderBrush" Value="{DynamicResource Forge.Input.Error}" />
         </Style>
     </ControlTheme>

@@ -136,13 +136,28 @@
             </ControlTemplate>
         </Setter>
 
+        <!-- ★ 悬停：1px 的边框本身变成**主题色**。★
+             原先这条把 BorderBrush 设成 Forge.Input.Border —— 与常态**同值**，等于什么都没做
+             （2026-08-26 查出来的死样式）。于是整个框只有箭头那 0.6px 的加粗在响应，
+             实机上"鼠标移上去像没反应"。
+             ⚠ **和聚焦态现在长得一样**（都是 1px 边框变主题色）——去掉聚焦那圈光晕之后，
+               "指着"与"已经在编辑"就分不出来了。这是宿主明确要的取舍：宁可两态同形，
+               也不要那圈看着像加粗的环。要分开的话，让悬停用一支更淡的主题色即可
+               （Forge.Input.HoverBorder 与 FocusedBorder 本来就是两个键，改一个值的事）。
+             ⚠ **只换颜色不换粗细**：Border 改 BorderThickness 会挤压内容区，鼠标移上去框里的
+               文字会挪 1px，看着就是抖。要"变粗"只能在**外面**再叠一层（那一层占位，
+               不参与内容布局，PART_FocusRing 就是那个位置）。
+             ⚠ 这条排在 :focus-visible **之前**：同优先级下后写的赢，聚焦态本来就该压过悬停态。 -->
         <Style Selector="^:pointerover /template/ Border#PART_Root">
-            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Input.Border}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Input.HoverBorder}" />
         </Style>
 
-        <Style Selector="^:focus-visible /template/ Border#PART_FocusRing">
-            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Focus.Ring}" />
-        </Style>
+        <!-- ★ 聚焦：边框自己变主题色，**不点亮外面那圈环**。★
+             上游 expUI 画的是「框外一圈 2px 的 focusColor 光晕 + 内边框转成与底同色」；
+             本库去掉那圈光晕（宿主反馈：看着像边框加粗，而框里文字位置又没动，别扭），
+             颜色改由内边框自己扛 —— Forge.Input.FocusedBorder 因此不再是"与底同色"，就是主题色。
+             ⚠ PART_FocusRing 这个元素**保留**（它占 2px 布局），只是永远透明。删掉会让每个输入框
+               外沿缩 2px，全应用的间距跟着变。 -->
         <Style Selector="^:focus-visible /template/ Border#PART_Root">
             <Setter Property="BorderBrush" Value="{DynamicResource Forge.Input.FocusedBorder}" />
         </Style>

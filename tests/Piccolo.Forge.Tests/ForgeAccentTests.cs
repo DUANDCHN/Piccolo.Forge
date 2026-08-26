@@ -55,6 +55,9 @@ public class ForgeAccentTests
                  {
                      "Forge.Button.Accent.Background", "Forge.Focus.Ring",
                      "Forge.Check.SelectedBackground", "Forge.Check.SelectedBorder", "Forge.Progress.Bar",
+                     // 输入框悬停时边框变主题色，同样得跟着种子走 —— 漏了它的症状是
+                     // "整屏都换了颜色，只有输入框悬停还是库里那支蓝"。
+                     "Forge.Input.HoverBorder",
                  })
         {
             Assert.Equal(Blue, BrushColor(theme, key, ThemeVariant.Light));

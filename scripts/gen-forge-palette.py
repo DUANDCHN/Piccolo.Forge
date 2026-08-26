@@ -65,7 +65,21 @@ MAP = [
 
     ('Forge.Input.Background',            ['TextField.background', '*.background']),
     ('Forge.Input.Border',                ['Component.borderColor']),
-    ('Forge.Input.FocusedBorder',         ['Component.focusedBorderColor']),
+    # 悬停边框 = **主题色**，与 Forge.Focus.Ring 同源（*.focusColor）。
+    # 悬停让 1px 的边框本身变成主题色，聚焦另有一圈 2px 的外环（PART_FocusRing）——
+    # 两者都是主题色但形状不同，所以「悬停」和「已聚焦」仍分得开。
+    # ⚠ 它归 ForgeAccent 的实心填充档：宿主换种子色时必须跟着换，否则整屏都换了、
+    #   只有输入框悬停还是库里那支蓝。
+    # ⚠ 只换颜色不换粗细：Border 改 BorderThickness 会挤压内容区，鼠标移上去框里的
+    #   文字会挪 1px，看着就是抖。要「变粗」只能像焦点环那样在外面再叠一层。
+    ('Forge.Input.HoverBorder',           ['*.focusColor']),
+    # 聚焦时**边框自己**变主题色。
+    # ⚠ 这是**刻意偏离上游**：expUI 画聚焦态是「框外一圈 2px 的 focusColor 光晕 + 内边框转成
+    #   与底同色（Component.focusedBorderColor = 白 / #2B2D30）」，两层合起来才读成「这个框在编辑」。
+    #   本库把那圈光晕去掉了（宿主反馈：看着像边框加粗，而框里的文字位置又没动，别扭），
+    #   于是颜色必须由内边框自己扛 —— 再取 Component.focusedBorderColor 就是一圈看不见的白边。
+    # ⚠ 它归 ForgeAccent 的实心填充档：宿主换种子色时必须跟着换。
+    ('Forge.Input.FocusedBorder',         ['*.focusColor']),
     ('Forge.Input.Disabled.Background',   ['*.disabledBackground']),
     ('Forge.Input.Disabled.Border',       ['*.disabledBorderColor']),
     ('Forge.Input.Placeholder',           ['*.infoForeground']),

@@ -66,6 +66,10 @@ internal static class ForgeAccent
     [
         ("Forge.Button.Accent.Background", Tier.Seed),
         ("Forge.Focus.Ring", Tier.Seed),
+        // 输入框悬停时 1px 的边框本身变主题色（聚焦另有一圈 2px 外环，两者形状不同、分得开）。
+        ("Forge.Input.HoverBorder", Tier.Seed),
+        // 聚焦时边框自己变主题色（本库不画上游那圈光晕，颜色只能由边框扛）。
+        ("Forge.Input.FocusedBorder", Tier.Seed),
         ("Forge.Check.SelectedBackground", Tier.Seed),
         ("Forge.Check.SelectedBorder", Tier.Seed),
         // ⚠ Islands 的这支是**全透明**（那一族不画标签下划线）。派生保留原值的 alpha，

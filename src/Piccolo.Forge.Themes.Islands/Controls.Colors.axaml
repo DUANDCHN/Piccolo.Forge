@@ -21,7 +21,8 @@
             <SolidColorBrush x:Key="Forge.Focus.Ring" Color="#FF3871E1" />
             <SolidColorBrush x:Key="Forge.Input.Background" Color="#FFFFFFFF" />
             <SolidColorBrush x:Key="Forge.Input.Border" Color="#FFD1D3D9" />
-            <SolidColorBrush x:Key="Forge.Input.FocusedBorder" Color="#FFF7F8F9" />
+            <SolidColorBrush x:Key="Forge.Input.HoverBorder" Color="#FF3871E1" />
+            <SolidColorBrush x:Key="Forge.Input.FocusedBorder" Color="#FF3871E1" />
             <SolidColorBrush x:Key="Forge.Input.Disabled.Background" Color="#FFF7F8F9" />
             <SolidColorBrush x:Key="Forge.Input.Disabled.Border" Color="#FFDDDFE4" />
             <SolidColorBrush x:Key="Forge.Input.Placeholder" Color="#FF73767C" />
@@ -122,7 +123,8 @@
             <SolidColorBrush x:Key="Forge.Focus.Ring" Color="#FF3871E1" />
             <SolidColorBrush x:Key="Forge.Input.Background" Color="#FF191A1C" />
             <SolidColorBrush x:Key="Forge.Input.Border" Color="#FF40434A" />
-            <SolidColorBrush x:Key="Forge.Input.FocusedBorder" Color="#FF191A1C" />
+            <SolidColorBrush x:Key="Forge.Input.HoverBorder" Color="#FF3871E1" />
+            <SolidColorBrush x:Key="Forge.Input.FocusedBorder" Color="#FF3871E1" />
             <SolidColorBrush x:Key="Forge.Input.Disabled.Background" Color="#FF191A1C" />
             <SolidColorBrush x:Key="Forge.Input.Disabled.Border" Color="#FF33353B" />
             <SolidColorBrush x:Key="Forge.Input.Placeholder" Color="#FF73767C" />
