@@ -86,25 +86,6 @@ public class ForgeMoreButton : ForgeSquareButtonBase
     public static Point ComputePopupOffset(StripeSide side, double stripeWidth, double buttonY)
         => new(side == StripeSide.Left ? stripeWidth : -ForgeMetrics.MorePopupMinWidth, buttonY);
 
-    /// <inheritdoc />
-    /// <remarks>
-    /// <b>图标占 <see cref="ForgeSquareButtonBase.IconSize"/> 见方、居中</b>，与条带按钮同一条
-    /// （<see cref="ForgeStripeButton.IconRect"/>）。
-    /// <para>
-    /// ⚠ 原先没有这个覆盖，落到基类的"整块背板都是图标区"—— 于是三个点被撑到背板那么大，
-    /// 在条带上比旁边每一颗工具窗口图标都明显大一圈（2026-08-26 宿主实机看出来的）。
-    /// 两者是兄弟按钮（<c>SquareStripeButton.kt:62-80</c>），图标尺寸本来就该同一档。
-    /// </para>
-    /// </remarks>
-    protected override Rect IconRect(Size size)
-    {
-        var area = BackgroundRect(ContentCell(size));
-        return new Rect(
-            area.X + ((area.Width - IconSize) / 2),
-            area.Y + ((area.Height - IconSize) / 2),
-            IconSize,
-            IconSize);
-    }
 
     /// <inheritdoc />
     protected override Size MeasureOverride(Size availableSize)

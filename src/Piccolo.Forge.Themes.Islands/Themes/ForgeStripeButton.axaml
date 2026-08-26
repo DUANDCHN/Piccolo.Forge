@@ -1,4 +1,4 @@
-<!--  ★ 条带上的工具窗口按钮（REQ-067）。★ **真模板**：底色、图标、名字全在模板里。
+﻿<!--  ★ 条带上的工具窗口按钮（REQ-067）。★ **真模板**：底色、图标、名字全在模板里。
 
       共同的规矩写在本目录 Theme.axaml 的开头（取色怎么走、为什么不能在构造里赋
       Template、"搬进模板必须一次搬干净"是怎么回事），这里只记这个控件自己的事。  -->
@@ -74,13 +74,6 @@
             </ControlTemplate>
         </Setter>
 
-        <!--  方底那一档：显式边长 + 居中（其余情况 BackgroundSize 是 NaN，这条不参与）  -->
-        <Style Selector="^:square-background /template/ Border#PART_Background">
-            <Setter Property="Width" Value="{TemplateBinding BackgroundSize}" />
-            <Setter Property="Height" Value="{TemplateBinding BackgroundSize}" />
-            <Setter Property="HorizontalAlignment" Value="Center" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-        </Style>
 
         <!--  三档底色的**优先级不在这里定**（焦点 > 窗口可见 > 悬停 > 无，
               SquareStripeButton.kt:208-219），而在 ResolveBackgroundBrush 里 ——

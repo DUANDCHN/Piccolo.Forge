@@ -68,67 +68,64 @@ public abstract class ForgeSquareButtonBase : Button
     private void OnFamilyOrDensityChanged() => UpdateGeometry();
 
     /// <summary>
-    /// 背景高亮的矩形：**按钮矩形去掉图标内边距**。
+    /// 底板（悬停/选中画的那块）在按钮自己坐标系里的矩形：**按钮矩形去掉 <see cref="PlateInsets"/>**。
     /// </summary>
     /// <remarks>
-    /// 照抄 <c>SquareStripeButtonLook.kt:64-70 · paintBackground</c>——
-    /// 它从组件矩形里先后减掉 <c>insets</c> 与 <c>getIconPadding()</c> 再填色。
-    /// 两套主题算下来都是 30×30（expUI <c>40-5-5</c>、Islands <c>37-5-2</c>），
-    /// Islands 只是把这块整体推向条带外缘。
+    /// <b>就这一条，没有分支。</b>2026-08-26 之前这里是四个变量交叉算出来的
+    /// （宿主收没收窄 × 显不显名 × 左右哪根条带 × 方底要不要显式边长），
+    /// 模板那边还得配一个 <c>:square-background</c> 伪类跟着换对齐（连同 <c>BackgroundSize</c>
+    /// 那个属性，都随本次统一一起删了）。
+    /// 一天之内它连出三处缺陷，症状全是"编得过、不报错、只是看着不对"：
+    /// 「更多」按钮的图标被撑大一圈、按钮 40 而邻居 31、悬停底铺满而不是居中方块。
     /// <para>
-    /// 早先这里画的是**整个按钮矩形**，于是 expUI 下高亮是 40×40 而不是 30×30——
-    /// 贴着相邻按钮、也贴着条带边缘，看起来比 Rider 胖一圈。
+    /// 现在底板就是"控件矩形 − 内边距"，与库里每一颗图标按钮同一条
+    /// （<c>Forge.IconButton</c> 也是 Padding 决定内容区）。**收窄、居中、左右不对称
+    /// 这些诉求全部落到宿主给的那份内边距上** —— 由 <c>ForgeControl</c> 从
+    /// <c>ForgeAppearance</c> 折算（见那边的 ApplySquareButtonAppearance）。
+    /// </para>
+    /// <para>
+    /// ⚠ 悬停/按下的**颜色**不需要跟着统一：条带的 <c>Forge.*.ButtonHoverBackground</c>
+    /// 与图标按钮的 <c>Forge.Overlay.Hover</c> 逐字节相同（同源于上游的
+    /// <c>ActionButton.hoverBackground</c>）。差别一直只在几何。
     /// </para>
     /// </remarks>
     /// <param name="cell">
     /// 按钮那一格的矩形。不显名时就是整个 <c>Bounds</c>；
-    /// 显名时按钮被名字撑高，这里传的是上面那一格（图标所在的 <see cref="ButtonWidth"/> × <see cref="ButtonHeight"/>）。
+    /// 显名时按钮被名字撑高，这里传的是上面那一格。
     /// </param>
     /// <returns>该填色的矩形。</returns>
     public Rect BackgroundRect(Rect cell)
     {
-        var padding = IconPadding;
-        var rect = new Rect(
-            cell.X + padding.Left,
-            cell.Y + padding.Top,
-            Math.Max(0, cell.Width - padding.Horizontal),
-            Math.Max(0, cell.Height - padding.Vertical));
-
-        // ★ **宿主收窄了按钮时，高亮收成一个在按钮里居中的正方形。**
-        //   上游那两套主题的按钮本来就是方的（40×40 / 37×37）；Islands 的图标内边距是
-        //   左右不对称的（5 / 2），那是为了把 37 宽的按钮在 40 宽的条带里推向外缘 ——
-        //   **按钮与条带不一样宽**时这条才有意义。
-        //   宿主用 ForgeAppearance.StripeButtonWidth 收窄之后，按钮就是条带的宽度，
-        //   那份不对称失去了由头，留着只会让高亮和图标看着偏一边（实机就是这么被看出来的）。
-        //   所以：**宿主没收窄 → 一个像素都不动（照上游）；收窄了 → 收成居中的正方形。**
-        //   ⚠ 显名时**不收**：那一档的底本来就要盖住图标 + 名字整块
-        //     （SquareStripeButton.kt:196-198），收成方的会把名字露在底外面。
-        if (!IsHostSized)
-        {
-            return rect;
-        }
-
-        // 显名那一档不收成正方形：底要盖住图标 + 名字整块（SquareStripeButton.kt:196-198），
-        // 收方了名字会露在底外面。但**左右按宿主给的边距来**，与收起态同一条构造：
-        //   条带宽 = 边距 + 底 + 边距 → 底宽 = 条带宽 − 2×边距，两侧留白天然相等。
-        // ⚠ 这里不能用图标内边距（Islands 是 5/2 不对称，会把底推偏 2px —— 实机看出来过）。
-        if (ShowsName)
-        {
-            return new Rect(
-                cell.X + HighlightInsetHorizontal,
-                rect.Y,
-                Math.Max(0, cell.Width - (HighlightInsetHorizontal * 2)),
-                rect.Height);
-        }
-
-        // 宿主给了边长就用它（居中由 边距 + 方底 + 边距 这条算式保证是整数）
-        var side = HighlightSize;
-
+        var insets = PlateInsets;
         return new Rect(
-            cell.X + ((cell.Width - side) / 2),
-            cell.Y + ((cell.Height - side) / 2),
-            side,
-            side);
+            cell.X + insets.Left,
+            cell.Y + insets.Top,
+            Math.Max(0, cell.Width - insets.Left - insets.Right),
+            Math.Max(0, cell.Height - insets.Top - insets.Bottom));
+    }
+
+    /// <summary>
+    /// 按钮矩形与底板之间的空隙。
+    /// </summary>
+    /// <remarks>
+    /// 宿主给了 <see cref="HighlightInsetHorizontal"/> 就用宿主那份（左右对称 —— 上游
+    /// Islands 的 5/2 不对称是为了把窄按钮在宽条带里推向外缘，按钮与条带一样宽之后
+    /// 它只会让人看着偏一边，实机看出来过）；没给就照上游的图标内边距。
+    /// </remarks>
+    public Thickness PlateInsets
+    {
+        get
+        {
+            if (!IsHostSized)
+            {
+                var p = IconPadding;
+                return new Thickness(p.Left, p.Top, p.Right, p.Bottom);
+            }
+
+            var horizontal = HighlightInsetHorizontal;
+            var vertical = ShowsName ? ResolvedInsetVertical : (ButtonHeight - HighlightSize) / 2;
+            return new Thickness(horizontal, vertical, horizontal, vertical);
+        }
     }
 
     /// <summary>建一个方形按钮。</summary>
@@ -215,7 +212,20 @@ public abstract class ForgeSquareButtonBase : Button
     /// </summary>
     /// <param name="size">按钮尺寸。</param>
     /// <returns>图标矩形。</returns>
-    protected virtual Rect IconRect(Size size) => BackgroundRect(ContentCell(size));
+    /// <remarks>
+    /// <b>图标在底板里居中，边长 <see cref="IconSize"/>。</b>条带按钮与「更多」按钮
+    /// 原先各写一份（而「更多」那份一度**忘了写**，图标就被撑到整块底板那么大）——
+    /// 它们是兄弟按钮，这条本来就该只有一份。
+    /// </remarks>
+    protected virtual Rect IconRect(Size size)
+    {
+        var area = BackgroundRect(ContentCell(size));
+        return new Rect(
+            area.X + ((area.Width - IconSize) / 2),
+            area.Y + ((area.Height - IconSize) / 2),
+            IconSize,
+            IconSize);
+    }
 
     /// <summary>
     /// 图标那一格：整个按钮，除非子类另有说法（显名时图标只占上面一格）。
@@ -272,23 +282,6 @@ public abstract class ForgeSquareButtonBase : Button
         private set => SetValue(BackgroundInsetsProperty, value);
     }
 
-    /// <summary><see cref="BackgroundSize"/> 的属性定义。</summary>
-    public static readonly StyledProperty<double> BackgroundSizeProperty =
-        AvaloniaProperty.Register<ForgeSquareButtonBase, double>(nameof(BackgroundSize), double.NaN);
-
-    /// <summary>
-    /// 高亮底的**边长**；<see cref="double.NaN"/> = 不指定（按 <see cref="BackgroundInsets"/> 铺满）。
-    /// </summary>
-    /// <remarks>
-    /// 只有"宿主收窄了按钮"这一档会给值 —— 那时底要收成一个在按钮里**居中的正方形**，
-    /// 见 <see cref="BackgroundRect"/> 的说明。给边长而不是给 Margin，是因为 Margin
-    /// 相对的是实际排到的尺寸，与度量里的 ButtonWidth/Height 不一定相等。
-    /// </remarks>
-    public double BackgroundSize
-    {
-        get => GetValue(BackgroundSizeProperty);
-        private set => SetValue(BackgroundSizeProperty, value);
-    }
 
     /// <summary>背景那层的圆角，理由同 <see cref="BackgroundInsets"/>。</summary>
     /// <remarks>值是 <see cref="ArcRadius"/>（上游那个 <c>Arc</c> 是直径，这里已折半）。</remarks>
@@ -298,44 +291,14 @@ public abstract class ForgeSquareButtonBase : Button
         private set => SetValue(ArcCornerRadiusProperty, value);
     }
 
-    /// <summary>把算出来的几何刷进那两个供模板绑定的属性。</summary>
+    /// <summary>把算出来的几何刷进供模板绑定的属性。</summary>
     /// <remarks>
-    /// ⚠ 这里的内边距必须与 <see cref="BackgroundRect"/> **算出同一块地**：
-    /// 模板里那层底是靠 <see cref="BackgroundInsets"/> 摆的，而图标的位置走
-    /// <see cref="BackgroundRect"/> —— 两处对不上，图标就浮在底里没放正。
-    /// 所以"收成居中正方形"那一步两边都要做。
+    /// 模板里那层底靠 <see cref="BackgroundInsets"/> 摆，图标靠 <see cref="BackgroundRect"/> 定位 ——
+    /// 两者现在是**同一个** <see cref="PlateInsets"/> 算出来的，不会再对不上。
     /// </remarks>
     protected void UpdateGeometry()
     {
-        var padding = IconPadding;
-        var cell = new Rect(0, 0, ButtonWidth, ButtonHeight);
-        var background = BackgroundRect(cell);
-
-        // ⚠ 方底**不能靠 Margin 拉伸出来**：Margin 相对的是**实际排到的尺寸**，
-        //   而这里的算式用的是度量里的 ButtonWidth/Height。两者一旦不等
-        //   （Islands 的按钮度量 37 高、条带却按 40 排），拉出来就不是正方形（实机量到 27×28）。
-        //   所以方底那一档改成：**给显式边长 + 居中 + 不留边距**。
-        //   边距一旦还在，居中就是"在扣掉不对称内边距之后的那块地里居中"——
-        //   Islands 的 5/2 会把它推偏 1.5px，正是实机看到的"图标偏一边"。
-        var square = !ShowsName && IsHostSized;
-
-        // 宿主收窄了按钮时，左右一律**对称**：Islands 那份 5/2（显名档 6/2）是为了
-        // 把窄按钮在宽条带里推向外缘，按钮与条带一样宽之后它只会让人看着偏一边。
-        var horizontal = !IsHostSized
-            ? (padding.Left, padding.Right)
-            : (HighlightInsetHorizontal, HighlightInsetHorizontal);
-        var vertical = !IsHostSized
-            ? (padding.Top, padding.Bottom)
-            : (ResolvedInsetVertical, ResolvedInsetVertical);
-
-        BackgroundInsets = square
-            ? default
-            : new Thickness(horizontal.Item1, vertical.Item1, horizontal.Item2, vertical.Item2);
-        BackgroundSize = square ? HighlightSize : double.NaN;
-
-        // 模板据此换对齐：方底那一档居中，其余照旧铺满
-        PseudoClasses.Set(":square-background", square);
-
+        BackgroundInsets = PlateInsets;
         ArcCornerRadius = new CornerRadius(ArcRadius);
     }
 
