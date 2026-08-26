@@ -421,7 +421,11 @@ METRICS = '''    <!-- ═══ 圆角：全系统**一个值 4**（圆形/胶�
     <x:Double x:Key="Forge.MenuItem.Height">24</x:Double>
     <x:Double x:Key="Forge.MenuItem.IconColumnWidth">20</x:Double>
     <Thickness x:Key="Forge.MenuItem.Padding">6,0,10,0</Thickness>
-    <Thickness x:Key="Forge.Menu.Padding">0,4</Thickness>
+    <!-- 弹出层四周的留白。**左右也要留**：菜单项的选中底是带圆角的一条，
+         横向留白为 0 时它顶到弹出层边框上，圆角贴着直角边看着就是"没对齐"
+         （宿主实机 2026-08-26：Rider 的选中条左右是有边距的）。
+         取 4 = 纵向同一档，四边同一个节奏。 -->
+    <Thickness x:Key="Forge.Menu.Padding">4</Thickness>
     <!-- 菜单栏（顶栏那条）的项更紧凑，且不吃菜单面板的行高。 -->
     <Thickness x:Key="Forge.MenuBarItem.Padding">10,4</Thickness>
 

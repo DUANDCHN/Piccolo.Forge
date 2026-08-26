@@ -218,7 +218,9 @@ public class ForgeMorePopupTests
         Click(onButton);
         Assert.True(flyout.IsOpen, "关掉之后再点，还得弹得出来 —— 这就是当初坏掉的那一下");
 
-        Click(onButton);
+        // ⚠ 这一下点**按钮左沿**，不是正中：菜单朝右弹、会盖住按钮右侧大半
+        //   （实测弹出层相对按钮在 (18,3)、152×34），点正中其实点在菜单上、按钮收不到。
+        Click(button.TranslatePoint(new Point(4, 20), window)!.Value);
         Assert.False(flyout.IsOpen, "开着时再点按钮 = 关掉（菜单按钮就该是开合）");
 
         window.Close();
