@@ -169,7 +169,8 @@
                                VerticalOffset="2"
                                InheritsTransform="True"
                                WindowManagerAddShadowHint="False"
-                               IsLightDismissEnabled="True">
+                               IsLightDismissEnabled="True"
+                               OverlayInputPassThroughElement="{Binding $parent[Menu]}">
                             <Border Theme="{StaticResource Forge.MenuPanelBorder}">
                                 <ItemsPresenter Name="PART_ItemsPresenter"
                                                 ItemsPanel="{TemplateBinding ItemsPanel}" />
