@@ -62,9 +62,23 @@ public static class ForgeThemeManager
         ArgumentNullException.ThrowIfNull(application);
         ArgumentNullException.ThrowIfNull(theme);
 
+        // 已经装着同族的一套：**不换 Styles**（换了会让已挂树的控件重新套模板 —— 本类开头那条
+        // "换主题要重启"就是这个原因，实测里它甚至会当场抛"控件已经有父级"），
+        // 但要把宿主这次给的**种子色接过去**。
+        //
+        // ⚠ 曾经这里是直接 return。种子色（AccentLight / AccentDark）加进来之后那样就错了：
+        //   `Apply(app, new ForgeTheme { Family = X, AccentLight = 蓝 })` 在已装着同族主题时
+        //   会被整个跳过，宿主设的主题色**一声不响地没生效**。种子色只是资源值、由
+        //   {DynamicResource} 取，接过去不需要重新套模板，正好可以在不动 Styles 的前提下生效。
         var present = FindInstalled(application);
         if (present is not null && present.Family == theme.Family)
         {
+            if (present is ForgeThemeBase installed && theme is ForgeThemeBase incoming)
+            {
+                installed.AccentLight = incoming.AccentLight;
+                installed.AccentDark = incoming.AccentDark;
+            }
+
             _installed = present;
             return;
         }

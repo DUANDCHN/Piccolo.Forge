@@ -1,4 +1,5 @@
-<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+﻿<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:themes="using:Piccolo.Forge.Themes">
     <!--
       ListBox / ListBoxItem / TreeView / TreeViewItem。
       四者的项共用 Forge.Item.* 那组色 —— 与 ComboBoxItem 同源，上游也是同一套
@@ -7,6 +8,10 @@
       ⚠ 树**不画层级连接线**（上游 Tree.paintLines = false），层级只靠缩进。
         别加竖线，那是别的 IDE 的做法。
     -->
+
+    <!-- 树的层级缩进转换器（Level × Forge.Tree.Indent）。声明在这里而不是 x:Static 取单例：
+         内部类型的静态成员 XamlIl 解析不到，而对象元素同程序集内可用。无状态，一份够用。 -->
+    <themes:ForgeTreeIndentConverter x:Key="Forge.TreeIndentConverter" />
 
     <ControlTheme x:Key="Forge.ListBoxItem" TargetType="ListBoxItem">
         <Setter Property="Background" Value="Transparent" />
@@ -120,7 +125,18 @@
                             Background="{TemplateBinding Background}"
                             CornerRadius="{DynamicResource Forge.CornerRadius}"
                             MinHeight="{TemplateBinding MinHeight}">
+                        <!-- ★ 层级缩进画在**行内部**，不推动 PART_Header ——
+                             这样每一层的高亮底都是通栏的，选中条不会一级比一级短
+                             （上游 DefaultTreeUI.paintRowBackground 取的是整行宽度，
+                             Avalonia 自带的 Fluent 主题同理）。缩进量 = Level × Forge.Tree.Indent，
+                             两路相乘 XAML 写不出来，故走本库唯一的转换器。 -->
                         <Grid ColumnDefinitions="Auto,*">
+                            <Grid.Margin>
+                                <MultiBinding Converter="{StaticResource Forge.TreeIndentConverter}">
+                                    <Binding Path="Level" RelativeSource="{RelativeSource TemplatedParent}" />
+                                    <DynamicResource ResourceKey="Forge.Tree.Indent" />
+                                </MultiBinding>
+                            </Grid.Margin>
                             <!-- 展开箭头与 Expander 同一套 chevron：收起朝右、展开朝下
                                  （上游 Tree.collapsedIcon / expandedIcon）。无子项时隐掉但**保留占位**，
                                  否则有子项和没子项的行文本会左右错开。
@@ -141,10 +157,11 @@
                         </Grid>
                     </Border>
 
-                    <!-- 子项靠这条 Margin 缩进；TreeViewItem 是嵌套的，每层自然累加。 -->
+                    <!-- ⚠ 这里**不设 Margin**。缩进曾经就加在这条上（Forge.Tree.ChildMargin），
+                         它把整块子树连同子项的高亮底一起推开，于是选中条逐级变短。
+                         缩进现在归上面那条 Grid.Margin 管，本行只负责竖着排子项。 -->
                     <ItemsPresenter Name="PART_ItemsPresenter"
                                     ItemsPanel="{TemplateBinding ItemsPanel}"
-                                    Margin="{DynamicResource Forge.Tree.ChildMargin}"
                                     IsVisible="{TemplateBinding IsExpanded}" />
                 </StackPanel>
             </ControlTemplate>

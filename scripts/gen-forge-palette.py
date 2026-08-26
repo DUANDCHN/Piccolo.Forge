@@ -314,9 +314,11 @@ METRICS = '''    <!-- ═══ 圆角：全系统**一个值 4**（圆形/胶�
     <!-- 树的每层缩进 = 上游 Tree.leftChildIndent(7) + rightChildIndent(11)。
          ⚠ 上游 Tree.paintLines = false —— **不画层级连接线**，层级只靠缩进表达。
          行高走 Forge.Item.Height（expUI 把 Tree/List 的 rowHeight 都定成 24）。 -->
-    <!-- 直接给成 Thickness：Margin 里不能把 DynamicResource 和字面值拼起来
-         （`{DynamicResource X},0,0,0` 编译得过，运行期抛 Double→Thickness 的转换异常）。 -->
-    <Thickness x:Key="Forge.Tree.ChildMargin">18,0,0,0</Thickness>
+    <!-- ⚠ 这是**一层的量**（x:Double），由 ForgeTreeIndentConverter 乘 TreeViewItem.Level
+         折成行内 Margin。曾经是 Thickness（Forge.Tree.ChildMargin）直接挂在 ItemsPresenter 上，
+         那样会把行的高亮底连同子树一起推开，选中条逐级变短 —— 上游 DefaultTreeUI 是按整行宽度
+         画选中背景的，缩进只作用于内容。 -->
+    <x:Double x:Key="Forge.Tree.Indent">18</x:Double>
     <Thickness x:Key="Forge.Tree.Padding">12,4</Thickness>
     <Thickness x:Key="Forge.List.Padding">0,4</Thickness>
 

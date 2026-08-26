@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using Avalonia.Controls;
 using Avalonia.Markup.Xaml.Styling;
+using Avalonia.Media;
 using Avalonia.Styling;
 using Piccolo.Forge.Themes;
 
@@ -31,7 +33,17 @@ public abstract class ForgeThemeBase : Styles, IForgeTheme
     private readonly bool _controls;
     private readonly bool _shell;
     private readonly List<ResourceInclude> _familyIncludes = [];
+    private readonly ResourceDictionary _accent = new()
+    {
+        ThemeDictionaries =
+        {
+            [ThemeVariant.Light] = new ResourceDictionary(),
+            [ThemeVariant.Dark] = new ResourceDictionary(),
+        },
+    };
     private ForgeThemeFamily _family;
+    private Color? _accentLight;
+    private Color? _accentDark;
 
     private protected ForgeThemeBase(bool controls, bool shell)
     {
@@ -45,6 +57,42 @@ public abstract class ForgeThemeBase : Styles, IForgeTheme
         // 默认经典档。这里**不验证**资源在不在：XAML 是先构造再设属性，
         // 只引了 Islands 包的宿主会先经过这里 —— 它随后设 Family="Islands" 时才验证。
         ApplyFamily(ForgeThemeFamily.ExpUi, validate: false);
+    }
+
+    /// <summary>
+    /// 亮色档的**主题色种子**。不设（<c>null</c>）就用本族色板自带的强调色。
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 给一支色，色板里那一批跟着强调色走的键（控件 9 个 + 外壳每族 8 个，明暗各一份）全部跟着换 ——
+    /// 不必逐键覆盖。派生规则与"哪些键算强调色"见 <see cref="ForgeAccent"/>：
+    /// <b>实心填充那一档取种子原值，其余保住色板原本的明度阶梯、只换色相并按种子饱和度等比缩放。</b>
+    /// </para>
+    /// <para>
+    /// 明暗**分开给**（<see cref="AccentDark"/> 是另一支），因为这本来就是两个设计决定：
+    /// 亮底上好看的色压到暗底上往往对比度不够，反过来也一样。只给一支时另一档仍用族色板的原值。
+    /// </para>
+    /// <para>
+    /// ⚠ 派生只覆盖<b>色板</b>层。宿主若在自己的 <c>Application.Resources</c> 里又重定义了同名键，
+    /// 那一处照样赢（宿主资源本来就排在 Styles 的资源之前）—— 想让某个键脱离种子单独指定时，正是靠这条。
+    /// </para>
+    /// <para>
+    /// ⚠ 与 <see cref="Family"/> 不同，本属性**可以在运行期改**：它只换资源值，
+    /// 而颜色是 <c>{DynamicResource}</c> 取的，已经挂树的控件会跟着变。
+    /// （换族要重启是因为**模板**换了，那是另一回事。）
+    /// </para>
+    /// </remarks>
+    public Color? AccentLight
+    {
+        get => _accentLight;
+        set { _accentLight = value; RebuildAccent(); }
+    }
+
+    /// <summary>暗色档的主题色种子。说明见 <see cref="AccentLight"/>。</summary>
+    public Color? AccentDark
+    {
+        get => _accentDark;
+        set { _accentDark = value; RebuildAccent(); }
     }
 
     /// <summary>
@@ -104,6 +152,55 @@ public abstract class ForgeThemeBase : Styles, IForgeTheme
         }
 
         _family = family;
+
+        // ⚠ 派生字典必须**重新排到最后**。Avalonia 查合并字典是从后往前、先命中先返回，
+        //   而上面刚把族色板追加了进去 —— 不重排的话族色板排在派生之后，派生一个键也盖不住，
+        //   表现成"设了种子色但颜色没变"（不报错）。构造期首次进来时它还不在表里，Remove 是空操作。
+        Resources.MergedDictionaries.Remove(_accent);
+        Resources.MergedDictionaries.Add(_accent);
+
+        // 族换了，色板原值就换了，派生结果要重算（派生档的 L / S 是按族取的）。
+        RebuildAccent();
+    }
+
+    /// <summary>
+    /// 按当前种子色与当前族重算派生字典。种子为 <c>null</c> 的那一档留空 = 用族色板原值。
+    /// </summary>
+    /// <remarks>
+    /// 原值经 本类的 <c>Resources</c> 现读（族色板此时已合进来），不在 C# 里存第二份色值 ——
+    /// 色板改了这里自动跟着走。读不到的键跳过：只装了一层的宿主
+    /// （<see cref="ForgeControlsTheme"/> / <see cref="ForgeShellTheme"/>）本来就只有一半键在。
+    /// </remarks>
+    private void RebuildAccent()
+    {
+        Fill(ThemeVariant.Light, _accentLight);
+        Fill(ThemeVariant.Dark, _accentDark);
+
+        void Fill(ThemeVariant variant, Color? seed)
+        {
+            var target = (ResourceDictionary)_accent.ThemeDictionaries[variant];
+            target.Clear();
+            if (seed is not { } value) return;
+
+            foreach (var (key, derived) in ForgeAccent.Derive(Lookup, _family, value, _controls, _shell))
+                target[key] = derived;
+
+            Color? Lookup(string key)
+            {
+                // ⚠ 必须绕开 _accent 自己，否则第二次重算读到的是上一次的派生结果，
+                //   种子一改再改就会**逐次漂移**（拿派生值再派生一次）。
+                foreach (var dictionary in _familyIncludes)
+                    if (dictionary.TryGetResource(key, variant, out var found))
+                        return found switch
+                        {
+                            Color color => color,
+                            ISolidColorBrush brush => brush.Color,
+                            _ => null,
+                        };
+
+                return null;
+            }
+        }
     }
 
     [UnconditionalSuppressMessage("Trimming", "IL2026",
