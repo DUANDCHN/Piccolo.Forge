@@ -285,6 +285,11 @@ METRICS = '''    <!-- ═══ 圆角：全系统**一个值 4**（圆形/胶�
     <x:Double x:Key="Forge.Input.MinHeight">28</x:Double>
     <Thickness x:Key="Forge.Input.Padding">8,3</Thickness>
     <Thickness x:Key="Forge.Input.BorderThickness">1</Thickness>
+    <!-- 输入框左右两个内嵌槽（前缀标签、框内小按钮）与正文之间的间距。
+         取 8 = Forge.Input.Padding 的水平档，跟同一条水平节奏；不另调一个数。
+         ⚠ 没有它时标签与正文**贴在一起**，读起来像正文的一部分（宿主实机 2026-08-26）。 -->
+    <Thickness x:Key="Forge.Input.AffixLeftMargin">0,0,8,0</Thickness>
+    <Thickness x:Key="Forge.Input.AffixRightMargin">8,0,0,0</Thickness>
     <!-- NumericUpDown 走上游 Spinner.minimumSize 72,28；箭头区宽度用 Component.arrowAreaWidth。 -->
     <x:Double x:Key="Forge.Spinner.MinWidth">72</x:Double>
     <x:Double x:Key="Forge.Spinner.ArrowAreaWidth">28</x:Double>
