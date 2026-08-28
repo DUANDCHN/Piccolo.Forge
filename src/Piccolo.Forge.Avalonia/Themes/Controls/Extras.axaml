@@ -102,26 +102,38 @@
                                             Grid.Column="1"
                                             Content="{TemplateBinding Content}"
                                             VerticalAlignment="Center">
-                                <ContentControl.DataTemplates>
-                                    <!-- ⚠ 通过管理器弹出时 Content 是个 Notification 对象，
-                                         没有这个模板就渲染成它的类名。两种内容都要能显示。 -->
-                                    <DataTemplate DataType="notif:INotification">
-                                        <StackPanel Spacing="3">
-                                            <SelectableTextBlock
-                                                Text="{Binding Title}"
-                                                FontWeight="Bold"
-                                                TextWrapping="Wrap"
-                                                IsVisible="{Binding Title, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                                            <SelectableTextBlock
-                                                Text="{Binding Message}"
-                                                TextWrapping="Wrap"
-                                                IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                                        </StackPanel>
-                                    </DataTemplate>
-                                    <DataTemplate DataType="x:String">
-                                        <SelectableTextBlock Text="{Binding}" TextWrapping="Wrap" />
-                                    </DataTemplate>
-                                </ContentControl.DataTemplates>
+                                <!-- ⚠ 通过管理器弹出时 Content 是个 Notification 对象，
+                                     没有这个模板就渲染成它的类名。两种内容都要能显示。
+
+                                     ★ 这两条**必须挂在 ContentTemplate 上，不许放回 DataTemplates 集合**。★
+                                       DataTemplates 沿逻辑树向上查：放回去，卡片里每一颗 Content 是文字的
+                                       **按钮**都会被下面那条 x:String 接管，内容层从 AccessText 变成
+                                       SelectableTextBlock —— 而它为了框选文字自己吃掉 PointerPressed，
+                                       **按钮就点不动了**。症状极具迷惑性：悬停背板照常亮（IsPointerOver
+                                       另算），点在字上没反应、点在内边距上才有反应。
+                                       ContentTemplate 是这一个呈现器自己的属性，后代查不到；
+                                       且框架按 Match 有条件地用（不认就继续往上查），
+                                       宿主自己的模板照样接得住。由 NotificationCardContentLeakTests 守着。 -->
+                                <ContentControl.ContentTemplate>
+                                    <forge:ForgeTemplateSet>
+                                        <DataTemplate DataType="notif:INotification">
+                                            <StackPanel Spacing="3">
+                                                <SelectableTextBlock
+                                                    Text="{Binding Title}"
+                                                    FontWeight="Bold"
+                                                    TextWrapping="Wrap"
+                                                    IsVisible="{Binding Title, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                                <SelectableTextBlock
+                                                    Text="{Binding Message}"
+                                                    TextWrapping="Wrap"
+                                                    IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                        <DataTemplate DataType="x:String">
+                                            <SelectableTextBlock Text="{Binding}" TextWrapping="Wrap" />
+                                        </DataTemplate>
+                                    </forge:ForgeTemplateSet>
+                                </ContentControl.ContentTemplate>
                             </ContentControl>
 
                             <!-- 操作按钮：平时透明，鼠标移到卡片上才显现（Rider 的做法）。
