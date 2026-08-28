@@ -45,6 +45,11 @@
                                  里面的字就贴到顶（宿主实机 2026-08-26：保存路径框左边那个「保存根目录」
                                  比框里的路径高一截）。控件上的 VerticalContentAlignment 管的是正文那条
                                  ScrollViewer，管不到这两个槽。 -->
+                            <!-- ⚠ 两个槽都要 **没内容就不占位**（IsVisible 而非光靠宽度 0）。
+                                 停靠在 DockPanel 上的空槽宽为 0，但 Margin 照样吃掉 8px，于是
+                                 一个什么前缀都没有的 TextBox / NumericUpDown，正文会比同行的 ComboBox
+                                 右移 8px（实测 2026-08-28：ComboBox 字起点 x=10，NumericUpDown x=17）——
+                                 宿主一排参数控件左边参差不齐就是这么来的。 -->
                             <!-- ★ 两个内嵌槽是**附加物**，不是正文：颜色压一档、与正文留出间距。★
                                  前缀标签（「保存根目录」这种）与正文同色又贴在一起时，读起来就是正文的一部分
                                  （宿主实机 2026-08-26）。压到 Forge.Text.Secondary 之后它退成"框的一部分"。
@@ -54,11 +59,13 @@
                                               VerticalContentAlignment="Center"
                                               Foreground="{DynamicResource Forge.Text.Secondary}"
                                               Margin="{DynamicResource Forge.Input.AffixLeftMargin}"
+                                              IsVisible="{TemplateBinding InnerLeftContent, Converter={x:Static ObjectConverters.IsNotNull}}"
                                               Content="{TemplateBinding InnerLeftContent}" />
                             <ContentPresenter Name="PART_InnerRightContent" DockPanel.Dock="Right"
                                               VerticalContentAlignment="Center"
                                               Foreground="{DynamicResource Forge.Text.Secondary}"
                                               Margin="{DynamicResource Forge.Input.AffixRightMargin}"
+                                              IsVisible="{TemplateBinding InnerRightContent, Converter={x:Static ObjectConverters.IsNotNull}}"
                                               Content="{TemplateBinding InnerRightContent}" />
                             <ScrollViewer Name="PART_ScrollViewer"
                                           HorizontalScrollBarVisibility="{TemplateBinding (ScrollViewer.HorizontalScrollBarVisibility)}"

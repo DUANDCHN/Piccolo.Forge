@@ -1,4 +1,5 @@
 using System.Linq;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Primitives;
@@ -140,5 +141,50 @@ public class InputHeightAlignmentTests
         window.UpdateLayout();
 
         Assert.Equal(combo.Bounds.Height, numeric.Bounds.Height, 1);
+    }
+
+    /// <summary>把画出来的字那一层挪到控件坐标里，取左起点。</summary>
+    private static double TextLeft(Control host)
+    {
+        Control text = host.GetVisualDescendants().OfType<TextPresenter>().FirstOrDefault()
+                       ?? (Control?)host.GetVisualDescendants().OfType<TextBlock>()
+                              .FirstOrDefault(t => !string.IsNullOrEmpty(t.Text))
+                       ?? throw new Xunit.Sdk.XunitException($"{host.GetType().Name} 里没找到画字的那一层");
+        return text.TranslatePoint(default, host)?.X ?? throw new Xunit.Sdk.XunitException("取不到坐标");
+    }
+
+    /// <summary>
+    /// 一排参数控件的字要**从同一条竖线起笔**：下拉框与数字框左边差一截，
+    /// 整列读起来就是错位的。
+    /// </summary>
+    /// <remarks>
+    /// 破过一次（2026-08-28 宿主实机）：TextBox 模板里两个内嵌槽（前缀 / 后缀）
+    /// 没内容时宽为 0，Margin 却照样吃掉 8px —— 一个什么前缀都没有的数字框，
+    /// 字比同行 ComboBox 右移 8px（实测 x=17 对 x=10）。修法是空槽 <c>IsVisible=false</c>，
+    /// 不占位；光把宽度做成 0 没用。
+    /// <para>
+    /// 容差 1px 是**有出处的**：ComboBox 的左内边距照上游是 9，输入类是 8，两边各自忠于上游、
+    /// 不为了这 1px 去改任何一侧的档位。这条盯的是"别再差出一整个 8px"。
+    /// </para>
+    /// </remarks>
+    [AvaloniaFact]
+    public void Combobox_and_numeric_start_their_text_at_the_same_left_edge()
+    {
+        var combo = new ComboBox { ItemsSource = new[] { "13" }, SelectedIndex = 0, Width = 96 };
+        var numeric = new NumericUpDown { Value = 100, FormatString = "0", Width = 96 };
+        var text = new TextBox { Text = "100", Width = 96 };
+
+        var stack = new StackPanel();
+        stack.Children.Add(combo);
+        stack.Children.Add(numeric);
+        stack.Children.Add(text);
+
+        var window = new Window { Content = stack, Width = 320, Height = 200 };
+        window.Show();
+        window.UpdateLayout();
+
+        // ↓ 写成“差不超过 1px”而不是 Assert.Equal(…, 1)：后者的 1 是**小数位**、不是容差。
+        Assert.InRange(System.Math.Abs(TextLeft(combo) - TextLeft(numeric)), 0, 1);
+        Assert.InRange(System.Math.Abs(TextLeft(combo) - TextLeft(text)), 0, 1);
     }
 }
