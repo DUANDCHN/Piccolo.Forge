@@ -140,12 +140,21 @@ MAP = [
     # 滚动条。取 Transparent 那组（浮在内容上，悬停时轨道才微微显现），不是 Opaque 组。
     # expUI 两档都没写 ScrollBar，Islands.Dark 写了 —— 差异靠 parentTheme 链与字面兜底解决。
     # 字面值来自 ScrollBarPainter.java 的 key(light, dark, "键名")，那里的 int 已经是 ARGB，不需换序。
-    ('Forge.ScrollBar.Thumb', ['ScrollBar.Transparent.thumbColor', 'ScrollBar.thumbColor',
-                               Lit('#33737373', '#47A6A6A6', 'ScrollBarPainter.THUMB_BACKGROUND')]),
+    # ⚠ 滑块那两档填色是**刻意偏离上游**（宿主反馈：看不见）。上游取得到值，见下面注释里的原值。
+    ('Forge.ScrollBar.Thumb',
+     ByFamily(ExpUi=Own('#8C737373', '#99A6A6A6'), Islands=Own('#8C737373', '#A6808080')),
+     ['⚠ 滑块的两档填色是**刻意偏离上游**，别当漂移改回去。',
+      '上游原值：浅色 #33737373（20% 不透明度）、深色 #47A6A6A6 / Islands #59808080。',
+      '那是 IDE 里「浮在代码上、不抢注意力」的分寸；本软件的表格与面板是白底密排数据，',
+      '20% 的灰压在白底上算出来约 #E3E3E3，实机就是看不见 —— 宿主 2026-08-28 反馈的正是这条。',
+      '现值把常态抬到 55%~65%、悬停再高一档，并把 ThumbMargin 由 3 收到 2（滑块 6px → 8px）。',
+      '数值是渲图比对后定的（现状 / 候选A 40% / 候选B 55%，选了 B），不是拍脑袋。',
+      '⚠ 常态仍**不画描边**：试过给常态加 1px，描边色与填充色太近，4× 放大都看不出来，',
+      '  白添一个说不清作用的参数。描边只在悬停档出现，那两个键仍取上游。'],),
     ('Forge.ScrollBar.ThumbBorder', ['ScrollBar.Transparent.thumbBorderColor', 'ScrollBar.thumbBorderColor',
                                      Lit('#33595959', '#47383838', 'ScrollBarPainter.THUMB_FOREGROUND')]),
-    ('Forge.ScrollBar.ThumbHover', ['ScrollBar.Transparent.hoverThumbColor', 'ScrollBar.hoverThumbColor',
-                                    Lit('#47737373', '#59A6A6A6', 'ScrollBarPainter.THUMB_HOVERED_BACKGROUND')]),
+    ('Forge.ScrollBar.ThumbHover',
+     ByFamily(ExpUi=Own('#B3737373', '#BFA6A6A6'), Islands=Own('#B3737373', '#CC808080'))),
     ('Forge.ScrollBar.ThumbHoverBorder', ['ScrollBar.Transparent.hoverThumbBorderColor',
                                           'ScrollBar.hoverThumbBorderColor',
                                           Lit('#47595959', '#59383838', 'ScrollBarPainter.THUMB_HOVERED_FOREGROUND')]),
@@ -351,7 +360,7 @@ METRICS = '''    <!-- ═══ 圆角：全系统**一个值 4**（圆形/胶�
          thumb 两档粗细都由内缩做：常态缩 3（宽 6，细的那条），指针在滚动条上时缩 1（宽 10）。
          半径 6 = 厚度的一半，两档都被钳成半圆头，粗细一变不用跟着改半径。 -->
     <x:Double x:Key="Forge.ScrollBar.Thickness">12</x:Double>
-    <Thickness x:Key="Forge.ScrollBar.ThumbMargin">3</Thickness>
+    <Thickness x:Key="Forge.ScrollBar.ThumbMargin">2</Thickness>
     <Thickness x:Key="Forge.ScrollBar.ThumbHoverMargin">1</Thickness>
     <CornerRadius x:Key="Forge.ScrollBar.ThumbRadius">6</CornerRadius>
 

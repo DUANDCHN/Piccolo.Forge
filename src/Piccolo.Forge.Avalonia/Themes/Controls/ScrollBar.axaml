@@ -1,7 +1,16 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <!--
-      ScrollBar。取上游的 Transparent 那组色（浮在内容上，轨道平时全透明、悬停才微微显现），
+      ScrollBar。形制取上游的 Transparent 那组（浮在内容上，轨道平时全透明、悬停才微微显现），
       不是 Opaque 组 —— 后者是给"滚动条占布局空间"的老式版面用的。
+
+      ⚠ 但**滑块的填色与粗细是刻意偏离上游的**（2026-08-28）：上游那档浅色 #33737373＝20%
+        不透明度，压在白底上算出来约 #E3E3E3，在密排数据的表格里实机看不见。现在常态抬到
+        55%~65%、悬停再高一档，内缩由 3 收到 2（滑块 6px → 8px）。
+        数值与理由写在两族 Controls.Colors.axaml 的档首注释、以及生成器
+        scripts/gen-forge-palette.py 的 Own(...) 条目上；下限由 ScrollBarVisibilityTests 守。
+        改这块**必须同时改生成器**，否则下次按上游重跑会把它静默冲掉。
+      ⚠ 常态仍不画描边：试过给常态加 1px，描边色与填充色太近、4× 放大都看不出来，
+        白添一个说不清作用的参数。描边只在悬停档出现（下面那两条样式），色仍取上游。
 
       ⚠ thumb 是**胶囊**。这里原先照 ScrollBarPainter 的 `int arc = 0` 画成直角，并注明
         "只有 isMac 分支才变胶囊" —— 那份参照是**旧版**的画法。新 UI（Rider 2024 起）
