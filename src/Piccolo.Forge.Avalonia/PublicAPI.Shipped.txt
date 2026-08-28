@@ -1140,3 +1140,6 @@ Piccolo.Forge.Avalonia.ForgeThemeBase.AccentDark.set -> void
 Piccolo.Forge.Avalonia.ForgeThemeBase.AccentLight.get -> Avalonia.Media.Color?
 Piccolo.Forge.Avalonia.ForgeThemeBase.AccentLight.set -> void
 Piccolo.Forge.Avalonia.ForgeSquareButtonBase.PlateInsets.get -> Avalonia.Thickness
+Piccolo.Forge.Avalonia.ForgeControl.HeaderTitleAdornmentExtension.get -> System.Func<string!, Avalonia.Controls.Control?>?
+Piccolo.Forge.Avalonia.ForgeControl.HeaderTitleAdornmentExtension.set -> void
+Piccolo.Forge.Avalonia.ForgeToolWindowHeader.SetTitleAdornment(Avalonia.Controls.Control? adornment) -> void
