@@ -10,3 +10,7 @@ third_party/intellij-community/
 # （.github/workflows/ci.yml），本地跑同一条命令就会在这里堆一地 nupkg/snupkg。
 # 它们是**构建产物**，权威副本在 nuget.org 与 CI 的 artifact 上，不进历史。
 artifacts/
+
+# Rider / ReSharper 的**个人**设置：`.user` 那份是每个人各自的（本地排除项、折叠状态等），
+# 与团队共享的 `.DotSettings` 不是一回事 —— 后者该进库，这个不该。
+*.DotSettings.user
