@@ -464,6 +464,28 @@ public class ForgeControl : TemplatedControl
     public Func<string, IReadOnlyList<Control>?>? HeaderButtonsExtension { get; set; }
 
     /// <summary>
+    /// 宿主往某个面板的**标题后面**挂一个控件（排在标题与内容标签之间）。
+    /// </summary>
+    /// <remarks>
+    /// 参数是面板 id，返回要挂的控件；返回 <see langword="null"/> 就不挂。
+    /// <para>
+    /// <b>与 <see cref="HeaderButtonsExtension"/> 的分工</b>：那条工具栏在右侧，里面的东西一律
+    /// 被排成 <c>ForgeMetrics.HeaderButtonSize</c> 见方的格子 —— 只放得下图标按钮，
+    /// 放"图标 + 一行字"会溢出格子压在旁边按钮上。这个位在标题后面，
+    /// <b>宽度由控件自己量出来说了算</b>，标签的起点跟着往右让。
+    /// 判据是**放的东西有没有固有宽度**，不是"放在左边还是右边"。
+    /// </para>
+    /// <example>
+    /// <code>
+    /// frame.HeaderTitleAdornmentExtension = id =&gt; id == "FocusMeasure" ? _cameraTag : null;
+    /// </code>
+    /// </example>
+    /// ⚠ 每次同步都会问一次，**同一个面板请返回同一个控件实例**（或按 id 缓存），
+    /// 否则每次重画都在造新控件。
+    /// </remarks>
+    public Func<string, Control?>? HeaderTitleAdornmentExtension { get; set; }
+
+    /// <summary>
     /// 宿主往面板 ⋮ 菜单里追加自己的项。
     /// </summary>
     /// <remarks>
@@ -2436,6 +2458,7 @@ public class ForgeControl : TemplatedControl
         header.TitleInsetLeft = Appearance.HeaderTitleInsetLeft;
         header.CaptionButtonsWidth = info.Type == ToolWindowType.Windowed ? CaptionButtonsWidth : 0;
         header.SetExtraButtons(HeaderButtonsExtension?.Invoke(vm.Id));
+        header.SetTitleAdornment(HeaderTitleAdornmentExtension?.Invoke(vm.Id));
         SyncTabs(header, vm, info.ContentUiType);
 
         _panelContents[vm.Id].Content = vm.Content;

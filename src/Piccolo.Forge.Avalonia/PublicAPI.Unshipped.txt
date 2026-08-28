@@ -1,1 +1,4 @@
 ﻿#nullable enable
+Piccolo.Forge.Avalonia.ForgeControl.HeaderTitleAdornmentExtension.get -> System.Func<string!, Avalonia.Controls.Control?>?
+Piccolo.Forge.Avalonia.ForgeControl.HeaderTitleAdornmentExtension.set -> void
+Piccolo.Forge.Avalonia.ForgeToolWindowHeader.SetTitleAdornment(Avalonia.Controls.Control? adornment) -> void

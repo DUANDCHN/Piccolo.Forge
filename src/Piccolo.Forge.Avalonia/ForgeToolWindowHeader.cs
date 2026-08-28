@@ -56,6 +56,7 @@ public class ForgeToolWindowHeader : TemplatedControl
     private readonly ForgeHeaderButton _options = new() { Icon = ForgeIcons.MoreVertical };
     private readonly ForgeHeaderButton _hide = new() { Icon = ForgeIcons.Hide, IsFilledIcon = false };
     private readonly List<Control> _extra = [];
+    private Control? _titleAdornment;
 
     /// <summary>建一个标题条。</summary>
     public ForgeToolWindowHeader()
@@ -113,6 +114,11 @@ public class ForgeToolWindowHeader : TemplatedControl
         }
 
         _slot.Children.Clear();
+        if (_titleAdornment is not null)
+        {
+            _slot.Children.Add(_titleAdornment);
+        }
+
         _slot.Children.Add(_tabs);
         foreach (var button in Buttons)
         {
@@ -180,6 +186,57 @@ public class ForgeToolWindowHeader : TemplatedControl
         {
             // 同内置按钮：标题条整条是窗口拖动区，按钮得标出来才收得到点击（见构造里那段）
             WindowDecorationProperties.SetElementRole(button, WindowDecorationsElementRole.User);
+        }
+
+        SyncSlot();
+        InvalidateMeasure();
+    }
+
+    /// <summary>
+    /// 宿主挂在**标题后面**的一个控件（只读标识、角标之类），排在标题与内容标签之间。
+    /// </summary>
+    /// <remarks>
+    /// <b>为什么不能拿 <see cref="SetExtraButtons"/> 顶</b>：那条工具栏里的东西一律被排成
+    /// <c>ForgeMetrics.HeaderButtonSize</c> 见方的格子（见 <see cref="ArrangeContent"/>），
+    /// 宽度由库定死、不问控件自己量出来多少。放一个"图标 + 一行字"进去，字会溢出格子压在旁边按钮上。
+    /// 这里这个位反过来：<b>宽度由控件自己说了算</b>，库负责把它排在标题之后、并把标签的起点往右推。
+    /// <para>
+    /// 位置的依据是上游 <c>ToolWindowHeader</c> 的 westPanel —— 标题与内容标签本来就在同一行
+    /// （<c>ToolWindowHeader.kt:99</c>、<c>:115</c>、<c>:261</c>，见 <c>docs/upstream/工具窗口模型.md</c> §13），
+    /// 这个槽就插在这两者中间。
+    /// ⚠ <b>它对位上游哪一个 API 尚未核对</b>（疑似 <c>ToolWindowEx.setTabActions</c>）：
+    /// 本机没有 <c>third_party/intellij-community</c> 克隆，行号待补 —— 按 CONTRIBUTING 的规矩，
+    /// 这一条是欠着的账，不是已经审明白的结论。
+    /// </para>
+    /// <para>
+    /// <b>宿主要自己缓存实例</b>：本方法每次同步都会被调用，每次给一个新控件等于每帧重建。
+    /// 与 <see cref="SetExtraButtons"/> 同一条约定。
+    /// </para>
+    /// <para>
+    /// <b>面板窄的时候它按"剩下多少"量</b>：可用宽度 = 标题右边到右侧按钮左边之间还剩的部分。
+    /// 所以挂上来的控件要**自己会缩**，写死 <c>Width</c> 的在窄面板上会坚持自己的宽度并溢出
+    /// （Avalonia 的常规行为，不是这里特判的）。
+    /// ⚠ <b>别拿横排 <c>StackPanel</c> 当容器</b>：它给子控件的可用宽度是<b>无限</b>，
+    /// 会把这里传下去的"还剩多少"整个吃掉；给里面的文字设 <c>MaxWidth</c> 来刹车是假的
+    /// —— 那个数既会在宽面板上白白切短内容，又在窄到不足它时照样兜不住。
+    /// 用 <c>DockPanel</c>（图标 Dock 左、文字填满）或带约束的 <c>Grid</c>。
+    /// 另外它排在内容标签**之前**：两者都在的窄面板上，标签能用的地方会相应变少。
+    /// </para>
+    /// </remarks>
+    /// <param name="adornment">要挂的控件；<see langword="null"/> = 不挂。</param>
+    public void SetTitleAdornment(Control? adornment)
+    {
+        if (ReferenceEquals(_titleAdornment, adornment))
+        {
+            return;
+        }
+
+        _titleAdornment = adornment;
+
+        if (_titleAdornment is not null)
+        {
+            // 同按钮：标题条整条是窗口拖动区，不标出来的话它自己的 ToolTip / 命中会被拖动吃掉
+            WindowDecorationProperties.SetElementRole(_titleAdornment, WindowDecorationsElementRole.User);
         }
 
         SyncSlot();
@@ -394,20 +451,38 @@ public class ForgeToolWindowHeader : TemplatedControl
     }
 
     /// <summary>
-    /// 标题在左边占多宽 —— tab 从这里往右排。
+    /// 标题（以及标题后缀，若有）在左边占多宽 —— tab 从这里往右排。
     /// </summary>
     /// <remarks>
     /// 上游是 <c>TAB_LAYOUT_START</c>(4) + idLabel 的宽度
     /// （<c>TabContentLayout.java:178-184</c>）。这里 idLabel 就是标题。
+    /// <para>宿主挂了 <see cref="SetTitleAdornment"/> 时还要再让过它 —— 不让就是让标签压在它上面。</para>
     /// </remarks>
     /// <returns>tab 的起始横坐标。</returns>
     public double ComputeTabsStart()
+        => TitleAdornmentStart + AdornmentAdvance;
+
+    /// <summary>标题后缀（<see cref="SetTitleAdornment"/>）从哪儿开始 —— 也就是没有后缀时标签的起点。</summary>
+    private double TitleAdornmentStart
     {
-        var title = MeasureTitle();
-        return ResolvedTitleInset
-               + (title?.Width ?? 0)
-               + (title is null ? 0 : ForgeMetrics.HeaderLabelInsetRight);
+        get
+        {
+            var title = MeasureTitle();
+            return ResolvedTitleInset
+                   + (title?.Width ?? 0)
+                   + (title is null ? 0 : ForgeMetrics.HeaderLabelInsetRight);
+        }
     }
+
+    /// <summary>标题后缀把标签起点往右推多少：它的宽度 + 一个与标题同款的间距；没有后缀时 0。</summary>
+    /// <remarks>
+    /// 用控件量出来的 <c>DesiredSize</c> 而不是它的 <c>Width</c>：这个位的意义就是
+    /// "宽度由控件自己说了算"。还没量过（DesiredSize 为 0）时推 0，下一轮量完自然对上。
+    /// </remarks>
+    private double AdornmentAdvance
+        => _titleAdornment is { IsVisible: true } adornment && adornment.DesiredSize.Width > 0
+            ? adornment.DesiredSize.Width + ForgeMetrics.HeaderLabelInsetRight
+            : 0;
 
     /// <summary>右侧那排按钮一共占多宽（含左右内边距）；不显示时为 0。</summary>
     /// <remarks>
@@ -455,6 +530,18 @@ public class ForgeToolWindowHeader : TemplatedControl
             button.Measure(new Size(ForgeMetrics.HeaderButtonSize, ForgeMetrics.HeaderButtonSize));
         }
 
+        // 标题后缀先量：标签的起点要用它量出来的宽度（ComputeTabsStart → AdornmentAdvance），
+        // 顺序反了这一轮标签会压在它上面。
+        // 给的宽度是"标题右边到按钮左边之间还剩多少"，不是无限 —— 相机名之类的东西长度不可控，
+        // 给无限它就会一路量下去，把标签挤没。
+        if (_titleAdornment is { IsVisible: true } adornment)
+        {
+            var room = double.IsInfinity(availableSize.Width)
+                ? double.PositiveInfinity
+                : Math.Max(0, availableSize.Width - TitleAdornmentStart - ButtonsWidth - ForgeMetrics.HeaderLabelInsetRight);
+            adornment.Measure(new Size(room, HeaderHeight));
+        }
+
         // 标签按**这一行最终的高度**量，别把外面给的（可能是无限）原样传下去 ——
         // ForgeContentTab 量到无限高时会退回上游那个 41，标题条却按 HeaderHeight 排，两处对不上。
         _tabs.Measure(availableSize.WithHeight(HeaderHeight));
@@ -485,6 +572,16 @@ public class ForgeToolWindowHeader : TemplatedControl
                 (finalSize.Height - ForgeMetrics.HeaderButtonSize) / 2,
                 ForgeMetrics.HeaderButtonSize,
                 ForgeMetrics.HeaderButtonSize));
+        }
+
+        if (_titleAdornment is { IsVisible: true } adornment)
+        {
+            var height = Math.Min(adornment.DesiredSize.Height, finalSize.Height);
+            adornment.Arrange(new Rect(
+                TitleAdornmentStart,
+                (finalSize.Height - height) / 2,
+                adornment.DesiredSize.Width,
+                height));
         }
 
         var start = ComputeTabsStart();
