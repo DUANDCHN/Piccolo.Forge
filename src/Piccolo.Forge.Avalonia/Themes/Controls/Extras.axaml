@@ -420,31 +420,49 @@
         </Setter>
     </ControlTheme>
 
-    <!-- 抽屉布局：面板一侧有边、内容在另一侧。 -->
+    <!-- 抽屉布局：面板一侧有边、内容在另一侧。
+
+         ⚠ PanePlacement 由**本模板**落实：控件侧只把方向记成 :left / :right 伪类，自己不挪任何东西。
+         模板不响应这两个伪类的话，宿主写 PanePlacement="Right" 是**静默失效**的 ——
+         不报错、不警告，面板一直待在左边。2026-08-28 由 LDVision 的快照文档撞出来：
+         那边的属性面板一直写着 Right，换到本主题后跑去了左边，排查时先怀疑的还是页面自己摆错了。 -->
     <ControlTheme x:Key="Forge.SplitView" TargetType="SplitView">
         <Setter Property="PaneBackground" Value="{DynamicResource Forge.Popup.Background}" />
         <Setter Property="Template">
             <ControlTemplate TargetType="SplitView">
-                <Grid Name="PART_Root" ColumnDefinitions="Auto,*">
+                <!-- 用 DockPanel 而不是两列 Grid：换边只要改 DockPanel.Dock 一个附加属性，
+                     剩余宽度归内容是 LastChildFill 天然给的。
+                     Grid 那条路走不通 —— 换边得连列定义一起换（Auto,* → *,Auto，否则面板落进 *
+                     列被撑满、内容落进 Auto 列缩成一条），而 ColumnDefinitions **不是 AvaloniaProperty**，
+                     样式里设不了（编译期 AVLN3000）。 -->
+                <DockPanel Name="PART_Root" LastChildFill="True">
                     <Panel Name="PART_PaneRoot"
-                           Grid.Column="0"
+                           DockPanel.Dock="Left"
                            Background="{TemplateBinding PaneBackground}"
-                           Width="{TemplateBinding OpenPaneLength}"
-                           HorizontalAlignment="Left">
+                           Width="{TemplateBinding OpenPaneLength}">
                         <ContentPresenter Content="{TemplateBinding Pane}"
                                           ContentTemplate="{TemplateBinding PaneTemplate}" />
-                        <Border BorderBrush="{DynamicResource Forge.Group.Separator}"
+                        <!-- 具名是为了右置时把这条边换到另一侧：分隔线永远画在**朝向内容**的那一边。 -->
+                        <Border Name="PART_PaneSeparator"
+                                BorderBrush="{DynamicResource Forge.Group.Separator}"
                                 BorderThickness="0,0,1,0" />
                     </Panel>
                     <ContentPresenter Name="PART_ContentPresenter"
-                                      Grid.Column="1"
                                       Content="{TemplateBinding Content}"
                                       ContentTemplate="{TemplateBinding ContentTemplate}" />
-                </Grid>
+                </DockPanel>
             </ControlTemplate>
         </Setter>
         <Style Selector="^:closed /template/ Panel#PART_PaneRoot">
             <Setter Property="Width" Value="{Binding CompactPaneLength, RelativeSource={RelativeSource TemplatedParent}}" />
+        </Style>
+
+        <!-- 右置：面板停到另一边，分隔线也跟着换边。 -->
+        <Style Selector="^:right /template/ Panel#PART_PaneRoot">
+            <Setter Property="DockPanel.Dock" Value="Right" />
+        </Style>
+        <Style Selector="^:right /template/ Border#PART_PaneSeparator">
+            <Setter Property="BorderThickness" Value="1,0,0,0" />
         </Style>
     </ControlTheme>
 
