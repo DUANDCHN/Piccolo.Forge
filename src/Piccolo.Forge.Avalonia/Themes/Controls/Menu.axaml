@@ -1,4 +1,6 @@
-<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:forge="using:Piccolo.Forge.Avalonia"
+                    xmlns:themes="using:Piccolo.Forge.Themes">
     <!--
       Menu（顶栏）/ MenuItem / ContextMenu / MenuFlyoutPresenter。
 
@@ -11,6 +13,11 @@
       菜单栏里的项（Menu 的直接子项）另走 Forge.MenuBarItem —— 它横排、更紧凑、
       子菜单朝下弹；菜单面板里的项子菜单朝右弹。两者的模板结构不同，分开写。
     -->
+
+    <!-- 快捷键提示那列的文本转换器（自定义槽优先，否则把 KeyGesture 渲染成键帽形）。
+         声明成对象元素而非 x:Static 取单例：内部类型的静态成员 XamlIl 解析不到，
+         对象元素同程序集内可用。无状态，一份够用。 -->
+    <themes:ForgeAcceleratorTextConverter x:Key="Forge.AcceleratorTextConverter" />
 
     <!-- 菜单面板的外壳，Menu 的下拉、ContextMenu、MenuFlyout 共用。 -->
     <ControlTheme x:Key="Forge.MenuPanelBorder" TargetType="Border">
@@ -69,11 +76,21 @@
                         <!-- 快捷键提示。比正文弱一档，与右边留出间距。 -->
                         <TextBlock Grid.Column="2"
                                    Name="PART_Accelerator"
-                                   Text="{TemplateBinding InputGesture}"
                                    Foreground="{DynamicResource Forge.MenuItem.Accelerator}"
                                    Margin="24,0,0,0"
                                    IsVisible="False"
-                                   VerticalAlignment="Center" />
+                                   VerticalAlignment="Center">
+                            <!-- 显示什么由两路决定：宿主设过 ForgeMenu.GestureText 就用它，
+                                 否则把 InputGesture 渲染成键帽形（Ctrl+OemComma → Ctrl+,）。
+                                 ⚠ 原先是 Text="{TemplateBinding InputGesture}"，即把 KeyGesture.ToString()
+                                   的枚举名原样示人——菜单里写着 Ctrl+OemComma，谁也认不出那是逗号。 -->
+                            <TextBlock.Text>
+                                <MultiBinding Converter="{StaticResource Forge.AcceleratorTextConverter}">
+                                    <Binding Path="(forge:ForgeMenu.GestureText)" RelativeSource="{RelativeSource TemplatedParent}" />
+                                    <Binding Path="InputGesture" RelativeSource="{RelativeSource TemplatedParent}" />
+                                </MultiBinding>
+                            </TextBlock.Text>
+                        </TextBlock>
 
                         <!-- 子菜单箭头，仅有子项时显示。 -->
                         <Path Grid.Column="3"

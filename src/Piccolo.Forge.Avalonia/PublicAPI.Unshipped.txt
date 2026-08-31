@@ -1,1 +1,9 @@
 ﻿#nullable enable
+Piccolo.Forge.Avalonia.ForgeKeyGestureText
+Piccolo.Forge.Avalonia.ForgeMenu
+Piccolo.Forge.Avalonia.ForgeMenu.ForgeMenu() -> void
+static readonly Piccolo.Forge.Avalonia.ForgeMenu.GestureTextProperty -> Avalonia.AttachedProperty<string?>!
+static Piccolo.Forge.Avalonia.ForgeMenu.GetGestureText(Avalonia.Controls.Control! control) -> string?
+static Piccolo.Forge.Avalonia.ForgeMenu.SetGestureText(Avalonia.Controls.Control! control, string? value) -> void
+static Piccolo.Forge.Avalonia.ForgeKeyGestureText.ToDisplay(Avalonia.Input.KeyGesture? gesture) -> string!
+static Piccolo.Forge.Avalonia.ForgeKeyGestureText.ToDisplay(string? gesture) -> string!
