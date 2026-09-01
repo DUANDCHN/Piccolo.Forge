@@ -20,7 +20,7 @@
   <!-- NuGet 包元数据（src/ 下的库共用；tests / samples 设 IsPackable=false） -->
   <PropertyGroup>
     <!-- 主版本跟随 Avalonia 主版本（12），与 Semi.Avalonia 等包同一惯例 -->
-    <VersionPrefix>12.1.1.5</VersionPrefix>
+    <VersionPrefix>12.1.1.6</VersionPrefix>
     <Authors>DUANDCHN</Authors>
     <Copyright>Copyright (c) DUANDCHN</Copyright>
     <!-- 尚未开源：随包附自定义许可证文件，不用 SPDX 表达式 -->
