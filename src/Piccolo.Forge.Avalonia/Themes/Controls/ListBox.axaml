@@ -1,4 +1,5 @@
 ﻿<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:forge="using:Piccolo.Forge.Avalonia"
                     xmlns:themes="using:Piccolo.Forge.Themes">
     <!--
       ListBox / ListBoxItem / TreeView / TreeViewItem。
@@ -194,6 +195,10 @@
     <ControlTheme x:Key="Forge.TreeView" TargetType="TreeView">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Padding" Value="{DynamicResource Forge.Tree.Padding}" />
+        <!-- 整行双击都能展开 / 折叠：框架自带的那条只认文字那一小段，行尾空白双击没反应。
+             详见 ForgeTree —— 那里记着无头探针的实测结论与"为什么不能把 PART_HeaderPresenter
+             设成不可命中"。宿主要退回框架原样就把它设 False。 -->
+        <Setter Property="(forge:ForgeTree.RowDoubleClickExpands)" Value="True" />
         <Setter Property="ItemContainerTheme" Value="{DynamicResource Forge.TreeViewItem}" />
         <Setter Property="Template">
             <ControlTemplate>

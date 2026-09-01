@@ -281,6 +281,10 @@
     <Thickness x:Key="Forge.ScrollBar.ThumbMargin">2</Thickness>
     <Thickness x:Key="Forge.ScrollBar.ThumbHoverMargin">1</Thickness>
     <CornerRadius x:Key="Forge.ScrollBar.ThumbRadius">6</CornerRadius>
+    <!-- 拖拉条的最短长度。内容极长时 Track 按比例算出来的 thumb 会缩成一个点，看不见也抓不住
+         （宿主实测报障）。⚠ 24 是**推导值**：取滚动条厚度的两倍，让它最短也仍是一条"条"而不是点；
+         上游对应物是 IntelliJ 滚动条 UI 里的最小 thumb 长度，**行号待补**（本机无 third_party 克隆）。 -->
+    <x:Double x:Key="Forge.ScrollBar.ThumbMinLength">24</x:Double>
 
     <!-- 进度条：上游没给厚度（Java 侧按 DPI 算），4 是与 IntelliJ 观感相当的值。 -->
     <x:Double x:Key="Forge.Progress.Thickness">4</x:Double>
@@ -323,9 +327,9 @@
          折成行内 Margin。曾经是 Thickness（Forge.Tree.ChildMargin）直接挂在 ItemsPresenter 上，
          那样会把行的高亮底连同子树一起推开，选中条逐级变短 —— 上游 DefaultTreeUI 是按整行宽度
          画选中背景的，缩进只作用于内容。 -->
-    <x:Double x:Key="Forge.Tree.Indent">18</x:Double>
+    <x:Double x:Key="Forge.Tree.Indent">12</x:Double>
     <Thickness x:Key="Forge.Tree.Padding">12,4</Thickness>
-    <Thickness x:Key="Forge.List.Padding">0,4</Thickness>
+    <Thickness x:Key="Forge.List.Padding">12,4</Thickness>
 
     <!-- Expander：标题行比菜单项高一档（它是分组标题，不是列表项）。
          展开标记用 chevron 而非三角 —— 上游 Tree.collapsedIcon / expandedIcon 就是

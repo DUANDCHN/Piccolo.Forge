@@ -132,6 +132,15 @@
             <Setter Property="IsDirectionReversed" Value="True" />
         </Style>
 
+        <!-- 拖拉条的最短长度**按方向分开设**：直接写在 Forge.ScrollBarThumb 上要同时给 MinWidth 与
+             MinHeight，那会把竖向滚动条也一起撑宽（宽度本该恒为 Thickness）。 -->
+        <Style Selector="^:vertical /template/ Thumb#PART_Thumb">
+            <Setter Property="MinHeight" Value="{DynamicResource Forge.ScrollBar.ThumbMinLength}" />
+        </Style>
+        <Style Selector="^:horizontal /template/ Thumb#PART_Thumb">
+            <Setter Property="MinWidth" Value="{DynamicResource Forge.ScrollBar.ThumbMinLength}" />
+        </Style>
+
         <Style Selector="^:vertical">
             <Setter Property="Width" Value="{DynamicResource Forge.ScrollBar.Thickness}" />
             <Setter Property="HorizontalAlignment" Value="Right" />

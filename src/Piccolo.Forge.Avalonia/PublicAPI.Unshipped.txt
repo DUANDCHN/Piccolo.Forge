@@ -7,3 +7,8 @@ static Piccolo.Forge.Avalonia.ForgeMenu.GetGestureText(Avalonia.Controls.Control
 static Piccolo.Forge.Avalonia.ForgeMenu.SetGestureText(Avalonia.Controls.Control! control, string? value) -> void
 static Piccolo.Forge.Avalonia.ForgeKeyGestureText.ToDisplay(Avalonia.Input.KeyGesture? gesture) -> string!
 static Piccolo.Forge.Avalonia.ForgeKeyGestureText.ToDisplay(string? gesture) -> string!
+Piccolo.Forge.Avalonia.ForgeTree
+Piccolo.Forge.Avalonia.ForgeTree.ForgeTree() -> void
+static readonly Piccolo.Forge.Avalonia.ForgeTree.RowDoubleClickExpandsProperty -> Avalonia.AttachedProperty<bool>!
+static Piccolo.Forge.Avalonia.ForgeTree.GetRowDoubleClickExpands(Avalonia.Controls.TreeView! tree) -> bool
+static Piccolo.Forge.Avalonia.ForgeTree.SetRowDoubleClickExpands(Avalonia.Controls.TreeView! tree, bool value) -> void
