@@ -374,6 +374,65 @@ public class ForgeMorePopupTests
         }
     }
 
+    /// <summary>
+    /// 连续摘掉多块面板后，「更多」入口必须立即出现；宿主从业务入口打开其中一块时，
+    /// 只能恢复目标按钮，不能把其余隐藏按钮一起带回条带。
+    /// </summary>
+    /// <remarks>
+    /// 这是 LDVision 的真实路径：先从边栏移除多块面板，再从图像面板通过消息打开“图像算法”，
+    /// 最后把它重新移除。主题切换会触发一次全量同步，因此本用例同时钉住每一步都即时刷新，
+    /// 防止错误被下一次主题刷新暂时掩盖。
+    /// </remarks>
+    [AvaloniaFact]
+    public void Programmatic_open_only_restores_the_target_after_multiple_panels_were_removed()
+    {
+        var shell = new ToolWindowShellViewModel();
+        foreach (var id in new[] { "Camera", "Library", "ImageAlgorithm", "Histogram" })
+        {
+            shell.Add(id, id, ToolWindowAnchor.Left, false);
+        }
+
+        var frame = new ForgeControl();
+        frame.Attach(shell);
+        var window = new Window { Width = 800, Height = 500, Content = frame };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        foreach (var id in new[] { "Library", "ImageAlgorithm", "Histogram" })
+        {
+            ToolWindowContextMenu.Hide(shell.Manager, id);
+        }
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.True(MoreButton().IsAvailable);
+        Assert.Equal(["Camera"], VisibleStripeIds());
+
+        shell.Open("ImageAlgorithm");
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal(["Camera", "ImageAlgorithm"], VisibleStripeIds());
+        Assert.Equal(["Library", "Histogram"], ForgeMorePopup.ResolveItems(shell.Manager.Layout));
+
+        ToolWindowContextMenu.Hide(shell.Manager, "ImageAlgorithm");
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.True(MoreButton().IsAvailable);
+        Assert.Equal(["Camera"], VisibleStripeIds());
+        Assert.Equal(
+            ["Library", "ImageAlgorithm", "Histogram"],
+            ForgeMorePopup.ResolveItems(shell.Manager.Layout));
+
+        window.Close();
+
+        ForgeMoreButton MoreButton()
+            => frame.GetVisualDescendants().OfType<ForgeMoreButton>().First(x => x.Side == StripeSide.Left);
+
+        string[] VisibleStripeIds()
+            => frame.LeftToolbar.TopGroup.Children.OfType<ForgeStripeButton>()
+                .Select(x => ((ToolWindowViewModel)x.Tag!).Id)
+                .ToArray();
+    }
+
     /// <summary>菜单的条目集合 —— 走 ItemsSource（普通 Items 改了 presenter 不跟，见 Attach 的说明）。</summary>
     private static ObservableCollection<object> Items(MenuFlyout flyout)
         => (ObservableCollection<object>)flyout.ItemsSource!;

@@ -4,6 +4,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Piccolo.Forge.Model;
 using Piccolo.Forge.Mvvm;
@@ -644,6 +645,16 @@ public class ForgeControl : TemplatedControl
             return;
         }
 
+        // 「从边栏中移除」由条带按钮自己的 ContextMenu 发起。若在 MenuItem.Click 的路由尚未
+        // 结束时同步重排，SyncStripes 会当场把菜单的宿主按钮从视觉树摘掉；Avalonia 的弹层仍在
+        // 收尾，后续布局失效可能因此丢失。表象是模型已经隐藏，但「更多」按钮要等切主题触发
+        // 下一次 Sync 才出现。把隐藏后的视觉树同步排到本轮输入之后，并合并连续隐藏产生的任务。
+        if (e.Kind == ToolWindowChangeKind.Hidden)
+        {
+            QueueSync();
+            return;
+        }
+
         // 读档走的也是这条（RestoreLayout → StateChanged），所以掰形态放在这儿
         NormalizeViewModes();
 
@@ -652,6 +663,22 @@ public class ForgeControl : TemplatedControl
         //   都不走这条路，那正是"面板按像素固定"要守住的东西。
         _pane.InvalidateAnchorSizes();
         Sync();
+    }
+
+    private bool _syncQueued;
+
+    /// <summary>在当前输入事件完成后合并执行一次全量同步。</summary>
+    private void QueueSync()
+    {
+        if (_syncQueued) return;
+        _syncQueued = true;
+        Dispatcher.UIThread.Post(() =>
+        {
+            _syncQueued = false;
+            NormalizeViewModes();
+            _pane.InvalidateAnchorSizes();
+            Sync();
+        });
     }
 
     /// <summary>只把「谁是活动窗口」这件事刷到外观上：条带按钮的选中态、标题条的活动色。</summary>
