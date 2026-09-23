@@ -1143,3 +1143,16 @@ Piccolo.Forge.Avalonia.ForgeSquareButtonBase.PlateInsets.get -> Avalonia.Thickne
 Piccolo.Forge.Avalonia.ForgeControl.HeaderTitleAdornmentExtension.get -> System.Func<string!, Avalonia.Controls.Control?>?
 Piccolo.Forge.Avalonia.ForgeControl.HeaderTitleAdornmentExtension.set -> void
 Piccolo.Forge.Avalonia.ForgeToolWindowHeader.SetTitleAdornment(Avalonia.Controls.Control? adornment) -> void
+Piccolo.Forge.Avalonia.ForgeKeyGestureText
+Piccolo.Forge.Avalonia.ForgeMenu
+Piccolo.Forge.Avalonia.ForgeMenu.ForgeMenu() -> void
+static readonly Piccolo.Forge.Avalonia.ForgeMenu.GestureTextProperty -> Avalonia.AttachedProperty<string?>!
+static Piccolo.Forge.Avalonia.ForgeMenu.GetGestureText(Avalonia.Controls.Control! control) -> string?
+static Piccolo.Forge.Avalonia.ForgeMenu.SetGestureText(Avalonia.Controls.Control! control, string? value) -> void
+static Piccolo.Forge.Avalonia.ForgeKeyGestureText.ToDisplay(Avalonia.Input.KeyGesture? gesture) -> string!
+static Piccolo.Forge.Avalonia.ForgeKeyGestureText.ToDisplay(string? gesture) -> string!
+Piccolo.Forge.Avalonia.ForgeTree
+Piccolo.Forge.Avalonia.ForgeTree.ForgeTree() -> void
+static readonly Piccolo.Forge.Avalonia.ForgeTree.RowDoubleClickExpandsProperty -> Avalonia.AttachedProperty<bool>!
+static Piccolo.Forge.Avalonia.ForgeTree.GetRowDoubleClickExpands(Avalonia.Controls.TreeView! tree) -> bool
+static Piccolo.Forge.Avalonia.ForgeTree.SetRowDoubleClickExpands(Avalonia.Controls.TreeView! tree, bool value) -> void
