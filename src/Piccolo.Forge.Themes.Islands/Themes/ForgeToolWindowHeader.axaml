@@ -44,6 +44,7 @@
                         Margin="{TemplateBinding TitleMargin}"
                         Name="PART_Title"
                         Text="{TemplateBinding Title}"
+                        TextTrimming="CharacterEllipsis"
                         UseLayoutRounding="False"
                         VerticalAlignment="Center" />
 

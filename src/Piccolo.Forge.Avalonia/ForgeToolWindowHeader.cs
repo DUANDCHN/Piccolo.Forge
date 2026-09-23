@@ -57,6 +57,8 @@ public class ForgeToolWindowHeader : TemplatedControl
     private readonly ForgeHeaderButton _hide = new() { Icon = ForgeIcons.Hide, IsFilledIcon = false };
     private readonly List<Control> _extra = [];
     private Control? _titleAdornment;
+    private TextBlock? _titleText;
+    private double _titleMaxWidth = double.PositiveInfinity;
 
     /// <summary>建一个标题条。</summary>
     public ForgeToolWindowHeader()
@@ -101,6 +103,11 @@ public class ForgeToolWindowHeader : TemplatedControl
         base.OnApplyTemplate(e);
 
         _slot?.Children.Clear();
+        _titleText = e.NameScope.Find<TextBlock>("PART_Title");
+        if (_titleText is not null)
+        {
+            _titleText.MaxWidth = _titleMaxWidth;
+        }
         _slot = e.NameScope.Find<ForgeHeaderContentHost>("PART_Content");
         SyncSlot();
     }
@@ -469,7 +476,7 @@ public class ForgeToolWindowHeader : TemplatedControl
         {
             var title = MeasureTitle();
             return ResolvedTitleInset
-                   + (title?.Width ?? 0)
+                   + Math.Min(title?.Width ?? 0, _titleMaxWidth)
                    + (title is null ? 0 : ForgeMetrics.HeaderLabelInsetRight);
         }
     }
@@ -511,6 +518,16 @@ public class ForgeToolWindowHeader : TemplatedControl
     /// <remarks>模板量完（其中槽会回头调 <see cref="MeasureContent"/>），这一行的高度仍由自己定。</remarks>
     protected override Size MeasureOverride(Size availableSize)
     {
+        // 右侧动作与 Rider 一样具有更高的布局优先级；面板变窄时标题只能使用按钮左侧的剩余空间。
+        // 模板中的 TextBlock 同时启用省略号，避免完整标题继续绘制到按钮区域。
+        _titleMaxWidth = double.IsInfinity(availableSize.Width)
+            ? double.PositiveInfinity
+            : Math.Max(0, availableSize.Width - ResolvedTitleInset - ButtonsWidth - ForgeMetrics.HeaderLabelInsetRight);
+        if (_titleText is not null)
+        {
+            _titleText.MaxWidth = _titleMaxWidth;
+        }
+
         base.MeasureOverride(availableSize.WithHeight(HeaderHeight));
         return new Size(double.IsInfinity(availableSize.Width) ? 0 : availableSize.Width, HeaderHeight);
     }

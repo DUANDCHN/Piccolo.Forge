@@ -88,6 +88,30 @@ public class HeaderButtonsTests
     }
 
     [AvaloniaFact]
+    public void 面板变窄时标题省略且不侵入按钮区域()
+    {
+        var actions = Enumerable.Range(0, 4)
+            .Select(_ => (Control)new ForgeHeaderButton { Icon = ForgeIcons.Find })
+            .ToArray();
+        var (window, frame, _) = Build(f => f.HeaderButtonsExtension = _ => actions);
+        var header = frame.GetVisualDescendants().OfType<ForgeToolWindowHeader>().Single();
+        header.Title = "标题很长的相机列表面板";
+        Render(window);
+
+        var title = header.GetVisualDescendants().OfType<TextBlock>().Single(x => x.Name == "PART_Title");
+        var buttonsLeft = Buttons(frame)
+            .Select(button => button.TranslatePoint(default, header)!.Value.X)
+            .Min();
+        var titleRight = title.TranslatePoint(default, header)!.Value.X + title.Bounds.Width;
+
+        Assert.Equal(global::Avalonia.Media.TextTrimming.CharacterEllipsis, title.TextTrimming);
+        Assert.True(titleRight <= buttonsLeft + 0.5,
+            $"标题侵入按钮区域（标题右边缘 {titleRight}，按钮从 {buttonsLeft} 开始）");
+
+        window.Close();
+    }
+
+    [AvaloniaFact]
     public void 编辑区每组标签条右端有一个更多按钮()
     {
         var (window, _, editor) = BuildWithEditor();
