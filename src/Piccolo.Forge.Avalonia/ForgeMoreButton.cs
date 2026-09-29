@@ -30,6 +30,9 @@ public class ForgeMoreButton : ForgeSquareButtonBase
 
     static ForgeMoreButton()
     {
+        // 这三项会改变 IsAvailable，而 MeasureOverride 会据此在正常尺寸与 0x0 之间切换。
+        // 只重绘不会重新参与布局，按钮就会等到窗口缩放触发全局测量后才出现或消失。
+        AffectsMeasure<ForgeMoreButton>(SideProperty, ActiveSideProperty, HasHiddenToolWindowsProperty);
         AffectsRender<ForgeMoreButton>(SideProperty, ActiveSideProperty, HasHiddenToolWindowsProperty);
     }
 

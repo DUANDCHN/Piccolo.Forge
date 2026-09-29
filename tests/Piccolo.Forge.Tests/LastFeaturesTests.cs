@@ -145,6 +145,34 @@ public class ForgeMoreButtonTests
         Assert.Equal(default, button.DesiredSize);
     }
 
+    /// <summary>
+    /// 隐藏首块面板会把 <see cref="ForgeMoreButton.HasHiddenToolWindows"/> 从 false 改成 true；
+    /// 入口必须在本轮布局中取得尺寸，不能等窗口最大化等外部尺寸变化来补一次测量。
+    /// </summary>
+    [AvaloniaFact]
+    public void Becoming_available_invalidates_measure_and_appears_without_window_resize()
+    {
+        var button = new ForgeMoreButton
+        {
+            Side = StripeSide.Left,
+            ActiveSide = StripeSide.Left,
+            HasHiddenToolWindows = false,
+        };
+        var window = new Window { Width = 200, Height = 200, Content = button };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(default, button.DesiredSize);
+
+        button.HasHiddenToolWindows = true;
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.True(button.DesiredSize.Width > 0);
+        Assert.True(button.DesiredSize.Height > 0);
+        Assert.True(button.Bounds.Width > 0);
+        Assert.True(button.Bounds.Height > 0);
+        window.Close();
+    }
+
     // ⚠ 必须 AvaloniaTheory：new ForgeMoreButton() 会走到 ForgeIcons（取几何图形需要渲染接口），
     //   裸 [Theory] 没有 Avalonia 会话，跑到的顺序不同就抛 TypeInitializationException ——
     //   全量跑时**时绿时红**（2026-08-26 撞到）。
