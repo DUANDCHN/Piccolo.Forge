@@ -105,6 +105,19 @@ public class ForgeMenuBarTests
         Assert.True(Painted(sub) != Painted(top), "台子没搭对：被选中的二级项本该是高亮色，和常规色不同");
         Assert.Equal(Painted(top), Painted(grand));
 
+        // 鼠标转向相邻项时，选中态可先消失、展开态稍后才关闭；蓝底保留期间文字必须仍是高亮色。
+        var selectedColor = Painted(sub);
+        sub.IsSelected = false;
+        Dispatcher.UIThread.RunJobs();
+        Assert.True(sub.IsSubMenuOpen);
+        Assert.Equal(selectedColor, Painted(sub));
+        Assert.Equal(Painted(top), Painted(grand));
+
+        // 展开态结束后才恢复普通字色，避免文字在仍有高亮背景时先闪黑。
+        sub.IsSubMenuOpen = false;
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(Painted(top), Painted(sub));
+
         window.Close();
     }
 }

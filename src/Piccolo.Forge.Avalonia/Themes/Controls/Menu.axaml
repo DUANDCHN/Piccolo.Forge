@@ -120,18 +120,15 @@
             </ControlTemplate>
         </Setter>
 
-        <Style Selector="^:selected /template/ Border#PART_Root">
+        <!-- 选中与展开共用完整高亮：换项时选中态可能先结束，展开态必须同时保留背景与文字。 -->
+        <Style Selector="^:selected /template/ Border#PART_Root, ^:open /template/ Border#PART_Root">
             <Setter Property="Background" Value="{DynamicResource Forge.MenuItem.SelectedBackground}" />
         </Style>
-        <Style Selector="^:selected">
+        <Style Selector="^:selected, ^:open">
             <Setter Property="Foreground" Value="{DynamicResource Forge.MenuItem.SelectedForeground}" />
         </Style>
-        <Style Selector="^:selected /template/ TextBlock#PART_Accelerator">
+        <Style Selector="^:selected /template/ TextBlock#PART_Accelerator, ^:open /template/ TextBlock#PART_Accelerator">
             <Setter Property="Foreground" Value="{DynamicResource Forge.MenuItem.AcceleratorSelected}" />
-        </Style>
-        <!-- 子菜单展开时保持高亮：鼠标移到子菜单里之后，父项仍要显示"当前在这条路径上"。 -->
-        <Style Selector="^:open /template/ Border#PART_Root">
-            <Setter Property="Background" Value="{DynamicResource Forge.MenuItem.SelectedBackground}" />
         </Style>
 
         <!-- 箭头默认在、无子项时隐掉；快捷键反过来。两者不会同时出现。 -->
