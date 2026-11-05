@@ -1512,7 +1512,7 @@ public class ForgeControl : TemplatedControl
         var count = 0;
         foreach (var child in panel.Children)
         {
-            if (child.IsVisible && !ReferenceEquals(child, dragged))
+            if (child.IsVisible && child is not ForgeMoreButton && !ReferenceEquals(child, dragged))
             {
                 count++;
             }
@@ -2109,7 +2109,7 @@ public class ForgeControl : TemplatedControl
 
         foreach (var child in panel.Children)
         {
-            if (!child.IsVisible || ReferenceEquals(child, dragged))
+            if (!child.IsVisible || child is ForgeMoreButton || ReferenceEquals(child, dragged))
             {
                 continue;
             }

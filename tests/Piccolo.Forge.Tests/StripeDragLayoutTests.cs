@@ -22,6 +22,35 @@ public class StripeDragLayoutTests
 {
     private const double ItemHeight = 40;
 
+    /// <summary>拖放末尾不能排到固定的更多按钮之后，虚线分组目标也必须拥有独立空间。</summary>
+    [AvaloniaFact]
+    public void 更多按钮排在实心和虚线拖放目标之后()
+    {
+        var panel = new StripeItemsPanel();
+        var tool = new Border { Width = 37, Height = ItemHeight };
+        var separator = new ForgeStripeSeparator { IsDragAndDrop = true };
+        var more = new ForgeMoreButton
+        {
+            Side = Piccolo.Forge.Model.StripeSide.Left,
+            ActiveSide = Piccolo.Forge.Model.StripeSide.Left,
+            HasHiddenToolWindows = true,
+        };
+        panel.Children.Add(tool);
+        panel.Children.Add(separator);
+        panel.Children.Add(more);
+        panel.DropSlotHeight = ItemHeight;
+        panel.DropOffset = 0;
+        Layout(panel);
+        Assert.True(more.Bounds.Y >= separator.Bounds.Bottom + ItemHeight);
+
+        // 指针移到更多按钮下方也只能插在它前面，实际空槽同时承担虚线目标，不重复留两格。
+        panel.DropOffset = 1000;
+        Layout(panel);
+        Assert.Equal(2, panel.DropIndex);
+        Assert.True(more.Bounds.Y >= panel.DropSlotRect!.Value.Bottom);
+        Assert.Equal(separator.Bounds.Bottom, panel.DropSlotRect.Value.Y);
+    }
+
     [AvaloniaFact]
     public void The_dragged_item_leaves_the_layout_and_the_rest_move_up()
     {

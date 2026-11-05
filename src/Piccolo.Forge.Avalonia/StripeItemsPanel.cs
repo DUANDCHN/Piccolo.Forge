@@ -116,6 +116,21 @@ internal class StripeItemsPanel : Panel
     /// <summary>这一组现在要不要留空槽。</summary>
     private bool HasDropSlot => DropOffset is not null && DropSlotHeight > 0;
 
+    /// <summary>更多按钮是固定尾项，不参与面板拖放序号。</summary>
+    private int ResolveDropIndex(List<Control> children) => HasDropSlot
+        ? StripeDropResolver.ResolveInsertIndex(DropOffset!.Value,
+            children.Where(x => x is not ForgeMoreButton).Select(x => x.DesiredSize.Height).ToList())
+        : -1;
+
+    /// <summary>末尾临时分隔符下的虚线目标需要独立空间，不能与固定的更多按钮重叠。</summary>
+    private bool ReserveSplitSlot(List<Control> children, int dropIndex)
+    {
+        var tools = children.Where(x => x is not ForgeMoreButton).ToList();
+        return HasDropSlot && tools.Count > 1
+            && tools[^1] is ForgeStripeSeparator { IsDragAndDrop: true }
+            && dropIndex < tools.Count;
+    }
+
     /// <summary>参与排布的子项：可见、且不是正在被拖走的那个。</summary>
     private IEnumerable<Control> LayoutChildren
     {
@@ -154,6 +169,11 @@ internal class StripeItemsPanel : Panel
         if (HasDropSlot)
         {
             height += DropSlotHeight;
+            var children = LayoutChildren.ToList();
+            if (ReserveSplitSlot(children, ResolveDropIndex(children)))
+            {
+                height += DropSlotHeight;
+            }
         }
 
         return new Size(width, height);
@@ -179,11 +199,8 @@ internal class StripeItemsPanel : Panel
             fitWidth = Math.Max(fitWidth, child.DesiredSize.Width);
         }
 
-        DropIndex = HasDropSlot
-            ? StripeDropResolver.ResolveInsertIndex(
-                DropOffset!.Value,
-                laidOut.Select(x => x.DesiredSize.Height).ToList())
-            : -1;
+        DropIndex = ResolveDropIndex(laidOut);
+        var reserveSplitSlot = ReserveSplitSlot(laidOut, DropIndex);
         DropSlotRect = null;
 
         var y = 0.0;
@@ -204,6 +221,11 @@ internal class StripeItemsPanel : Panel
             var height = child.DesiredSize.Height;
             child.Arrange(new Rect(0, y, fitWidth, height));
             y += height + ForgeMetrics.StripeButtonGap;
+            // 实心落点在上半组时，为下半组虚线目标保留一格；更多按钮始终排在这格之后。
+            if (reserveSplitSlot && child is ForgeStripeSeparator { IsDragAndDrop: true })
+            {
+                y += DropSlotHeight;
+            }
         }
 
         // 被拖走的那个排成**零尺寸**：既不占位、也不画出来。
