@@ -136,7 +136,8 @@
             <Setter Property="IsVisible" Value="False" />
         </Style>
         <Style Selector="^:empty /template/ TextBlock#PART_Accelerator">
-            <Setter Property="IsVisible" Value="True" />
+            <!-- 没有快捷键文本时连同 24px 间隔一起收起，避免普通菜单右侧留下空列。 -->
+            <Setter Property="IsVisible" Value="{Binding Text, RelativeSource={RelativeSource Self}, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
         </Style>
 
         <Style Selector="^:checked /template/ Path#PART_CheckGlyph">

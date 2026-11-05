@@ -105,6 +105,10 @@ public class ForgeAcceleratorTextTests
             .Single(t => t.Name == "PART_Accelerator");
         var text = accelerator.Text ?? string.Empty;
 
+        // 空文本列必须退出布局，否则仍会留下快捷键前的 24px 空白；有文本时继续正常显示。
+        Assert.Equal(!string.IsNullOrEmpty(text), accelerator.IsVisible);
+        Assert.Equal(item.Padding.Left, item.Padding.Right);
+
         window.Close();
         return text;
     }
