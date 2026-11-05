@@ -2282,6 +2282,8 @@ public class ForgeControl : TemplatedControl
         {
             if (_externalWindows.Remove(id) && _shell?.Manager.Layout.GetInfo(id) is { IsVisible: true })
             {
+                // 用户关闭前先保存窗口几何，再隐藏面板；下次从条带激活即可复用最后的位置。
+                SaveExternalState(id, external);
                 _shell.Manager.Hide(id);
             }
         };
@@ -2342,8 +2344,19 @@ public class ForgeControl : TemplatedControl
         }
 
         // 先把内容摘出来再关窗，否则宿主控件跟着窗口一起没了
+        // 条带隐藏、切回停靠等程序关闭路径也必须保留最后的外部位置。
+        SaveExternalState(id, external);
         external.ReleaseContent();
         external.Window.Close();
+    }
+
+    /// <summary>把外部窗口的几何写回布局真值，保留面板当前的显示状态与形态。</summary>
+    private void SaveExternalState(string id, ForgeFloatingToolWindow external)
+    {
+        if (_shell?.Manager.Layout.GetInfo(id) is { } info)
+        {
+            _shell.Manager.Layout.SetInfo(external.SaveState(info));
+        }
     }
 
     /// <summary>独立窗口标题里那个项目名（<c>"{面板名} - {项目名}"</c>）。</summary>

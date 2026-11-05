@@ -26,6 +26,35 @@ namespace Piccolo.Forge.Tests;
 /// </remarks>
 public class ViewModeTests
 {
+    /// <summary>关闭外部窗口后再次从侧栏激活，应恢复最后的位置与尺寸。</summary>
+    [AvaloniaTheory]
+    [InlineData(ToolWindowType.Floating)]
+    [InlineData(ToolWindowType.Windowed)]
+    public void 外部窗口关闭后再次激活保留位置(ToolWindowType type)
+    {
+        var (window, frame, shell, _) = Build();
+        shell.Manager.SetType("相机列表", type);
+        Pump(window);
+        var host = frame.ExternalWindows.Single().Window;
+        host.Position = new PixelPoint(120, 140);
+        host.Width = 420;
+        host.Height = 360;
+        Pump(window);
+        var expected = new FloatingBounds(host.Position.X, host.Position.Y, (int)host.Width, (int)host.Height);
+
+        // 走用户关闭窗口、再次点击条带的完整状态链，不能只验证 SaveState 帮手。
+        host.Close();
+        Pump(window);
+        Assert.Equal(expected, shell.Manager.Layout.GetInfo("相机列表")!.FloatingBounds);
+        shell.Manager.Activate("相机列表");
+        Pump(window);
+        var reopened = frame.ExternalWindows.Single().Window;
+        Assert.Equal(new PixelPoint(expected.X, expected.Y), reopened.Position);
+        Assert.Equal(expected.Width, reopened.Width);
+        Assert.Equal(expected.Height, reopened.Height);
+        window.Close();
+    }
+
     [AvaloniaFact]
     public void 停靠固定占掉编辑区的地方()
     {
