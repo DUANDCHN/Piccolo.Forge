@@ -1854,10 +1854,12 @@ public class ForgeControl : TemplatedControl
         if (SeparatorOf(panel) is { IsDragAndDrop: true } sep && sep.TranslatePoint(default, this) is { } sepOrigin)
         {
             var atTop = panel.Children.IndexOf(sep) == 0;
-            var boxTop = atTop
-                ? sepOrigin.Y - ((rect.Height + box) / 2)
-                : sepOrigin.Y + sep.Bounds.Height + ((rect.Height - box) / 2);
-            _overlay.SplitBoxRect = new Rect(origin.X + ((panel.Bounds.Width - box) / 2), boxTop, box, box);
+            // 虚线框与实际按钮背板共用中心。Islands 的左右内缩不对称，
+            // 若按整列居中，虚线框会比实心占位横向偏半个内缩差；显名模式下纵向也同理。
+            var splitSlotTop = atTop ? sepOrigin.Y - rect.Height : sepOrigin.Y + sep.Bounds.Height;
+            var boxTop = splitSlotTop + cell.Center.Y - (box / 2);
+            var boxLeft = origin.X + cell.Center.X - (box / 2);
+            _overlay.SplitBoxRect = new Rect(boxLeft, boxTop, box, box);
         }
     }
 

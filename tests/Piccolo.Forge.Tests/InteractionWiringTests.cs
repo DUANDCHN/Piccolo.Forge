@@ -489,6 +489,39 @@ public class ForgeFadeControllerTests
 /// 拖动工具窗口时的视觉反馈（AbstractDroppableStripe.kt:627-660 + ToolWindowDragHelper.kt:126-134）。
 public class ForgeDragFeedbackTests
 {
+    /// <summary>Islands 左右非对称内缩下，实心落点和虚线目标的横向中心必须相同。</summary>
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void 虚线分组目标与实心占位使用同一个横向中心(bool right)
+    {
+        using var theme = ForgeThemeScope.Use(ForgeThemeFamily.Islands);
+        var layout = DefaultToolWindowLayout.CreateV2();
+        var anchor = right ? ToolWindowAnchor.Right : ToolWindowAnchor.Left;
+        // 去掉已有的 split 组，拖动时才会生成代表另一半的临时虚线目标。
+        foreach (var info in layout.GetSortedList().Where(x => x.Anchor == anchor && x.IsSplit).ToList())
+            layout.SetInfo(info with { IsShowStripeButton = false });
+        var shell = new ToolWindowShellViewModel(new ToolWindowManager(layout));
+        var frame = new ForgeControl { Palette = ForgePalette.IslandsDark };
+        frame.Attach(shell);
+        var window = new Window { Width = 900, Height = 600, Content = frame };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        var group = right ? frame.RightToolbar.TopGroup : frame.LeftToolbar.TopGroup;
+        var buttons = group.Children.OfType<ForgeStripeButton>().ToList();
+        var start = buttons[0].TranslatePoint(new Point(18, 20), frame)!.Value;
+        var drop = buttons[1].TranslatePoint(new Point(18, 20), frame)!.Value;
+        window.MouseDown(start, MouseButton.Left);
+        window.MouseMove(drop);
+        Dispatcher.UIThread.RunJobs();
+        Assert.NotNull(frame.DragOverlay.DropRect);
+        Assert.NotNull(frame.DragOverlay.SplitBoxRect);
+        Assert.Equal(frame.DragOverlay.DropRect!.Value.Center.X,
+            frame.DragOverlay.SplitBoxRect!.Value.Center.X, 6);
+        window.MouseUp(drop, MouseButton.Left);
+        window.Close();
+    }
+
     private static (ForgeControl Frame, Window Window) Show(double height = 600)
     {
         var shell = new ToolWindowShellViewModel(new ToolWindowManager(DefaultToolWindowLayout.CreateV2()));
