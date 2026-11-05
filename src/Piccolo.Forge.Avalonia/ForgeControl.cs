@@ -2552,7 +2552,8 @@ public class ForgeControl : TemplatedControl
 
         // 挂在 ⋮ 那个按钮上弹，位置才对得上（挂在整条标题条上会从鼠标处弹）
         menu.PlacementTarget = header.OptionsButton;
-        menu.Placement = PlacementMode.BottomEdgeAlignedRight;
+        // 一级菜单从按钮左下方向右铺开；屏幕空间不足时仍由 Popup 自动避让。
+        menu.Placement = PlacementMode.BottomEdgeAlignedLeft;
         menu.Open(header.OptionsButton);
     }
 
