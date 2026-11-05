@@ -3,6 +3,24 @@
 Tool windows, docking and editor tabs for [Avalonia](https://avaloniaui.net/), with a layout similar to the IntelliJ Platform.
 [中文说明](#中文说明)
 
+**License:** [MIT](LICENSE) for project-owned code; third-party material retains its own terms.
+Previously published packages retain the license included in each package.
+
+## Start here
+
+| Goal | Documentation |
+|---|---|
+| Install and run a minimal shell | [Quick start](docs/quick-start.md) |
+| Explore the four runnable examples | [Samples](samples/README.md) |
+| Integrate panels, themes and persistence | [Host integration](docs/conventions/宿主接入指南.md) |
+| Build, test or contribute | [Contributing](CONTRIBUTING.md) |
+| Find design notes and reference material | [Documentation index](docs/README.md) |
+| Check licenses and upstream sources | [Third-party notices](THIRD-PARTY-NOTICES.md) |
+| Report a vulnerability | [Security policy](SECURITY.md) |
+
+The release workflow builds and tests on Windows, Linux and macOS. Native window decoration,
+popup positioning and display scaling should also be checked in the target desktop environment.
+
 ## Overview
 
 Piccolo.Forge provides an Avalonia desktop application with a workbench layout similar
@@ -166,7 +184,8 @@ window.Content = frame;
 ```
 
 A panel is any class derived from `ToolWindowPanel` (or its CommunityToolkit variant)
-that provides `Id`, `Title`, `Icon` and `Content`.
+that provides `Id`, `Title` and `Icon`. The panel object itself becomes the content,
+resolved by a host data template; the `Content` property belongs to the registered `ToolWindowViewModel`.
 
 Appearance is configured once on the frame and inherited by the editor area:
 
@@ -250,14 +269,18 @@ Any
 built-in string can be replaced by redefining the corresponding `Forge.Strings.*`
 resource key in the application resources.
 
-Three samples are provided in `samples/`: `Piccolo.Forge.Sample` (the control catalog),
-`Piccolo.Forge.Sample.ExpUi` and `.Islands` (the shell layout, one family each).
+Four runnable samples are provided in `samples/`: `Piccolo.Forge.Sample` (the control catalog),
+`Piccolo.Forge.Sample.ExpUi` and `.Islands` (the shell layout, one family each), and
+`Piccolo.Forge.Sample.Mvvm` (view-model composition and persistence).
+`Piccolo.Forge.Sample.Shared` is a content library, not an executable.
 
 ## Acknowledgements
 
 - **IntelliJ Platform** ([JetBrains/intellij-community](https://github.com/JetBrains/intellij-community), Apache License 2.0).
   The tool-window model, layout rules, metrics and the expUI / Islands colour schemes were
-  developed with reference to its sources. Piccolo.Forge contains no JetBrains source code or icon assets.
+  developed with reference to its sources. Generated palette data retains the upstream attribution
+  and Apache-2.0 terms; see the file mapping in the third-party notices. Forge is not affiliated
+  with or endorsed by JetBrains.
 - **Dock** ([wieslawsoltes/Dock](https://github.com/wieslawsoltes/Dock), MIT License).
   The tab-move semantics of the editor area (detach, attach, commit) and its drag lifecycle
   were developed with reference to Dock.
@@ -271,12 +294,16 @@ Full notices are provided in `THIRD-PARTY-NOTICES.md`.
 
 ## License
 
-Proprietary. The packages may be referenced and redistributed in binary form as part of an
-application; the source code is not open source. See the `LICENSE` file in the package.
+Project-owned code is licensed under the [MIT License](LICENSE). Third-party material retains
+its original terms; see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) and `licenses/`.
+This change does not alter the license of packages already published before it.
 
 ---
 
 # 中文说明
+
+导航：[快速开始](docs/quick-start.md) · [文档目录](docs/README.md) · [运行示例](samples/README.md) ·
+[参与开发](CONTRIBUTING.md) · [第三方来源](THIRD-PARTY-NOTICES.md) · [安全反馈](SECURITY.md)。
 
 Piccolo.Forge 为 Avalonia 桌面应用程序提供与 IntelliJ IDEA、Rider 类似的工作台布局：
 
@@ -419,7 +446,8 @@ frame.Attach(shell);
 window.Content = frame;
 ```
 
-面板为任意派生自 `ToolWindowPanel`（或其 CommunityToolkit 版本）的类，提供 `Id`、`Title`、`Icon` 与 `Content`。
+面板为任意派生自 `ToolWindowPanel`（或其 CommunityToolkit 版本）的类，提供 `Id`、`Title` 与 `Icon`。
+面板对象本身作为内容 VM，由宿主数据模板解析；`Content` 属性在登记后的 `ToolWindowViewModel` 上。
 
 外观在外框上配置一次，由编辑区继承：
 
@@ -497,12 +525,14 @@ private static object? CreateContent(string id) => id switch
 任何内置文案均可通过在应用程序资源中重定义对应的 `Forge.Strings.*` 资源键予以替换。
 
 示例见仓库 `samples/`：`Piccolo.Forge.Sample`（控件目录）、
-`Piccolo.Forge.Sample.ExpUi` 与 `.Islands`（外壳布局，各演示一族）。
+`Piccolo.Forge.Sample.ExpUi` 与 `.Islands`（外壳布局，各演示一族），以及
+`Piccolo.Forge.Sample.Mvvm`（MVVM 接入与布局持久化）。`.Shared` 是内容类库，不可单独运行。
 
 ## 致谢
 
 - **IntelliJ Platform**（[JetBrains/intellij-community](https://github.com/JetBrains/intellij-community)，Apache License 2.0）。
-  工具窗口模型、布局规则、度量以及 expUI / Islands 配色方案参考其源码实现。Piccolo.Forge 不包含 JetBrains 的源代码与图标资产。
+  工具窗口模型、布局规则、度量以及 expUI / Islands 配色方案参考其源码实现。
+  生成色板数据保留上游署名与 Apache-2.0 条款，具体范围见第三方声明。Forge 与 JetBrains 无隶属或背书关系。
 - **Dock**（[wieslawsoltes/Dock](https://github.com/wieslawsoltes/Dock)，MIT License）。
   编辑区标签搬移的语义（分离、附加、提交）与拖拽生命周期参考 Dock 实现。
 - **Semi.Avalonia**（[irihitech/Semi.Avalonia](https://github.com/irihitech/Semi.Avalonia)，MIT License）。
@@ -514,4 +544,6 @@ private static object? CreateContent(string id) => id switch
 
 ## 许可证
 
-专有许可。允许在应用程序中引用并以二进制形式分发；源代码未开源。详见包内 `LICENSE` 文件。
+项目自有代码采用 [MIT 许可证](LICENSE)，允许商用、修改及再分发，分发时需保留版权和许可声明。
+第三方内容仍遵循其原有许可证，详见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) 与 `licenses/`。
+此次变更不追溯修改已发布包附带的许可。

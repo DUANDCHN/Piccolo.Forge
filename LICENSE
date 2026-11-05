@@ -1,13 +1,18 @@
-Piccolo.Forge
-Copyright (c) 2026 DUANDCHN. All rights reserved.
+MIT License
 
-本软件包以二进制形式提供，允许在应用程序中引用与分发该二进制文件。
-未经著作权人书面许可，不得对本软件进行反编译、修改、再分发源代码或用于其它派生作品。
-源代码未开源；许可证条款可能在后续版本中变更。
+Copyright (c) 2026 DUANDCHN
 
-This package is provided in binary form. Referencing and redistributing the binaries as
-part of an application is permitted. Decompiling, modifying, redistributing source code or
-creating derivative works is not permitted without written permission from the copyright
-holder. The source code is not open source; licence terms may change in future releases.
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+following conditions:
 
-Third-party notices: see THIRD-PARTY-NOTICES.md.
+The above copyright notice and this permission notice shall be included in all copies or substantial
+portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO
+EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+USE OR OTHER DEALINGS IN THE SOFTWARE.

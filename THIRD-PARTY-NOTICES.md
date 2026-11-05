@@ -1,5 +1,23 @@
 ﻿# Third-party notices
 
+The root MIT license covers project-owned code, not the third-party material below.
+Retain these notices when redistributing relevant material. Product names identify
+references, not affiliation or endorsement.
+
+## Source map / 来源范围
+
+| Material | Location in Forge | Source and terms |
+|---|---|---|
+| Generated palette values and documented metrics | `scripts/gen-forge-palette.py`, both `Themes.*/Controls.Colors.axaml` files, palette definitions under `src/Piccolo.Forge.Avalonia/Themes/`, `docs/upstream/` | IntelliJ Platform theme JSON and referenced source; preserve Apache-2.0 attribution and [license text](licenses/Apache-2.0.txt). Mappings and generated files include Forge-specific changes. |
+| Editor move transactions and drag lifecycle | Editor code identified by Dock references | Dock MIT; pinned reference below |
+| Locale/add-on organization and template notes | Locale/theme integration and documentation | Semi.Avalonia MIT; references below |
+| Built-in vector geometry | `src/Piccolo.Forge.Avalonia/Themes/ForgeIcons.cs` | Described in source as Forge-authored geometry; applications supply their own domain icons |
+| NuGet dependencies | `Directory.Packages.props` and project references | Separately licensed dependencies; consult each package's license |
+
+The original IntelliJ reference commit was not retained in this repository. File/symbol
+references are not a complete per-file legal clearance; see [the review](docs/open-source-review.md).
+No external font, bitmap, SVG or icon-font files are tracked at the review baseline.
+
 ## Dock
 
 Forge 的 `DocumentDockFactory` 搬移事务边界（先从 source detach、再向 target attach、
@@ -67,3 +85,15 @@ material except in compliance with the License. You may obtain a copy of the Lic
 http://www.apache.org/licenses/LICENSE-2.0. Unless required by applicable law or agreed to in
 writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
 WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
+The complete Apache-2.0 text is distributed in `licenses/Apache-2.0.txt`.
+The current upstream [NOTICE.txt](https://github.com/JetBrains/intellij-community/blob/master/NOTICE.txt)
+contains the following attribution, retained here for reference:
+
+> This software includes code from IntelliJ IDEA
+> Copyright (C) JetBrains s.r.o.
+> https://www.jetbrains.com/idea/
+
+Check notices and terms at the actual source revision used; this current reference does
+not establish which revision generated the existing palettes. Semi.Avalonia's MIT terms
+are the MIT text reproduced above, with IRIHI Technology as copyright holder.

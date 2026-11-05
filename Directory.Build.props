@@ -23,8 +23,8 @@
     <VersionPrefix>12.1.1.11</VersionPrefix>
     <Authors>DUANDCHN</Authors>
     <Copyright>Copyright (c) DUANDCHN</Copyright>
-    <!-- 尚未开源：随包附自定义许可证文件，不用 SPDX 表达式 -->
-    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <!-- 项目自有代码采用 MIT；第三方内容保留原许可证，声明随包交付。 -->
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/DUANDCHN/Piccolo.Forge</PackageProjectUrl>
     <RepositoryUrl>https://github.com/DUANDCHN/Piccolo.Forge</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
@@ -56,6 +56,8 @@
     <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="/" Visible="false" />
     <None Include="$(MSBuildThisFileDirectory)LICENSE" Pack="true" PackagePath="/" Visible="false" />
     <None Include="$(MSBuildThisFileDirectory)THIRD-PARTY-NOTICES.md" Pack="true" PackagePath="/" Visible="false" />
+    <!-- 第三方许可证全文随包保留，不能只交付一个外部链接。 -->
+    <None Include="$(MSBuildThisFileDirectory)licenses/*.txt" Pack="true" PackagePath="licenses/" Visible="false" />
   </ItemGroup>
 
 </Project>
