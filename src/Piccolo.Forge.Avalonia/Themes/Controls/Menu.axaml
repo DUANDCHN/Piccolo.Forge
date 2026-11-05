@@ -120,14 +120,14 @@
             </ControlTemplate>
         </Setter>
 
-        <!-- 选中与展开共用完整高亮：换项时选中态可能先结束，展开态必须同时保留背景与文字。 -->
-        <Style Selector="^:selected /template/ Border#PART_Root, ^:open /template/ Border#PART_Root">
+        <!-- 高亮只跟随当前选中项，背景与文字同步切换；延迟关闭的旧子菜单不能继续留下蓝底。 -->
+        <Style Selector="^:selected /template/ Border#PART_Root">
             <Setter Property="Background" Value="{DynamicResource Forge.MenuItem.SelectedBackground}" />
         </Style>
-        <Style Selector="^:selected, ^:open">
+        <Style Selector="^:selected">
             <Setter Property="Foreground" Value="{DynamicResource Forge.MenuItem.SelectedForeground}" />
         </Style>
-        <Style Selector="^:selected /template/ TextBlock#PART_Accelerator, ^:open /template/ TextBlock#PART_Accelerator">
+        <Style Selector="^:selected /template/ TextBlock#PART_Accelerator">
             <Setter Property="Foreground" Value="{DynamicResource Forge.MenuItem.AcceleratorSelected}" />
         </Style>
 
@@ -136,8 +136,8 @@
             <Setter Property="IsVisible" Value="False" />
         </Style>
         <Style Selector="^:empty /template/ TextBlock#PART_Accelerator">
-            <!-- 没有快捷键文本时连同 24px 间隔一起收起，避免普通菜单右侧留下空列。 -->
-            <Setter Property="IsVisible" Value="{Binding Text, RelativeSource={RelativeSource Self}, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            <!-- 保留原有右侧预留，与左侧图标列平衡；无快捷键也不能把文字挤到右边缘。 -->
+            <Setter Property="IsVisible" Value="True" />
         </Style>
 
         <Style Selector="^:checked /template/ Path#PART_CheckGlyph">
