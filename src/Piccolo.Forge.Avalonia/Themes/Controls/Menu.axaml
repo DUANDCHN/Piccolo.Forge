@@ -66,8 +66,10 @@
                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Panel>
 
+                        <!-- 左侧图标列后留 5px；右侧叶项预留 24px，文字两侧空白保持接近。 -->
                         <ContentPresenter Grid.Column="1"
                                           Name="PART_HeaderPresenter"
+                                          Margin="5,0,0,0"
                                           Content="{TemplateBinding Header}"
                                           ContentTemplate="{TemplateBinding HeaderTemplate}"
                                           VerticalAlignment="Center"
@@ -92,14 +94,14 @@
                             </TextBlock.Text>
                         </TextBlock>
 
-                        <!-- 子菜单箭头，仅有子项时显示。 -->
+                        <!-- 子菜单箭头连同左右间距占 24px，与叶项的右侧预留同宽。 -->
                         <Path Grid.Column="3"
                               Name="PART_SubMenuChevron"
                               Data="M 0 0 L 4 4 L 0 8"
                               Stroke="{TemplateBinding Foreground}"
                               StrokeThickness="1.2"
                               StrokeLineCap="Round" StrokeJoin="Round"
-                              Margin="12,0,0,0"
+                              Margin="16,0,4,0"
                               VerticalAlignment="Center" />
 
                         <Popup Name="PART_Popup"
