@@ -2451,6 +2451,13 @@ public class ForgeControl : TemplatedControl
             // 没给回落 Palette.WindowBorder。这条线才是经典档「面板之间那条线」的真身。
             dockBorderBrush: DockDividerBrush);
 
+        // 外部窗口已拥有自己的外框，面板不再叠加停靠分隔线或岛描边。
+        // 每次同步先应用停靠装饰，重新停靠时即可自然恢复原有边框。
+        if (ToolWindowManager.IsExternal(info.Type))
+        {
+            host.BorderThickness = default;
+        }
+
         var header = _panelHeaders[vm.Id];
         header.Palette = Palette;
         header.Title = vm.Title;
