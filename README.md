@@ -1,4 +1,4 @@
-﻿# Piccolo.Forge
+# Piccolo.Forge
 
 An [Avalonia](https://avaloniaui.net/) implementation of the layout and visual styles of
 JetBrains IDEs, including IntelliJ IDEA and Rider, providing tool windows, docking,
@@ -22,13 +22,12 @@ dotnet add package Piccolo.Forge.Themes.Islands --version 12.1.1.11
 ```
 
 Then install `<forge:ForgeTheme Family="Islands" />` in `Application.Styles` and compose
-your window with `ForgeControl` and `ForgeEditorControl`. The
-[NuGet quick start](docs/quick-start.md) includes project creation, package installation,
-complete source files and `dotnet run`. All Forge package references must use the same version.
+your window with `ForgeControl` and `ForgeEditorControl`. The complete NuGet installation and runnable application are included below in
+[使用方法](#使用方法), including project creation, full source files and `dotnet run`. All Forge package references must use the same version.
 
 | Goal | Documentation |
 |---|---|
-| Install NuGet packages and write a complete application | [NuGet quick start](docs/quick-start.md) |
+| Install NuGet packages and write a complete application | [Installation and complete code below](#使用方法) |
 | Explore the four runnable examples | [Samples](samples/README.md) |
 | Integrate panels, themes and persistence | [Host integration](docs/conventions/宿主接入指南.md) |
 | Build, test or contribute | [Contributing](CONTRIBUTING.md) |
@@ -97,6 +96,17 @@ is new in 12.1). The CommunityToolkit variant requires **CommunityToolkit.Mvvm �
 Compatible with AOT compilation and trimming.
 
 ## Usage
+
+Install the packages from NuGet in your Avalonia project (no source checkout required):
+
+```bash
+dotnet add package Piccolo.Forge.Avalonia --version 12.1.1.11
+dotnet add package Piccolo.Forge.Themes.Islands --version 12.1.1.11
+```
+
+For the expUI snippets below, install `Piccolo.Forge.Themes.ExpUi` at the same version instead.
+A complete application, including its project file, entry point and window code, is included
+in this README under [使用方法](#使用方法).
 
 Install one theme entry in `Application.Styles` — pick the layer you need
 (`xmlns:forge="using:Piccolo.Forge.Avalonia"`). Changing the family requires a restart.
@@ -320,7 +330,7 @@ This change does not alter the license of packages already published before it.
 
 # 中文说明
 
-导航：[NuGet 安装与完整代码](docs/quick-start.md) · [文档目录](docs/README.md) · [源码示例](samples/README.md) ·
+导航：[安装与使用](#使用方法) · [文档目录](docs/README.md) · [源码示例](samples/README.md) ·
 [参与开发](CONTRIBUTING.md) · [第三方来源](THIRD-PARTY-NOTICES.md) · [安全反馈](SECURITY.md)。
 
 Piccolo.Forge 是 JetBrains IDE（包括 IntelliJ IDEA、Rider）布局与视觉风格的 Avalonia 实现，
@@ -371,116 +381,201 @@ Piccolo.Forge 是 JetBrains IDE（包括 IntelliJ IDEA、Rider）布局与视觉
 
 ## 使用方法
 
-在 `Application.Styles` 中安装一个主题入口，按需要的层挑
-（`xmlns:forge="using:Piccolo.Forge.Avalonia"`）。更换族需重启应用程序。
+本教程从空目录创建一个可运行的 Avalonia 应用，**不需要克隆 Forge 仓库，不使用 ProjectReference**。
+已有 Avalonia 应用可从第 2 步开始，将主题和窗口内容整合到自己的工程。
 
-```xml
-<Application.Styles>
-    <forge:ForgeTheme Family="ExpUi" />           <!-- 全套：控件 + 外壳 -->
-</Application.Styles>
+### 1. 新建应用
+
+安装 .NET 10 SDK，在终端运行：
+
+```bash
+dotnet new console -n ForgeDemo --framework net10.0
+cd ForgeDemo
 ```
 
-```xml
-<forge:ForgeControlsTheme Family="ExpUi" />       <!-- 只要控件：完整基础主题，
-                                                       不含停靠，自身即是基础主题 -->
+这里用空的 .NET 工程手动添加 Avalonia，不需要另外安装 Avalonia 项目模板。
+
+### 2. 安装 NuGet 包
+
+在 `ForgeDemo.csproj` 所在目录执行：
+
+```bash
+dotnet add package Avalonia --version 12.1.0
+dotnet add package Avalonia.Desktop --version 12.1.0
+dotnet add package Piccolo.Forge.Avalonia --version 12.1.1.11
+dotnet add package Piccolo.Forge.Themes.Islands --version 12.1.1.11
 ```
 
-```xml
-<FluentTheme />                                   <!-- 自己的基础主题在前 -->
-<forge:ForgeShellTheme Family="ExpUi" />          <!-- 只要外壳，叠在其上 -->
-```
+本例固定使用一组已发布、兼容的版本，便于复现。所有 `Piccolo.Forge.*` 包使用相同版本；
+这里选择 Islands 风格，只需安装 Islands 资源包。`Model` 和 `Mvvm` 由传递依赖带入。
 
-用到 DataGrid / ColorPicker 时，引对应附加包并与主题入口一起挂上 —— 色板键由主题入口提供，
-**不装主题入口**那两族控件画得出来但没颜色，且不报错。两者**先后无所谓**：色板键走
-`DynamicResource`（延迟解析、跨 Styles 查找），隐式 ControlTheme 的目标类型也不相交。
-附加包没有 `Family` —— 模板两档共用，颜色自动跟主题入口选的族走：
+将工程输出类型改为 `WinExe`；完成后的 `ForgeDemo.csproj` 如下：
 
 ```xml
-<Application.Styles>
-    <forge:ForgeTheme Family="ExpUi" />
-    <forgedg:ForgeDataGridTheme />    <!-- xmlns:forgedg="using:Piccolo.Forge.Avalonia.DataGrid" -->
-    <forgecpk:ForgeColorPickerTheme /><!-- xmlns:forgecpk="using:Piccolo.Forge.Avalonia.ColorPicker" -->
-</Application.Styles>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Avalonia 与桌面平台启动入口。 -->
+    <PackageReference Include="Avalonia" Version="12.1.0" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.0" />
+    <!-- Forge 主包与所选主题资源使用同一个版本。 -->
+    <PackageReference Include="Piccolo.Forge.Avalonia" Version="12.1.1.11" />
+    <PackageReference Include="Piccolo.Forge.Themes.Islands" Version="12.1.1.11" />
+  </ItemGroup>
+</Project>
 ```
 
-两档都要的宿主两个资源包都引，族从配置来。安装入口有两种等价方式，**任选其一，不要都写**：
+包许可以所安装版本内的 LICENSE 为准。12.1.1.11 的包仍带原有许可，当前仓库源码的 MIT
+变更不追溯修改旧包；此教程也不代表发布了一个新的 MIT 包版本。
 
-**方式一：XAML 里装** —— `{x:Static}` 在 XAML 装载时读一次配置
-（启动时求值一次，不是动态绑定）：
+### 3. 配置程序入口和主题
 
-```xml
-<Application.Styles>
-    <forge:ForgeTheme Family="{x:Static local:Settings.Family}" />
-</Application.Styles>
-```
-
-**方式二：代码里装** —— 适合装载前后还有逻辑的宿主（先读配置文件、迁移旧值等）。
-在 `Application.Initialize` 里调用，须在任何窗口创建之前：
+用以下完整内容替换 `Program.cs`：
 
 ```csharp
-public override void Initialize()
+using Avalonia;
+
+namespace ForgeDemo;
+
+internal static class Program
 {
-    AvaloniaXamlLoader.Load(this);
-    ForgeThemeManager.Apply(this, new ForgeTheme { Family = settings.Family });
+    // 桌面 UI 使用 STA 主线程，并按系统选择 Avalonia 平台后端。
+    [STAThread]
+    public static void Main(string[] args) =>
+        AppBuilder.Configure<App>()
+            .UsePlatformDetect()
+            .LogToTrace()
+            .StartWithClassicDesktopLifetime(args);
 }
 ```
 
-两种方式换族都要重启生效。界面文案由
-`ForgeThemeManager.ApplyLocale(this, CultureInfo.CurrentUICulture)` 安装，
-与主题无关，两种方式下都这么写。
-
-组装外壳。VM 侧两种方式完全相同：
-
-```csharp
-// 注册面板。仅指定停靠位置；条带按钮位置由此推导。
-var shell = new ToolWindowShellViewModel();
-shell.Add(new ProjectPanel(),   ToolWindowAnchor.Left);
-shell.Add(new StructurePanel(), ToolWindowAnchor.Left, isSplit: true);
-shell.Add(new TerminalPanel(),  ToolWindowAnchor.Bottom);
-
-// 编辑区：标签页与分屏树。
-var editor = new EditorAreaViewModel();
-editor.Open("readme", "README.md", content: new ReadmeView());
-
-shell.Open("Project");
-```
-
-再把它们接给控件 —— **两种等价方式，任选其一**：
-
-**方式一：XAML 里绑**（`Shell` / `Editor` 都是可绑定属性，对位 Dock 的
-`<DockControl Layout="{Binding Layout}"/>`；完整形态见 `Sample.Mvvm` 示例）：
+新建 `App.axaml`：
 
 ```xml
-<forge:ForgeControl Shell="{Binding Shell}">
-    <forge:ForgeControl.EditorContent>
-        <forge:ForgeEditorControl Editor="{Binding Editor}" />
-    </forge:ForgeControl.EditorContent>
-</forge:ForgeControl>
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:forge="using:Piccolo.Forge.Avalonia"
+             x:Class="ForgeDemo.App">
+  <Application.Styles>
+    <!-- ForgeTheme 已包含基础控件和外壳主题，不再同时安装 FluentTheme。 -->
+    <forge:ForgeTheme Family="Islands" />
+  </Application.Styles>
+</Application>
 ```
 
-**方式二：代码里 `Attach`**（与设属性等价）：
+新建 `App.axaml.cs`：
 
 ```csharp
-var editorControl = new ForgeEditorControl();
-editorControl.Attach(editor);
+using System.Globalization;
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Markup.Xaml;
+using Piccolo.Forge.Avalonia;
 
-var frame = new ForgeControl { EditorContent = editorControl };
-frame.Attach(shell);
-window.Content = frame;
-```
+namespace ForgeDemo;
 
-面板为任意派生自 `ToolWindowPanel`（或其 CommunityToolkit 版本）的类，提供 `Id`、`Title` 与 `Icon`。
-面板对象本身作为内容 VM，由宿主数据模板解析；`Content` 属性在登记后的 `ToolWindowViewModel` 上。
-
-外观在外框上配置一次，由编辑区继承：
-
-```csharp
-frame.Appearance = ForgeAppearance.Default with
+public partial class App : Application
 {
-    Family = ForgeThemeFamily.Islands,   // 须与主题入口上的 Family 一致
-    HeaderHeight = 32,
-};
+    public override void Initialize()
+    {
+        // 加载主题，再安装随系统语言选择的菜单与面板文案。
+        AvaloniaXamlLoader.Load(this);
+        ForgeThemeManager.ApplyLocale(this, CultureInfo.CurrentUICulture);
+    }
+
+    public override void OnFrameworkInitializationCompleted()
+    {
+        // 由桌面生命周期管理主窗口。
+        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+            desktop.MainWindow = new MainWindow();
+
+        base.OnFrameworkInitializationCompleted();
+    }
+}
 ```
+
+### 4. 创建工具面板和编辑器标签页
+
+新建 `MainWindow.cs`。它是完整的代码窗口，不需要 `MainWindow.axaml`：
+
+```csharp
+using Avalonia.Controls;
+using Piccolo.Forge.Avalonia;
+using Piccolo.Forge.Model;
+using Piccolo.Forge.Mvvm;
+using Piccolo.Forge.Themes;
+
+namespace ForgeDemo;
+
+public sealed class MainWindow : Window
+{
+    public MainWindow()
+    {
+        Title = "Forge NuGet Demo";
+        Width = 1000;
+        Height = 700;
+
+        // 固定 Id 用于代码和布局存档；标题是显示给用户的名称。
+        var shell = new ToolWindowShellViewModel();
+        shell.Add("Project", "项目", ToolWindowAnchor.Left,
+            contentFactory: () => new TextBlock { Text = "这里放项目树或其他面板内容。" });
+        shell.Add("Log", "日志", ToolWindowAnchor.Bottom,
+            contentFactory: () => new TextBlock { Text = "应用已启动。" });
+        shell.Open("Project");
+
+        // 中间编辑区通过标签页承载内容，内容可以是控件或由宿主解析的 VM。
+        var editor = new EditorAreaViewModel();
+        editor.Open("welcome", "欢迎", new TextBlock { Text = "这是编辑器标签页。" });
+        var editorControl = new ForgeEditorControl();
+        editorControl.Attach(editor);
+
+        // 外壳外观与 App.axaml 安装的主题族保持一致。
+        var frame = new ForgeControl
+        {
+            Appearance = ForgeAppearance.Default with { Family = ForgeThemeFamily.Islands },
+            EditorContent = editorControl,
+        };
+        frame.Attach(shell);
+        Content = frame;
+    }
+}
+```
+
+项目现在包含：
+
+```text
+ForgeDemo/
+  ForgeDemo.csproj
+  Program.cs
+  App.axaml
+  App.axaml.cs
+  MainWindow.cs
+```
+
+### 5. 运行
+
+```bash
+dotnet run
+```
+
+启动后应出现左侧「项目」工具窗口、中间「欢迎」标签页，以及侧栏「日志」入口。
+可以点击侧栏开关面板，通过面板菜单尝试浮动与独立窗口，拖动面板改变停靠位置。
+
+### 已有项目如何选择
+
+- 完整控件与外壳：安装主包和资源族，使用 `ForgeTheme`，如本例。
+- 只要控件主题：使用 `ForgeControlsTheme`，不需要创建 `ForgeControl`。
+- 保留已有基础主题、只用外壳：使用 `ForgeShellTheme`，安装在已有基础主题之后。
+- 改用经典风格：安装同版本 `Piccolo.Forge.Themes.ExpUi`，将主题和外观的 `Family` 一起改为 `ExpUi`。
+- DataGrid/ColorPicker：另装同版本的主题附加包，并在 `Application.Styles` 安装对应主题入口。
+
+主题族切换需重启；明暗由 Avalonia 的主题变体控制。布局持久化及宿主职责见
+[接入指南](docs/conventions/宿主接入指南.md)和 [本页布局持久化](#布局持久化)。
 
 ### 布局持久化
 
