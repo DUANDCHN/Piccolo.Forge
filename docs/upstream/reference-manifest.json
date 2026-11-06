@@ -1,0 +1,68 @@
+{
+  "revision": "38a8934174f7d14c0c939ae140b63b037a3830e5",
+  "files": [
+    {
+      "path": "LICENSE.txt",
+      "sha256": "3f382c8820a51e4d1e22b2f50408a52eb6fe6cfff36bcf8a8dfe104df00251a3"
+    },
+    {
+      "path": "NOTICE.txt",
+      "sha256": "2262ebb5abcd81ca9d05581c37ad2ebbb9d431115fce1b23a5812b414415ebff"
+    },
+    {
+      "path": "platform/platform-impl/src/com/intellij/openapi/wm/impl/ToolWindowManagerImpl.kt",
+      "sha256": "7d4a2541097e8dce9349bac4853a69d24eb3c25fe8461001d7ed897fe7f7736a"
+    },
+    {
+      "path": "platform/platform-resources/src/themes/darcula.theme.json",
+      "sha256": "858efbd6afdb12f26b4757c4ff7b1bccb8bdefc286797fa6344769496b6c59cb"
+    },
+    {
+      "path": "platform/platform-resources/src/themes/expUI/expUI_dark.theme.json",
+      "sha256": "1e41f0c62c1ebf49f75cdd10182a48c100f74b443ecc53ed642458e2e58d81ee"
+    },
+    {
+      "path": "platform/platform-resources/src/themes/expUI/expUI_light.theme.json",
+      "sha256": "411be97aed281d557a14c7f2d03b364e41299658fc7d377ae39950bec5ca8ff1"
+    },
+    {
+      "path": "platform/platform-resources/src/themes/expUI/expUI_light_with_light_header.theme.json",
+      "sha256": "6c699a4b0826be6f53cb40c3fd0bf767429e70e5434d4119957e69eb48a8efe5"
+    },
+    {
+      "path": "platform/platform-resources/src/themes/intellijlaf.theme.json",
+      "sha256": "4450e2a85381b7b644c73bc9ec21f898aa55b184fc80f109a43ae9ff67af21ba"
+    },
+    {
+      "path": "platform/platform-resources/src/themes/islands/ManyIslandsDark.theme.json",
+      "sha256": "d9f543389ddbadd8231e1bc5f430c88de2994eb34d877df1f1ae79728f547e85"
+    },
+    {
+      "path": "platform/platform-resources/src/themes/islands/ManyIslandsLight.theme.json",
+      "sha256": "0538dee08c731a454ac85e6ba74c27e80264effa924c5c8405f40c204fdb019a"
+    },
+    {
+      "path": "platform/util/ui/src/com/intellij/util/ui/JBUI.java",
+      "sha256": "bec78999e074b43f82d07d6982aefdd0e68708fcba915348bb74866f669f78be"
+    }
+  ],
+  "byte_identical": {
+    "ExpUi": true,
+    "Islands": true
+  },
+  "repository": "https://github.com/JetBrains/intellij-community",
+  "verified_on": "2026-11-05",
+  "provenance": "Content-matched reference baseline; original checkout identity is unknown.",
+  "generated_files": [
+    {
+      "path": "src/Piccolo.Forge.Themes.ExpUi/Controls.Colors.axaml",
+      "sha256": "da56049c1b556b2bb529490e7da6937b1c01bfc870f02c67cfcd09bea4d82f81"
+    },
+    {
+      "path": "src/Piccolo.Forge.Themes.Islands/Controls.Colors.axaml",
+      "sha256": "823480589da935ceeebbc66f9669a4e8481afc73a7567e7229d2b3e465b690c5"
+    }
+  ],
+  "generated_hash_mode": "sha256-after-crlf-to-lf",
+  "reverified_on": "2026-11-06"
+}

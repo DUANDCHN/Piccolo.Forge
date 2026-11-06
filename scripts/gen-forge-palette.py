@@ -560,7 +560,7 @@ def resolve(theme, sources, variant):
 def main():
     missing = [p for p in SRC.values() if not os.path.exists(p)]
     if missing:
-        sys.exit('找不到上游主题 JSON（需要同级的 Piccolo.Forge 仓）：\n  ' + '\n  '.join(missing))
+        sys.exit('找不到上游主题 JSON（按 docs/conventions/拉上游参考.md 准备固定版本）：\n  ' + '\n  '.join(missing))
 
     for family in ('ExpUi', 'Islands'):
         blocks = []

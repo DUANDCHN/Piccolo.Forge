@@ -14,8 +14,9 @@ references, not affiliation or endorsement.
 | Built-in vector geometry | `src/Piccolo.Forge.Avalonia/Themes/ForgeIcons.cs` | Described in source as Forge-authored geometry; applications supply their own domain icons |
 | NuGet dependencies | `Directory.Packages.props` and project references | Separately licensed dependencies; consult each package's license |
 
-The original IntelliJ reference commit was not retained in this repository. File/symbol
-references are not a complete per-file legal clearance; see [the review](docs/open-source-review.md).
+The original IntelliJ checkout identity was not retained. A content-matched reference is now pinned
+to `38a8934174f7d14c0c939ae140b63b037a3830e5`: all seven theme inputs reproduce the existing palettes.
+See [verification scope and hashes](docs/upstream/来源核验.md); this is not a complete per-file legal clearance.
 No external font, bitmap, SVG or icon-font files are tracked at the review baseline.
 
 ## Dock
@@ -87,13 +88,13 @@ writing, software distributed under the License is distributed on an "AS IS" BAS
 WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 
 The complete Apache-2.0 text is distributed in `licenses/Apache-2.0.txt`.
-The current upstream [NOTICE.txt](https://github.com/JetBrains/intellij-community/blob/master/NOTICE.txt)
+The pinned upstream [NOTICE.txt](https://github.com/JetBrains/intellij-community/blob/38a8934174f7d14c0c939ae140b63b037a3830e5/NOTICE.txt)
 contains the following attribution, retained here for reference:
 
 > This software includes code from IntelliJ IDEA
 > Copyright (C) JetBrains s.r.o.
 > https://www.jetbrains.com/idea/
 
-Check notices and terms at the actual source revision used; this current reference does
-not establish which revision generated the existing palettes. Semi.Avalonia's MIT terms
+The reference baseline reproduces the generated palettes; it does not establish the identity
+of the original checkout or the sources of every historical implementation note. Semi.Avalonia's MIT terms
 are the MIT text reproduced above, with IRIHI Technology as copyright holder.

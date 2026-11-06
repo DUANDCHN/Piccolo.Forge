@@ -2,6 +2,9 @@ bin/
 obj/
 # macOS 文件夹元数据不属于项目源码。
 .DS_Store
+# Python 核验脚本的本地缓存不属于来源证据。
+__pycache__/
+*.pyc
 # 上游源码只作本地参考，不进本仓历史（几百 MB，且它有自己的版本管理）
 third_party/intellij-community/
 

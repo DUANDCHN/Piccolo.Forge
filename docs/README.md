@@ -27,5 +27,6 @@
 - [编辑区](upstream/编辑区.md)
 - [度量与主题键](upstream/度量与主题键.md)
 - [Islands 主题](upstream/Islands主题.md)
+- [固定上游版本与来源核验](upstream/来源核验.md)
 - [第三方声明](../THIRD-PARTY-NOTICES.md)
 - [开源准备审查](open-source-review.md)
