@@ -1,7 +1,12 @@
 ﻿# Piccolo.Forge
 
-Tool windows, docking and editor tabs for [Avalonia](https://avaloniaui.net/), with a layout similar to the IntelliJ Platform.
+Tool windows, docking, editor tabs and control themes for [Avalonia](https://avaloniaui.net/),
+with layout and visual styles inspired by JetBrains IDEs, including IntelliJ IDEA and Rider.
 [中文说明](#中文说明)
+
+Piccolo.Forge is an independent project, not affiliated with or endorsed by JetBrains.
+Upstream implementation references and third-party terms are documented in
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 **License:** [MIT](LICENSE) for project-owned code; third-party material retains its own terms.
 Previously published packages retain the license included in each package.
@@ -305,7 +310,12 @@ This change does not alter the license of packages already published before it.
 导航：[快速开始](docs/quick-start.md) · [文档目录](docs/README.md) · [运行示例](samples/README.md) ·
 [参与开发](CONTRIBUTING.md) · [第三方来源](THIRD-PARTY-NOTICES.md) · [安全反馈](SECURITY.md)。
 
-Piccolo.Forge 为 Avalonia 桌面应用程序提供与 IntelliJ IDEA、Rider 类似的工作台布局：
+Piccolo.Forge 为 Avalonia 桌面应用程序提供工具窗口、停靠、编辑器标签页和控件主题，
+布局与视觉风格参考 JetBrains IDE（包括 IntelliJ IDEA、Rider）。
+这是独立项目，与 JetBrains 无隶属或背书关系；源码参考依据及第三方条款见
+[第三方声明](THIRD-PARTY-NOTICES.md)。
+
+主要能力：
 
 - **工具窗口**停靠于窗口四边，每边划分为两个半区，以 IntelliJ 新版界面的竖向图标**条带**呈现。
 - **视图模式**：停靠（固定或不固定）、取消停靠、浮动、独立窗口，显示与自动隐藏规则参考 IntelliJ Platform。
