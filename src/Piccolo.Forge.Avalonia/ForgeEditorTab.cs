@@ -25,6 +25,8 @@ public class ForgeEditorTab : TabStripItem
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
     {
         base.OnApplyTemplate(e);
+        // 默认属性未发生变化时也需要初始化图标与标题的预留位置。
+        SyncParts();
         // Applying a template rebuilds VisualChildren. A host-supplied Control
         // icon is deliberately outside the empty container template, so restore it.
         if (_iconControl is not null && _iconControl.GetVisualParent() is null)
@@ -284,7 +286,11 @@ public class ForgeEditorTab : TabStripItem
             ? ForgeMetrics.EditorTabRowHeight(islands)
             : RowHeightOverride;
 
-        return new Size(width, rowHeight);
+        // HeaderTabsPanel 使用同一标签上限（TabContentLayout 的受限槽位）。
+        // 模板必须按实际槽宽测量，长文件名才能省略，而不是带着自然宽度盖住相邻标签。
+        var measuredWidth = Math.Min(width, Math.Min(availableSize.Width, ForgeMetrics.TabMaxWidth));
+        base.MeasureOverride(new Size(measuredWidth, rowHeight));
+        return new Size(measuredWidth, rowHeight);
     }
 
     /// <summary>
@@ -597,9 +603,9 @@ public class ForgeEditorTab : TabStripItem
     {
         LeadingGeometry = Icon as Geometry;
         LeadingIconMargin = new Thickness(ForgeMetrics.EditorTabTextInsetLeft, 0, 0, 0);
-        TitleMargin = new Thickness(ForgeMetrics.EditorTabTextInsetLeft + LeadingIconWidth, 0, 0, 0);
-
         var insetRight = ForgeMetrics.EditorTabInsetRight(Palette.Island is not null);
+        // 与测量、关闭按钮命中区域使用同一组度量，标题不可侵入图钉或关闭按钮。
+        TitleMargin = new Thickness(ForgeMetrics.EditorTabTextInsetLeft + LeadingIconWidth, 0, insetRight + IconAreaWidth, 0);
         TabIconMargin = new Thickness(0, 0, insetRight, 0);
         TabIconHoverMargin = new Thickness(0, 0, insetRight - TabIconHoverPadding, 0);
 

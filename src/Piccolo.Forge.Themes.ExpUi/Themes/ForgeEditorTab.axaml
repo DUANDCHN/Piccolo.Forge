@@ -1,4 +1,4 @@
-﻿<!--  ★ 编辑区的文档标签。★ **真模板**：底与描边、下划线、标题、两个图标都在模板里。
+<!--  ★ 编辑区的文档标签。★ **真模板**：底与描边、下划线、标题、两个图标都在模板里。
 
       与其它控件不同的一点：底与描边是 **5 态 × 2 族**，两族还是两个 painter
       （expUI 整条贴边 + 下划线；Islands 改画内缩圆角块、完全不画下划线），
@@ -24,7 +24,8 @@
         <Setter Property="Template">
             <ControlTemplate TargetType="forge:ForgeEditorTab">
                 <!--  次序 = 原先 Render 里的画序：底与描边 → 下划线 → 图标 → 标题 → 关闭/图钉  -->
-                <Panel Background="Transparent">
+                <!-- 标签槽位可能因窗口缩窄而受限，任何内容都不得越过自身边界。 -->
+                <Panel Background="Transparent" ClipToBounds="True">
                     <!--  底与描边。两族的差别整个落在 Margin / CornerRadius 上：
                           expUI 全 0（整条贴边、直角），Islands 是那个内缩圆角块。
                           ⚠ BorderThickness=1 对应原来的 new Pen(b, 1)；Avalonia 的笔跨在边线上、
@@ -68,7 +69,9 @@
                         FontSize="{TemplateBinding TitleFontSize}"
                         FontWeight="{TemplateBinding TitleFontWeight}"
                         Foreground="{TemplateBinding Foreground}"
-                        HorizontalAlignment="Left"
+                        HorizontalAlignment="Stretch"
+                        TextTrimming="CharacterEllipsis"
+                        TextWrapping="NoWrap"
                         Margin="{TemplateBinding TitleMargin}"
                         Name="PART_Title"
                         Text="{TemplateBinding Title}"

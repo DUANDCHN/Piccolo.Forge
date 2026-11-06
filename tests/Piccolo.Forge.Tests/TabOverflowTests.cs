@@ -23,6 +23,48 @@ namespace Piccolo.Forge.Tests;
 /// </remarks>
 public class TabOverflowTests
 {
+    /// <summary>文件名超过标签上限时，标题仍必须留在图标与关闭按钮之间。</summary>
+    [AvaloniaTheory]
+    [InlineData(false, 800, false)]
+    [InlineData(true, 800, false)]
+    [InlineData(false, 260, true)]
+    [InlineData(true, 260, true)]
+    public void 长文件名不会覆盖关闭按钮或相邻标签(bool islands, int width, bool pinned)
+    {
+        using var theme = ForgeThemeScope.Use(islands
+            ? Piccolo.Forge.Themes.ForgeThemeFamily.Islands
+            : Piccolo.Forge.Themes.ForgeThemeFamily.ExpUi);
+        var tab = new ForgeEditorTab
+        {
+            Title = new string('W', 120) + ".tiff",
+            TitleFontWeight = global::Avalonia.Media.FontWeight.Bold,
+            Palette = islands ? Piccolo.Forge.Themes.ForgePalette.IslandsLight : Piccolo.Forge.Themes.ForgePalette.ExpUiLight,
+            Icon = new TextBlock { Text = "▣" },
+            IsSelected = true,
+            CanBeClosed = true,
+            IsPinned = pinned,
+        };
+        var panel = new HeaderTabsPanel { WrapRows = true };
+        panel.Children.Add(tab);
+        panel.Children.Add(new ForgeEditorTab { Title = "next.tiff" });
+        var window = new Window { Width = width, Height = 160, Content = panel };
+        try
+        {
+            window.Show();
+            window.UpdateLayout();
+            Dispatcher.UIThread.RunJobs();
+            var title = tab.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Name == "PART_Title");
+            var close = tab.GetVisualDescendants().OfType<ForgeGeometryIcon>().Single(t => t.Name == "PART_TabIcon");
+            Assert.Equal(global::Avalonia.Media.TextTrimming.CharacterEllipsis, title.TextTrimming);
+            var titleRight = title.TranslatePoint(new Point(title.Bounds.Width, 0), tab)!.Value.X;
+            var closeLeft = close.TranslatePoint(default, tab)!.Value.X;
+            Assert.True(titleRight <= closeLeft, "长标题必须为关闭按钮预留空间。");
+            Assert.True(tab.Bounds.Width <= Piccolo.Forge.Themes.ForgeMetrics.TabMaxWidth);
+            Assert.True(title.TextLayout.WidthIncludingTrailingWhitespace <= title.Bounds.Width);
+        }
+        finally { window.Close(); }
+    }
+
     private static HeaderTabsPanel Panel(int count, bool wrap = true)
     {
         var panel = new HeaderTabsPanel { WrapRows = wrap };
