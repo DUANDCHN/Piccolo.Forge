@@ -1,7 +1,8 @@
 ﻿# Piccolo.Forge
 
-Tool windows, docking, editor tabs and control themes for [Avalonia](https://avaloniaui.net/),
-with layout and visual styles inspired by JetBrains IDEs, including IntelliJ IDEA and Rider.
+An [Avalonia](https://avaloniaui.net/) implementation of the layout and visual styles of
+JetBrains IDEs, including IntelliJ IDEA and Rider, providing tool windows, docking,
+editor tabs and control themes.
 [中文说明](#中文说明)
 
 Piccolo.Forge is an independent project, not affiliated with or endorsed by JetBrains.
@@ -310,8 +311,8 @@ This change does not alter the license of packages already published before it.
 导航：[快速开始](docs/quick-start.md) · [文档目录](docs/README.md) · [运行示例](samples/README.md) ·
 [参与开发](CONTRIBUTING.md) · [第三方来源](THIRD-PARTY-NOTICES.md) · [安全反馈](SECURITY.md)。
 
-Piccolo.Forge 为 Avalonia 桌面应用程序提供工具窗口、停靠、编辑器标签页和控件主题，
-布局与视觉风格参考 JetBrains IDE（包括 IntelliJ IDEA、Rider）。
+Piccolo.Forge 是 JetBrains IDE（包括 IntelliJ IDEA、Rider）布局与视觉风格的 Avalonia 实现，
+提供工具窗口、停靠、编辑器标签页和控件主题。
 这是独立项目，与 JetBrains 无隶属或背书关系；源码参考依据及第三方条款见
 [第三方声明](THIRD-PARTY-NOTICES.md)。
 
