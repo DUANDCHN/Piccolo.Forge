@@ -17,8 +17,8 @@ Previously published packages retain the license included in each package.
 Use Forge from NuGet; cloning this repository is not required. In your Avalonia project:
 
 ```bash
-dotnet add package Piccolo.Forge.Avalonia --version 12.1.1.11
-dotnet add package Piccolo.Forge.Themes.Islands --version 12.1.1.11
+dotnet add package Piccolo.Forge.Avalonia --version 12.1.2
+dotnet add package Piccolo.Forge.Themes.Islands --version 12.1.2
 ```
 
 Then install `<forge:ForgeTheme Family="Islands" />` in `Application.Styles` and compose
@@ -100,8 +100,8 @@ Compatible with AOT compilation and trimming.
 Install the packages from NuGet in your Avalonia project (no source checkout required):
 
 ```bash
-dotnet add package Piccolo.Forge.Avalonia --version 12.1.1.11
-dotnet add package Piccolo.Forge.Themes.Islands --version 12.1.1.11
+dotnet add package Piccolo.Forge.Avalonia --version 12.1.2
+dotnet add package Piccolo.Forge.Themes.Islands --version 12.1.2
 ```
 
 For the expUI snippets below, install `Piccolo.Forge.Themes.ExpUi` at the same version instead.
@@ -402,8 +402,8 @@ cd ForgeDemo
 ```bash
 dotnet add package Avalonia --version 12.1.0
 dotnet add package Avalonia.Desktop --version 12.1.0
-dotnet add package Piccolo.Forge.Avalonia --version 12.1.1.11
-dotnet add package Piccolo.Forge.Themes.Islands --version 12.1.1.11
+dotnet add package Piccolo.Forge.Avalonia --version 12.1.2
+dotnet add package Piccolo.Forge.Themes.Islands --version 12.1.2
 ```
 
 本例固定使用一组已发布、兼容的版本，便于复现。所有 `Piccolo.Forge.*` 包使用相同版本；
@@ -424,14 +424,14 @@ dotnet add package Piccolo.Forge.Themes.Islands --version 12.1.1.11
     <PackageReference Include="Avalonia" Version="12.1.0" />
     <PackageReference Include="Avalonia.Desktop" Version="12.1.0" />
     <!-- Forge 主包与所选主题资源使用同一个版本。 -->
-    <PackageReference Include="Piccolo.Forge.Avalonia" Version="12.1.1.11" />
-    <PackageReference Include="Piccolo.Forge.Themes.Islands" Version="12.1.1.11" />
+    <PackageReference Include="Piccolo.Forge.Avalonia" Version="12.1.2" />
+    <PackageReference Include="Piccolo.Forge.Themes.Islands" Version="12.1.2" />
   </ItemGroup>
 </Project>
 ```
 
-包许可以所安装版本内的 LICENSE 为准。12.1.1.11 的包仍带原有许可，当前仓库源码的 MIT
-变更不追溯修改旧包；此教程也不代表发布了一个新的 MIT 包版本。
+12.1.2 是首个采用 MIT 许可的 NuGet 版本，自有代码采用 MIT，第三方内容保留原许可。
+包许可以所安装版本内的 LICENSE 和第三方声明为准；12.1.1.11 及此前版本保留原有许可。
 
 ### 3. 配置程序入口和主题
 
