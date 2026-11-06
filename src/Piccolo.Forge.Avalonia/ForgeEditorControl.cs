@@ -897,6 +897,10 @@ public class ForgeEditorControl : TemplatedControl
 
             Detach(_groupHosts[group]);
             _groupHosts.Remove(group);
+            // 整组退出也须走容器清理，释放由图标工厂创建的实例与对应缓存键。
+            _groupStrips[group].ItemsSource = null;
+            // 事件接线标记仅用于去重，不能成为已移除标签条的所有者。
+            _wiredStrips.Remove(_groupStrips[group]);
             _groupStrips.Remove(group);
             _groupStripHosts.Remove(group);
             _groupStripLines.Remove(group);
@@ -904,6 +908,8 @@ public class ForgeEditorControl : TemplatedControl
             _groupBodyLayers.Remove(group);
             _groupBackplates.Remove(group);
             _groupActions.Remove(group);
+            // 分屏收拢或末个标签关闭可能移除组；更多按钮须随旧组退出缓存。
+            _groupMoreButtons.Remove(group);
         }
     }
 
@@ -1209,6 +1215,12 @@ public class ForgeEditorControl : TemplatedControl
         //   菜单只在这儿配一次，落空就永远没有。
         if (_wiredStrips.Add(strip))
         {
+            // 图标工厂结果的寿命跟随 Avalonia 容器；关闭或搬组时同步移除缓存键。
+            strip.ContainerClearing += (_, e) =>
+            {
+                if (e.Container is ForgeEditorTab cleared)
+                    _madeIcons.Remove(cleared);
+            };
             strip.ContainerPrepared += (_, e) =>
             {
                 if (e.Container is ForgeEditorTab prepared && e.Index < vm.Tabs.Count)

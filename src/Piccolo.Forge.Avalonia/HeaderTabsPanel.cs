@@ -17,6 +17,18 @@ namespace Piccolo.Forge.Avalonia;
 [ForgeThemeless("纯布局面板：只把标签排成一行。")]
 internal class HeaderTabsPanel : Panel
 {
+    /// <summary>槽位跟随子元素集合释放，不等待下一轮排布或整个面板销毁。</summary>
+    public HeaderTabsPanel()
+    {
+        Children.CollectionChanged += (_, _) =>
+        {
+            // 槽位服务于 TabContentLayout 式的当前标签排布与拖动命中（见类注释）。
+            // 已移除标签不再有格子；遗留的强引用会经标签内容把整张文档视图留住。
+            foreach (var child in _slots.Keys.Where(child => !Children.Contains(child)).ToArray())
+                _slots.Remove(child);
+        };
+    }
+
     /// <summary>
     /// 有多少个 tab 因为放不下被压成了 0 宽。
     /// </summary>
