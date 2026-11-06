@@ -14,9 +14,21 @@ Previously published packages retain the license included in each package.
 
 ## Start here
 
+Use Forge from NuGet; cloning this repository is not required. In your Avalonia project:
+
+```bash
+dotnet add package Piccolo.Forge.Avalonia --version 12.1.1.11
+dotnet add package Piccolo.Forge.Themes.Islands --version 12.1.1.11
+```
+
+Then install `<forge:ForgeTheme Family="Islands" />` in `Application.Styles` and compose
+your window with `ForgeControl` and `ForgeEditorControl`. The
+[NuGet quick start](docs/quick-start.md) includes project creation, package installation,
+complete source files and `dotnet run`. All Forge package references must use the same version.
+
 | Goal | Documentation |
 |---|---|
-| Install and run a minimal shell | [Quick start](docs/quick-start.md) |
+| Install NuGet packages and write a complete application | [NuGet quick start](docs/quick-start.md) |
 | Explore the four runnable examples | [Samples](samples/README.md) |
 | Integrate panels, themes and persistence | [Host integration](docs/conventions/宿主接入指南.md) |
 | Build, test or contribute | [Contributing](CONTRIBUTING.md) |
@@ -308,7 +320,7 @@ This change does not alter the license of packages already published before it.
 
 # 中文说明
 
-导航：[快速开始](docs/quick-start.md) · [文档目录](docs/README.md) · [运行示例](samples/README.md) ·
+导航：[NuGet 安装与完整代码](docs/quick-start.md) · [文档目录](docs/README.md) · [源码示例](samples/README.md) ·
 [参与开发](CONTRIBUTING.md) · [第三方来源](THIRD-PARTY-NOTICES.md) · [安全反馈](SECURITY.md)。
 
 Piccolo.Forge 是 JetBrains IDE（包括 IntelliJ IDEA、Rider）布局与视觉风格的 Avalonia 实现，
