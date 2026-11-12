@@ -144,6 +144,10 @@ public sealed record ForgeAppearance
     /// <remarks>宿主布局覆盖项，所有面板包含内置按钮共用；分隔线仍由自身宽度和 Margin 决定。</remarks>
     public double HeaderButtonWidth { get; init; } = ForgeMetrics.HeaderButtonSize;
 
+    /// <summary>条带「更多」菜单的弹出方向与对齐；默认 null，随条带侧别向内展开并对齐按钮上沿。</summary>
+    /// <remarks>宿主可覆盖为任意 Avalonia PlacementMode；屏幕边缘约束仍由 Avalonia 处理。</remarks>
+    public PlacementMode? MorePopupPlacement { get; init; }
+
     /// <summary>
     /// 条带按钮上那块**高亮底**的边长；<see cref="double.NaN"/> = 按上游算（按钮 − 图标内边距）。
     /// </summary>

@@ -218,8 +218,7 @@ public class ForgeMorePopupTests
         Click(onButton);
         Assert.True(flyout.IsOpen, "关掉之后再点，还得弹得出来 —— 这就是当初坏掉的那一下");
 
-        // ⚠ 这一下点**按钮左沿**，不是正中：菜单朝右弹、会盖住按钮右侧大半
-        //   （实测弹出层相对按钮在 (18,3)、152×34），点正中其实点在菜单上、按钮收不到。
+        // 点击按钮左沿，验证菜单保持打开时再次点击锚点可以收起。
         Click(button.TranslatePoint(new Point(4, 20), window)!.Value);
         Assert.False(flyout.IsOpen, "开着时再点按钮 = 关掉（菜单按钮就该是开合）");
 
@@ -230,6 +229,60 @@ public class ForgeMorePopupTests
             window.MouseDown(at, MouseButton.Left);
             window.MouseUp(at, MouseButton.Left);
             Dispatcher.UIThread.RunJobs();
+        }
+    }
+
+    /// <summary>真实弹出多行菜单，验证左右条带默认向内展开且上沿与按钮对齐，避免中心对齐造成跳位。</summary>
+    [AvaloniaTheory]
+    [InlineData(StripeSide.Left, PlacementMode.RightEdgeAlignedTop)]
+    [InlineData(StripeSide.Right, PlacementMode.LeftEdgeAlignedTop)]
+    public void 更多菜单默认对齐按钮上沿(StripeSide side, PlacementMode expected)
+    {
+        var shell = Hidden(out _);
+        for (var i = 0; i < 3; i++)
+        {
+            var vm = shell.Add("hidden" + i, "隐藏面板" + i, ToolWindowAnchor.Left, false);
+            ToolWindowContextMenu.Hide(shell.Manager, vm.Id);
+        }
+        var flyout = Menu(shell, out var button);
+        button.Side = side;
+        button.ActiveSide = side;
+        button.Width = 34;
+        button.Height = 32;
+        button.HorizontalAlignment = global::Avalonia.Layout.HorizontalAlignment.Left;
+        button.VerticalAlignment = global::Avalonia.Layout.VerticalAlignment.Top;
+        button.Margin = new Thickness(300, 150, 0, 0);
+        var window = new Window { Width = 900, Height = 600, Content = new Panel { Children = { button } } };
+        try
+        {
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+            flyout.ShowAt(button);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(expected, flyout.Placement);
+            var presenter = Assert.Single(window.GetVisualDescendants().OfType<MenuFlyoutPresenter>());
+            var menuStart = presenter.TranslatePoint(default, window)!.Value;
+            var buttonStart = button.TranslatePoint(default, window)!.Value;
+            Assert.Equal(buttonStart.Y, menuStart.Y, 1);
+            Assert.True(presenter.Bounds.Height > button.Bounds.Height);
+            if (side == StripeSide.Left)
+            {
+                Assert.True(menuStart.X >= buttonStart.X + button.Bounds.Width);
+            }
+            else
+            {
+                Assert.True(menuStart.X + presenter.Bounds.Width <= buttonStart.X);
+            }
+
+            // 宿主有独立布局偏好时，可以覆盖；下一次打开读取更新后的外观。
+            flyout.Hide();
+            ForgeChrome.SetAppearance(button, ForgeAppearance.Default with { MorePopupPlacement = PlacementMode.BottomEdgeAlignedLeft });
+            flyout.ShowAt(button);
+            Assert.Equal(PlacementMode.BottomEdgeAlignedLeft, flyout.Placement);
+        }
+        finally
+        {
+            window.Close();
         }
     }
 

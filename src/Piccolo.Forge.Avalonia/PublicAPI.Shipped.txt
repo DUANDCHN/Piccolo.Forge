@@ -1176,3 +1176,5 @@ Piccolo.Forge.Avalonia.ForgeAppearance.HeaderButtonWidth.init -> void
 Piccolo.Forge.Avalonia.ForgeToolWindowHeader.ButtonWidth.get -> double
 Piccolo.Forge.Avalonia.ForgeToolWindowHeader.ButtonWidth.set -> void
 static readonly Piccolo.Forge.Avalonia.ForgeToolWindowHeader.ButtonWidthProperty -> Avalonia.StyledProperty<double>!
+Piccolo.Forge.Avalonia.ForgeAppearance.MorePopupPlacement.get -> Avalonia.Controls.PlacementMode?
+Piccolo.Forge.Avalonia.ForgeAppearance.MorePopupPlacement.init -> void

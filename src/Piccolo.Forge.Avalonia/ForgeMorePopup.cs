@@ -76,8 +76,18 @@ internal static class ForgeMorePopup
         //   （2026-08-26 实测：flyout.Items.Count=2 而 presenter 的子项数=0）。
         //   可观察集合才会把重建的结果推给 presenter。
         var items = new ObservableCollection<object>();
-        var flyout = new MenuFlyout { Placement = PlacementMode.Right, ItemsSource = items };
-        flyout.Opening += (_, _) => Populate(items, flyout, shell);
+        var flyout = new MenuFlyout { ItemsSource = items };
+        // 上游 MoreSquareStripeButton.kt:118-121 的 y 对齐按钮上沿；Right 会将菜单按按钮中心居中。
+        // 左条带向右、右条带向左展开，仍保留 Avalonia 默认的屏幕边缘翻转与滑动避让。
+        void SyncPlacement() => flyout.Placement = ForgeChrome.GetAppearance(button).MorePopupPlacement
+            ?? (button.Side == StripeSide.Left ? PlacementMode.RightEdgeAlignedTop : PlacementMode.LeftEdgeAlignedTop);
+        SyncPlacement();
+        flyout.Opening += (_, _) =>
+        {
+            // 每次展开读取当前外观，换边或宿主更新配置后也不必重建菜单。
+            SyncPlacement();
+            Populate(items, flyout, shell);
+        };
         button.Flyout = flyout;
     }
 
