@@ -128,6 +128,22 @@ public sealed record ForgeAppearance
     /// </remarks>
     public double HeaderTitleInsetLeft { get; init; } = double.NaN;
 
+    /// <summary>标题及标题后缀右侧的间距；默认采用上游 <c>ForgeMetrics.HeaderLabelInsetRight</c>。</summary>
+    /// <remarks>宿主紧凑布局覆盖项，不改变图标尺寸；按钮宽度由 HeaderButtonWidth 独立设置。</remarks>
+    public double HeaderTitleInsetRight { get; init; } = ForgeMetrics.HeaderLabelInsetRight;
+
+    /// <summary>标题栏右侧工具栏的左内边距；默认采用上游 <c>ForgeMetrics.HeaderToolbarInsetLeft</c>。</summary>
+    /// <remarks>宿主紧凑布局覆盖项，不改变图标尺寸；按钮宽度由 HeaderButtonWidth 独立设置。</remarks>
+    public double HeaderToolbarInsetLeft { get; init; } = ForgeMetrics.HeaderToolbarInsetLeft;
+
+    /// <summary>标题栏右侧工具栏的右内边距；默认采用上游 <c>ForgeMetrics.HeaderToolbarInsetRight</c>。</summary>
+    /// <remarks>宿主紧凑布局覆盖项，不改变图标尺寸；按钮宽度由 HeaderButtonWidth 独立设置。</remarks>
+    public double HeaderToolbarInsetRight { get; init; } = ForgeMetrics.HeaderToolbarInsetRight;
+
+    /// <summary>面板标题栏图标按钮宽度，默认 24；可缩至图标槽宽度 20，高度与图标尺寸不变。</summary>
+    /// <remarks>宿主布局覆盖项，所有面板包含内置按钮共用；分隔线仍由自身宽度和 Margin 决定。</remarks>
+    public double HeaderButtonWidth { get; init; } = ForgeMetrics.HeaderButtonSize;
+
     /// <summary>
     /// 条带按钮上那块**高亮底**的边长；<see cref="double.NaN"/> = 按上游算（按钮 − 图标内边距）。
     /// </summary>

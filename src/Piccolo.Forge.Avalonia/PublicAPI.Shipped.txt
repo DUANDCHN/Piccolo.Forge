@@ -1156,3 +1156,23 @@ Piccolo.Forge.Avalonia.ForgeTree.ForgeTree() -> void
 static readonly Piccolo.Forge.Avalonia.ForgeTree.RowDoubleClickExpandsProperty -> Avalonia.AttachedProperty<bool>!
 static Piccolo.Forge.Avalonia.ForgeTree.GetRowDoubleClickExpands(Avalonia.Controls.TreeView! tree) -> bool
 static Piccolo.Forge.Avalonia.ForgeTree.SetRowDoubleClickExpands(Avalonia.Controls.TreeView! tree, bool value) -> void
+Piccolo.Forge.Avalonia.ForgeAppearance.HeaderTitleInsetRight.get -> double
+Piccolo.Forge.Avalonia.ForgeAppearance.HeaderTitleInsetRight.init -> void
+Piccolo.Forge.Avalonia.ForgeAppearance.HeaderToolbarInsetLeft.get -> double
+Piccolo.Forge.Avalonia.ForgeAppearance.HeaderToolbarInsetLeft.init -> void
+Piccolo.Forge.Avalonia.ForgeAppearance.HeaderToolbarInsetRight.get -> double
+Piccolo.Forge.Avalonia.ForgeAppearance.HeaderToolbarInsetRight.init -> void
+Piccolo.Forge.Avalonia.ForgeToolWindowHeader.TitleInsetRight.get -> double
+Piccolo.Forge.Avalonia.ForgeToolWindowHeader.TitleInsetRight.set -> void
+static readonly Piccolo.Forge.Avalonia.ForgeToolWindowHeader.TitleInsetRightProperty -> Avalonia.StyledProperty<double>!
+Piccolo.Forge.Avalonia.ForgeToolWindowHeader.ToolbarInsetLeft.get -> double
+Piccolo.Forge.Avalonia.ForgeToolWindowHeader.ToolbarInsetLeft.set -> void
+static readonly Piccolo.Forge.Avalonia.ForgeToolWindowHeader.ToolbarInsetLeftProperty -> Avalonia.StyledProperty<double>!
+Piccolo.Forge.Avalonia.ForgeToolWindowHeader.ToolbarInsetRight.get -> double
+Piccolo.Forge.Avalonia.ForgeToolWindowHeader.ToolbarInsetRight.set -> void
+static readonly Piccolo.Forge.Avalonia.ForgeToolWindowHeader.ToolbarInsetRightProperty -> Avalonia.StyledProperty<double>!
+Piccolo.Forge.Avalonia.ForgeAppearance.HeaderButtonWidth.get -> double
+Piccolo.Forge.Avalonia.ForgeAppearance.HeaderButtonWidth.init -> void
+Piccolo.Forge.Avalonia.ForgeToolWindowHeader.ButtonWidth.get -> double
+Piccolo.Forge.Avalonia.ForgeToolWindowHeader.ButtonWidth.set -> void
+static readonly Piccolo.Forge.Avalonia.ForgeToolWindowHeader.ButtonWidthProperty -> Avalonia.StyledProperty<double>!

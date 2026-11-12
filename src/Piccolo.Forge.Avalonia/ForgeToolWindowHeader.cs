@@ -203,10 +203,9 @@ public class ForgeToolWindowHeader : TemplatedControl
     /// 宿主挂在**标题后面**的一个控件（只读标识、角标之类），排在标题与内容标签之间。
     /// </summary>
     /// <remarks>
-    /// <b>为什么不能拿 <see cref="SetExtraButtons"/> 顶</b>：那条工具栏里的东西一律被排成
-    /// <c>ForgeMetrics.HeaderButtonSize</c> 见方的格子（见 <see cref="ArrangeContent"/>），
-    /// 宽度由库定死、不问控件自己量出来多少。放一个"图标 + 一行字"进去，字会溢出格子压在旁边按钮上。
-    /// 这里这个位反过来：<b>宽度由控件自己说了算</b>，库负责把它排在标题之后、并把标签的起点往右推。
+    /// 此槽用于标题来源标识，排在标题后、内容标签前；<see cref="SetExtraButtons"/> 是右侧动作工具栏。
+    /// 工具栏的图标按钮采用宿主配置的宽度，分隔线等非按钮按期望宽度排布；标题标识应使用本槽，
+    /// 由库限制其可用宽度，并把内容标签的起点往右推。
     /// <para>
     /// 位置的依据是上游 <c>ToolWindowHeader</c> 的 westPanel —— 标题与内容标签本来就在同一行
     /// （<c>ToolWindowHeader.kt:99</c>、<c>:115</c>、<c>:261</c>，见 <c>docs/upstream/工具窗口模型.md</c> §13），
@@ -277,7 +276,8 @@ public class ForgeToolWindowHeader : TemplatedControl
 
         // 标题左内边距一处给、两处用：模板里那个 TextBlock 的 Margin + 标签的起点
         TitleInsetLeftProperty.Changed.AddClassHandler<ForgeToolWindowHeader>((h, _) => h.SyncTitleMargin());
-        AffectsMeasure<ForgeToolWindowHeader>(TitleInsetLeftProperty);
+        AffectsMeasure<ForgeToolWindowHeader>(TitleInsetLeftProperty, TitleInsetRightProperty,
+            ToolbarInsetLeftProperty, ToolbarInsetRightProperty, ButtonWidthProperty);
     }
 
     /// <summary>配色。</summary>
@@ -477,7 +477,7 @@ public class ForgeToolWindowHeader : TemplatedControl
             var title = MeasureTitle();
             return ResolvedTitleInset
                    + Math.Min(title?.Width ?? 0, _titleMaxWidth)
-                   + (title is null ? 0 : ForgeMetrics.HeaderLabelInsetRight);
+                   + (title is null ? 0 : TitleInsetRight);
         }
     }
 
@@ -488,8 +488,25 @@ public class ForgeToolWindowHeader : TemplatedControl
     /// </remarks>
     private double AdornmentAdvance
         => _titleAdornment is { IsVisible: true } adornment && adornment.DesiredSize.Width > 0
-            ? adornment.DesiredSize.Width + ForgeMetrics.HeaderLabelInsetRight
+            ? adornment.DesiredSize.Width + TitleInsetRight
             : 0;
+
+    /// <summary>按钮宽度由宿主配置；分隔线等非按钮控件使用含 Margin 的期望宽度。</summary>
+    private double ButtonAdvance(Control control)
+        => control is ForgeHeaderButton ? ButtonWidth : control.DesiredSize.Width;
+
+    /// <summary>先量工具栏再分配标题空间，避免首轮布局或分隔线宽度改变时提前截断标题。</summary>
+    private void MeasureButtons()
+    {
+        _dock.IsVisible = ShowButtons && ShowDockButton;
+        foreach (var button in Buttons)
+        {
+            button.IsVisible = ShowButtons;
+            button.Measure(new Size(
+                button is ForgeHeaderButton ? ButtonWidth : double.PositiveInfinity,
+                ForgeMetrics.HeaderButtonSize));
+        }
+    }
 
     /// <summary>右侧那排按钮一共占多宽（含左右内边距）；不显示时为 0。</summary>
     /// <remarks>
@@ -505,12 +522,12 @@ public class ForgeToolWindowHeader : TemplatedControl
                 return 0;
             }
 
-            var count = Buttons.Count();
-            return CaptionButtonsWidth + (count == 0
+            var buttons = Buttons.ToArray();
+            return CaptionButtonsWidth + (buttons.Length == 0
                 ? 0
-                : ForgeMetrics.HeaderToolbarInsetLeft
-                  + (count * ForgeMetrics.HeaderButtonSize)
-                  + ForgeMetrics.HeaderToolbarInsetRight);
+                : ToolbarInsetLeft
+                  + buttons.Sum(ButtonAdvance)
+                  + ToolbarInsetRight);
         }
     }
 
@@ -518,11 +535,14 @@ public class ForgeToolWindowHeader : TemplatedControl
     /// <remarks>模板量完（其中槽会回头调 <see cref="MeasureContent"/>），这一行的高度仍由自己定。</remarks>
     protected override Size MeasureOverride(Size availableSize)
     {
+        // 先量工具栏：分隔线等非按钮控件按实际期望宽度计入预算，首轮布局也不能按按钮个数估算。
+        MeasureButtons();
+
         // 右侧动作与 Rider 一样具有更高的布局优先级；面板变窄时标题只能使用按钮左侧的剩余空间。
         // 模板中的 TextBlock 同时启用省略号，避免完整标题继续绘制到按钮区域。
         _titleMaxWidth = double.IsInfinity(availableSize.Width)
             ? double.PositiveInfinity
-            : Math.Max(0, availableSize.Width - ResolvedTitleInset - ButtonsWidth - ForgeMetrics.HeaderLabelInsetRight);
+            : Math.Max(0, availableSize.Width - ResolvedTitleInset - ButtonsWidth - TitleInsetRight);
         if (_titleText is not null)
         {
             _titleText.MaxWidth = _titleMaxWidth;
@@ -539,13 +559,7 @@ public class ForgeToolWindowHeader : TemplatedControl
     /// <returns>槽的期望尺寸（铺满即可，真正的排布在 <see cref="ArrangeContent"/>）。</returns>
     internal Size MeasureContent(Size availableSize)
     {
-        _dock.IsVisible = ShowButtons && ShowDockButton;
-
-        foreach (var button in Buttons)
-        {
-            button.IsVisible = ShowButtons;
-            button.Measure(new Size(ForgeMetrics.HeaderButtonSize, ForgeMetrics.HeaderButtonSize));
-        }
+        MeasureButtons();
 
         // 标题后缀先量：标签的起点要用它量出来的宽度（ComputeTabsStart → AdornmentAdvance），
         // 顺序反了这一轮标签会压在它上面。
@@ -555,7 +569,7 @@ public class ForgeToolWindowHeader : TemplatedControl
         {
             var room = double.IsInfinity(availableSize.Width)
                 ? double.PositiveInfinity
-                : Math.Max(0, availableSize.Width - TitleAdornmentStart - ButtonsWidth - ForgeMetrics.HeaderLabelInsetRight);
+                : Math.Max(0, availableSize.Width - TitleAdornmentStart - ButtonsWidth - TitleInsetRight);
             adornment.Measure(new Size(room, HeaderHeight));
         }
 
@@ -574,7 +588,7 @@ public class ForgeToolWindowHeader : TemplatedControl
     {
         // 按钮靠右（上游是 BorderLayout.EAST，ToolWindowHeader.kt:202），标签页排在标题与按钮之间；
         // 独立窗口形态下再往左让出窗口那三个系统按钮的地方（见 CaptionButtonsWidth）
-        var x = finalSize.Width - ForgeMetrics.HeaderToolbarInsetRight - CaptionButtonsWidth;
+        var x = finalSize.Width - ToolbarInsetRight - CaptionButtonsWidth;
         foreach (var button in Buttons.Reverse())
         {
             if (!ShowButtons)
@@ -583,11 +597,13 @@ public class ForgeToolWindowHeader : TemplatedControl
                 continue;
             }
 
-            x -= ForgeMetrics.HeaderButtonSize;
+            // 与 ButtonsWidth 使用同一宽度，分隔线不能再占据整颗按钮的槽位。
+            var buttonWidth = ButtonAdvance(button);
+            x -= buttonWidth;
             button.Arrange(new Rect(
                 x,
                 (finalSize.Height - ForgeMetrics.HeaderButtonSize) / 2,
-                ForgeMetrics.HeaderButtonSize,
+                buttonWidth,
                 ForgeMetrics.HeaderButtonSize));
         }
 
@@ -749,6 +765,55 @@ public class ForgeToolWindowHeader : TemplatedControl
     {
         get => GetValue(TitleInsetLeftProperty);
         set => SetValue(TitleInsetLeftProperty, value);
+    }
+
+    /// <summary><see cref="TitleInsetRight"/> 的属性定义。</summary>
+    public static readonly StyledProperty<double> TitleInsetRightProperty =
+        AvaloniaProperty.Register<ForgeToolWindowHeader, double>(nameof(TitleInsetRight), ForgeMetrics.HeaderLabelInsetRight,
+            validate: value => double.IsFinite(value) && value >= 0);
+
+    /// <summary>标题及标题后缀右侧的间距；默认采用上游度量，宿主可选择紧凑布局。</summary>
+    public double TitleInsetRight
+    {
+        get => GetValue(TitleInsetRightProperty);
+        set => SetValue(TitleInsetRightProperty, value);
+    }
+
+    /// <summary><see cref="ToolbarInsetLeft"/> 的属性定义。</summary>
+    public static readonly StyledProperty<double> ToolbarInsetLeftProperty =
+        AvaloniaProperty.Register<ForgeToolWindowHeader, double>(nameof(ToolbarInsetLeft), ForgeMetrics.HeaderToolbarInsetLeft,
+            validate: value => double.IsFinite(value) && value >= 0);
+
+    /// <summary>右侧工具栏的左内边距；默认采用上游度量，宿主可选择紧凑布局。</summary>
+    public double ToolbarInsetLeft
+    {
+        get => GetValue(ToolbarInsetLeftProperty);
+        set => SetValue(ToolbarInsetLeftProperty, value);
+    }
+
+    /// <summary><see cref="ToolbarInsetRight"/> 的属性定义。</summary>
+    public static readonly StyledProperty<double> ToolbarInsetRightProperty =
+        AvaloniaProperty.Register<ForgeToolWindowHeader, double>(nameof(ToolbarInsetRight), ForgeMetrics.HeaderToolbarInsetRight,
+            validate: value => double.IsFinite(value) && value >= 0);
+
+    /// <summary>右侧工具栏的右内边距；默认采用上游度量，宿主可选择紧凑布局。</summary>
+    public double ToolbarInsetRight
+    {
+        get => GetValue(ToolbarInsetRightProperty);
+        set => SetValue(ToolbarInsetRightProperty, value);
+    }
+
+    /// <summary><see cref="ButtonWidth"/> 的属性定义。</summary>
+    public static readonly StyledProperty<double> ButtonWidthProperty =
+        AvaloniaProperty.Register<ForgeToolWindowHeader, double>(nameof(ButtonWidth), ForgeMetrics.HeaderButtonSize,
+            validate: value => double.IsFinite(value) && value >= ForgeMetrics.HeaderButtonIconSlot);
+
+    /// <summary>工具栏图标按钮的宽度，默认 24；最小 20，保证模板图标槽完整，高度不变。</summary>
+    /// <remarks>宿主布局覆盖项；不缩放图标，分隔线仍按自身的期望宽度排列。</remarks>
+    public double ButtonWidth
+    {
+        get => GetValue(ButtonWidthProperty);
+        set => SetValue(ButtonWidthProperty, value);
     }
 
     /// <summary>标题实际用的左内边距 —— 宿主没指定就走上游那两个度量之和。</summary>

@@ -480,8 +480,8 @@ public class ForgeControl : TemplatedControl
     /// <remarks>
     /// 参数是面板 id，返回要挂的控件；返回 <see langword="null"/> 就不挂。
     /// <para>
-    /// <b>与 <see cref="HeaderButtonsExtension"/> 的分工</b>：那条工具栏在右侧，里面的东西一律
-    /// 被排成 <c>ForgeMetrics.HeaderButtonSize</c> 见方的格子 —— 只放得下图标按钮，
+    /// <b>与 <see cref="HeaderButtonsExtension"/> 的分工</b>：那条工具栏在右侧，
+    /// 图标按钮按 <see cref="ForgeAppearance.HeaderButtonWidth"/> 排列，分隔线等非按钮按期望宽度排布，
     /// 放"图标 + 一行字"会溢出格子压在旁边按钮上。这个位在标题后面，
     /// <b>宽度由控件自己量出来说了算</b>，标签的起点跟着往右让。
     /// 判据是**放的东西有没有固有宽度**，不是"放在左边还是右边"。
@@ -2515,6 +2515,11 @@ public class ForgeControl : TemplatedControl
         header.TitleBarHeight = info.Type == ToolWindowType.Floating ? TitleBarHeight : double.NaN;
         header.HeightOverride = Appearance.HeaderHeight;
         header.TitleInsetLeft = Appearance.HeaderTitleInsetLeft;
+        // 外观整体传播到停靠与外部面板，确保标题预算、工具栏排布使用同一份间距。
+        header.TitleInsetRight = Appearance.HeaderTitleInsetRight;
+        header.ToolbarInsetLeft = Appearance.HeaderToolbarInsetLeft;
+        header.ToolbarInsetRight = Appearance.HeaderToolbarInsetRight;
+        header.ButtonWidth = Appearance.HeaderButtonWidth;
         header.CaptionButtonsWidth = info.Type == ToolWindowType.Windowed ? CaptionButtonsWidth : 0;
         header.SetExtraButtons(HeaderButtonsExtension?.Invoke(vm.Id));
         header.SetTitleAdornment(HeaderTitleAdornmentExtension?.Invoke(vm.Id));

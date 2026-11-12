@@ -111,6 +111,119 @@ public class HeaderButtonsTests
         window.Close();
     }
 
+    /// <summary>分隔线必须释放空槽位；宽度变化、隐藏再显示后，标题和按钮仍使用同一份宽度预算。</summary>
+    [AvaloniaFact]
+    public void 分隔线按实际宽度排列且首轮布局就释放标题空间()
+    {
+        var left = new ForgeHeaderButton { Icon = ForgeIcons.Find };
+        var right = new ForgeHeaderButton { Icon = ForgeIcons.Find };
+        var separator = new Border { Width = 1, Height = 14, Margin = new Thickness(3, 0) };
+        var (window, frame, _) = Build(f => f.HeaderButtonsExtension = _ => [left, separator, right]);
+        try
+        {
+            var header = frame.GetVisualDescendants().OfType<ForgeToolWindowHeader>().Single();
+            // 两颗宿主按钮加两颗内置按钮，分隔线只占 1 + 3 + 3，不再占 24。
+            Assert.Equal(12 + 4 * 24 + 7 + 8, header.ButtonsWidth);
+            Assert.Equal(7, right.Bounds.X - left.Bounds.Right, 1);
+            Assert.Equal(1, separator.Bounds.Width);
+            Assert.Equal(3, separator.Bounds.X - left.Bounds.Right, 1);
+
+            separator.Margin = new Thickness(2, 0);
+            Render(window);
+            Assert.Equal(12 + 4 * 24 + 5 + 8, header.ButtonsWidth);
+            Assert.Equal(5, right.Bounds.X - left.Bounds.Right, 1);
+
+            frame.ShowHeaderButtons = false;
+            Render(window);
+            Assert.Equal(0, header.ButtonsWidth);
+            frame.ShowHeaderButtons = true;
+            Render(window);
+            Assert.Equal(5, right.Bounds.X - left.Bounds.Right, 1);
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    /// <summary>外观切换应同时更新标题截断预算、标签起点和工具栏位置，保持标准按钮命中尺寸。</summary>
+    [AvaloniaFact]
+    public void 紧凑间距使长标题靠近按钮且动态切换不重叠()
+    {
+        var actions = Enumerable.Range(0, 4)
+            .Select(_ => (Control)new ForgeHeaderButton { Icon = ForgeIcons.Find }).ToArray();
+        var (window, frame, _) = Build(f => f.HeaderButtonsExtension = _ => actions);
+        try
+        {
+            var header = frame.GetVisualDescendants().OfType<ForgeToolWindowHeader>().Single();
+            header.Title = "标题很长的相机列表面板";
+            Render(window);
+            var title = header.GetVisualDescendants().OfType<TextBlock>().Single(x => x.Name == "PART_Title");
+            var previousMaxWidth = title.MaxWidth;
+
+            frame.Appearance = frame.Appearance with
+            {
+                HeaderTitleInsetRight = 4,
+                HeaderToolbarInsetLeft = 2,
+                HeaderToolbarInsetRight = 4,
+            };
+            Render(window);
+
+            var buttons = Buttons(frame).OrderBy(b => b.Bounds.X).ToArray();
+            var titleRight = title.TranslatePoint(default, header)!.Value.X + title.Bounds.Width;
+            // 省略号排版可能留下不到一个字的空白；校验预算边界，不把字形余量误认为额外内边距。
+            var titleLimit = title.TranslatePoint(default, header)!.Value.X + title.MaxWidth;
+            Assert.Equal(6, buttons[0].Bounds.X - titleLimit, 1);
+            Assert.True(titleRight <= titleLimit + 0.5);
+            Assert.Equal(4, header.Bounds.Width - buttons[^1].Bounds.Right, 1);
+            Assert.Equal(previousMaxWidth + 26, title.MaxWidth, 1);
+            Assert.All(buttons, button => Assert.Equal(new Size(24, 24), button.Bounds.Size));
+
+            frame.Appearance = frame.Appearance with { HeaderButtonWidth = 22 };
+            Render(window);
+            Assert.All(buttons, button => Assert.Equal(new Size(22, 24), button.Bounds.Size));
+            frame.Appearance = frame.Appearance with { HeaderButtonWidth = 28 };
+            Render(window);
+            Assert.All(buttons, button => Assert.Equal(new Size(28, 24), button.Bounds.Size));
+
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    /// <summary>独立标题条给系统按钮预留空间时，仍按宿主间距约束长标题。</summary>
+    [AvaloniaFact]
+    public void 紧凑标题栏保留系统按钮区域()
+    {
+        var header = new ForgeToolWindowHeader
+        {
+            Title = "标题很长的相机列表面板",
+            CaptionButtonsWidth = 72,
+            TitleInsetRight = 4,
+            ToolbarInsetLeft = 2,
+            ToolbarInsetRight = 4,
+            ButtonWidth = 22,
+        };
+        var window = new Window { Width = 240, Height = 100, Content = header };
+        try
+        {
+            window.Show();
+            Render(window);
+            var buttons = header.GetVisualDescendants().OfType<ForgeHeaderButton>()
+                .Where(b => b.IsVisible).OrderBy(b => b.Bounds.X).ToArray();
+            var title = header.GetVisualDescendants().OfType<TextBlock>().Single(x => x.Name == "PART_Title");
+            Assert.Equal(76, header.Bounds.Width - buttons[^1].Bounds.Right, 1);
+            var titleLimit = title.TranslatePoint(default, header)!.Value.X + title.MaxWidth;
+            Assert.Equal(6, buttons[0].Bounds.X - titleLimit, 1);
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
     [AvaloniaFact]
     public void 编辑区每组标签条右端有一个更多按钮()
     {
