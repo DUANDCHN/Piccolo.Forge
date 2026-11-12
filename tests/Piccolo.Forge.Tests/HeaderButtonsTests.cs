@@ -148,6 +148,8 @@ public class HeaderButtonsTests
 
             // 同一份外观接口可动态切回省略号，保留库默认行为以及其他宿主的选择。
             frame.Appearance = frame.Appearance with { HeaderTitleTextTrimming = global::Avalonia.Media.TextTrimming.CharacterEllipsis };
+            // 外观切换会从 VM 同步回标题，重新设置长标题，避免依赖各平台默认短标题的字宽。
+            header.Title = "A sufficiently long title for testing continuous clipping and ellipsis";
             Render(window);
             Assert.Same(global::Avalonia.Media.TextTrimming.CharacterEllipsis, title.TextTrimming);
             Assert.True(title.TextLayout.TextLines.Single().HasCollapsed);
