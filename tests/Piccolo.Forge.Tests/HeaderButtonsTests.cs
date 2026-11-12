@@ -111,6 +111,53 @@ public class HeaderButtonsTests
         window.Close();
     }
 
+    /// <summary>裁切模式保留完整字形，视口每缩小一像素就只遮去一像素，不能退回逐字省略或重排。</summary>
+    [AvaloniaFact]
+    public void 标题连续裁切时保留完整排版且动态切回省略号()
+    {
+        var actions = Enumerable.Range(0, 4)
+            .Select(_ => (Control)new ForgeHeaderButton { Icon = ForgeIcons.Find }).ToArray();
+        var (window, frame, _) = Build(f =>
+        {
+            f.HeaderButtonsExtension = _ => actions;
+            f.Appearance = f.Appearance with { HeaderTitleTextTrimming = global::Avalonia.Media.TextTrimming.None };
+        });
+        try
+        {
+            var header = frame.GetVisualDescendants().OfType<ForgeToolWindowHeader>().Single();
+            header.Title = "解决方案与项目资源管理器标题内容";
+            header.Width = 240;
+            Render(window);
+            var title = header.GetVisualDescendants().OfType<TextBlock>().Single(x => x.Name == "PART_Title");
+            Assert.Same(global::Avalonia.Media.TextTrimming.None, title.TextTrimming);
+            Assert.True(title.ClipToBounds);
+            var start = title.TranslatePoint(default, header)!.Value.X;
+            var width = title.Bounds.Width;
+            var fullLineWidth = title.TextLayout.TextLines.Single().Width;
+            Assert.True(fullLineWidth > width, "必须真的溢出才能验证裁切");
+            for (var step = 1; step <= 12; step++)
+            {
+                header.Width = 240 - step;
+                Render(window);
+                Assert.Equal(width - step, title.Bounds.Width, 2);
+                Assert.Equal(start, title.TranslatePoint(default, header)!.Value.X, 2);
+                Assert.Equal(fullLineWidth, title.TextLayout.TextLines.Single().Width, 2);
+                Assert.False(title.TextLayout.TextLines.Single().HasCollapsed);
+                Assert.True(start + title.Bounds.Width <= Buttons(frame).Min(button => button.Bounds.X));
+            }
+
+            // 同一份外观接口可动态切回省略号，保留库默认行为以及其他宿主的选择。
+            frame.Appearance = frame.Appearance with { HeaderTitleTextTrimming = global::Avalonia.Media.TextTrimming.CharacterEllipsis };
+            Render(window);
+            Assert.Same(global::Avalonia.Media.TextTrimming.CharacterEllipsis, title.TextTrimming);
+            Assert.True(title.TextLayout.TextLines.Single().HasCollapsed);
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
     /// <summary>分隔线必须释放空槽位；宽度变化、隐藏再显示后，标题和按钮仍使用同一份宽度预算。</summary>
     [AvaloniaFact]
     public void 分隔线按实际宽度排列且首轮布局就释放标题空间()

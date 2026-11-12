@@ -277,7 +277,7 @@ public class ForgeToolWindowHeader : TemplatedControl
         // 标题左内边距一处给、两处用：模板里那个 TextBlock 的 Margin + 标签的起点
         TitleInsetLeftProperty.Changed.AddClassHandler<ForgeToolWindowHeader>((h, _) => h.SyncTitleMargin());
         AffectsMeasure<ForgeToolWindowHeader>(TitleInsetLeftProperty, TitleInsetRightProperty,
-            ToolbarInsetLeftProperty, ToolbarInsetRightProperty, ButtonWidthProperty);
+            ToolbarInsetLeftProperty, ToolbarInsetRightProperty, ButtonWidthProperty, TitleTextTrimmingProperty);
     }
 
     /// <summary>配色。</summary>
@@ -539,7 +539,7 @@ public class ForgeToolWindowHeader : TemplatedControl
         MeasureButtons();
 
         // 右侧动作与 Rider 一样具有更高的布局优先级；面板变窄时标题只能使用按钮左侧的剩余空间。
-        // 模板中的 TextBlock 同时启用省略号，避免完整标题继续绘制到按钮区域。
+        // 模板按宿主选择显示省略号或直接裁切，ClipToBounds 始终阻止文字绘制到按钮区域。
         _titleMaxWidth = double.IsInfinity(availableSize.Width)
             ? double.PositiveInfinity
             : Math.Max(0, availableSize.Width - ResolvedTitleInset - ButtonsWidth - TitleInsetRight);
@@ -814,6 +814,18 @@ public class ForgeToolWindowHeader : TemplatedControl
     {
         get => GetValue(ButtonWidthProperty);
         set => SetValue(ButtonWidthProperty, value);
+    }
+
+    /// <summary><see cref="TitleTextTrimming"/> 的属性定义。</summary>
+    public static readonly StyledProperty<TextTrimming> TitleTextTrimmingProperty =
+        AvaloniaProperty.Register<ForgeToolWindowHeader, TextTrimming>(nameof(TitleTextTrimming), TextTrimming.CharacterEllipsis);
+
+    /// <summary>标题溢出显示方式；默认省略号，None 保持完整字形排版并在可用宽度边界连续裁切。</summary>
+    /// <remarks>只作用于面板名；不改变按钮预算、标题来源标识或文档标签的显示方式。</remarks>
+    public TextTrimming TitleTextTrimming
+    {
+        get => GetValue(TitleTextTrimmingProperty);
+        set => SetValue(TitleTextTrimmingProperty, value);
     }
 
     /// <summary>标题实际用的左内边距 —— 宿主没指定就走上游那两个度量之和。</summary>

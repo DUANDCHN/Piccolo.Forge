@@ -1178,3 +1178,8 @@ Piccolo.Forge.Avalonia.ForgeToolWindowHeader.ButtonWidth.set -> void
 static readonly Piccolo.Forge.Avalonia.ForgeToolWindowHeader.ButtonWidthProperty -> Avalonia.StyledProperty<double>!
 Piccolo.Forge.Avalonia.ForgeAppearance.MorePopupPlacement.get -> Avalonia.Controls.PlacementMode?
 Piccolo.Forge.Avalonia.ForgeAppearance.MorePopupPlacement.init -> void
+Piccolo.Forge.Avalonia.ForgeAppearance.HeaderTitleTextTrimming.get -> Avalonia.Media.TextTrimming!
+Piccolo.Forge.Avalonia.ForgeAppearance.HeaderTitleTextTrimming.init -> void
+Piccolo.Forge.Avalonia.ForgeToolWindowHeader.TitleTextTrimming.get -> Avalonia.Media.TextTrimming!
+Piccolo.Forge.Avalonia.ForgeToolWindowHeader.TitleTextTrimming.set -> void
+static readonly Piccolo.Forge.Avalonia.ForgeToolWindowHeader.TitleTextTrimmingProperty -> Avalonia.StyledProperty<Avalonia.Media.TextTrimming!>!

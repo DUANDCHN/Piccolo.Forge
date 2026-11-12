@@ -2520,6 +2520,8 @@ public class ForgeControl : TemplatedControl
         header.ToolbarInsetLeft = Appearance.HeaderToolbarInsetLeft;
         header.ToolbarInsetRight = Appearance.HeaderToolbarInsetRight;
         header.ButtonWidth = Appearance.HeaderButtonWidth;
+        // 截断方式与间距一同传播，宿主无需改标题模板即可切换连续裁切和省略号。
+        header.TitleTextTrimming = Appearance.HeaderTitleTextTrimming;
         header.CaptionButtonsWidth = info.Type == ToolWindowType.Windowed ? CaptionButtonsWidth : 0;
         header.SetExtraButtons(HeaderButtonsExtension?.Invoke(vm.Id));
         header.SetTitleAdornment(HeaderTitleAdornmentExtension?.Invoke(vm.Id));
