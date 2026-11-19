@@ -129,6 +129,8 @@ Piccolo.Forge.Avalonia.ForgeControl.Shell.get -> Piccolo.Forge.Mvvm.ToolWindowSh
 Piccolo.Forge.Avalonia.ForgeControl.Shell.set -> void
 Piccolo.Forge.Avalonia.ForgeControl.ShowHeaderButtons.get -> bool
 Piccolo.Forge.Avalonia.ForgeControl.ShowHeaderButtons.set -> void
+Piccolo.Forge.Avalonia.ForgeControl.ShowIslandResizerGrip.get -> bool
+Piccolo.Forge.Avalonia.ForgeControl.ShowIslandResizerGrip.set -> void
 Piccolo.Forge.Avalonia.ForgeControl.ShowToolWindowNames.get -> bool
 Piccolo.Forge.Avalonia.ForgeControl.ShowToolWindowNames.set -> void
 Piccolo.Forge.Avalonia.ForgeControl.StripeButtonArc.get -> double?
@@ -963,6 +965,7 @@ static readonly Piccolo.Forge.Avalonia.ForgeControl.MoreButtonSideProperty -> Av
 static readonly Piccolo.Forge.Avalonia.ForgeControl.PaletteProperty -> Avalonia.StyledProperty<Piccolo.Forge.Themes.ForgePalette!>!
 static readonly Piccolo.Forge.Avalonia.ForgeControl.ShellProperty -> Avalonia.StyledProperty<Piccolo.Forge.Mvvm.ToolWindowShellViewModel?>!
 static readonly Piccolo.Forge.Avalonia.ForgeControl.ShowHeaderButtonsProperty -> Avalonia.StyledProperty<bool>!
+static readonly Piccolo.Forge.Avalonia.ForgeControl.ShowIslandResizerGripProperty -> Avalonia.StyledProperty<bool>!
 static readonly Piccolo.Forge.Avalonia.ForgeControl.ShowToolWindowNamesProperty -> Avalonia.StyledProperty<bool>!
 static readonly Piccolo.Forge.Avalonia.ForgeControl.StripeButtonArcProperty -> Avalonia.StyledProperty<double?>!
 static readonly Piccolo.Forge.Avalonia.ForgeControl.TransparentBackdropProperty -> Avalonia.StyledProperty<bool>!

@@ -1,4 +1,1 @@
 ﻿#nullable enable
-Piccolo.Forge.Avalonia.ForgeControl.ShowIslandResizerGrip.get -> bool
-Piccolo.Forge.Avalonia.ForgeControl.ShowIslandResizerGrip.set -> void
-static readonly Piccolo.Forge.Avalonia.ForgeControl.ShowIslandResizerGripProperty -> Avalonia.StyledProperty<bool>!
