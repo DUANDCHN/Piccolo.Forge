@@ -148,4 +148,28 @@ public class SplitDividerTests
         var divider = Assert.Single(SplitDividers(frame));
         Assert.Equal(Colors.Magenta, Assert.IsAssignableFrom<ISolidColorBrush>(divider.LineBrush).Color);
     }
+
+    [AvaloniaTheory]
+    [InlineData(ForgeThemeFamily.Islands, true)]
+    [InlineData(ForgeThemeFamily.ExpUi, false)]
+    public void 岛配色下停靠与分割热区启用柔和抓手(ForgeThemeFamily family, bool expectGrip)
+    {
+        using var theme = ForgeThemeScope.Use(family);
+        var (frame, shell) = Show(family);
+
+        var ids = shell.ToolWindows.Select(x => x.Id).ToList();
+        shell.Manager.MoveTo(ids[0], ToolWindowAnchor.Bottom, -1, isSplit: false);
+        shell.Manager.Activate(ids[0]);
+        shell.Manager.MoveTo(ids[1], ToolWindowAnchor.Bottom, -1, isSplit: true);
+        shell.Manager.Activate(ids[1]);
+        global::Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+
+        var resizers = frame.DockPane.Children.OfType<ForgeDockResizer>().ToList();
+        Assert.NotEmpty(resizers);
+        foreach (var r in resizers)
+        {
+            Assert.Equal(expectGrip, r.GripBrush is not null);
+            Assert.Equal(expectGrip, r.GripHoverBrush is not null);
+        }
+    }
 }

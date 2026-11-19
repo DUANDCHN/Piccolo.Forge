@@ -2663,6 +2663,7 @@ public class ForgeControl : TemplatedControl
             //   穿过别人的地盘 —— 实机反馈"下半部分还能看到上半部分的边缘的线"就是那么来的。
             //   颜色要调，调的是 WindowBorder（宿主的 DockDividerBrush），不是在这儿补线。
             resizer.LineBrush = null;
+            ApplyIslandResizerGrip(resizer);
 
             yield return resizer;
         }
@@ -2701,9 +2702,26 @@ public class ForgeControl : TemplatedControl
             split.LineBrush = Palette.Island is not null
                 ? null
                 : DockDividerBrush ?? new SolidColorBrush(Palette.WindowBorder);
+            ApplyIslandResizerGrip(split);
 
             yield return split;
         }
+    }
+
+    // 停靠岛屿之间的 2px/4px/6px 缝隙：平时绘制柔和的 2px 半透明居中抓手，悬停或拖动时亮起强调色。
+    private void ApplyIslandResizerGrip(ForgeDockResizer target)
+    {
+        if (Palette.Island is null)
+        {
+            target.GripBrush = null;
+            target.GripHoverBrush = null;
+            return;
+        }
+
+        var muted = Palette.ButtonForeground;
+        var accent = Palette.HeaderTabUnderline;
+        target.GripBrush = new SolidColorBrush(Color.FromArgb(0x4D, muted.R, muted.G, muted.B));
+        target.GripHoverBrush = new SolidColorBrush(Color.FromArgb(0xE0, accent.R, accent.G, accent.B));
     }
 
     private readonly Dictionary<ToolWindowAnchor, ForgeDockResizer> _splitResizers = [];

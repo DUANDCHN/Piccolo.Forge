@@ -156,7 +156,38 @@ internal class ForgeDockResizer : Control
         }
     }
 
+    /// <summary>停靠区与分割区抓手尺寸常量。</summary>
+    private const double GripLength = 24;
+    private const double GripThickness = 2;
+    private const double GripMargin = 6;
+
+    /// <summary>岛间隙抓手刷（常态）；<see langword="null"/> 表示不画抓手。</summary>
+    internal IBrush? GripBrush
+    {
+        get => _gripBrush;
+        set
+        {
+            if (Equals(_gripBrush, value)) return;
+            _gripBrush = value;
+            InvalidateVisual();
+        }
+    }
+
+    /// <summary>悬停或拖动中的岛间隙抓手刷。</summary>
+    internal IBrush? GripHoverBrush
+    {
+        get => _gripHoverBrush;
+        set
+        {
+            if (Equals(_gripHoverBrush, value)) return;
+            _gripHoverBrush = value;
+            InvalidateVisual();
+        }
+    }
+
     private IBrush? _lineBrush;
+    private IBrush? _gripBrush;
+    private IBrush? _gripHoverBrush;
 
     /// <inheritdoc />
     /// <remarks>
@@ -168,18 +199,33 @@ internal class ForgeDockResizer : Control
     {
         context.FillRectangle(Brushes.Transparent, new Rect(Bounds.Size));
 
-        if (LineBrush is not { } brush)
+        var horizontalBar = IsSplitDivider ? !Anchor.IsHorizontal() : Anchor.IsHorizontal();
+
+        if (LineBrush is { } brush)
         {
-            return;
+            // 线画在热区正中 —— 热区骑在边界上，中线就是边界（见 ForgeDockPane.ResizerRect）
+            var rect = horizontalBar
+                ? new Rect(0, Math.Round((Bounds.Height - 1) / 2), Bounds.Width, 1)
+                : new Rect(Math.Round((Bounds.Width - 1) / 2), 0, 1, Bounds.Height);
+
+            context.FillRectangle(brush, rect);
         }
 
-        // 线画在热区正中 —— 热区骑在边界上，中线就是边界（见 ForgeDockPane.ResizerRect）
-        var horizontalBar = IsSplitDivider ? !Anchor.IsHorizontal() : Anchor.IsHorizontal();
-        var rect = horizontalBar
-            ? new Rect(0, Math.Round((Bounds.Height - 1) / 2), Bounds.Width, 1)
-            : new Rect(Math.Round((Bounds.Width - 1) / 2), 0, 1, Bounds.Height);
+        // 岛屿间隙中的居中短胶囊抓手：2px 在 2px / 4px / 6px 等偶数缝中天然居中且不压两边边框。
+        var activeGrip = _dragging || IsPointerOver ? (GripHoverBrush ?? GripBrush) : GripBrush;
+        if (activeGrip is not null)
+        {
+            var span = horizontalBar ? Bounds.Width : Bounds.Height;
+            var len = Math.Min(GripLength, Math.Max(0, span - (GripMargin * 2)));
+            if (len >= 4)
+            {
+                var gripRect = horizontalBar
+                    ? new Rect(Math.Round((Bounds.Width - len) / 2), Math.Round((Bounds.Height - GripThickness) / 2), len, GripThickness)
+                    : new Rect(Math.Round((Bounds.Width - GripThickness) / 2), Math.Round((Bounds.Height - len) / 2), GripThickness, len);
 
-        context.FillRectangle(brush, rect);
+                context.DrawRectangle(activeGrip, null, new RoundedRect(gripRect, 1));
+            }
+        }
     }
 
     /// <inheritdoc />
@@ -191,12 +237,30 @@ internal class ForgeDockResizer : Control
     }
 
     /// <inheritdoc />
+    protected override void OnPointerEntered(PointerEventArgs e)
+    {
+        base.OnPointerEntered(e);
+        if (GripBrush is not null || GripHoverBrush is not null)
+            InvalidateVisual();
+    }
+
+    /// <inheritdoc />
+    protected override void OnPointerExited(PointerEventArgs e)
+    {
+        base.OnPointerExited(e);
+        if (GripBrush is not null || GripHoverBrush is not null)
+            InvalidateVisual();
+    }
+
+    /// <inheritdoc />
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);
         _dragging = true;
         e.Pointer.Capture(this);
         e.Handled = true;
+        if (GripBrush is not null || GripHoverBrush is not null)
+            InvalidateVisual();
     }
 
     /// <inheritdoc />
@@ -252,6 +316,17 @@ internal class ForgeDockResizer : Control
         base.OnPointerReleased(e);
         _dragging = false;
         e.Pointer.Capture(null);
+        if (GripBrush is not null || GripHoverBrush is not null)
+            InvalidateVisual();
+    }
+
+    /// <inheritdoc />
+    protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e)
+    {
+        base.OnPointerCaptureLost(e);
+        _dragging = false;
+        if (GripBrush is not null || GripHoverBrush is not null)
+            InvalidateVisual();
     }
 }
 

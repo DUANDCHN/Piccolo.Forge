@@ -79,18 +79,47 @@
     </ControlTheme>
 
 
-    <!-- GridSplitter：平时就是一条分隔线，悬停时提示可拖。 -->
+    <!-- GridSplitter：平时细线带柔和的居中 2px 圆角抓手，悬停/拖动时亮起强调色。 -->
     <ControlTheme x:Key="Forge.GridSplitter" TargetType="GridSplitter">
         <Setter Property="Background" Value="{DynamicResource Forge.Group.Separator}" />
         <Setter Property="MinWidth" Value="1" />
         <Setter Property="MinHeight" Value="1" />
         <Setter Property="Template">
             <ControlTemplate>
-                <Border Name="PART_Root" Background="{TemplateBinding Background}" />
+                <Grid Background="Transparent">
+                    <Border Name="PART_Root" Background="{TemplateBinding Background}" />
+                    <Border Name="PART_Grip"
+                            CornerRadius="1"
+                            Background="{DynamicResource Forge.Text.Secondary}"
+                            Opacity="0.35"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            IsHitTestVisible="False" />
+                </Grid>
             </ControlTemplate>
         </Setter>
-        <Style Selector="^:pointerover /template/ Border#PART_Root">
+        <Style Selector="^[ResizeDirection=Columns] /template/ Border#PART_Root">
+            <Setter Property="Width" Value="1" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="^[ResizeDirection=Rows] /template/ Border#PART_Root">
+            <Setter Property="Height" Value="1" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="^[ResizeDirection=Columns] /template/ Border#PART_Grip">
+            <Setter Property="Width" Value="2" />
+            <Setter Property="Height" Value="28" />
+        </Style>
+        <Style Selector="^[ResizeDirection=Rows] /template/ Border#PART_Grip">
+            <Setter Property="Width" Value="28" />
+            <Setter Property="Height" Value="2" />
+        </Style>
+        <Style Selector="^:pointerover /template/ Border#PART_Root, ^:pressed /template/ Border#PART_Root">
             <Setter Property="Background" Value="{DynamicResource Forge.Focus.Ring}" />
+        </Style>
+        <Style Selector="^:pointerover /template/ Border#PART_Grip, ^:pressed /template/ Border#PART_Grip">
+            <Setter Property="Background" Value="{DynamicResource Forge.Focus.Ring}" />
+            <Setter Property="Opacity" Value="0.9" />
         </Style>
     </ControlTheme>
 
