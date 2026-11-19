@@ -1,1 +1,19 @@
 ﻿#nullable enable
+Piccolo.Forge.Avalonia.ForgeIpAddressBox
+Piccolo.Forge.Avalonia.ForgeIpAddressBox.ClampOctets.get -> bool
+Piccolo.Forge.Avalonia.ForgeIpAddressBox.ClampOctets.set -> void
+Piccolo.Forge.Avalonia.ForgeIpAddressBox.ForgeIpAddressBox() -> void
+Piccolo.Forge.Avalonia.ForgeIpAddressBox.IsReadOnly.get -> bool
+Piccolo.Forge.Avalonia.ForgeIpAddressBox.IsReadOnly.set -> void
+Piccolo.Forge.Avalonia.ForgeIpAddressBox.SegmentPlaceholder.get -> string?
+Piccolo.Forge.Avalonia.ForgeIpAddressBox.SegmentPlaceholder.set -> void
+Piccolo.Forge.Avalonia.ForgeIpAddressBox.Text.get -> string?
+Piccolo.Forge.Avalonia.ForgeIpAddressBox.Text.set -> void
+override Piccolo.Forge.Avalonia.ForgeIpAddressBox.OnApplyTemplate(Avalonia.Controls.Primitives.TemplateAppliedEventArgs! e) -> void
+override Piccolo.Forge.Avalonia.ForgeIpAddressBox.OnPointerPressed(Avalonia.Input.PointerPressedEventArgs! e) -> void
+override Piccolo.Forge.Avalonia.ForgeIpAddressBox.OnPropertyChanged(Avalonia.AvaloniaPropertyChangedEventArgs! change) -> void
+override Piccolo.Forge.Avalonia.ForgeIpAddressBox.UpdateDataValidation(Avalonia.AvaloniaProperty! property, Avalonia.Data.BindingValueType state, System.Exception? error) -> void
+static readonly Piccolo.Forge.Avalonia.ForgeIpAddressBox.ClampOctetsProperty -> Avalonia.StyledProperty<bool>!
+static readonly Piccolo.Forge.Avalonia.ForgeIpAddressBox.IsReadOnlyProperty -> Avalonia.StyledProperty<bool>!
+static readonly Piccolo.Forge.Avalonia.ForgeIpAddressBox.SegmentPlaceholderProperty -> Avalonia.StyledProperty<string?>!
+static readonly Piccolo.Forge.Avalonia.ForgeIpAddressBox.TextProperty -> Avalonia.StyledProperty<string?>!

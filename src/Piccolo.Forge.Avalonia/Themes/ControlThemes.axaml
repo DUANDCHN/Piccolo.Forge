@@ -1,7 +1,8 @@
 ﻿<ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:cp="using:Avalonia.Controls.Primitives"
-                    xmlns:dialogs="using:Avalonia.Dialogs">
+                    xmlns:dialogs="using:Avalonia.Dialogs"
+                    xmlns:forge="using:Piccolo.Forge.Avalonia">
     <!--
       ★ 控件主题的总装（Avalonia 全部 89 个公开控件 + 宿主壳一族）。★
 
@@ -60,6 +61,8 @@
                   BasedOn="{StaticResource Forge.Button}" />
         <ControlTheme x:Key="{x:Type TextBox}" TargetType="TextBox"
                   BasedOn="{StaticResource Forge.TextBox}" />
+        <ControlTheme x:Key="{x:Type forge:ForgeIpAddressBox}" TargetType="forge:ForgeIpAddressBox"
+                  BasedOn="{StaticResource Forge.IpAddressBox}" />
         <ControlTheme x:Key="{x:Type ButtonSpinner}" TargetType="ButtonSpinner"
                   BasedOn="{StaticResource Forge.ButtonSpinner}" />
         <ControlTheme x:Key="{x:Type NumericUpDown}" TargetType="NumericUpDown"
