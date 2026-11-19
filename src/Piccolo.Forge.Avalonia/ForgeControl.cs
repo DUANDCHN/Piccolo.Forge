@@ -145,6 +145,10 @@ public class ForgeControl : TemplatedControl
     public static readonly StyledProperty<bool> ShowHeaderButtonsProperty =
         AvaloniaProperty.Register<ForgeControl, bool>(nameof(ShowHeaderButtons), defaultValue: true);
 
+    /// <summary><see cref="ShowIslandResizerGrip"/> 的属性定义。</summary>
+    public static readonly StyledProperty<bool> ShowIslandResizerGripProperty =
+        AvaloniaProperty.Register<ForgeControl, bool>(nameof(ShowIslandResizerGrip), defaultValue: true);
+
     /// <summary><see cref="ShowToolWindowNames"/> 的属性定义。</summary>
     public static readonly StyledProperty<bool> ShowToolWindowNamesProperty =
         AvaloniaProperty.Register<ForgeControl, bool>(nameof(ShowToolWindowNames));
@@ -179,6 +183,7 @@ public class ForgeControl : TemplatedControl
         StripeButtonArcProperty.Changed.AddClassHandler<ForgeControl>((f, _) => f.Sync());
         EditorContentProperty.Changed.AddClassHandler<ForgeControl>((f, _) => f.Sync());
         ShowHeaderButtonsProperty.Changed.AddClassHandler<ForgeControl>((f, _) => f.Sync());
+        ShowIslandResizerGripProperty.Changed.AddClassHandler<ForgeControl>((f, _) => f.Sync());
         ShowToolWindowNamesProperty.Changed.AddClassHandler<ForgeControl>((f, _) =>
         {
             // 菜单里的「显示工具窗口名称」改的是控件属性；写回 VM 才跟着布局一起存下去。
@@ -454,6 +459,15 @@ public class ForgeControl : TemplatedControl
     {
         get => GetValue(ShowHeaderButtonsProperty);
         set => SetValue(ShowHeaderButtonsProperty, value);
+    }
+
+    /// <summary>
+    /// 岛（Islands）布局下停靠区与分割缝隙中是否绘制拖动示意手柄。默认开启。
+    /// </summary>
+    public bool ShowIslandResizerGrip
+    {
+        get => GetValue(ShowIslandResizerGripProperty);
+        set => SetValue(ShowIslandResizerGripProperty, value);
     }
 
     /// <summary>
@@ -2708,10 +2722,10 @@ public class ForgeControl : TemplatedControl
         }
     }
 
-    // 停靠岛屿之间的 2px/4px/6px 缝隙：平时绘制柔和的 2px 半透明居中抓手，悬停或拖动时亮起强调色。
+    // 停靠岛屿之间的 2px/4px/6px 缝隙：按开关决定是否绘制居中抓手，悬停或拖动时亮起强调色。
     private void ApplyIslandResizerGrip(ForgeDockResizer target)
     {
-        if (Palette.Island is null)
+        if (!ShowIslandResizerGrip || Palette.Island is null)
         {
             target.GripBrush = null;
             target.GripHoverBrush = null;

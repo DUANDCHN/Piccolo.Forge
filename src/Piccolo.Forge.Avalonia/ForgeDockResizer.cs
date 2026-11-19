@@ -156,9 +156,10 @@ internal class ForgeDockResizer : Control
         }
     }
 
-    /// <summary>停靠区与分割区抓手尺寸常量。</summary>
-    private const double GripLength = 24;
-    private const double GripThickness = 2;
+    /// <summary>停靠区与分割区抓手尺寸常量（三个居中圆点）。</summary>
+    private const double GripDotSize = 2;
+    private const double GripDotGap = 4;
+    private const int GripDotCount = 3;
     private const double GripMargin = 6;
 
     /// <summary>岛间隙抓手刷（常态）；<see langword="null"/> 表示不画抓手。</summary>
@@ -211,19 +212,27 @@ internal class ForgeDockResizer : Control
             context.FillRectangle(brush, rect);
         }
 
-        // 岛屿间隙中的居中短胶囊抓手：2px 在 2px / 4px / 6px 等偶数缝中天然居中且不压两边边框。
+        // 岛屿间隙中的居中三点抓手：2px 圆点在偶数缝中天然居中且不压两边边框。
         var activeGrip = _dragging || IsPointerOver ? (GripHoverBrush ?? GripBrush) : GripBrush;
         if (activeGrip is not null)
         {
+            var totalLen = (GripDotCount * GripDotSize) + ((GripDotCount - 1) * GripDotGap);
             var span = horizontalBar ? Bounds.Width : Bounds.Height;
-            var len = Math.Min(GripLength, Math.Max(0, span - (GripMargin * 2)));
-            if (len >= 4)
+            if (span >= totalLen + (GripMargin * 2))
             {
-                var gripRect = horizontalBar
-                    ? new Rect(Math.Round((Bounds.Width - len) / 2), Math.Round((Bounds.Height - GripThickness) / 2), len, GripThickness)
-                    : new Rect(Math.Round((Bounds.Width - GripThickness) / 2), Math.Round((Bounds.Height - len) / 2), GripThickness, len);
+                var start = Math.Round((span - totalLen) / 2);
+                var cross = Math.Round(((horizontalBar ? Bounds.Height : Bounds.Width) - GripDotSize) / 2);
+                var step = GripDotSize + GripDotGap;
 
-                context.DrawRectangle(activeGrip, null, new RoundedRect(gripRect, 1));
+                for (var i = 0; i < GripDotCount; i++)
+                {
+                    var offset = start + (i * step);
+                    var dotRect = horizontalBar
+                        ? new Rect(offset, cross, GripDotSize, GripDotSize)
+                        : new Rect(cross, offset, GripDotSize, GripDotSize);
+
+                    context.DrawRectangle(activeGrip, null, new RoundedRect(dotRect, 1));
+                }
             }
         }
     }
