@@ -125,6 +125,22 @@ public static class Catalog
                     () => Vert(
                         new global::Piccolo.Forge.Avalonia.ForgeIpAddressBox { Width = 200, Text = "192.168.1.1", IsEnabled = false },
                         Classed(new global::Piccolo.Forge.Avalonia.ForgeIpAddressBox { Width = 200, Text = "192.168.1." }, "error")))),
+            new Entry("ForgeDateBox", "日期输入框（分段）",
+                new Row("默认空态（YYYY / MM / DD）",
+                    () => new global::Piccolo.Forge.Avalonia.ForgeDateBox { Width = 200 }),
+                new Row("已填日期 / 禁用 / 错误",
+                    () => Vert(
+                        new global::Piccolo.Forge.Avalonia.ForgeDateBox { Width = 200, SelectedDate = new System.DateTime(2026, 11, 19) },
+                        new global::Piccolo.Forge.Avalonia.ForgeDateBox { Width = 200, SelectedDate = System.DateTime.Today, IsEnabled = false },
+                        Classed(new global::Piccolo.Forge.Avalonia.ForgeDateBox { Width = 200, Text = "2026/11/" }, "error")))),
+            new Entry("ForgeTimeBox", "时间输入框（分段）",
+                new Row("默认三段（-- : -- : --）",
+                    () => new global::Piccolo.Forge.Avalonia.ForgeTimeBox { Width = 200 }),
+                new Row("已填 / 隐藏秒 / 错误",
+                    () => Vert(
+                        new global::Piccolo.Forge.Avalonia.ForgeTimeBox { Width = 200, SelectedTime = new System.TimeSpan(14, 30, 0) },
+                        new global::Piccolo.Forge.Avalonia.ForgeTimeBox { Width = 200, ShowSeconds = false, SelectedTime = new System.TimeSpan(9, 0, 0) },
+                        Classed(new global::Piccolo.Forge.Avalonia.ForgeTimeBox { Width = 200, Text = "23:59:" }, "error")))),
             new Entry("MaskedTextBox", "掩码输入",
                 new Row("IP 掩码（分段样式）",
                     () => new global::Piccolo.Forge.Avalonia.ForgeIpAddressBox { Width = 200 }),

@@ -270,4 +270,175 @@
         </Style>
     </ControlTheme>
 
+    <!-- 三段居中分格日期输入框（YYYY / MM / DD）：外框与状态同源 Forge.TextBox，年段 1.45* 更宽敞。 -->
+    <ControlTheme x:Key="Forge.DateBox" TargetType="forge:ForgeDateBox">
+        <Setter Property="Background" Value="{DynamicResource Forge.Input.Background}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Forge.Input.Border}" />
+        <Setter Property="BorderThickness" Value="{DynamicResource Forge.Input.BorderThickness}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Forge.Input.CornerRadius}" />
+        <Setter Property="Padding" Value="4,0" />
+        <Setter Property="MinWidth" Value="150" />
+        <Setter Property="MinHeight" Value="{DynamicResource Forge.Input.MinHeight}" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="forge:ForgeDateBox">
+                <Border Name="PART_FocusRing"
+                        BorderBrush="Transparent"
+                        BorderThickness="0"
+                        CornerRadius="{DynamicResource Forge.Focus.RingCornerRadius}">
+                    <Border Name="PART_Root"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{TemplateBinding CornerRadius}"
+                            Padding="{TemplateBinding Padding}">
+                        <Grid ColumnDefinitions="1.45*,Auto,*,Auto,*">
+                            <TextBox Name="PART_Part0"
+                                     Grid.Column="0"
+                                     Theme="{StaticResource Forge.IpSegmentTextBox}"
+                                     MaxLength="4"
+                                     IsReadOnly="{TemplateBinding IsReadOnly}"
+                                     PlaceholderText="{TemplateBinding YearPlaceholder}" />
+                            <TextBlock Grid.Column="1"
+                                       Text="{TemplateBinding Separator}"
+                                       FontFamily="Cascadia Mono, Consolas, DejaVu Sans Mono, monospace"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource Forge.Text.Secondary}"
+                                       Opacity="0.75"
+                                       Margin="2,0"
+                                       VerticalAlignment="Center"
+                                       HorizontalAlignment="Center"
+                                       IsHitTestVisible="False" />
+                            <TextBox Name="PART_Part1"
+                                     Grid.Column="2"
+                                     Theme="{StaticResource Forge.IpSegmentTextBox}"
+                                     MaxLength="2"
+                                     IsReadOnly="{TemplateBinding IsReadOnly}"
+                                     PlaceholderText="{TemplateBinding MonthPlaceholder}" />
+                            <TextBlock Grid.Column="3"
+                                       Text="{TemplateBinding Separator}"
+                                       FontFamily="Cascadia Mono, Consolas, DejaVu Sans Mono, monospace"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource Forge.Text.Secondary}"
+                                       Opacity="0.75"
+                                       Margin="2,0"
+                                       VerticalAlignment="Center"
+                                       HorizontalAlignment="Center"
+                                       IsHitTestVisible="False" />
+                            <TextBox Name="PART_Part2"
+                                     Grid.Column="4"
+                                     Theme="{StaticResource Forge.IpSegmentTextBox}"
+                                     MaxLength="2"
+                                     IsReadOnly="{TemplateBinding IsReadOnly}"
+                                     PlaceholderText="{TemplateBinding DayPlaceholder}" />
+                        </Grid>
+                    </Border>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+
+        <Style Selector="^:pointerover /template/ Border#PART_Root">
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Input.HoverBorder}" />
+        </Style>
+        <Style Selector="^:focus-within /template/ Border#PART_Root">
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Input.FocusedBorder}" />
+        </Style>
+        <Style Selector="^:disabled /template/ Border#PART_Root">
+            <Setter Property="Background" Value="{DynamicResource Forge.Input.Disabled.Background}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Input.Disabled.Border}" />
+        </Style>
+        <Style Selector="^:disabled">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Button.Disabled.Foreground}" />
+        </Style>
+        <Style Selector="^:error /template/ Border#PART_Root, ^.error /template/ Border#PART_Root">
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Input.Error}" />
+        </Style>
+    </ControlTheme>
+
+    <!-- 三段居中分格时间输入框（时 : 分 : 秒，24 小时制）：ShowSeconds=False 时由控件收缩第 4 列为 0 宽。 -->
+    <ControlTheme x:Key="Forge.TimeBox" TargetType="forge:ForgeTimeBox">
+        <Setter Property="Background" Value="{DynamicResource Forge.Input.Background}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Forge.Input.Border}" />
+        <Setter Property="BorderThickness" Value="{DynamicResource Forge.Input.BorderThickness}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Forge.Input.CornerRadius}" />
+        <Setter Property="Padding" Value="4,0" />
+        <Setter Property="MinWidth" Value="130" />
+        <Setter Property="MinHeight" Value="{DynamicResource Forge.Input.MinHeight}" />
+        <Setter Property="Template">
+            <ControlTemplate TargetType="forge:ForgeTimeBox">
+                <Border Name="PART_FocusRing"
+                        BorderBrush="Transparent"
+                        BorderThickness="0"
+                        CornerRadius="{DynamicResource Forge.Focus.RingCornerRadius}">
+                    <Border Name="PART_Root"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{TemplateBinding CornerRadius}"
+                            Padding="{TemplateBinding Padding}">
+                        <Grid Name="PART_Grid" ColumnDefinitions="*,Auto,*,Auto,*">
+                            <TextBox Name="PART_Part0"
+                                     Grid.Column="0"
+                                     Theme="{StaticResource Forge.IpSegmentTextBox}"
+                                     MaxLength="2"
+                                     IsReadOnly="{TemplateBinding IsReadOnly}"
+                                     PlaceholderText="{TemplateBinding SegmentPlaceholder}" />
+                            <TextBlock Grid.Column="1"
+                                       Text="{TemplateBinding Separator}"
+                                       FontFamily="Cascadia Mono, Consolas, DejaVu Sans Mono, monospace"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource Forge.Text.Secondary}"
+                                       Opacity="0.75"
+                                       Margin="2,0"
+                                       VerticalAlignment="Center"
+                                       HorizontalAlignment="Center"
+                                       IsHitTestVisible="False" />
+                            <TextBox Name="PART_Part1"
+                                     Grid.Column="2"
+                                     Theme="{StaticResource Forge.IpSegmentTextBox}"
+                                     MaxLength="2"
+                                     IsReadOnly="{TemplateBinding IsReadOnly}"
+                                     PlaceholderText="{TemplateBinding SegmentPlaceholder}" />
+                            <TextBlock Name="PART_SecondSeparator"
+                                       Grid.Column="3"
+                                       Text="{TemplateBinding Separator}"
+                                       FontFamily="Cascadia Mono, Consolas, DejaVu Sans Mono, monospace"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource Forge.Text.Secondary}"
+                                       Opacity="0.75"
+                                       Margin="2,0"
+                                       VerticalAlignment="Center"
+                                       HorizontalAlignment="Center"
+                                       IsHitTestVisible="False"
+                                       IsVisible="{TemplateBinding ShowSeconds}" />
+                            <TextBox Name="PART_Part2"
+                                     Grid.Column="4"
+                                     Theme="{StaticResource Forge.IpSegmentTextBox}"
+                                     MaxLength="2"
+                                     IsReadOnly="{TemplateBinding IsReadOnly}"
+                                     PlaceholderText="{TemplateBinding SegmentPlaceholder}"
+                                     IsVisible="{TemplateBinding ShowSeconds}" />
+                        </Grid>
+                    </Border>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+
+        <Style Selector="^:pointerover /template/ Border#PART_Root">
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Input.HoverBorder}" />
+        </Style>
+        <Style Selector="^:focus-within /template/ Border#PART_Root">
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Input.FocusedBorder}" />
+        </Style>
+        <Style Selector="^:disabled /template/ Border#PART_Root">
+            <Setter Property="Background" Value="{DynamicResource Forge.Input.Disabled.Background}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Input.Disabled.Border}" />
+        </Style>
+        <Style Selector="^:disabled">
+            <Setter Property="Foreground" Value="{DynamicResource Forge.Button.Disabled.Foreground}" />
+        </Style>
+        <Style Selector="^:error /template/ Border#PART_Root, ^.error /template/ Border#PART_Root">
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Input.Error}" />
+        </Style>
+    </ControlTheme>
+
 </ResourceDictionary>

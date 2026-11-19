@@ -63,6 +63,10 @@
                   BasedOn="{StaticResource Forge.TextBox}" />
         <ControlTheme x:Key="{x:Type forge:ForgeIpAddressBox}" TargetType="forge:ForgeIpAddressBox"
                   BasedOn="{StaticResource Forge.IpAddressBox}" />
+        <ControlTheme x:Key="{x:Type forge:ForgeDateBox}" TargetType="forge:ForgeDateBox"
+                  BasedOn="{StaticResource Forge.DateBox}" />
+        <ControlTheme x:Key="{x:Type forge:ForgeTimeBox}" TargetType="forge:ForgeTimeBox"
+                  BasedOn="{StaticResource Forge.TimeBox}" />
         <ControlTheme x:Key="{x:Type ButtonSpinner}" TargetType="ButtonSpinner"
                   BasedOn="{StaticResource Forge.ButtonSpinner}" />
         <ControlTheme x:Key="{x:Type NumericUpDown}" TargetType="NumericUpDown"
