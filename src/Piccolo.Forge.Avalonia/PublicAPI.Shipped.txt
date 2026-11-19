@@ -1183,3 +1183,72 @@ Piccolo.Forge.Avalonia.ForgeAppearance.HeaderTitleTextTrimming.init -> void
 Piccolo.Forge.Avalonia.ForgeToolWindowHeader.TitleTextTrimming.get -> Avalonia.Media.TextTrimming!
 Piccolo.Forge.Avalonia.ForgeToolWindowHeader.TitleTextTrimming.set -> void
 static readonly Piccolo.Forge.Avalonia.ForgeToolWindowHeader.TitleTextTrimmingProperty -> Avalonia.StyledProperty<Avalonia.Media.TextTrimming!>!
+Piccolo.Forge.Avalonia.ForgeDateBox
+Piccolo.Forge.Avalonia.ForgeDateBox.DayPlaceholder.get -> string?
+Piccolo.Forge.Avalonia.ForgeDateBox.DayPlaceholder.set -> void
+Piccolo.Forge.Avalonia.ForgeDateBox.ForgeDateBox() -> void
+Piccolo.Forge.Avalonia.ForgeDateBox.IsReadOnly.get -> bool
+Piccolo.Forge.Avalonia.ForgeDateBox.IsReadOnly.set -> void
+Piccolo.Forge.Avalonia.ForgeDateBox.MonthPlaceholder.get -> string?
+Piccolo.Forge.Avalonia.ForgeDateBox.MonthPlaceholder.set -> void
+Piccolo.Forge.Avalonia.ForgeDateBox.SelectedDate.get -> System.DateTime?
+Piccolo.Forge.Avalonia.ForgeDateBox.SelectedDate.set -> void
+Piccolo.Forge.Avalonia.ForgeDateBox.Separator.get -> string!
+Piccolo.Forge.Avalonia.ForgeDateBox.Separator.set -> void
+Piccolo.Forge.Avalonia.ForgeDateBox.Text.get -> string?
+Piccolo.Forge.Avalonia.ForgeDateBox.Text.set -> void
+Piccolo.Forge.Avalonia.ForgeDateBox.YearPlaceholder.get -> string?
+Piccolo.Forge.Avalonia.ForgeDateBox.YearPlaceholder.set -> void
+Piccolo.Forge.Avalonia.ForgeIpAddressBox
+Piccolo.Forge.Avalonia.ForgeIpAddressBox.ClampOctets.get -> bool
+Piccolo.Forge.Avalonia.ForgeIpAddressBox.ClampOctets.set -> void
+Piccolo.Forge.Avalonia.ForgeIpAddressBox.ForgeIpAddressBox() -> void
+Piccolo.Forge.Avalonia.ForgeIpAddressBox.IsReadOnly.get -> bool
+Piccolo.Forge.Avalonia.ForgeIpAddressBox.IsReadOnly.set -> void
+Piccolo.Forge.Avalonia.ForgeIpAddressBox.SegmentPlaceholder.get -> string?
+Piccolo.Forge.Avalonia.ForgeIpAddressBox.SegmentPlaceholder.set -> void
+Piccolo.Forge.Avalonia.ForgeIpAddressBox.Text.get -> string?
+Piccolo.Forge.Avalonia.ForgeIpAddressBox.Text.set -> void
+Piccolo.Forge.Avalonia.ForgeTimeBox
+Piccolo.Forge.Avalonia.ForgeTimeBox.ForgeTimeBox() -> void
+Piccolo.Forge.Avalonia.ForgeTimeBox.IsReadOnly.get -> bool
+Piccolo.Forge.Avalonia.ForgeTimeBox.IsReadOnly.set -> void
+Piccolo.Forge.Avalonia.ForgeTimeBox.SegmentPlaceholder.get -> string?
+Piccolo.Forge.Avalonia.ForgeTimeBox.SegmentPlaceholder.set -> void
+Piccolo.Forge.Avalonia.ForgeTimeBox.SelectedTime.get -> System.TimeSpan?
+Piccolo.Forge.Avalonia.ForgeTimeBox.SelectedTime.set -> void
+Piccolo.Forge.Avalonia.ForgeTimeBox.Separator.get -> string!
+Piccolo.Forge.Avalonia.ForgeTimeBox.Separator.set -> void
+Piccolo.Forge.Avalonia.ForgeTimeBox.ShowSeconds.get -> bool
+Piccolo.Forge.Avalonia.ForgeTimeBox.ShowSeconds.set -> void
+Piccolo.Forge.Avalonia.ForgeTimeBox.Text.get -> string?
+Piccolo.Forge.Avalonia.ForgeTimeBox.Text.set -> void
+override Piccolo.Forge.Avalonia.ForgeDateBox.OnApplyTemplate(Avalonia.Controls.Primitives.TemplateAppliedEventArgs! e) -> void
+override Piccolo.Forge.Avalonia.ForgeDateBox.OnPointerPressed(Avalonia.Input.PointerPressedEventArgs! e) -> void
+override Piccolo.Forge.Avalonia.ForgeDateBox.OnPropertyChanged(Avalonia.AvaloniaPropertyChangedEventArgs! change) -> void
+override Piccolo.Forge.Avalonia.ForgeDateBox.UpdateDataValidation(Avalonia.AvaloniaProperty! property, Avalonia.Data.BindingValueType state, System.Exception? error) -> void
+override Piccolo.Forge.Avalonia.ForgeIpAddressBox.OnApplyTemplate(Avalonia.Controls.Primitives.TemplateAppliedEventArgs! e) -> void
+override Piccolo.Forge.Avalonia.ForgeIpAddressBox.OnPointerPressed(Avalonia.Input.PointerPressedEventArgs! e) -> void
+override Piccolo.Forge.Avalonia.ForgeIpAddressBox.OnPropertyChanged(Avalonia.AvaloniaPropertyChangedEventArgs! change) -> void
+override Piccolo.Forge.Avalonia.ForgeIpAddressBox.UpdateDataValidation(Avalonia.AvaloniaProperty! property, Avalonia.Data.BindingValueType state, System.Exception? error) -> void
+override Piccolo.Forge.Avalonia.ForgeTimeBox.OnApplyTemplate(Avalonia.Controls.Primitives.TemplateAppliedEventArgs! e) -> void
+override Piccolo.Forge.Avalonia.ForgeTimeBox.OnPointerPressed(Avalonia.Input.PointerPressedEventArgs! e) -> void
+override Piccolo.Forge.Avalonia.ForgeTimeBox.OnPropertyChanged(Avalonia.AvaloniaPropertyChangedEventArgs! change) -> void
+override Piccolo.Forge.Avalonia.ForgeTimeBox.UpdateDataValidation(Avalonia.AvaloniaProperty! property, Avalonia.Data.BindingValueType state, System.Exception? error) -> void
+static readonly Piccolo.Forge.Avalonia.ForgeDateBox.DayPlaceholderProperty -> Avalonia.StyledProperty<string?>!
+static readonly Piccolo.Forge.Avalonia.ForgeDateBox.IsReadOnlyProperty -> Avalonia.StyledProperty<bool>!
+static readonly Piccolo.Forge.Avalonia.ForgeDateBox.MonthPlaceholderProperty -> Avalonia.StyledProperty<string?>!
+static readonly Piccolo.Forge.Avalonia.ForgeDateBox.SelectedDateProperty -> Avalonia.StyledProperty<System.DateTime?>!
+static readonly Piccolo.Forge.Avalonia.ForgeDateBox.SeparatorProperty -> Avalonia.StyledProperty<string!>!
+static readonly Piccolo.Forge.Avalonia.ForgeDateBox.TextProperty -> Avalonia.StyledProperty<string?>!
+static readonly Piccolo.Forge.Avalonia.ForgeDateBox.YearPlaceholderProperty -> Avalonia.StyledProperty<string?>!
+static readonly Piccolo.Forge.Avalonia.ForgeIpAddressBox.ClampOctetsProperty -> Avalonia.StyledProperty<bool>!
+static readonly Piccolo.Forge.Avalonia.ForgeIpAddressBox.IsReadOnlyProperty -> Avalonia.StyledProperty<bool>!
+static readonly Piccolo.Forge.Avalonia.ForgeIpAddressBox.SegmentPlaceholderProperty -> Avalonia.StyledProperty<string?>!
+static readonly Piccolo.Forge.Avalonia.ForgeIpAddressBox.TextProperty -> Avalonia.StyledProperty<string?>!
+static readonly Piccolo.Forge.Avalonia.ForgeTimeBox.IsReadOnlyProperty -> Avalonia.StyledProperty<bool>!
+static readonly Piccolo.Forge.Avalonia.ForgeTimeBox.SegmentPlaceholderProperty -> Avalonia.StyledProperty<string?>!
+static readonly Piccolo.Forge.Avalonia.ForgeTimeBox.SelectedTimeProperty -> Avalonia.StyledProperty<System.TimeSpan?>!
+static readonly Piccolo.Forge.Avalonia.ForgeTimeBox.SeparatorProperty -> Avalonia.StyledProperty<string!>!
+static readonly Piccolo.Forge.Avalonia.ForgeTimeBox.ShowSecondsProperty -> Avalonia.StyledProperty<bool>!
+static readonly Piccolo.Forge.Avalonia.ForgeTimeBox.TextProperty -> Avalonia.StyledProperty<string?>!
