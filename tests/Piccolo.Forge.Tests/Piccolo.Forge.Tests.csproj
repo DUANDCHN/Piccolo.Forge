@@ -28,6 +28,7 @@
     <ProjectReference Include="../../src/Piccolo.Forge.Mvvm/Piccolo.Forge.Mvvm.csproj" />
     <ProjectReference Include="../../src/Piccolo.Forge.Mvvm.CommunityToolkit/Piccolo.Forge.Mvvm.CommunityToolkit.csproj" />
     <ProjectReference Include="../../src/Piccolo.Forge.Avalonia/Piccolo.Forge.Avalonia.csproj" />
+    <ProjectReference Include="../../src/Piccolo.Forge.Avalonia.ColorPicker/Piccolo.Forge.Avalonia.ColorPicker.csproj" />
     <ProjectReference Include="../../src/Piccolo.Forge.Themes.ExpUi/Piccolo.Forge.Themes.ExpUi.csproj" />
     <ProjectReference Include="../../src/Piccolo.Forge.Themes.Islands/Piccolo.Forge.Themes.Islands.csproj" />
   </ItemGroup>

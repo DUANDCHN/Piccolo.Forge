@@ -166,7 +166,7 @@
            不像别处那样要跑起来才发现。 -->
     <ControlTheme x:Key="Forge.ToggleSwitch" TargetType="ToggleSwitch">
         <Setter Property="VerticalAlignment" Value="Center" />
-        <Setter Property="Cursor" Value="Arrow" />
+        <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
             <ControlTemplate>
                 <Grid ColumnDefinitions="Auto,*">
@@ -176,15 +176,23 @@
                             Width="{DynamicResource Forge.Switch.TrackWidth}"
                             Height="{DynamicResource Forge.Switch.TrackHeight}"
                             Background="{DynamicResource Forge.Check.Border}"
+                            BorderBrush="Transparent"
+                            BorderThickness="1"
                             CornerRadius="8"
                             VerticalAlignment="Center">
-                        <Panel Name="PART_SwitchKnob" HorizontalAlignment="Left" Margin="2,0">
-                            <Panel Name="PART_MovingKnobs">
-                                <Ellipse Name="SwitchKnob"
-                                         Width="{DynamicResource Forge.Switch.KnobSize}"
-                                         Height="{DynamicResource Forge.Switch.KnobSize}"
-                                         Fill="{DynamicResource Forge.Check.Glyph}"
-                                         VerticalAlignment="Center" />
+                        <Panel>
+                            <Border Name="PART_TrackOverlay"
+                                    Background="Transparent"
+                                    CornerRadius="8"
+                                    IsHitTestVisible="False" />
+                            <Panel Name="PART_SwitchKnob" HorizontalAlignment="Left" Margin="1,0">
+                                <Panel Name="PART_MovingKnobs">
+                                    <Ellipse Name="SwitchKnob"
+                                             Width="{DynamicResource Forge.Switch.KnobSize}"
+                                             Height="{DynamicResource Forge.Switch.KnobSize}"
+                                             Fill="{DynamicResource Forge.Check.Glyph}"
+                                             VerticalAlignment="Center" />
+                                </Panel>
                             </Panel>
                         </Panel>
                     </Border>
@@ -220,8 +228,21 @@
         <Style Selector="^:checked /template/ Panel#PART_SwitchKnob">
             <Setter Property="HorizontalAlignment" Value="Right" />
         </Style>
+        <Style Selector="^:pointerover /template/ Border#PART_SwitchTrack">
+            <Setter Property="BorderBrush" Value="{DynamicResource Forge.Check.SelectedBorder}" />
+        </Style>
+        <Style Selector="^:pointerover /template/ Border#PART_TrackOverlay">
+            <Setter Property="Background" Value="{DynamicResource Forge.Overlay.Hover}" />
+        </Style>
+        <Style Selector="^:pressed /template/ Border#PART_TrackOverlay">
+            <Setter Property="Background" Value="{DynamicResource Forge.Overlay.Pressed}" />
+        </Style>
         <Style Selector="^:disabled /template/ Border#PART_SwitchTrack">
             <Setter Property="Background" Value="{DynamicResource Forge.Check.Disabled.Border}" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+        <Style Selector="^:disabled:pointerover /template/ Border#PART_TrackOverlay">
+            <Setter Property="Background" Value="Transparent" />
         </Style>
         <Style Selector="^:disabled">
             <Setter Property="Foreground" Value="{DynamicResource Forge.Button.Disabled.Foreground}" />

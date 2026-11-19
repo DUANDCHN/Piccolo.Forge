@@ -140,6 +140,7 @@
             <Setter Property="MinWidth" Value="0" />
             <Setter Property="MinHeight" Value="0" />
             <Setter Property="Padding" Value="4" />
+            <Setter Property="Cursor" Value="Hand" />
         </Style>
     </ControlTheme>
 
@@ -178,6 +179,7 @@
         <Setter Property="MinWidth" Value="0" />
         <Setter Property="MinHeight" Value="0" />
         <Setter Property="Padding" Value="4" />
+        <Setter Property="Cursor" Value="Hand" />
     </ControlTheme>
 
     <ControlTheme x:Key="Forge.IconToggleButton" TargetType="ToggleButton" BasedOn="{StaticResource Forge.ToggleButton}">
@@ -189,6 +191,7 @@
         <Setter Property="MinWidth" Value="0" />
         <Setter Property="MinHeight" Value="0" />
         <Setter Property="Padding" Value="4" />
+        <Setter Property="Cursor" Value="Hand" />
     </ControlTheme>
 
 </ResourceDictionary>
