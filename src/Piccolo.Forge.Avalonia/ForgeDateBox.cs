@@ -17,7 +17,7 @@ namespace Piccolo.Forge.Avalonia;
 [TemplatePart("PART_Part1", typeof(TextBox))]
 [TemplatePart("PART_Part2", typeof(TextBox))]
 [PseudoClasses(":error")]
-public class ForgeDateBox : TemplatedControl
+public partial class ForgeDateBox : TemplatedControl
 {
     private const int SegmentCount = 3;
 
@@ -50,10 +50,6 @@ public class ForgeDateBox : TemplatedControl
     /// <summary><see cref="DayPlaceholder"/> 的依赖属性，默认 <c>"DD"</c>。</summary>
     public static readonly StyledProperty<string?> DayPlaceholderProperty =
         AvaloniaProperty.Register<ForgeDateBox, string?>(nameof(DayPlaceholder), defaultValue: "DD");
-
-    /// <summary><see cref="IsReadOnly"/> 的依赖属性。</summary>
-    public static readonly StyledProperty<bool> IsReadOnlyProperty =
-        AvaloniaProperty.Register<ForgeDateBox, bool>(nameof(IsReadOnly));
 
     private readonly ForgeSegmentGroup _segments;
     private bool _syncing;
@@ -113,11 +109,8 @@ public class ForgeDateBox : TemplatedControl
     }
 
     /// <summary>是否只读。</summary>
-    public bool IsReadOnly
-    {
-        get => GetValue(IsReadOnlyProperty);
-        set => SetValue(IsReadOnlyProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial bool IsReadOnly { get; set; }
 
     /// <inheritdoc />
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)

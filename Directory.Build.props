@@ -1,4 +1,4 @@
-﻿<Project>
+<Project>
 
   <PropertyGroup>
     <!-- 库多目标；tests / samples 各自覆盖成单目标 -->
@@ -14,7 +14,7 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
 
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <AvaloniaVersion>12.1.1</AvaloniaVersion>
+    <AvaloniaVersion>12.2.0</AvaloniaVersion>
   </PropertyGroup>
 
   <!-- NuGet 包元数据（src/ 下的库共用；tests / samples 设 IsPackable=false） -->

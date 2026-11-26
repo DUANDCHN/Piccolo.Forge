@@ -42,7 +42,7 @@ namespace Piccolo.Forge.Avalonia;
 /// <see cref="Committed"/> 写回模型 —— 与标签拖拽「行内仅预览、松手才提交」同一条规矩。
 /// </para>
 /// </remarks>
-public sealed class ForgeEditorSplitter : Control
+public sealed partial class ForgeEditorSplitter : Control
 {
     /// <summary>建一条分割线。</summary>
     /// <param name="isVertical">竖着切（上下两块）—— 那么线本身是横的一条。</param>
@@ -81,10 +81,6 @@ public sealed class ForgeEditorSplitter : Control
             LineRect(Bounds.Size, IsVertical));
     }
 
-    /// <summary><see cref="LineBrush"/> 的属性定义。</summary>
-    public static readonly StyledProperty<IBrush?> LineBrushProperty =
-        AvaloniaProperty.Register<ForgeEditorSplitter, IBrush?>(nameof(LineBrush));
-
     /// <summary>那条 1px 线的颜色，由 <c>ControlTheme</c> 从资源键给（REQ-067）。</summary>
     /// <remarks>
     /// <b>不套模板</b>：热区比线宽得多（6px 抓取区 vs 1px 线），
@@ -92,11 +88,8 @@ public sealed class ForgeEditorSplitter : Control
     /// 收益抵不上绕的这一道。对宿主而言用法一样：重定义同名键即可，明暗照常跟随。
     /// <para>兜底回配色 —— 控件还没进树时拿不到主题（见 <c>ThemeResourceSpikeTests</c>）。</para>
     /// </remarks>
-    public IBrush? LineBrush
-    {
-        get => GetValue(LineBrushProperty);
-        set => SetValue(LineBrushProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial IBrush? LineBrush { get; set; }
 
     /// <summary>热区里那条真正画出来的 1px 线（居中）。</summary>
     public static Rect LineRect(Size size, bool isVertical)

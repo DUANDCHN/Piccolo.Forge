@@ -19,7 +19,7 @@ namespace Piccolo.Forge.Avalonia;
 /// 标签页容器由 <see cref="TabStrip"/> 按 <c>ItemsSource</c> 管理；正文宿主按组与 id
 /// 复用，开合别的标签页不会重造宿主交进来的正文控件。
 /// </remarks>
-public class ForgeEditorControl : TemplatedControl
+public partial class ForgeEditorControl : TemplatedControl
 {
     // 正文宿主的键是 (组, 标签页 id) 而不是单纯 id：分屏后同一个 id
     // 可同时存在于两个组（EditorWindow.kt:570-571）。
@@ -58,28 +58,9 @@ public class ForgeEditorControl : TemplatedControl
 
     private EditorAreaViewModel? _area;
 
-    /// <summary>
-    /// <see cref="Editor"/> 的属性定义。
-    /// </summary>
-    /// <remarks>
-    /// 做成可绑定属性而不是只读 + <c>Attach()</c>，理由同
-    /// <see cref="ForgeControl.ShellProperty"/>：整块外壳要能在 XAML 里声明。
-    /// <para>
-    /// ⚠ 叫 <c>Editor</c> 不叫 <c>Area</c>：这个控件本来就叫 <c>ForgeEditorControl</c>，
-    /// 而它接的 VM 自己还有个 <c>Area</c>（那是模型 <see cref="EditorArea"/>）——
-    /// 叫 Area 的话宿主看到的是 <c>control.Area.Area.Root</c>，一条链上三个 Area。
-    /// </para>
-    /// </remarks>
-    public static readonly StyledProperty<EditorAreaViewModel?> EditorProperty =
-        AvaloniaProperty.Register<ForgeEditorControl, EditorAreaViewModel?>(nameof(Editor));
-
     /// <summary><see cref="Palette"/> 的属性定义。</summary>
     public static readonly StyledProperty<ForgePalette> PaletteProperty =
         AvaloniaProperty.Register<ForgeEditorControl, ForgePalette>(nameof(Palette), ForgePalette.ExpUiDark);
-
-    /// <summary><see cref="IslandBorderBrush"/> 的属性定义。</summary>
-    public static readonly StyledProperty<IBrush?> IslandBorderBrushProperty =
-        AvaloniaProperty.Register<ForgeEditorControl, IBrush?>(nameof(IslandBorderBrush));
 
     /// <summary>
     /// 岛那圈描边的画刷，由 <c>ControlTheme</c> 从资源键给（REQ-067 收尾项）。
@@ -89,15 +70,8 @@ public class ForgeEditorControl : TemplatedControl
     /// 归了资源键之后，宿主重定义 <c>Forge.Islands.IslandBorder</c> 即可，
     /// 不必再给 <c>PaletteResolver</c> 回调。
     /// </remarks>
-    public IBrush? IslandBorderBrush
-    {
-        get => GetValue(IslandBorderBrushProperty);
-        set => SetValue(IslandBorderBrushProperty, value);
-    }
-
-    /// <summary><see cref="EditorBackgroundBrush"/> 的属性定义。</summary>
-    public static readonly StyledProperty<IBrush?> EditorBackgroundBrushProperty =
-        AvaloniaProperty.Register<ForgeEditorControl, IBrush?>(nameof(EditorBackgroundBrush));
+    [GeneratedStyledProperty]
+    public partial IBrush? IslandBorderBrush { get; set; }
 
     /// <summary>
     /// 编辑区底色的画刷，由 <c>ControlTheme</c> 从资源键给（同 <see cref="IslandBorderBrush"/> 那条路）。
@@ -111,11 +85,8 @@ public class ForgeEditorControl : TemplatedControl
     /// <c>Forge.ExpUi.EditorBackground</c> / <c>Forge.Islands.EditorBackground</c> 即可，明暗各盖各的。
     /// </para>
     /// </remarks>
-    public IBrush? EditorBackgroundBrush
-    {
-        get => GetValue(EditorBackgroundBrushProperty);
-        set => SetValue(EditorBackgroundBrushProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial IBrush? EditorBackgroundBrush { get; set; }
 
     static ForgeEditorControl()
     {
@@ -655,11 +626,8 @@ public class ForgeEditorControl : TemplatedControl
     /// <summary>
     /// 接上的编辑区 VM；赋值即接上（同 <see cref="Attach"/>），可在 XAML 里绑定。
     /// </summary>
-    public EditorAreaViewModel? Editor
-    {
-        get => GetValue(EditorProperty);
-        set => SetValue(EditorProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial EditorAreaViewModel? Editor { get; set; }
 
     /// <summary>接上一个编辑区 VM。</summary>
     /// <param name="area">编辑区 VM。</param>

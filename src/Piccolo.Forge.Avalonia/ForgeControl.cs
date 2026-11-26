@@ -30,7 +30,7 @@ namespace Piccolo.Forge.Avalonia;
 /// 组内次序与分隔符走 <see cref="StripeGroupLayout"/>。
 /// </para>
 /// </remarks>
-public class ForgeControl : TemplatedControl
+public partial class ForgeControl : TemplatedControl
 {
     private readonly ForgeToolWindowToolbar _left = new() { Side = StripeSide.Left };
     private readonly ForgeToolWindowToolbar _right = new() { Side = StripeSide.Right };
@@ -71,10 +71,6 @@ public class ForgeControl : TemplatedControl
     public static readonly StyledProperty<ForgePalette> PaletteProperty =
         AvaloniaProperty.Register<ForgeControl, ForgePalette>(nameof(Palette), ForgePalette.ExpUiDark);
 
-    /// <summary><see cref="IslandBorderBrush"/> 的属性定义。</summary>
-    public static readonly StyledProperty<IBrush?> IslandBorderBrushProperty =
-        AvaloniaProperty.Register<ForgeControl, IBrush?>(nameof(IslandBorderBrush));
-
     /// <summary>
     /// 岛那圈描边的画刷，由 <c>ControlTheme</c> 从资源键给（REQ-067 收尾项）。
     /// </summary>
@@ -83,15 +79,8 @@ public class ForgeControl : TemplatedControl
     /// 归了资源键之后，宿主重定义 <c>Forge.Islands.IslandBorder</c> 即可，
     /// 不必再给 <c>PaletteResolver</c> 回调。
     /// </remarks>
-    public IBrush? IslandBorderBrush
-    {
-        get => GetValue(IslandBorderBrushProperty);
-        set => SetValue(IslandBorderBrushProperty, value);
-    }
-
-    /// <summary><see cref="DockDividerBrush"/> 的属性定义。</summary>
-    public static readonly StyledProperty<IBrush?> DockDividerBrushProperty =
-        AvaloniaProperty.Register<ForgeControl, IBrush?>(nameof(DockDividerBrush));
+    [GeneratedStyledProperty]
+    public partial IBrush? IslandBorderBrush { get; set; }
 
     /// <summary>
     /// 同一条边上**两块面板之间**那条 1px 分割线的画刷，由 <c>ControlTheme</c> 从资源键给。
@@ -111,35 +100,8 @@ public class ForgeControl : TemplatedControl
     /// 这条判据在画的地方，不在这里。
     /// </para>
     /// </remarks>
-    public IBrush? DockDividerBrush
-    {
-        get => GetValue(DockDividerBrushProperty);
-        set => SetValue(DockDividerBrushProperty, value);
-    }
-
-    /// <summary>
-    /// <see cref="Shell"/> 的属性定义。
-    /// </summary>
-    /// <remarks>
-    /// 做成可绑定属性而不是只读 + <c>Attach()</c>，是为了让整个外壳能在 XAML 里声明：
-    /// <code>&lt;forge:ForgeControl Shell="{Binding Shell.ViewModel}"/&gt;</code>
-    /// 对位 Dock.Avalonia 的 <c>&lt;DockControl Layout="{Binding Layout}"/&gt;</c>。
-    /// <c>Attach()</c> 仍在，它现在就是写这个属性。
-    /// </remarks>
-    public static readonly StyledProperty<ToolWindowShellViewModel?> ShellProperty =
-        AvaloniaProperty.Register<ForgeControl, ToolWindowShellViewModel?>(nameof(Shell));
-
-    /// <summary><see cref="TransparentBackdrop"/> 的属性定义。</summary>
-    public static readonly StyledProperty<bool> TransparentBackdropProperty =
-        AvaloniaProperty.Register<ForgeControl, bool>(nameof(TransparentBackdrop));
-
-    /// <summary><see cref="StripeButtonArc"/> 的属性定义。</summary>
-    public static readonly StyledProperty<double?> StripeButtonArcProperty =
-        AvaloniaProperty.Register<ForgeControl, double?>(nameof(StripeButtonArc));
-
-    /// <summary><see cref="MoreButtonSide"/> 的属性定义。</summary>
-    public static readonly StyledProperty<StripeSide> MoreButtonSideProperty =
-        AvaloniaProperty.Register<ForgeControl, StripeSide>(nameof(MoreButtonSide));
+    [GeneratedStyledProperty]
+    public partial IBrush? DockDividerBrush { get; set; }
 
     /// <summary><see cref="ShowHeaderButtons"/> 的属性定义。</summary>
     public static readonly StyledProperty<bool> ShowHeaderButtonsProperty =
@@ -148,14 +110,6 @@ public class ForgeControl : TemplatedControl
     /// <summary><see cref="ShowIslandResizerGrip"/> 的属性定义。</summary>
     public static readonly StyledProperty<bool> ShowIslandResizerGripProperty =
         AvaloniaProperty.Register<ForgeControl, bool>(nameof(ShowIslandResizerGrip), defaultValue: true);
-
-    /// <summary><see cref="ShowToolWindowNames"/> 的属性定义。</summary>
-    public static readonly StyledProperty<bool> ShowToolWindowNamesProperty =
-        AvaloniaProperty.Register<ForgeControl, bool>(nameof(ShowToolWindowNames));
-
-    /// <summary><see cref="EditorContent"/> 的属性定义。</summary>
-    public static readonly StyledProperty<Control?> EditorContentProperty =
-        AvaloniaProperty.Register<ForgeControl, Control?>(nameof(EditorContent));
 
     static ForgeControl()
     {
@@ -406,11 +360,8 @@ public class ForgeControl : TemplatedControl
     /// 透出来的是宿主自己的底色，不会凭空出现云母。
     /// </para>
     /// </remarks>
-    public bool TransparentBackdrop
-    {
-        get => GetValue(TransparentBackdropProperty);
-        set => SetValue(TransparentBackdropProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial bool TransparentBackdrop { get; set; }
 
     /// <summary>
     /// 条带按钮的圆角**直径**；<see langword="null"/> 表示用主题默认（常规 12 / 紧凑 8）。
@@ -419,11 +370,8 @@ public class ForgeControl : TemplatedControl
     /// ⚠ 是直径不是半径，与上游 <c>Button.ToolWindow.arc</c> 同语义
     /// （见 <see cref="ForgeMetrics.StripeButtonArc"/>）。想要"完全的圆"就传按钮短边的长度。
     /// </remarks>
-    public double? StripeButtonArc
-    {
-        get => GetValue(StripeButtonArcProperty);
-        set => SetValue(StripeButtonArcProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial double? StripeButtonArc { get; set; }
 
     /// <summary>
     /// 「更多」按钮显示在哪一边。
@@ -432,11 +380,8 @@ public class ForgeControl : TemplatedControl
     /// 同一时刻只有一根条带显示它，默认 LEFT
     /// （<c>ToolWindowManagerState.kt:60</c>、<c>MoreSquareStripeButton.kt:77-79</c>）。
     /// </remarks>
-    public StripeSide MoreButtonSide
-    {
-        get => GetValue(MoreButtonSideProperty);
-        set => SetValue(MoreButtonSideProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial StripeSide MoreButtonSide { get; set; }
 
     /// <summary>
     /// 条带上是否在图标下面显示名字。
@@ -445,11 +390,8 @@ public class ForgeControl : TemplatedControl
     /// 对应 `UISettings.showToolWindowsNames`，默认 false（<c>UISettingsState.kt:83</c>）。
     /// 打开时条带宽度变成 59（<c>ResizeStripeManager.kt:215-218</c>）。
     /// </remarks>
-    public bool ShowToolWindowNames
-    {
-        get => GetValue(ShowToolWindowNamesProperty);
-        set => SetValue(ShowToolWindowNamesProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial bool ShowToolWindowNames { get; set; }
 
     /// <summary>
     /// 面板标题条右侧那两个按钮（⋮ 选项 / — 隐藏）显不显示。默认开。
@@ -535,11 +477,8 @@ public class ForgeControl : TemplatedControl
     public Action<ContextMenu, string>? HeaderMenuExtension { get; set; }
 
     /// <summary>中间编辑区放什么。</summary>
-    public Control? EditorContent
-    {
-        get => GetValue(EditorContentProperty);
-        set => SetValue(EditorContentProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial Control? EditorContent { get; set; }
 
     /// <summary>左条带。</summary>
     public ForgeToolWindowToolbar LeftToolbar => _left;
@@ -649,11 +588,8 @@ public class ForgeControl : TemplatedControl
     /// <summary>
     /// 接上的外壳 VM；赋值即接上（同 <see cref="Attach"/>），可在 XAML 里绑定。
     /// </summary>
-    public ToolWindowShellViewModel? Shell
-    {
-        get => GetValue(ShellProperty);
-        set => SetValue(ShellProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial ToolWindowShellViewModel? Shell { get; set; }
 
     private void OnShellStateChanged(object? sender, ToolWindowStateChangedEventArgs e)
     {

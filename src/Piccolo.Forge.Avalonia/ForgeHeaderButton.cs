@@ -27,15 +27,11 @@ namespace Piccolo.Forge.Avalonia;
 /// 库不规定宿主的按钮长什么样，只保证位置和排布。
 /// </para>
 /// </remarks>
-public class ForgeHeaderButton : Button
+public partial class ForgeHeaderButton : Button
 {
     /// <summary><see cref="Palette"/> 的属性定义。</summary>
     public static readonly StyledProperty<ForgePalette> PaletteProperty =
         AvaloniaProperty.Register<ForgeHeaderButton, ForgePalette>(nameof(Palette), ForgePalette.ExpUiDark);
-
-    /// <summary><see cref="Icon"/> 的属性定义。</summary>
-    public static readonly StyledProperty<Geometry?> IconProperty =
-        AvaloniaProperty.Register<ForgeHeaderButton, Geometry?>(nameof(Icon));
 
     static ForgeHeaderButton()
     {
@@ -54,16 +50,9 @@ public class ForgeHeaderButton : Button
     /// </remarks>
     public ForgeHeaderButton() => Focusable = false;
 
-    /// <summary><see cref="HoverBackgroundBrush"/> 的属性定义。</summary>
-    public static readonly StyledProperty<IBrush?> HoverBackgroundBrushProperty =
-        AvaloniaProperty.Register<ForgeHeaderButton, IBrush?>(nameof(HoverBackgroundBrush));
-
     /// <summary>悬停 / 按下时的底，由 <c>ControlTheme</c> 从资源键给（REQ-067）。</summary>
-    public IBrush? HoverBackgroundBrush
-    {
-        get => GetValue(HoverBackgroundBrushProperty);
-        set => SetValue(HoverBackgroundBrushProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial IBrush? HoverBackgroundBrush { get; set; }
 
     /// <summary>配色。</summary>
     public ForgePalette Palette
@@ -73,15 +62,8 @@ public class ForgeHeaderButton : Button
     }
 
     /// <summary>画什么图标（<see cref="ForgeIcons"/> 里那套）。</summary>
-    public Geometry? Icon
-    {
-        get => GetValue(IconProperty);
-        set => SetValue(IconProperty, value);
-    }
-
-    /// <summary><see cref="IconContent"/> 的属性定义。</summary>
-    public static readonly StyledProperty<Control?> IconContentProperty =
-        AvaloniaProperty.Register<ForgeHeaderButton, Control?>(nameof(IconContent));
+    [GeneratedStyledProperty]
+    public partial Geometry? Icon { get; set; }
 
     /// <summary>
     /// 用**一个控件**当图标 —— 给了它就压过 <see cref="Icon"/> 那条（两条路互不影响）。
@@ -97,15 +79,8 @@ public class ForgeHeaderButton : Button
     /// 明暗与族切换都跟着 <c>ControlTheme</c> 走。
     /// </para>
     /// </remarks>
-    public Control? IconContent
-    {
-        get => GetValue(IconContentProperty);
-        set => SetValue(IconContentProperty, value);
-    }
-
-    /// <summary><see cref="IconInkScale"/> 的属性定义。</summary>
-    public static readonly StyledProperty<double> IconInkScaleProperty =
-        AvaloniaProperty.Register<ForgeHeaderButton, double>(nameof(IconInkScale), 1);
+    [GeneratedStyledProperty]
+    public partial Control? IconContent { get; set; }
 
     /// <summary>
     /// 把 <see cref="Icon"/> 那条路径的墨迹放大多少（1 = 上游原样）；对 <see cref="IconContent"/> 无效。
@@ -116,11 +91,8 @@ public class ForgeHeaderButton : Button
     /// 用它把库自带的 ⋮ / — 抬到同一档，而不是把宿主那批缩下去。
     /// <para>对 <see cref="IconContent"/> 不起作用 —— 那是宿主自己的控件，大小由它自己说了算。</para>
     /// </remarks>
-    public double IconInkScale
-    {
-        get => GetValue(IconInkScaleProperty);
-        set => SetValue(IconInkScaleProperty, value);
-    }
+    [GeneratedStyledProperty(DefaultValue = 1)]
+    public partial double IconInkScale { get; set; }
 
     /// <summary>图标是实心的还是描边的；圆点类实心、线条类描边。</summary>
     /// <remarks>默认按 <see cref="ForgeIcons.MoreVertical"/> 那类实心走；线条图标（如

@@ -22,20 +22,8 @@ namespace Piccolo.Forge.Avalonia;
 /// </para>
 /// </remarks>
 [ForgeThemeless("纯布局面板：只排条带上的按钮与拖拽空槽。")]
-internal class StripeItemsPanel : Panel
+internal partial class StripeItemsPanel : Panel
 {
-    /// <summary><see cref="DraggedChild"/> 的属性定义。</summary>
-    public static readonly StyledProperty<Control?> DraggedChildProperty =
-        AvaloniaProperty.Register<StripeItemsPanel, Control?>(nameof(DraggedChild));
-
-    /// <summary><see cref="DropOffset"/> 的属性定义。</summary>
-    public static readonly StyledProperty<double?> DropOffsetProperty =
-        AvaloniaProperty.Register<StripeItemsPanel, double?>(nameof(DropOffset));
-
-    /// <summary><see cref="DropSlotHeight"/> 的属性定义。</summary>
-    public static readonly StyledProperty<double> DropSlotHeightProperty =
-        AvaloniaProperty.Register<StripeItemsPanel, double>(nameof(DropSlotHeight));
-
     static StripeItemsPanel()
     {
         AffectsMeasure<StripeItemsPanel>(DraggedChildProperty, DropOffsetProperty, DropSlotHeightProperty);
@@ -54,11 +42,8 @@ internal class StripeItemsPanel : Panel
     /// </para>
     /// <para>不属于本面板也没关系，找不到就什么都不发生，所以宿主可以四个组一起设。</para>
     /// </remarks>
-    public Control? DraggedChild
-    {
-        get => GetValue(DraggedChildProperty);
-        set => SetValue(DraggedChildProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial Control? DraggedChild { get; set; }
 
     /// <summary>
     /// 落点在**排除被拖项、也不含空槽**的那条序列里的纵向偏移；<see langword="null"/> 表示没在拖。
@@ -79,18 +64,12 @@ internal class StripeItemsPanel : Panel
     /// 表现为下组「放在这一格、却插到隔壁那格」。换算见 <c>ForgeControl.ApplyDropOffset</c>。
     /// </para>
     /// </remarks>
-    public double? DropOffset
-    {
-        get => GetValue(DropOffsetProperty);
-        set => SetValue(DropOffsetProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial double? DropOffset { get; set; }
 
     /// <summary>空槽的高度，一般就是被拖按钮的高度。</summary>
-    public double DropSlotHeight
-    {
-        get => GetValue(DropSlotHeightProperty);
-        set => SetValue(DropSlotHeightProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial double DropSlotHeight { get; set; }
 
     /// <summary>
     /// 上一次排布定下的插入位置：在**排除被拖项之后**的序列里插在第几个之前；

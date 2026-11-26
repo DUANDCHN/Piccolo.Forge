@@ -21,36 +21,18 @@ namespace Piccolo.Forge.Avalonia;
 /// </para>
 /// </remarks>
 [ForgeThemeless("图标的画刷与尺寸由**用它的那份模板**喂，它自己没有族差。")]
-public sealed class ForgeGeometryIcon : Control
+public sealed partial class ForgeGeometryIcon : Control
 {
-    /// <summary><see cref="Icon"/> 的属性定义。</summary>
-    public static readonly StyledProperty<Geometry?> IconProperty =
-        AvaloniaProperty.Register<ForgeGeometryIcon, Geometry?>(nameof(Icon));
-
-    /// <summary><see cref="Brush"/> 的属性定义。</summary>
-    public static readonly StyledProperty<IBrush?> BrushProperty =
-        AvaloniaProperty.Register<ForgeGeometryIcon, IBrush?>(nameof(Brush));
-
-    /// <summary><see cref="IsFilled"/> 的属性定义。</summary>
-    public static readonly StyledProperty<bool> IsFilledProperty =
-        AvaloniaProperty.Register<ForgeGeometryIcon, bool>(nameof(IsFilled));
-
     static ForgeGeometryIcon()
         => AffectsRender<ForgeGeometryIcon>(IconProperty, BrushProperty, IsFilledProperty, InkScaleProperty);
 
     /// <summary>要画的图形；<see langword="null"/> 就什么都不画。</summary>
-    public Geometry? Icon
-    {
-        get => GetValue(IconProperty);
-        set => SetValue(IconProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial Geometry? Icon { get; set; }
 
     /// <summary>用什么画。</summary>
-    public IBrush? Brush
-    {
-        get => GetValue(BrushProperty);
-        set => SetValue(BrushProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial IBrush? Brush { get; set; }
 
     /// <summary>
     /// 实心还是描边。
@@ -59,15 +41,8 @@ public sealed class ForgeGeometryIcon : Control
     /// 圆点类图标是实心的（三个小方块），描边画出来会变成三个小方框；
     /// 线条类（隐藏那条横线）填充与描边一致，所以那类统一走填充。
     /// </remarks>
-    public bool IsFilled
-    {
-        get => GetValue(IsFilledProperty);
-        set => SetValue(IsFilledProperty, value);
-    }
-
-    /// <summary><see cref="InkScale"/> 的属性定义。</summary>
-    public static readonly StyledProperty<double> InkScaleProperty =
-        AvaloniaProperty.Register<ForgeGeometryIcon, double>(nameof(InkScale), 1);
+    [GeneratedStyledProperty]
+    public partial bool IsFilled { get; set; }
 
     /// <summary>
     /// 墨迹放大系数（1 = 上游原样）。
@@ -83,11 +58,8 @@ public sealed class ForgeGeometryIcon : Control
     /// </para>
     /// <para>⚠ 放大的是**画进去的框**，不是墨迹包围盒 —— 各图标彼此的大小关系仍是上游那套。</para>
     /// </remarks>
-    public double InkScale
-    {
-        get => GetValue(InkScaleProperty);
-        set => SetValue(InkScaleProperty, value);
-    }
+    [GeneratedStyledProperty(DefaultValue = 1.0)]
+    public partial double InkScale { get; set; }
 
     /// <inheritdoc />
     public override void Render(DrawingContext context)

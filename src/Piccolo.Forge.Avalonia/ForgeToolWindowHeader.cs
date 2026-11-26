@@ -21,35 +21,15 @@ namespace Piccolo.Forge.Avalonia;
 /// 激活/非激活两种背景来自 `ToolWindow.Header.background` / `...inactiveBackground`
 /// （<c>JBUI.java:1154-1169</c>）。
 /// </remarks>
-public class ForgeToolWindowHeader : TemplatedControl
+public partial class ForgeToolWindowHeader : TemplatedControl
 {
     /// <summary><see cref="Palette"/> 的属性定义。</summary>
     public static readonly StyledProperty<ForgePalette> PaletteProperty =
         AvaloniaProperty.Register<ForgeToolWindowHeader, ForgePalette>(nameof(Palette), ForgePalette.ExpUiDark);
 
-    /// <summary><see cref="Title"/> 的属性定义。</summary>
-    public static readonly StyledProperty<string?> TitleProperty =
-        AvaloniaProperty.Register<ForgeToolWindowHeader, string?>(nameof(Title));
-
-    /// <summary><see cref="IsActive"/> 的属性定义。</summary>
-    public static readonly StyledProperty<bool> IsActiveProperty =
-        AvaloniaProperty.Register<ForgeToolWindowHeader, bool>(nameof(IsActive));
-
-    /// <summary><see cref="IsCompact"/> 的属性定义。</summary>
-    public static readonly StyledProperty<bool> IsCompactProperty =
-        AvaloniaProperty.Register<ForgeToolWindowHeader, bool>(nameof(IsCompact));
-
-    /// <summary><see cref="ContentUiType"/> 的属性定义。</summary>
-    public static readonly StyledProperty<ToolWindowContentUiType> ContentUiTypeProperty =
-        AvaloniaProperty.Register<ForgeToolWindowHeader, ToolWindowContentUiType>(nameof(ContentUiType));
-
     /// <summary><see cref="ShowButtons"/> 的属性定义。</summary>
     public static readonly StyledProperty<bool> ShowButtonsProperty =
         AvaloniaProperty.Register<ForgeToolWindowHeader, bool>(nameof(ShowButtons), defaultValue: true);
-
-    /// <summary><see cref="ShowDockButton"/> 的属性定义。</summary>
-    public static readonly StyledProperty<bool> ShowDockButtonProperty =
-        AvaloniaProperty.Register<ForgeToolWindowHeader, bool>(nameof(ShowDockButton));
 
     private readonly ForgeContentTabStrip _tabs = new();
     private readonly ForgeHeaderButton _dock = new() { Icon = ForgeIcons.Dock, IsFilledIcon = false };
@@ -153,11 +133,8 @@ public class ForgeToolWindowHeader : TemplatedControl
     /// 上游那组动作的第一个就是 <c>DockToolWindowAction</c>（<c>ToolWindowHeader.kt:119</c>），
     /// **只在面板处于外部形态（浮动 / 独立窗口）时出现** —— 已经停靠着的面板没有"停回去"这回事。
     /// </remarks>
-    public bool ShowDockButton
-    {
-        get => GetValue(ShowDockButtonProperty);
-        set => SetValue(ShowDockButtonProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial bool ShowDockButton { get; set; }
 
     /// <summary>「停靠回去」被点了。</summary>
     public event EventHandler<RoutedEventArgs>? DockRequested;
@@ -288,25 +265,16 @@ public class ForgeToolWindowHeader : TemplatedControl
     }
 
     /// <summary>标题。</summary>
-    public string? Title
-    {
-        get => GetValue(TitleProperty);
-        set => SetValue(TitleProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial string? Title { get; set; }
 
     /// <summary>这个工具窗口是不是当前活跃的那个。</summary>
-    public bool IsActive
-    {
-        get => GetValue(IsActiveProperty);
-        set => SetValue(IsActiveProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial bool IsActive { get; set; }
 
     /// <summary>是否紧凑模式。</summary>
-    public bool IsCompact
-    {
-        get => GetValue(IsCompactProperty);
-        set => SetValue(IsCompactProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial bool IsCompact { get; set; }
 
     /// <summary>
     /// 内容区是一排 tab 还是一个下拉。
@@ -314,11 +282,8 @@ public class ForgeToolWindowHeader : TemplatedControl
     /// <remarks>
     /// 对应 <see cref="WindowInfo.ContentUiType"/>，两套布局见 <c>工具窗口模型.md</c> §13。
     /// </remarks>
-    public ToolWindowContentUiType ContentUiType
-    {
-        get => GetValue(ContentUiTypeProperty);
-        set => SetValue(ContentUiTypeProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial ToolWindowContentUiType ContentUiType { get; set; }
 
     /// <summary>放 tab 的地方（横排）。</summary>
     /// <remarks>
@@ -327,84 +292,21 @@ public class ForgeToolWindowHeader : TemplatedControl
     /// </remarks>
     public ForgeContentTabStrip Tabs => _tabs;
 
-    /// <summary>
-    /// 这条标题条**兼任窗口标题栏**时的高度；<see cref="double.NaN"/> 表示不兼任，按面板的高度走。
-    /// </summary>
-    /// <remarks>
-    /// 浮动形态没有系统标题栏（见 <see cref="IsWindowDragArea"/>），这条就是那个窗口的标题栏 ——
-    /// 那它该按**窗口标题栏**的高度长，而不是面板标题条的 41
-    /// （<c>JBUI.java:1178-1180</c> 那个高度是给停靠着的面板定的，摞在窗口顶上会明显偏高）。
-    /// 具体多高由宿主定（<c>ForgeControl.TitleBarHeight</c>），因为"这个应用的窗口标题栏多高"
-    /// 是宿主的事。
-    /// </remarks>
-    public static readonly StyledProperty<double> TitleBarHeightProperty =
-        AvaloniaProperty.Register<ForgeToolWindowHeader, double>(nameof(TitleBarHeight), double.NaN);
-
-    /// <summary>
-    /// 标题文字的字重。
-    /// </summary>
-    /// <remarks>
-    /// 上游那条标题是常规字重，所以默认 <see cref="FontWeight.Normal"/>；
-    /// 想让面板名更立得住的项目自己调（<c>ForgeControl.HeaderTitleFontWeight</c>）。
-    /// </remarks>
-    public static readonly StyledProperty<FontWeight> TitleFontWeightProperty =
-        AvaloniaProperty.Register<ForgeToolWindowHeader, FontWeight>(nameof(TitleFontWeight), FontWeight.Normal);
-
     /// <summary>标题文字的字重。</summary>
-    public FontWeight TitleFontWeight
-    {
-        get => GetValue(TitleFontWeightProperty);
-        set => SetValue(TitleFontWeightProperty, value);
-    }
+    [GeneratedStyledProperty(DefaultValue = FontWeight.Normal)]
+    public partial FontWeight TitleFontWeight { get; set; }
 
     /// <summary>兼任窗口标题栏时的高度，NaN = 不兼任。</summary>
-    public double TitleBarHeight
-    {
-        get => GetValue(TitleBarHeightProperty);
-        set => SetValue(TitleBarHeightProperty, value);
-    }
-
-    /// <summary>
-    /// 宿主指定的标题条高度；<see cref="double.NaN"/> = 不指定，按上游那两档（紧凑 31 / 常规 41）走。
-    /// </summary>
-    /// <remarks>
-    /// 与 <see cref="IsCompact"/> **不是一回事**：紧凑是上游的一整档密度（条带按钮、字号、圆角一起变小），
-    /// 这里只改标题条这一行的高度，别的度量不动 —— "面板标题条该多高"是宿主的版面取舍，
-    /// 它不该被迫连同整档密度一起切换。
-    /// <para>
-    /// 兼任窗口标题栏时（<see cref="IsWindowTitleBar"/>）不吃这个值：那种形态下这一行是**窗口的**标题栏，
-    /// 高度得跟应用里其它窗体对齐（<see cref="TitleBarHeight"/>），与面板标题条多高无关。
-    /// </para>
-    /// </remarks>
-    public static readonly StyledProperty<double> HeightOverrideProperty =
-        AvaloniaProperty.Register<ForgeToolWindowHeader, double>(nameof(HeightOverride), double.NaN);
+    [GeneratedStyledProperty(DefaultValue = double.NaN)]
+    public partial double TitleBarHeight { get; set; }
 
     /// <summary>宿主指定的标题条高度，NaN = 走上游默认。</summary>
-    public double HeightOverride
-    {
-        get => GetValue(HeightOverrideProperty);
-        set => SetValue(HeightOverrideProperty, value);
-    }
-
-    /// <summary>
-    /// 右端要给窗口的系统按钮（最小化 / 最大化 / 关闭）留出多宽。
-    /// </summary>
-    /// <remarks>
-    /// 独立窗口形态下，标题条与窗口的标题栏是**同一行**：左边是面板的标题和标签，
-    /// 中间偏右是面板自己的按钮（⿴ ⋮ —），最右边才是窗口的三个系统按钮。
-    /// 那三个按钮由宿主的 chrome 画在客户区上层，布局里看不见，所以得在这里留出它们的宽度，
-    /// 否则面板的按钮会被压在它们底下。
-    /// <para>具体多宽只有宿主知道（各家 chrome 不一样），由 <c>ForgeControl.CaptionButtonsWidth</c> 给。</para>
-    /// </remarks>
-    public static readonly StyledProperty<double> CaptionButtonsWidthProperty =
-        AvaloniaProperty.Register<ForgeToolWindowHeader, double>(nameof(CaptionButtonsWidth));
+    [GeneratedStyledProperty(DefaultValue = double.NaN)]
+    public partial double HeightOverride { get; set; }
 
     /// <summary>右端给系统按钮留的宽度；0 = 不留（这个窗口的标题栏不在这一行）。</summary>
-    public double CaptionButtonsWidth
-    {
-        get => GetValue(CaptionButtonsWidthProperty);
-        set => SetValue(CaptionButtonsWidthProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial double CaptionButtonsWidth { get; set; }
 
     /// <summary>
     /// 这条标题条是不是**兼任所在窗口的标题栏**。
@@ -421,22 +323,9 @@ public class ForgeToolWindowHeader : TemplatedControl
     /// </remarks>
     public bool IsWindowTitleBar => !double.IsNaN(TitleBarHeight);
 
-    /// <summary>
-    /// 上面两个角的圆角半径 —— 标题条坐在岛的顶上时，得跟着岛一起磨圆。
-    /// </summary>
-    /// <remarks>
-    /// 标题条是不透明的：它要是方角，就会把岛顶上那两段圆角**盖掉**，
-    /// 表现成"下面的圆角好好的，上面的断了"。岛的描边画在标题条之下，压不住。
-    /// </remarks>
-    public static readonly StyledProperty<double> TopCornerRadiusProperty =
-        AvaloniaProperty.Register<ForgeToolWindowHeader, double>(nameof(TopCornerRadius));
-
     /// <summary>上面两个角的圆角半径。</summary>
-    public double TopCornerRadius
-    {
-        get => GetValue(TopCornerRadiusProperty);
-        set => SetValue(TopCornerRadiusProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial double TopCornerRadius { get; set; }
 
     /// <summary>
     /// 标题条高度：兼任窗口标题栏时按 <see cref="TitleBarHeight"/>，
@@ -709,15 +598,6 @@ public class ForgeToolWindowHeader : TemplatedControl
                 //   绘制归模板**，两边字体/字号/字重同源即可。颜色在这里用不到。
                 Brushes.Transparent);
 
-    /// <inheritdoc />
-    /// <summary><see cref="HeaderBackgroundBrush"/> 的属性定义。</summary>
-    public static readonly StyledProperty<IBrush?> HeaderBackgroundBrushProperty =
-        AvaloniaProperty.Register<ForgeToolWindowHeader, IBrush?>(nameof(HeaderBackgroundBrush));
-
-    /// <summary><see cref="HeaderBorderBrush"/> 的属性定义。</summary>
-    public static readonly StyledProperty<IBrush?> HeaderBorderBrushProperty =
-        AvaloniaProperty.Register<ForgeToolWindowHeader, IBrush?>(nameof(HeaderBorderBrush));
-
     /// <summary>标题条底色，由 <c>ControlTheme</c> 从资源键给（REQ-067）。</summary>
     /// <remarks>
     /// <b>这个控件不套模板</b>：它自己往 <c>VisualChildren</c> 里挂标签条与三个按钮，
@@ -725,18 +605,12 @@ public class ForgeToolWindowHeader : TemplatedControl
     /// 走"画笔属性由主题给、绘制仍自己来"这条；对宿主而言用法一样。
     /// <para>兜底回配色 —— 控件没进树时拿不到主题。</para>
     /// </remarks>
-    public IBrush? HeaderBackgroundBrush
-    {
-        get => GetValue(HeaderBackgroundBrushProperty);
-        set => SetValue(HeaderBackgroundBrushProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial IBrush? HeaderBackgroundBrush { get; set; }
 
     /// <summary>标题条底下那条 1px 分隔线的颜色，来源同 <see cref="HeaderBackgroundBrush"/>。</summary>
-    public IBrush? HeaderBorderBrush
-    {
-        get => GetValue(HeaderBorderBrushProperty);
-        set => SetValue(HeaderBorderBrushProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial IBrush? HeaderBorderBrush { get; set; }
 
     /// <summary><see cref="HeaderCornerRadius"/> 的属性定义。</summary>
     public static readonly StyledProperty<CornerRadius> HeaderCornerRadiusProperty =
@@ -748,10 +622,6 @@ public class ForgeToolWindowHeader : TemplatedControl
             nameof(TitleMargin),
             new Thickness(ForgeMetrics.TabLayoutStart + ForgeMetrics.HeaderLabelInsetLeft, 0, 0, 0));
 
-    /// <summary><see cref="TitleInsetLeft"/> 的属性定义。</summary>
-    public static readonly StyledProperty<double> TitleInsetLeftProperty =
-        AvaloniaProperty.Register<ForgeToolWindowHeader, double>(nameof(TitleInsetLeft), double.NaN);
-
     /// <summary>
     /// 标题距左缘多远；<see cref="double.NaN"/> = 走上游
     /// （<see cref="ForgeMetrics.TabLayoutStart"/> + <see cref="ForgeMetrics.HeaderLabelInsetLeft"/>）。
@@ -761,11 +631,8 @@ public class ForgeToolWindowHeader : TemplatedControl
     /// 也是 <see cref="ComputeTabsStart"/> 的起点 —— 标签从"标题右缘"往后排，
     /// 只挪标题不挪起点会在两者之间留一段空。
     /// </remarks>
-    public double TitleInsetLeft
-    {
-        get => GetValue(TitleInsetLeftProperty);
-        set => SetValue(TitleInsetLeftProperty, value);
-    }
+    [GeneratedStyledProperty(DefaultValue = double.NaN)]
+    public partial double TitleInsetLeft { get; set; }
 
     /// <summary><see cref="TitleInsetRight"/> 的属性定义。</summary>
     public static readonly StyledProperty<double> TitleInsetRightProperty =
@@ -818,7 +685,8 @@ public class ForgeToolWindowHeader : TemplatedControl
 
     /// <summary><see cref="TitleTextTrimming"/> 的属性定义。</summary>
     public static readonly StyledProperty<TextTrimming> TitleTextTrimmingProperty =
-        AvaloniaProperty.Register<ForgeToolWindowHeader, TextTrimming>(nameof(TitleTextTrimming), TextTrimming.CharacterEllipsis);
+        AvaloniaProperty.Register<ForgeToolWindowHeader, TextTrimming>(
+            nameof(TitleTextTrimming), TextTrimming.CharacterEllipsis);
 
     /// <summary>标题溢出显示方式；默认省略号，None 保持完整字形排版并在可用宽度边界连续裁切。</summary>
     /// <remarks>只作用于面板名；不改变按钮预算、标题来源标识或文档标签的显示方式。</remarks>
@@ -833,10 +701,6 @@ public class ForgeToolWindowHeader : TemplatedControl
         => double.IsNaN(TitleInsetLeft)
             ? ForgeMetrics.TabLayoutStart + ForgeMetrics.HeaderLabelInsetLeft
             : TitleInsetLeft;
-
-    /// <summary><see cref="TitleFontSize"/> 的属性定义。</summary>
-    public static readonly StyledProperty<double> TitleFontSizeProperty =
-        AvaloniaProperty.Register<ForgeToolWindowHeader, double>(nameof(TitleFontSize), 12);
 
     /// <summary>标题条底那块的圆角：**只磨上面两个角**，下面接着正文。</summary>
     /// <remarks>由 <see cref="TopCornerRadius"/> 算出（跟着岛走），模板里那层 <c>Border</c> 拿它。</remarks>
@@ -857,11 +721,8 @@ public class ForgeToolWindowHeader : TemplatedControl
     private void SyncTitleMargin() => TitleMargin = new Thickness(ResolvedTitleInset, 0, 0, 0);
 
     /// <summary>标题字号 —— 与 <see cref="MeasureTitle"/> 必须同源（标签起点按量出来的标题宽算）。</summary>
-    public double TitleFontSize
-    {
-        get => GetValue(TitleFontSizeProperty);
-        set => SetValue(TitleFontSizeProperty, value);
-    }
+    [GeneratedStyledProperty(DefaultValue = 12)]
+    public partial double TitleFontSize { get; set; }
 
     /// <inheritdoc />
     /// <remarks>

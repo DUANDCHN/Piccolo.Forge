@@ -17,7 +17,7 @@ namespace Piccolo.Forge.Avalonia;
 [TemplatePart("PART_Octet2", typeof(TextBox))]
 [TemplatePart("PART_Octet3", typeof(TextBox))]
 [PseudoClasses(":error")]
-public class ForgeIpAddressBox : TemplatedControl
+public partial class ForgeIpAddressBox : TemplatedControl
 {
     private const int SegmentCount = 4;
 
@@ -33,10 +33,6 @@ public class ForgeIpAddressBox : TemplatedControl
         AvaloniaProperty.Register<ForgeIpAddressBox, string?>(
             nameof(SegmentPlaceholder),
             defaultValue: "---");
-
-    /// <summary><see cref="IsReadOnly"/> 的依赖属性。</summary>
-    public static readonly StyledProperty<bool> IsReadOnlyProperty =
-        AvaloniaProperty.Register<ForgeIpAddressBox, bool>(nameof(IsReadOnly));
 
     /// <summary><see cref="ClampOctets"/> 的依赖属性。</summary>
     public static readonly StyledProperty<bool> ClampOctetsProperty =
@@ -71,11 +67,8 @@ public class ForgeIpAddressBox : TemplatedControl
     }
 
     /// <summary>是否只读。</summary>
-    public bool IsReadOnly
-    {
-        get => GetValue(IsReadOnlyProperty);
-        set => SetValue(IsReadOnlyProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial bool IsReadOnly { get; set; }
 
     /// <summary>是否自动将超过 255 的单段数值钳位到 255，默认 <c>true</c>。</summary>
     public bool ClampOctets

@@ -16,43 +16,11 @@ namespace Piccolo.Forge.Avalonia;
 /// 40×40、图标 20、图标四周 padding 5、圆角 12（紧凑 8）。
 /// 背景优先级照抄 <c>SquareStripeButton.kt:208-219 · getBackgroundColor</c>。
 /// </remarks>
-public class ForgeStripeButton : ForgeSquareButtonBase
+public partial class ForgeStripeButton : ForgeSquareButtonBase
 {
-    /// <summary><see cref="IsToolWindowVisible"/> 的属性定义。</summary>
-    public static readonly StyledProperty<bool> IsToolWindowVisibleProperty =
-        AvaloniaProperty.Register<ForgeStripeButton, bool>(nameof(IsToolWindowVisible));
-
-    /// <summary><see cref="IsToolWindowActive"/> 的属性定义。</summary>
-    public static readonly StyledProperty<bool> IsToolWindowActiveProperty =
-        AvaloniaProperty.Register<ForgeStripeButton, bool>(nameof(IsToolWindowActive));
-
-    /// <summary><see cref="HasBadge"/> 的属性定义。</summary>
-    public static readonly StyledProperty<bool> HasBadgeProperty =
-        AvaloniaProperty.Register<ForgeStripeButton, bool>(nameof(HasBadge));
-
     /// <summary><see cref="BadgeMargin"/> 的属性定义。</summary>
     public static readonly StyledProperty<Thickness> BadgeMarginProperty =
         AvaloniaProperty.Register<ForgeStripeButton, Thickness>(nameof(BadgeMargin));
-
-    /// <summary><see cref="Text"/> 的属性定义。</summary>
-    public static readonly StyledProperty<string?> TextProperty =
-        AvaloniaProperty.Register<ForgeStripeButton, string?>(nameof(Text));
-
-    /// <summary><see cref="Icon"/> 的属性定义。</summary>
-    public static readonly StyledProperty<object?> IconProperty =
-        AvaloniaProperty.Register<ForgeStripeButton, object?>(nameof(Icon));
-
-    /// <summary><see cref="ShowName"/> 的属性定义。</summary>
-    public static readonly StyledProperty<bool> ShowNameProperty =
-        AvaloniaProperty.Register<ForgeStripeButton, bool>(nameof(ShowName));
-
-    /// <summary><see cref="Title"/> 的属性定义。</summary>
-    public static readonly StyledProperty<string?> TitleProperty =
-        AvaloniaProperty.Register<ForgeStripeButton, string?>(nameof(Title));
-
-    /// <summary><see cref="StripeWidth"/> 的属性定义。</summary>
-    public static readonly StyledProperty<double> StripeWidthProperty =
-        AvaloniaProperty.Register<ForgeStripeButton, double>(nameof(StripeWidth));
 
     static ForgeStripeButton()
     {
@@ -100,18 +68,12 @@ public class ForgeStripeButton : ForgeSquareButtonBase
     }
 
     /// <summary>对应的工具窗口当前是否可见。</summary>
-    public bool IsToolWindowVisible
-    {
-        get => GetValue(IsToolWindowVisibleProperty);
-        set => SetValue(IsToolWindowVisibleProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial bool IsToolWindowVisible { get; set; }
 
     /// <summary>图标右上角亮不亮角标（模板里的 PART_Badge，伪类 <c>:badge</c>）。</summary>
-    public bool HasBadge
-    {
-        get => GetValue(HasBadgeProperty);
-        set => SetValue(HasBadgeProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial bool HasBadge { get; set; }
 
     /// <summary>
     /// 角标（未读圆点）的外边距，供模板绑定 —— 让圆点钉在**背板**的右上角。
@@ -148,11 +110,8 @@ public class ForgeStripeButton : ForgeSquareButtonBase
     }
 
     /// <summary>对应的工具窗口当前是否持有焦点。</summary>
-    public bool IsToolWindowActive
-    {
-        get => GetValue(IsToolWindowActiveProperty);
-        set => SetValue(IsToolWindowActiveProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial bool IsToolWindowActive { get; set; }
 
     /// <summary>
     /// 条带按钮上的图标。
@@ -163,18 +122,12 @@ public class ForgeStripeButton : ForgeSquareButtonBase
     /// 原因见 <c>工具窗口模型.md</c> §17）；这里只按审出来的尺寸留位置：
     /// 图标区 <see cref="ForgeSquareButtonBase.IconSize"/>、四周 <see cref="ForgeSquareButtonBase.IconPadding"/>。
     /// </remarks>
-    public object? Icon
-    {
-        get => GetValue(IconProperty);
-        set => SetValue(IconProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial object? Icon { get; set; }
 
     /// <summary>没有图标时画的占位字符。</summary>
-    public string? Text
-    {
-        get => GetValue(TextProperty);
-        set => SetValue(TextProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial string? Text { get; set; }
 
     /// <summary>是否在图标下面显示工具窗口的名字。</summary>
     /// <remarks>
@@ -182,31 +135,22 @@ public class ForgeStripeButton : ForgeSquareButtonBase
     /// （<c>UISettingsState.kt:83</c>）；打开时条带宽度变成
     /// <see cref="ForgeMetrics.StripeNamedDefaultWidth"/>（<c>ResizeStripeManager.kt:215-218</c>）。
     /// </remarks>
-    public bool ShowName
-    {
-        get => GetValue(ShowNameProperty);
-        set => SetValue(ShowNameProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial bool ShowName { get; set; }
 
     /// <summary>
     /// 工具窗口的名字：<see cref="ShowName"/> 打开时画在图标下面，**任何时候都进气泡提示**。
     /// </summary>
-    public string? Title
-    {
-        get => GetValue(TitleProperty);
-        set => SetValue(TitleProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial string? Title { get; set; }
 
     /// <summary>把名字同步进气泡提示。空名字就把提示摘掉，别留一个空气泡。</summary>
     private void SyncToolTip()
         => ToolTip.SetTip(this, string.IsNullOrWhiteSpace(Title) ? null : Title);
 
     /// <summary>条带的自定义宽度；<c>0</c> 表示按按钮自身尺寸走。</summary>
-    public double StripeWidth
-    {
-        get => GetValue(StripeWidthProperty);
-        set => SetValue(StripeWidthProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial double StripeWidth { get; set; }
 
     /// <summary>名字左右的 padding：紧凑 4，否则 6。</summary>
     public double TextPadding
@@ -238,27 +182,13 @@ public class ForgeStripeButton : ForgeSquareButtonBase
         return base.ResolveBackground();
     }
 
-    /// <summary><see cref="SelectedBackgroundBrush"/> 的属性定义。</summary>
-    public static readonly StyledProperty<IBrush?> SelectedBackgroundBrushProperty =
-        AvaloniaProperty.Register<ForgeStripeButton, IBrush?>(nameof(SelectedBackgroundBrush));
-
-    /// <summary><see cref="PressedBackgroundBrush"/> 的属性定义。</summary>
-    public static readonly StyledProperty<IBrush?> PressedBackgroundBrushProperty =
-        AvaloniaProperty.Register<ForgeStripeButton, IBrush?>(nameof(PressedBackgroundBrush));
-
     /// <summary>面板处于激活态时的底，由 <c>ControlTheme</c> 从资源键给。</summary>
-    public IBrush? SelectedBackgroundBrush
-    {
-        get => GetValue(SelectedBackgroundBrushProperty);
-        set => SetValue(SelectedBackgroundBrushProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial IBrush? SelectedBackgroundBrush { get; set; }
 
     /// <summary>面板开着（但未激活）时的底，来源同上。</summary>
-    public IBrush? PressedBackgroundBrush
-    {
-        get => GetValue(PressedBackgroundBrushProperty);
-        set => SetValue(PressedBackgroundBrushProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial IBrush? PressedBackgroundBrush { get; set; }
 
     /// <inheritdoc />
     protected override IBrush? ResolveBackgroundBrush()
@@ -316,10 +246,6 @@ public class ForgeStripeButton : ForgeSquareButtonBase
         private set => SetValue(NameFontSizeProperty, value);
     }
 
-    /// <summary><see cref="NamedContentInset"/> 的属性定义。</summary>
-    public static readonly StyledProperty<double> NamedContentInsetProperty =
-        AvaloniaProperty.Register<ForgeStripeButton, double>(nameof(NamedContentInset));
-
     /// <summary>
     /// 显名时**内容与背板之间再让开多少**（上下各这么多），<c>0</c> = 不让。
     /// </summary>
@@ -328,15 +254,8 @@ public class ForgeStripeButton : ForgeSquareButtonBase
     /// 上下各多出这么多留白。图标那一格与名字的相对关系不变。
     /// <para>不影响收起态：那一档的背板是定死的方块，内容就是图标本身。</para>
     /// </remarks>
-    public double NamedContentInset
-    {
-        get => GetValue(NamedContentInsetProperty);
-        set => SetValue(NamedContentInsetProperty, value);
-    }
-
-    /// <summary><see cref="NameFontSizeOverride"/> 的属性定义。</summary>
-    public static readonly StyledProperty<double> NameFontSizeOverrideProperty =
-        AvaloniaProperty.Register<ForgeStripeButton, double>(nameof(NameFontSizeOverride), double.NaN);
+    [GeneratedStyledProperty]
+    public partial double NamedContentInset { get; set; }
 
     /// <summary>
     /// 宿主指定的名字字号；<see cref="double.NaN"/> = 走上游（图标边长的一半，不小于 8）。
@@ -347,15 +266,8 @@ public class ForgeStripeButton : ForgeSquareButtonBase
     /// 那类样式设定 —— 所以想改只能从这里改。
     /// （字**重**相反：模板没设，所以它吃宿主的全局字重。）
     /// </remarks>
-    public double NameFontSizeOverride
-    {
-        get => GetValue(NameFontSizeOverrideProperty);
-        set => SetValue(NameFontSizeOverrideProperty, value);
-    }
-
-    /// <summary><see cref="NameFontWeightOverride"/> 的属性定义。</summary>
-    public static readonly StyledProperty<FontWeight?> NameFontWeightOverrideProperty =
-        AvaloniaProperty.Register<ForgeStripeButton, FontWeight?>(nameof(NameFontWeightOverride));
+    [GeneratedStyledProperty(DefaultValue = double.NaN)]
+    public partial double NameFontSizeOverride { get; set; }
 
     /// <summary><see cref="NameFontWeight"/> 的属性定义。</summary>
     public static readonly StyledProperty<FontWeight> NameFontWeightProperty =
@@ -368,11 +280,8 @@ public class ForgeStripeButton : ForgeSquareButtonBase
     /// 默认之所以是"跟着继承"而不是某个具体档：字重是宿主整套排版的一部分
     /// （本软件全局是 Medium），库不该替它定。想单独压重（小字在云母上发虚时）才给这个值。
     /// </remarks>
-    public FontWeight? NameFontWeightOverride
-    {
-        get => GetValue(NameFontWeightOverrideProperty);
-        set => SetValue(NameFontWeightOverrideProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial FontWeight? NameFontWeightOverride { get; set; }
 
     /// <summary>名字实际用的字重 —— 模板绑它。</summary>
     /// <remarks>
@@ -745,15 +654,11 @@ public class ForgeStripeButton : ForgeSquareButtonBase
 /// 对应 <c>platform/platform-impl/src/com/intellij/openapi/wm/impl/StripeButtonSeparator.kt</c>：
 /// 占位 32×11，中间画一条 24×1 的线，横向居中于**去掉 padding 后**的区域、纵向在正中。
 /// </remarks>
-public class ForgeStripeSeparator : TemplatedControl
+public partial class ForgeStripeSeparator : TemplatedControl
 {
     /// <summary><see cref="Palette"/> 的属性定义。</summary>
     public static readonly StyledProperty<ForgePalette> PaletteProperty =
         AvaloniaProperty.Register<ForgeStripeSeparator, ForgePalette>(nameof(Palette), ForgePalette.ExpUiDark);
-
-    /// <summary><see cref="IsDragAndDrop"/> 的属性定义。</summary>
-    public static readonly StyledProperty<bool> IsDragAndDropProperty =
-        AvaloniaProperty.Register<ForgeStripeSeparator, bool>(nameof(IsDragAndDrop));
 
     /// <summary><see cref="LineMargin"/> 的属性定义。</summary>
     public static readonly StyledProperty<Thickness> LineMarginProperty =
@@ -808,11 +713,8 @@ public class ForgeStripeSeparator : TemplatedControl
     }
 
     /// <summary>是否处于拖拽态（换成 DragAndDrop 那个颜色）。</summary>
-    public bool IsDragAndDrop
-    {
-        get => GetValue(IsDragAndDropProperty);
-        set => SetValue(IsDragAndDropProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial bool IsDragAndDrop { get; set; }
 
     /// <inheritdoc />
     protected override Size MeasureOverride(Size availableSize)

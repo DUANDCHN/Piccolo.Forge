@@ -22,7 +22,7 @@ namespace Piccolo.Forge.Avalonia;
 /// </list>
 /// 落位规则不在这里，在 <see cref="StripePlacementResolver"/>。
 /// </remarks>
-public class ForgeToolWindowToolbar : TemplatedControl
+public partial class ForgeToolWindowToolbar : TemplatedControl
 {
     private readonly StripeItemsPanel _topGroup = new();
     private readonly StripeItemsPanel _bottomGroup = new();
@@ -32,26 +32,11 @@ public class ForgeToolWindowToolbar : TemplatedControl
     public static readonly StyledProperty<ForgePalette> PaletteProperty =
         AvaloniaProperty.Register<ForgeToolWindowToolbar, ForgePalette>(nameof(Palette), ForgePalette.ExpUiDark);
 
-    /// <summary><see cref="Side"/> 的属性定义。</summary>
-    public static readonly StyledProperty<StripeSide> SideProperty =
-        AvaloniaProperty.Register<ForgeToolWindowToolbar, StripeSide>(nameof(Side));
-
-    /// <summary><see cref="CustomWidth"/> 的属性定义。</summary>
-    public static readonly StyledProperty<double> CustomWidthProperty =
-        AvaloniaProperty.Register<ForgeToolWindowToolbar, double>(nameof(CustomWidth));
-
-    /// <summary><see cref="TransparentBackdrop"/> 的属性定义。</summary>
-    public static readonly StyledProperty<bool> TransparentBackdropProperty =
-        AvaloniaProperty.Register<ForgeToolWindowToolbar, bool>(nameof(TransparentBackdrop));
-
     /// <summary>
     /// 不画条带底，让窗口背后的东西透上来。由 <see cref="ForgeControl"/> 下发，别单独设。
     /// </summary>
-    public bool TransparentBackdrop
-    {
-        get => GetValue(TransparentBackdropProperty);
-        set => SetValue(TransparentBackdropProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial bool TransparentBackdrop { get; set; }
 
     static ForgeToolWindowToolbar()
     {
@@ -100,10 +85,6 @@ public class ForgeToolWindowToolbar : TemplatedControl
         }
     }
 
-    /// <summary><see cref="BorderOverlaysContent"/> 的属性定义。</summary>
-    public static readonly StyledProperty<bool> BorderOverlaysContentProperty =
-        AvaloniaProperty.Register<ForgeToolWindowToolbar, bool>(nameof(BorderOverlaysContent));
-
     /// <summary>
     /// 内侧那条 1px 线**压在内容上**，不再单独占宽。
     /// </summary>
@@ -117,11 +98,8 @@ public class ForgeToolWindowToolbar : TemplatedControl
     /// 线本身画在条带边缘，而图标离边缘还有七八个像素，压不到任何东西。
     /// </para>
     /// </remarks>
-    public bool BorderOverlaysContent
-    {
-        get => GetValue(BorderOverlaysContentProperty);
-        set => SetValue(BorderOverlaysContentProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial bool BorderOverlaysContent { get; set; }
 
     /// <summary>配色。</summary>
     public ForgePalette Palette
@@ -131,11 +109,8 @@ public class ForgeToolWindowToolbar : TemplatedControl
     }
 
     /// <summary>这是左条带还是右条带。</summary>
-    public StripeSide Side
-    {
-        get => GetValue(SideProperty);
-        set => SetValue(SideProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial StripeSide Side { get; set; }
 
     /// <summary>
     /// 条带的自定义宽度；<c>0</c> 表示按按钮自身尺寸走。
@@ -146,11 +121,8 @@ public class ForgeToolWindowToolbar : TemplatedControl
     /// [<see cref="ForgeMetrics.StripeMinWidth"/>, <see cref="ForgeMetrics.StripeMaxWidth"/>] 之内
     /// （<c>:138-146</c>）。
     /// </remarks>
-    public double CustomWidth
-    {
-        get => GetValue(CustomWidthProperty);
-        set => SetValue(CustomWidthProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial double CustomWidth { get; set; }
 
     /// <summary>
     /// 把宽度夹到上游允许的范围。
@@ -193,14 +165,6 @@ public class ForgeToolWindowToolbar : TemplatedControl
         return new Size(CustomWidth > 0 ? CustomWidth : size.Width, size.Height);
     }
 
-    /// <summary><see cref="StripeBackgroundBrush"/> 的属性定义。</summary>
-    public static readonly StyledProperty<IBrush?> StripeBackgroundBrushProperty =
-        AvaloniaProperty.Register<ForgeToolWindowToolbar, IBrush?>(nameof(StripeBackgroundBrush));
-
-    /// <summary><see cref="StripeBorderBrush"/> 的属性定义。</summary>
-    public static readonly StyledProperty<IBrush?> StripeBorderBrushProperty =
-        AvaloniaProperty.Register<ForgeToolWindowToolbar, IBrush?>(nameof(StripeBorderBrush));
-
     /// <summary>条带的底色，由 <c>ControlTheme</c> 从资源键给（REQ-067）。</summary>
     /// <remarks>
     /// ★ 这个控件**已经是真模板**：两组按钮住在模板里那个槽（<c>PART_Groups</c>）中，
@@ -208,18 +172,12 @@ public class ForgeToolWindowToolbar : TemplatedControl
     /// <c>VisualChildren</c> 就不再是问题（早先正是这条把它挡在模板之外）。
     /// 底与那条 1px 线都是模板里的 <c>Border</c>，宿主重写模板即可改形状。
     /// </remarks>
-    public IBrush? StripeBackgroundBrush
-    {
-        get => GetValue(StripeBackgroundBrushProperty);
-        set => SetValue(StripeBackgroundBrushProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial IBrush? StripeBackgroundBrush { get; set; }
 
     /// <summary>条带边缘那条 1px 线的颜色，来源同 <see cref="StripeBackgroundBrush"/>。</summary>
-    public IBrush? StripeBorderBrush
-    {
-        get => GetValue(StripeBorderBrushProperty);
-        set => SetValue(StripeBorderBrushProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial IBrush? StripeBorderBrush { get; set; }
 
     /// <summary>透底时不画条带底 —— 写成伪类，模板据此把那层 <c>Border</c> 收起来。</summary>
     /// <remarks>

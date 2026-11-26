@@ -29,15 +29,11 @@ namespace Piccolo.Forge.Avalonia;
 /// 里的模板，于是主题白写。模板一律写在 XAML 的 <c>ControlTheme</c> 里。
 /// </para>
 /// </remarks>
-public abstract class ForgeSquareButtonBase : Button
+public abstract partial class ForgeSquareButtonBase : Button
 {
     /// <summary><see cref="Palette"/> 的属性定义。</summary>
     public static readonly StyledProperty<ForgePalette> PaletteProperty =
         AvaloniaProperty.Register<ForgeSquareButtonBase, ForgePalette>(nameof(Palette), ForgePalette.ExpUiDark);
-
-    /// <summary><see cref="IsCompact"/> 的属性定义。</summary>
-    public static readonly StyledProperty<bool> IsCompactProperty =
-        AvaloniaProperty.Register<ForgeSquareButtonBase, bool>(nameof(IsCompact));
 
     static ForgeSquareButtonBase()
     {
@@ -310,11 +306,8 @@ public abstract class ForgeSquareButtonBase : Button
     }
 
     /// <summary>是否紧凑模式（<c>度量与主题键.md</c> §9）。</summary>
-    public bool IsCompact
-    {
-        get => GetValue(IsCompactProperty);
-        set => SetValue(IsCompactProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial bool IsCompact { get; set; }
 
     /// <summary><see cref="IsLeftStripe"/> 的属性定义。</summary>
     public static readonly StyledProperty<bool> IsLeftStripeProperty =
@@ -373,27 +366,12 @@ public abstract class ForgeSquareButtonBase : Button
     /// <summary>宿主指定的圆角**直径**；<see langword="null"/> 表示按主题的默认值。</summary>
     public double? ArcOverride { get; set; }
 
-    /// <summary><see cref="HighlightSize"/> 的属性定义。</summary>
-    public static readonly StyledProperty<double> HighlightSizeProperty =
-        AvaloniaProperty.Register<ForgeSquareButtonBase, double>(nameof(HighlightSize), double.NaN);
-
-    /// <summary><see cref="HighlightInsetHorizontal"/> 的属性定义。</summary>
-    public static readonly StyledProperty<double> HighlightInsetHorizontalProperty =
-        AvaloniaProperty.Register<ForgeSquareButtonBase, double>(nameof(HighlightInsetHorizontal), double.NaN);
-
     /// <summary>
     /// 宿主指定的**高亮底**边长（那块方底）；<see cref="double.NaN"/> = 按主题算（按钮 − 图标内边距）。
     /// </summary>
     /// <remarks>与 <see cref="HighlightInsetHorizontal"/> **成对给**，见那里。图标不受它影响，仍是主题里的尺寸。</remarks>
-    public double HighlightSize
-    {
-        get => GetValue(HighlightSizeProperty);
-        set => SetValue(HighlightSizeProperty, value);
-    }
-
-    /// <summary><see cref="IconSizeOverride"/> 的属性定义。</summary>
-    public static readonly StyledProperty<double> IconSizeOverrideProperty =
-        AvaloniaProperty.Register<ForgeSquareButtonBase, double>(nameof(IconSizeOverride), double.NaN);
+    [GeneratedStyledProperty(DefaultValue = double.NaN)]
+    public partial double HighlightSize { get; set; }
 
     /// <summary>
     /// 宿主指定的图标边长；<see cref="double.NaN"/> = 按主题（上游 20 / 紧凑 16）。
@@ -402,15 +380,8 @@ public abstract class ForgeSquareButtonBase : Button
     /// 它**不影响按钮尺寸** —— 宽高由「边距 + 方底 + 边距」撑，图标只是在方底里居中。
     /// 所以调它只改图标本身的大小，条带宽度、方底、间距都不动。
     /// </remarks>
-    public double IconSizeOverride
-    {
-        get => GetValue(IconSizeOverrideProperty);
-        set => SetValue(IconSizeOverrideProperty, value);
-    }
-
-    /// <summary><see cref="HighlightInsetVertical"/> 的属性定义。</summary>
-    public static readonly StyledProperty<double> HighlightInsetVerticalProperty =
-        AvaloniaProperty.Register<ForgeSquareButtonBase, double>(nameof(HighlightInsetVertical), double.NaN);
+    [GeneratedStyledProperty(DefaultValue = double.NaN)]
+    public partial double IconSizeOverride { get; set; }
 
     /// <summary>
     /// 宿主指定的**高亮底上下边距**；<see cref="double.NaN"/> = 与左右同值（方按钮）。
@@ -420,11 +391,8 @@ public abstract class ForgeSquareButtonBase : Button
     /// 上游是 <c>VerticalFlowLayout(0, 0)</c>）—— 想让两块底相距 6px，就给 3。
     /// 高度不用另给：<c>高 = 上边距 + 底 + 下边距</c>，和宽度同一条构造。
     /// </remarks>
-    public double HighlightInsetVertical
-    {
-        get => GetValue(HighlightInsetVerticalProperty);
-        set => SetValue(HighlightInsetVerticalProperty, value);
-    }
+    [GeneratedStyledProperty(DefaultValue = double.NaN)]
+    public partial double HighlightInsetVertical { get; set; }
 
     /// <summary>上下边距实际取的值 —— 宿主没单独给就与左右同值。</summary>
     private double ResolvedInsetVertical
@@ -443,25 +411,15 @@ public abstract class ForgeSquareButtonBase : Button
     /// 取整后左右差 1px，实机看着就是图标偏一边。
     /// </para>
     /// </remarks>
-    public double HighlightInsetHorizontal
-    {
-        get => GetValue(HighlightInsetHorizontalProperty);
-        set => SetValue(HighlightInsetHorizontalProperty, value);
-    }
+    [GeneratedStyledProperty(DefaultValue = double.NaN)]
+    public partial double HighlightInsetHorizontal { get; set; }
 
     /// <summary>宿主是不是自己定了图标尺寸与边距（那时宽度由它们算出来）。</summary>
     protected bool IsHostSized => !double.IsNaN(HighlightInsetHorizontal) && !double.IsNaN(HighlightSize);
 
-    /// <summary><see cref="HoverBackgroundBrush"/> 的属性定义。</summary>
-    public static readonly StyledProperty<IBrush?> HoverBackgroundBrushProperty =
-        AvaloniaProperty.Register<ForgeSquareButtonBase, IBrush?>(nameof(HoverBackgroundBrush));
-
     /// <summary>悬停底，由 <c>ControlTheme</c> 从资源键给（REQ-067）。</summary>
-    public IBrush? HoverBackgroundBrush
-    {
-        get => GetValue(HoverBackgroundBrushProperty);
-        set => SetValue(HoverBackgroundBrushProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial IBrush? HoverBackgroundBrush { get; set; }
 
     /// <summary>
     /// 当前该用哪个背景。

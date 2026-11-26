@@ -24,31 +24,11 @@ namespace Piccolo.Forge.Avalonia;
 /// 而 Avalonia 里父控件的 <c>Render</c> 在子控件之下。
 /// </para>
 /// </remarks>
-public class ForgeDragOverlay : Control
+public partial class ForgeDragOverlay : Control
 {
     /// <summary><see cref="Palette"/> 的属性定义。</summary>
     public static readonly StyledProperty<ForgePalette> PaletteProperty =
         AvaloniaProperty.Register<ForgeDragOverlay, ForgePalette>(nameof(Palette), ForgePalette.ExpUiDark);
-
-    /// <summary><see cref="AreaRect"/> 的属性定义。</summary>
-    public static readonly StyledProperty<Rect?> AreaRectProperty =
-        AvaloniaProperty.Register<ForgeDragOverlay, Rect?>(nameof(AreaRect));
-
-    /// <summary><see cref="DropRect"/> 的属性定义。</summary>
-    public static readonly StyledProperty<Rect?> DropRectProperty =
-        AvaloniaProperty.Register<ForgeDragOverlay, Rect?>(nameof(DropRect));
-
-    /// <summary><see cref="SplitBoxRect"/> 的属性定义。</summary>
-    public static readonly StyledProperty<Rect?> SplitBoxRectProperty =
-        AvaloniaProperty.Register<ForgeDragOverlay, Rect?>(nameof(SplitBoxRect));
-
-    /// <summary><see cref="DropCornerRadius"/> 的属性定义。</summary>
-    public static readonly StyledProperty<CornerRadius> DropCornerRadiusProperty =
-        AvaloniaProperty.Register<ForgeDragOverlay, CornerRadius>(nameof(DropCornerRadius));
-
-    /// <summary><see cref="IsCompact"/> 的属性定义。</summary>
-    public static readonly StyledProperty<bool> IsCompactProperty =
-        AvaloniaProperty.Register<ForgeDragOverlay, bool>(nameof(IsCompact));
 
     static ForgeDragOverlay()
     {
@@ -82,25 +62,16 @@ public class ForgeDragOverlay : Control
     }
 
     /// <summary>目标停靠区的整片高亮；<see langword="null"/> 表示不画。</summary>
-    public Rect? AreaRect
-    {
-        get => GetValue(AreaRectProperty);
-        set => SetValue(AreaRectProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial Rect? AreaRect { get; set; }
 
     /// <summary>条带上那个落点方块；<see langword="null"/> 表示不画。</summary>
-    public Rect? DropRect
-    {
-        get => GetValue(DropRectProperty);
-        set => SetValue(DropRectProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial Rect? DropRect { get; set; }
 
     /// <summary>「拖到另一半」的虚线方框；<see langword="null"/> 表示不画。</summary>
-    public Rect? SplitBoxRect
-    {
-        get => GetValue(SplitBoxRectProperty);
-        set => SetValue(SplitBoxRectProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial Rect? SplitBoxRect { get; set; }
 
     /// <summary>
     /// 落点方块的圆角；<c>default</c> 表示按度量里的 <c>Arc</c> 折半。
@@ -110,18 +81,12 @@ public class ForgeDragOverlay : Control
     /// 落点方块画的就是那颗按钮松手后占的那块地，长相要跟图标按钮、跟拖影一致。
     /// 宿主改了圆角（本软件收成半径 4），这里不能还按库里的常量画。
     /// </remarks>
-    public CornerRadius DropCornerRadius
-    {
-        get => GetValue(DropCornerRadiusProperty);
-        set => SetValue(DropCornerRadiusProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial CornerRadius DropCornerRadius { get; set; }
 
     /// <summary>紧凑模式（只影响落点方块的圆角）。</summary>
-    public bool IsCompact
-    {
-        get => GetValue(IsCompactProperty);
-        set => SetValue(IsCompactProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial bool IsCompact { get; set; }
 
     /// <summary>
     /// 放掉一张拖影快照 —— <see cref="CaptureThumb"/> 的对手戏。
@@ -260,18 +225,6 @@ public class ForgeDragOverlay : Control
     /// </remarks>
     public void Clear() => ClearDropFeedback();
 
-    /// <summary><see cref="DropBackgroundBrush"/> 的属性定义。</summary>
-    public static readonly StyledProperty<IBrush?> DropBackgroundBrushProperty =
-        AvaloniaProperty.Register<ForgeDragOverlay, IBrush?>(nameof(DropBackgroundBrush));
-
-    /// <summary><see cref="DropBorderBrush"/> 的属性定义。</summary>
-    public static readonly StyledProperty<IBrush?> DropBorderBrushProperty =
-        AvaloniaProperty.Register<ForgeDragOverlay, IBrush?>(nameof(DropBorderBrush));
-
-    /// <summary><see cref="DropAreaBrush"/> 的属性定义。</summary>
-    public static readonly StyledProperty<IBrush?> DropAreaBrushProperty =
-        AvaloniaProperty.Register<ForgeDragOverlay, IBrush?>(nameof(DropAreaBrush));
-
     /// <summary>落点方框的底色，由 <c>ControlTheme</c> 从资源键给（REQ-067）。</summary>
     /// <remarks>
     /// <b>这个控件不套模板</b>：它画的是拖拽过程中**实时算出来的**落点方框与高亮区，
@@ -279,25 +232,16 @@ public class ForgeDragOverlay : Control
     /// 明暗照常跟随），只是库内部仍由 <c>Render</c> 拿着画刷画。
     /// <para>兜底回配色 —— 控件没进树时拿不到主题。</para>
     /// </remarks>
-    public IBrush? DropBackgroundBrush
-    {
-        get => GetValue(DropBackgroundBrushProperty);
-        set => SetValue(DropBackgroundBrushProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial IBrush? DropBackgroundBrush { get; set; }
 
     /// <summary>落点方框的描边，来源同 <see cref="DropBackgroundBrush"/>。</summary>
-    public IBrush? DropBorderBrush
-    {
-        get => GetValue(DropBorderBrushProperty);
-        set => SetValue(DropBorderBrushProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial IBrush? DropBorderBrush { get; set; }
 
     /// <summary>目标停靠区高亮的底色，来源同 <see cref="DropBackgroundBrush"/>。</summary>
-    public IBrush? DropAreaBrush
-    {
-        get => GetValue(DropAreaBrushProperty);
-        set => SetValue(DropAreaBrushProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial IBrush? DropAreaBrush { get; set; }
 
     /// <inheritdoc />
     public override void Render(DrawingContext context)

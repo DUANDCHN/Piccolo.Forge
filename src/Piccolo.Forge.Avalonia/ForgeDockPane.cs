@@ -25,12 +25,8 @@ namespace Piccolo.Forge.Avalonia;
 /// </para>
 /// </remarks>
 [ForgeThemeless("纯布局面板：只排子元素的位置，不画、不取色。")]
-public class ForgeDockPane : Panel
+public partial class ForgeDockPane : Panel
 {
-    /// <summary><see cref="IsWideScreen"/> 的属性定义。</summary>
-    public static readonly StyledProperty<bool> IsWideScreenProperty =
-        AvaloniaProperty.Register<ForgeDockPane, bool>(nameof(IsWideScreen));
-
     /// <summary>四条边上的槽位。</summary>
     public static readonly AttachedProperty<ToolWindowAnchor?> AnchorProperty =
         AvaloniaProperty.RegisterAttached<ForgeDockPane, Control, ToolWindowAnchor?>("Anchor");
@@ -102,26 +98,9 @@ public class ForgeDockPane : Panel
         control.SetValue(IsSplitResizerProperty, value);
     }
 
-    /// <summary>
-    /// 左右两条边**默认多宽**（像素）；<see cref="double.NaN"/>（默认）= 按 <c>weight</c> 算。
-    /// </summary>
-    /// <remarks>
-    /// 只在这条边**还没有像素记录、且它的 weight 就是那个默认值**时起作用 ——
-    /// 也就是"用户从没拉过、也没有存档"的那一份。用户拉过或读了档，走的都是台账里的实际值，
-    /// 这个默认宽度不会把它盖掉。
-    /// <para>
-    /// 上下两条边不受影响：那儿的默认高度仍按 <c>weight</c> 来（宿主没有提过要改）。
-    /// </para>
-    /// </remarks>
-    public static readonly StyledProperty<double> DefaultAnchorWidthProperty =
-        AvaloniaProperty.Register<ForgeDockPane, double>(nameof(DefaultAnchorWidth), double.NaN);
-
     /// <summary>见 <see cref="DefaultAnchorWidthProperty"/>。</summary>
-    public double DefaultAnchorWidth
-    {
-        get => GetValue(DefaultAnchorWidthProperty);
-        set => SetValue(DefaultAnchorWidthProperty, value);
-    }
+    [GeneratedStyledProperty(DefaultValue = double.NaN)]
+    public partial double DefaultAnchorWidth { get; set; }
 
     /// <summary>
     /// 某条边的尺寸被本控件改成了新的像素值——请宿主按当前 pane 反算成 weight 写回台账。
@@ -197,11 +176,8 @@ public class ForgeDockPane : Panel
     /// <summary>
     /// 是否宽屏模式，决定两层分隔器谁在外。默认 <see langword="false"/>。
     /// </summary>
-    public bool IsWideScreen
-    {
-        get => GetValue(IsWideScreenProperty);
-        set => SetValue(IsWideScreenProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial bool IsWideScreen { get; set; }
 
     /// <summary>读一个子控件停在哪条边。</summary>
     /// <param name="control">子控件。</param>

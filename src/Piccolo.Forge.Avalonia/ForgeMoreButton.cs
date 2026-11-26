@@ -14,20 +14,8 @@ namespace Piccolo.Forge.Avalonia;
 /// **同一时刻只有一根条带显示它**（见 <see cref="Side"/>），
 /// 且没有可显示的工具窗口时整个隐藏（<c>:124-135</c>）。
 /// </remarks>
-public class ForgeMoreButton : ForgeSquareButtonBase
+public partial class ForgeMoreButton : ForgeSquareButtonBase
 {
-    /// <summary><see cref="Side"/> 的属性定义。</summary>
-    public static readonly StyledProperty<StripeSide> SideProperty =
-        AvaloniaProperty.Register<ForgeMoreButton, StripeSide>(nameof(Side));
-
-    /// <summary><see cref="ActiveSide"/> 的属性定义。</summary>
-    public static readonly StyledProperty<StripeSide> ActiveSideProperty =
-        AvaloniaProperty.Register<ForgeMoreButton, StripeSide>(nameof(ActiveSide));
-
-    /// <summary><see cref="HasHiddenToolWindows"/> 的属性定义。</summary>
-    public static readonly StyledProperty<bool> HasHiddenToolWindowsProperty =
-        AvaloniaProperty.Register<ForgeMoreButton, bool>(nameof(HasHiddenToolWindows));
-
     static ForgeMoreButton()
     {
         // 这三项会改变 IsAvailable，而 MeasureOverride 会据此在正常尺寸与 0x0 之间切换。
@@ -40,11 +28,8 @@ public class ForgeMoreButton : ForgeSquareButtonBase
     public ForgeMoreButton() => AutomationProperties.SetName(this, ForgeStrings.Current.MoreToolWindows);
 
     /// <summary>这个按钮长在哪根条带上。</summary>
-    public StripeSide Side
-    {
-        get => GetValue(SideProperty);
-        set => SetValue(SideProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial StripeSide Side { get; set; }
 
     /// <summary>
     /// 当前「更多」按钮该显示在哪一边。
@@ -53,18 +38,12 @@ public class ForgeMoreButton : ForgeSquareButtonBase
     /// 对应 <c>ToolWindowManagerState.moreButton</c>，默认 LEFT
     /// （<c>ToolWindowManagerState.kt:60</c>）。
     /// </remarks>
-    public StripeSide ActiveSide
-    {
-        get => GetValue(ActiveSideProperty);
-        set => SetValue(ActiveSideProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial StripeSide ActiveSide { get; set; }
 
     /// <summary>有没有能从弹窗里挑的工具窗口。</summary>
-    public bool HasHiddenToolWindows
-    {
-        get => GetValue(HasHiddenToolWindowsProperty);
-        set => SetValue(HasHiddenToolWindowsProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial bool HasHiddenToolWindows { get; set; }
 
     /// <summary>
     /// 这个按钮现在该不该显示。

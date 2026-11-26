@@ -60,6 +60,15 @@
         <Style Selector="^ /template/ Border#PART_FocusRing">
             <Setter Property="BorderThickness" Value="0" />
         </Style>
+        <!-- 悬停/按下的叠加层淡入淡出。整个按钮族（IconButton、标题条小钮、CommandBar…）共用这一个
+             PART_Overlay，所以动效只在这里写一次。时长取短档：IDE 里按钮密集，长了会显得拖沓。 -->
+        <Style Selector="^ /template/ Border#PART_Overlay">
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.08" />
+                </Transitions>
+            </Setter>
+        </Style>
         <Style Selector="^:pointerover /template/ Border#PART_Overlay">
             <Setter Property="Background" Value="{DynamicResource Forge.Overlay.Hover}" />
         </Style>

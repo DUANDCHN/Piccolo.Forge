@@ -15,7 +15,7 @@ namespace Piccolo.Forge.Avalonia;
 /// 度量见 <c>docs/upstream/编辑区.md</c> §5：高 28、左右内边距 8、
 /// 选中下划线高 3 且**圆角 0**（工具窗口标题条那边是 4，两处不一致是真的）。
 /// </remarks>
-public class ForgeEditorTab : TabStripItem
+public partial class ForgeEditorTab : TabStripItem
 {
     // 这里曾经在构造里赋 Template（一个空 Border，只为盖掉 TabStripItem 自带的模板）。
     // 那是 local value，会盖过 ControlTheme 里的模板与 Setter，
@@ -38,146 +38,46 @@ public class ForgeEditorTab : TabStripItem
     public static readonly StyledProperty<ForgePalette> PaletteProperty =
         AvaloniaProperty.Register<ForgeEditorTab, ForgePalette>(nameof(Palette), ForgePalette.ExpUiDark);
 
-    /// <summary>
-    /// 标签文字的字重。
-    /// </summary>
-    /// <remarks>
-    /// 上游是常规字重，所以默认 <see cref="FontWeight.Normal"/>；
-    /// 由 <c>ForgeEditorControl.TabTitleFontWeight</c> 统一给值。
-    /// </remarks>
-    public static readonly StyledProperty<FontWeight> TitleFontWeightProperty =
-        AvaloniaProperty.Register<ForgeEditorTab, FontWeight>(nameof(TitleFontWeight), FontWeight.Normal);
-
     /// <summary>标签文字的字重。</summary>
-    public FontWeight TitleFontWeight
-    {
-        get => GetValue(TitleFontWeightProperty);
-        set => SetValue(TitleFontWeightProperty, value);
-    }
+    [GeneratedStyledProperty(DefaultValue = FontWeight.Normal)]
+    public partial FontWeight TitleFontWeight { get; set; }
 
-
-    /// <summary><see cref="Title"/> 的属性定义。</summary>
-    public static readonly StyledProperty<string?> TitleProperty =
-        AvaloniaProperty.Register<ForgeEditorTab, string?>(nameof(Title));
-
-    /// <summary><see cref="IsGroupActive"/> 的属性定义。</summary>
-    public static readonly StyledProperty<bool> IsGroupActiveProperty =
-        AvaloniaProperty.Register<ForgeEditorTab, bool>(nameof(IsGroupActive));
-
-    /// <summary><see cref="IsPinned"/> 的属性定义。</summary>
-    public static readonly StyledProperty<bool> IsPinnedProperty =
-        AvaloniaProperty.Register<ForgeEditorTab, bool>(nameof(IsPinned));
 
     /// <summary><see cref="CanBeClosed"/> 的属性定义。</summary>
     public static readonly StyledProperty<bool> CanBeClosedProperty =
         AvaloniaProperty.Register<ForgeEditorTab, bool>(nameof(CanBeClosed), defaultValue: true);
 
-    /// <summary>
-    /// 宿主指定的标签行高；<see cref="double.NaN"/> = 不指定，按
-    /// <see cref="ForgeMetrics.EditorTabRowHeight"/>（Islands 40 / expUI 42）走。
-    /// </summary>
-    /// <remarks>
-    /// 行高变了，Islands 那个内缩圆角块跟着自适应 —— 它的高度是
-    /// <c>行高 - max(行高 - 28, 8)</c>（见 <see cref="IslandsBlockRect"/>），
-    /// 行高压到 31 时块高 23、上下各留 4，不会顶出去。
-    /// </remarks>
-    public static readonly StyledProperty<double> RowHeightOverrideProperty =
-        AvaloniaProperty.Register<ForgeEditorTab, double>(nameof(RowHeightOverride), double.NaN);
-
     /// <summary>宿主指定的标签行高，NaN = 走上游默认。</summary>
-    public double RowHeightOverride
-    {
-        get => GetValue(RowHeightOverrideProperty);
-        set => SetValue(RowHeightOverrideProperty, value);
-    }
-
-    /// <summary>五个状态各自的底与描边，由 ControlTheme 从资源键给（REQ-067）。</summary>
-    /// <remarks>
-    /// ★ <b>这个控件已经是真模板</b>（结构可换），但<b>「哪一档」的判定仍留在 C#</b>：
-    /// 底与描边有 <b>5 个状态 × 2 个族</b>，两族还是**两个 painter**
-    /// （expUI 整条贴边 + 下划线；Islands 改画内缩圆角块、完全不画下划线），
-    /// 另有若干状态的填充或描边是**空**（不画）。用样式选择器表达要写 20 条上下，
-    /// 而这套判定集中在 <see cref="ResolveColors"/> 里、每一档都带着上游出处
-    /// （<c>IslandsTabPainter.kt:254-268</c>）—— 拆进选择器出错概率高于收益。
-    /// 模板拿到的是<b>已经挑好的那一档</b>（<see cref="DecorationBrush"/> /
-    /// <see cref="DecorationBorderBrush"/>），只负责"把它画成什么形状"。
-    /// <para>颜色仍然全部可主题化：宿主重定义同名键即可，明暗照常跟随。</para>
-    /// </remarks>
-    public static readonly StyledProperty<IBrush?> SelectedBackgroundBrushProperty =
-        AvaloniaProperty.Register<ForgeEditorTab, IBrush?>(nameof(SelectedBackgroundBrush));
-
-    /// <summary>选中且所在组活动时的描边。</summary>
-    public static readonly StyledProperty<IBrush?> SelectedBorderBrushProperty =
-        AvaloniaProperty.Register<ForgeEditorTab, IBrush?>(nameof(SelectedBorderBrush));
-
-    /// <summary>悬停底。</summary>
-    public static readonly StyledProperty<IBrush?> HoverBackgroundBrushProperty =
-        AvaloniaProperty.Register<ForgeEditorTab, IBrush?>(nameof(HoverBackgroundBrush));
-
-    /// <summary>选中但失焦时的底。</summary>
-    public static readonly StyledProperty<IBrush?> InactiveSelectedBackgroundBrushProperty =
-        AvaloniaProperty.Register<ForgeEditorTab, IBrush?>(nameof(InactiveSelectedBackgroundBrush));
-
-    /// <summary>选中但失焦时的描边。</summary>
-    public static readonly StyledProperty<IBrush?> InactiveSelectedBorderBrushProperty =
-        AvaloniaProperty.Register<ForgeEditorTab, IBrush?>(nameof(InactiveSelectedBorderBrush));
-
-    /// <summary>下划线（活动组）。</summary>
-    public static readonly StyledProperty<IBrush?> UnderlineBrushProperty =
-        AvaloniaProperty.Register<ForgeEditorTab, IBrush?>(nameof(UnderlineBrush));
-
-    /// <summary>下划线（失焦组）。</summary>
-    public static readonly StyledProperty<IBrush?> InactiveUnderlineBrushProperty =
-        AvaloniaProperty.Register<ForgeEditorTab, IBrush?>(nameof(InactiveUnderlineBrush));
+    [GeneratedStyledProperty(DefaultValue = double.NaN)]
+    public partial double RowHeightOverride { get; set; }
 
     /// <summary>选中且活动时的底。</summary>
-    public IBrush? SelectedBackgroundBrush
-    {
-        get => GetValue(SelectedBackgroundBrushProperty);
-        set => SetValue(SelectedBackgroundBrushProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial IBrush? SelectedBackgroundBrush { get; set; }
 
     /// <summary>选中且活动时的描边。</summary>
-    public IBrush? SelectedBorderBrush
-    {
-        get => GetValue(SelectedBorderBrushProperty);
-        set => SetValue(SelectedBorderBrushProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial IBrush? SelectedBorderBrush { get; set; }
 
     /// <summary>悬停底。</summary>
-    public IBrush? HoverBackgroundBrush
-    {
-        get => GetValue(HoverBackgroundBrushProperty);
-        set => SetValue(HoverBackgroundBrushProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial IBrush? HoverBackgroundBrush { get; set; }
 
     /// <summary>选中但失焦时的底。</summary>
-    public IBrush? InactiveSelectedBackgroundBrush
-    {
-        get => GetValue(InactiveSelectedBackgroundBrushProperty);
-        set => SetValue(InactiveSelectedBackgroundBrushProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial IBrush? InactiveSelectedBackgroundBrush { get; set; }
 
     /// <summary>选中但失焦时的描边。</summary>
-    public IBrush? InactiveSelectedBorderBrush
-    {
-        get => GetValue(InactiveSelectedBorderBrushProperty);
-        set => SetValue(InactiveSelectedBorderBrushProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial IBrush? InactiveSelectedBorderBrush { get; set; }
 
     /// <summary>下划线（活动组）。</summary>
-    public IBrush? UnderlineBrush
-    {
-        get => GetValue(UnderlineBrushProperty);
-        set => SetValue(UnderlineBrushProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial IBrush? UnderlineBrush { get; set; }
 
     /// <summary>下划线（失焦组）。</summary>
-    public IBrush? InactiveUnderlineBrush
-    {
-        get => GetValue(InactiveUnderlineBrushProperty);
-        set => SetValue(InactiveUnderlineBrushProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial IBrush? InactiveUnderlineBrush { get; set; }
 
     static ForgeEditorTab()
     {
@@ -210,25 +110,16 @@ public class ForgeEditorTab : TabStripItem
     }
 
     /// <summary>标签上的字。</summary>
-    public string? Title
-    {
-        get => GetValue(TitleProperty);
-        set => SetValue(TitleProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial string? Title { get; set; }
 
     /// <summary>所在的组是不是当前组（决定下划线用哪个颜色）。</summary>
-    public bool IsGroupActive
-    {
-        get => GetValue(IsGroupActiveProperty);
-        set => SetValue(IsGroupActiveProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial bool IsGroupActive { get; set; }
 
     /// <summary>固定住了 —— 画图钉而不是叉。</summary>
-    public bool IsPinned
-    {
-        get => GetValue(IsPinnedProperty);
-        set => SetValue(IsPinnedProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial bool IsPinned { get; set; }
 
     /// <summary>能不能关。</summary>
     public bool CanBeClosed
@@ -237,26 +128,20 @@ public class ForgeEditorTab : TabStripItem
         set => SetValue(CanBeClosedProperty, value);
     }
 
-    /// <summary><see cref="IsCompact"/> 的属性定义。</summary>
-    public static readonly StyledProperty<bool> IsCompactProperty =
-        AvaloniaProperty.Register<ForgeEditorTab, bool>(nameof(IsCompact));
-
     /// <summary>是否紧凑模式（只影响 Islands 那个选中块的尺寸与内缩）。</summary>
-    public bool IsCompact
-    {
-        get => GetValue(IsCompactProperty);
-        set => SetValue(IsCompactProperty, value);
-    }
+    [GeneratedStyledProperty]
+    public partial bool IsCompact { get; set; }
 
     /// <summary><see cref="Icon"/> 的属性定义。</summary>
-    public static readonly StyledProperty<object?> IconProperty =
+    // Avalonia 12.2 起 TabStripItem 自带 Icon/IconProperty；这里保留自有定义（Geometry 直接画、Control 挂子元素），用 new 显式隐藏。
+    public static new readonly StyledProperty<object?> IconProperty =
         AvaloniaProperty.Register<ForgeEditorTab, object?>(nameof(Icon));
 
     /// <summary>
     /// 左边那个文件图标：<see cref="Geometry"/> 直接画，<see cref="Control"/> 挂成子元素，
     /// <see langword="null"/> 就不画（编辑区标签页<b>没有</b>默认图标——文件是什么类型只有宿主知道）。
     /// </summary>
-    public object? Icon
+    public new object? Icon
     {
         get => GetValue(IconProperty);
         set => SetValue(IconProperty, value);
@@ -452,20 +337,13 @@ public class ForgeEditorTab : TabStripItem
         set => SetValue(UnderlineCornerRadiusProperty, value);
     }
 
-    /// <summary><see cref="TitleFontSize"/> 的属性定义。</summary>
-    public static readonly StyledProperty<double> TitleFontSizeProperty =
-        AvaloniaProperty.Register<ForgeEditorTab, double>(nameof(TitleFontSize), 12);
-
     /// <summary><see cref="TitleMargin"/> 的属性定义。</summary>
     public static readonly StyledProperty<Thickness> TitleMarginProperty =
         AvaloniaProperty.Register<ForgeEditorTab, Thickness>(nameof(TitleMargin));
 
     /// <summary>标题字号 —— 与 <see cref="MeasureTitle"/> 必须同源，否则量出来的宽与画出来的字不一致。</summary>
-    public double TitleFontSize
-    {
-        get => GetValue(TitleFontSizeProperty);
-        set => SetValue(TitleFontSizeProperty, value);
-    }
+    [GeneratedStyledProperty(DefaultValue = 12)]
+    public partial double TitleFontSize { get; set; }
 
     /// <summary>标题的位置：左边让开左内边距**加上文件图标那一截**，竖直居中。</summary>
     public Thickness TitleMargin
@@ -510,10 +388,6 @@ public class ForgeEditorTab : TabStripItem
         set => SetValue(LeadingIconMarginProperty, value);
     }
 
-    /// <summary><see cref="TabIconSize"/> 的属性定义。</summary>
-    public static readonly StyledProperty<double> TabIconSizeProperty =
-        AvaloniaProperty.Register<ForgeEditorTab, double>(nameof(TabIconSize), 12);
-
     /// <summary><see cref="TabIconMargin"/> 的属性定义。</summary>
     public static readonly StyledProperty<Thickness> TabIconMarginProperty =
         AvaloniaProperty.Register<ForgeEditorTab, Thickness>(nameof(TabIconMargin));
@@ -532,11 +406,8 @@ public class ForgeEditorTab : TabStripItem
             nameof(TabIconHoverCornerRadius), new CornerRadius(ForgeMetrics.StripeButtonArcCompact / 2));
 
     /// <summary>右边那个关闭 / 图钉图标的边长。</summary>
-    public double TabIconSize
-    {
-        get => GetValue(TabIconSizeProperty);
-        set => SetValue(TabIconSizeProperty, value);
-    }
+    [GeneratedStyledProperty(DefaultValue = 12)]
+    public partial double TabIconSize { get; set; }
 
     /// <summary>右边那个图标的位置：贴右内边距（**两族不同**）、竖直居中。</summary>
     public Thickness TabIconMargin
