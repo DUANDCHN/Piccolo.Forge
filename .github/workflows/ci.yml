@@ -1,10 +1,24 @@
 name: CI
 
-# 仅在发布时运行：推送 v* 标签触发；日常提交不消耗 CI 配额，测试在本机跑。
+# 仅在发布时运行：推送 v*（全量）或 <模块>-v*（如 datagrid-v12.1.5）标签触发；
+# 也可通过 workflow_dispatch 手动打包或单包发布；日常提交不消耗 CI 配额。
 on:
   push:
-    tags: ['v*']
+    tags:
+      - 'v*'
+      - '*-v*'
   workflow_dispatch:
+    inputs:
+      project:
+        description: '要打包的项目（默认全解决方案；单包可填如 src/Piccolo.Forge.Avalonia.DataGrid/Piccolo.Forge.Avalonia.DataGrid.csproj）'
+        required: false
+        default: 'Piccolo.Forge.slnx'
+        type: string
+      publish:
+        description: '是否推送到 NuGet（默认仅打包验证）'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   test:
@@ -43,7 +57,7 @@ jobs:
           dotnet-version: |
             8.0.x
             10.0.x
-      - run: dotnet pack Piccolo.Forge.slnx -c Release -o artifacts
+      - run: dotnet pack "${{ inputs.project || 'Piccolo.Forge.slnx' }}" -c Release -o artifacts
       - uses: actions/upload-artifact@v4
         with:
           name: nupkg
@@ -52,7 +66,7 @@ jobs:
   publish:
     name: publish to NuGet
     needs: pack
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs.publish)
     runs-on: ubuntu-latest
     environment: nuget          # 与 nuget.org Trusted Publishing 策略里的 Environment 一致
     permissions:

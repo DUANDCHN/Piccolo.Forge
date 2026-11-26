@@ -1,6 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <!-- 独立版本号：Avalonia.Controls.DataGrid 独立发版，本包无变更时不随主包抬版本 -->
+    <VersionPrefix>12.1.4</VersionPrefix>
     <IsAotCompatible>true</IsAotCompatible>
     <RootNamespace>Piccolo.Forge.Avalonia.DataGrid</RootNamespace>
     <Description>Piccolo.Forge control theme for Avalonia DataGrid. Add it next to a Piccolo.Forge theme package (ForgeExpUiTheme / ForgeIslandsTheme), which supplies the colors.</Description>
